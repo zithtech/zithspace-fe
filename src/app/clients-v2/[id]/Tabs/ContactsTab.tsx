@@ -12,7 +12,7 @@ import {
   Switch,
   Segmented,
   Popconfirm,
-  notification,
+  message,
   Card,
   Space,
   Row,
@@ -57,7 +57,8 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any>(null);
   const [editForm] = Form.useForm();
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProject, setSelectedProject] = useState("all");
@@ -83,22 +84,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         values,
       );
       if (data) {
-        notify.success({
-          message: "Contact Added",
-          description: "New contact has been created successfully.",
-          placement: "top",
-        });
+        messageApi.success("Contact added successfully");
         setIsModalOpen(false);
         form.resetFields();
         onRefresh();
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Error",
-        description: "Failed to add contact.",
-        placement: "top",
-      });
+      messageApi.error("Failed to add contact");
     } finally {
       setLoading(false);
     }
@@ -125,11 +118,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         values,
       );
       if (data) {
-        notify.success({
-          message: "Contact Updated",
-          description: "Contact details have been updated successfully.",
-          placement: "top",
-        });
+        messageApi.success("Contact updated successfully");
         setIsEditModalOpen(false);
         editForm.resetFields();
         setEditingContact(null);
@@ -137,11 +126,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Update Failed",
-        description: "Failed to update contact details.",
-        placement: "top",
-      });
+      messageApi.error("Failed to update contact details");
     } finally {
       setLoading(false);
     }
@@ -154,20 +139,23 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         status: newStatus,
       });
       if (data) {
-        notify.success({
-          message: "Status Updated",
-          description: `Contact is now ${newStatus}.`,
-          placement: "top",
-        });
+        messageApi.success(`Contact is now ${newStatus}`);
         onRefresh();
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Status Update Failed",
-        description: "Failed to change contact status.",
-        placement: "top",
-      });
+      messageApi.error("Failed to change contact status");
+    }
+  };
+
+  const handleDelete = async (contactId: string) => {
+    try {
+      await api.delete(`/api/clients-v2/contacts/${contactId}`);
+      messageApi.success("Contact deleted successfully");
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Failed to delete contact");
     }
   };
 
@@ -255,7 +243,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) => (
@@ -268,6 +256,23 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               onClick={() => openEditModal(record)}
               style={{ color: "var(--text-slate-500)" }}
             />
+          )}
+          {canUpdateClient && (
+            <Popconfirm
+              title="Delete contact"
+              description={`Are you sure you want to delete ${record.firstName} ${record.lastName}? This action cannot be undone.`}
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                className="premium-action-btn"
+                icon={<Trash2 size={16} />}
+                style={{ color: "var(--text-slate-400)" }}
+              />
+            </Popconfirm>
           )}
         </Space>
       ),
@@ -482,7 +487,11 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
             <Row gutter={12} align="top">
               <Col xs={24} sm={12}>
-                <Form.Item name="mobileNumber" label="Contact number">
+                <Form.Item
+                  name="mobileNumber"
+                  label="Contact number"
+                  rules={[{ required: true, message: "Contact number is required" }]}
+                >
                   <Input
                     placeholder="+1 (555) 000-0000"
                     type="number"
@@ -629,7 +638,11 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
             <Row gutter={12} align="top">
               <Col xs={24} sm={12}>
-                <Form.Item name="mobileNumber" label="Contact number">
+                <Form.Item
+                  name="mobileNumber"
+                  label="Contact number"
+                  rules={[{ required: true, message: "Contact number is required" }]}
+                >
                   <Input
                     placeholder="+1 (555) 000-0000"
                     type="number"
@@ -1019,32 +1032,6 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         [data-theme="dark"] .pmodal .ant-modal-close:hover {
           background: rgba(255, 255, 255, 0.16) !important;
           color: #fff !important;
-        }
-
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .contacts-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
         }
 
         /* Prevent horizontal overflow from edge-to-edge header bleed */

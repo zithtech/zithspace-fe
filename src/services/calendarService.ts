@@ -33,6 +33,7 @@ export interface CalendarStatus {
     connected: boolean;
     provider: string;
     lastSync: string | null;
+    isSyncing?: boolean;
 }
 
 export interface CreateEventData {

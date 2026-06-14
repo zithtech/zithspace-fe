@@ -41,6 +41,7 @@ import {
   Landmark,
   Sparkles,
   Activity,
+  History,
   Copy,
   CheckCircle2,
   AlertCircle,
@@ -58,12 +59,14 @@ import {
   Server,
   Receipt,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
@@ -423,16 +426,26 @@ const Field: React.FC<{ label: string; children: React.ReactNode; icon?: React.C
 /* -------------------------------------------------------------------------- */
 
 export default function ClientV2DetailsPage() {
+  useActivitySource({ section: "ADMIN", module: "ClientsV2", page: "ClientDetail" });
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { tenantId } = useTenant();
-  const { canUpdateClient } = usePermission();
+  const { canUpdateClient, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notify, contextHolder] = notification.useNotification();
   const [activeField, setActiveField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("1");
   const [copiedCode, setCopiedCode] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "projects") {
+      setActiveTab("4");
+    }
+  }, [searchParams]);
 
   const [editModes, setEditModes] = useState({
     basic: false,
@@ -491,7 +504,16 @@ export default function ClientV2DetailsPage() {
       if (client[field] === value) return;
 
       // Validate GST/Tax ID, PAN, and Year of Incorporation if they or country are updated
-      if (field === "gstVatTaxId" || field === "pan" || field === "yearOfIncorporation" || field === "country") {
+      if (
+        field === "gstVatTaxId" ||
+        field === "pan" ||
+        field === "yearOfIncorporation" ||
+        field === "country" ||
+        field === "dunsNumber" ||
+        field === "ifscSwift" ||
+        field === "bankAccountNumber" ||
+        field === "website"
+      ) {
         const gstVatTaxId = field === "gstVatTaxId" ? value : client.gstVatTaxId;
         const pan = field === "pan" ? value : client.pan;
         const yearOfIncorporation = field === "yearOfIncorporation" ? value : client.yearOfIncorporation;
@@ -596,6 +618,65 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: `Year must be between 1800 and ${currentYear}.`,
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 4. DUNS Validation
+        if (field === "dunsNumber" && value && value.trim() !== "") {
+          const val = value.trim();
+          if (!/^\d{9}$/.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid DUNS number (must be exactly 9 digits).",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 5. IFSC / SWIFT Validation
+        if (field === "ifscSwift" && value && value.trim() !== "") {
+          const val = value.trim();
+          const ifscRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/;
+          const swiftRegex = /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/;
+          if (!ifscRegex.test(val) && !swiftRegex.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid IFSC or SWIFT code.",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 6. Account Number Validation
+        if (field === "bankAccountNumber" && value && value.trim() !== "") {
+          const val = value.trim();
+          if (!/^\d{6,20}$/.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid account number (6 to 20 digits).",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 7. Website Validation
+        if (field === "website" && value && value.trim() !== "") {
+          const val = value.trim();
+          const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}(\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=]*)?$/;
+          if (!websiteRegex.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid website URL.",
               placement: "top",
             });
             setActiveField(null);
@@ -741,6 +822,15 @@ export default function ClientV2DetailsPage() {
             </div>
 
             <div className="cd-cmdbar-actions">
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  className="cd-secondary-btn"
+                  onClick={() => setHistoryOpen(true)}
+                >
+                  History
+                </Button>
+              )}
               {canUpdateClient && (
                 <Button
                   icon={<Settings2 size={15} />}
@@ -1999,12 +2089,18 @@ export default function ClientV2DetailsPage() {
             .cd-tabs .ant-tabs-tab .cd-tab-label {
               display: flex;
               align-items: center;
-              gap: 12px;
               color: var(--text-slate-500);
               font-size: 13.5px;
               font-weight: 600;
               transition: color 0.15s ease;
               width: 100%;
+            }
+            .cd-tabs .ant-tabs-tab .cd-tab-label > svg {
+              flex: 0 0 16px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin-right: 12px;
             }
             .cd-tabs .ant-tabs-tab .cd-tab-label > span:not(.cd-tab-count) {
               flex: 1;
@@ -2012,6 +2108,10 @@ export default function ClientV2DetailsPage() {
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
+            }
+            .cd-tabs .ant-tabs-tab .cd-tab-label .cd-tab-count {
+              flex-shrink: 0;
+              margin-left: auto;
             }
             .cd-tabs .ant-tabs-tab:hover {
               background: var(--bg-slate-50);
@@ -2604,6 +2704,13 @@ export default function ClientV2DetailsPage() {
             }
             .pmodal-body .ant-form-item-label > label::before {
               color: #ef4444 !important;
+            }
+            .pmodal-body .ant-form-item-explain,
+            .pmodal-body .ant-form-item-explain-error {
+              padding-top: 6px !important;
+              font-size: 12px !important;
+              position: relative !important;
+              clear: both !important;
             }
             .pmodal-body .ant-input,
             .pmodal-body .ant-input-affix-wrapper,
@@ -3895,6 +4002,13 @@ export default function ClientV2DetailsPage() {
             [data-theme='dark'] .ptab-search.ant-input-affix-wrapper { background: var(--bg-secondary) !important; }
             [data-theme='dark'] .ptab-header-count { background: var(--bg-secondary); }
           `}</style>
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="client"
+            entityId={client.id}
+            subtitle={client.companyName}
+          />
         </div>
       </MainLayout>
     </ProtectedRoute>

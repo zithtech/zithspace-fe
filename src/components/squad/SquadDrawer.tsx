@@ -32,6 +32,10 @@ import {
 } from '@ant-design/icons';
 import { Squad, SquadService, SquadMember } from '@/services/squadService';
 import { MembersService } from '@/services/membersService';
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import { usePermission } from '@/hooks/usePermission';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -53,11 +57,13 @@ const ROLE_META: Record<Role, { label: string; cls: string }> = {
 
 const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, initialData }) => {
   const { message } = App.useApp();
+  const { canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [form] = Form.useForm();
   const [addMemberForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
-  const [showAddMember, setShowAddMember] = useState(false);
+
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [localSquadMembers, setLocalSquadMembers] = useState<SquadMember[]>([]);
 
@@ -98,7 +104,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
         form.resetFields();
         setLocalSquadMembers([]);
         form.setFieldsValue({ squadStatus: true });
-        setShowAddMember(false);
+
         setEditingMemberId(null);
       }
     }
@@ -159,7 +165,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
     const updatedMembers = [...localSquadMembers, newMember];
     await syncSquadMembers(updatedMembers);
     addMemberForm.resetFields();
-    setShowAddMember(false);
+
   };
 
   const handleUpdateRole = async (memberRecordId: string, newRole: Role) => {
@@ -265,7 +271,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
     return (
       <div key={record.id} className="squad-member-row">
         <div className="squad-member-row__main">
-          <div className={`squad-member-row__avatar ${meta.cls}`}>
+          <div className="squad-member-row__avatar" style={{ background: '#f1f5f9', color: '#64748b' }}>
             {record.member.name.charAt(0).toUpperCase()}
           </div>
           <div style={{ minWidth: 0 }}>
@@ -314,612 +320,607 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
   };
 
   return (
-    <Drawer
-      className="squad-drawer"
-      title={
-        <Space size={12} align="center">
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(139, 92, 246, 0.12))',
-              border: '1px solid rgba(59, 130, 246, 0.2)',
-              color: 'var(--premium-blue)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TeamOutlined style={{ fontSize: 18 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)' }}>
-              {initialData ? 'Manage Squad' : 'Create Squad'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-slate-400)', fontWeight: 400, marginTop: 2 }}>
-              {initialData
-                ? `Configuring ${initialData.squadName}`
-                : 'Define a new project team and assign leadership.'}
-            </div>
-          </div>
-        </Space>
-      }
-      width={680}
-      onClose={onClose}
-      open={visible}
-      destroyOnHidden
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={() => form.submit()}
-            type="primary"
-            loading={loading}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              border: 'none',
-              fontWeight: 600,
-              height: 36,
-              padding: '0 18px',
-              borderRadius: 8,
-              boxShadow: '0 6px 14px -6px rgba(37, 99, 235, 0.55)',
-            }}
-          >
-            {initialData ? 'Save Changes' : 'Create Squad'}
-          </Button>
-        </div>
-      }
-    >
-      {initialData && (
-        <div className="squad-drawer__hero">
-          <div className="squad-drawer__hero-avatar">{initials}</div>
-          <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-            <div className="squad-drawer__hero-name">{initialData.squadName}</div>
-            <div className="squad-drawer__hero-meta">
-              <span className="squad-card-v2__code" style={{ marginTop: 0 }}>
-                {initialData.squadCode}
-              </span>
-              <span
-                className={`squad-card-v2__status ${
-                  initialData.isArchived
-                    ? 'squad-status--archived'
-                    : initialData.squadStatus
-                      ? 'squad-status--active'
-                      : 'squad-status--inactive'
-                }`}
-              >
-                <span className="squad-status-dot" />
-                {initialData.isArchived ? 'Archived' : initialData.squadStatus ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CREATE MODE: live preview, stepper, helper banner */}
-      {!initialData && (
-        <>
-          <div className="scd-hero">
-            <div className="scd-hero__top">
-              <div className={`scd-hero__avatar${liveInitials ? '' : ' is-empty'}`}>
-                {liveInitials || <TeamOutlined />}
-              </div>
-              <div className="scd-hero__title-block">
-                <div className={`scd-hero__name${watchedName ? '' : ' is-placeholder'}`}>
-                  {watchedName || 'New squad name'}
-                </div>
-                <div className="scd-hero__sub">
-                  <span className="scd-hero__chip is-code">
-                    {watchedCode || 'SQUAD_CODE'}
-                  </span>
-                  <span className="scd-hero__chip is-draft">
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: 'currentColor',
-                      }}
-                    />
-                    Draft
-                  </span>
-                  <span className="scd-hero__chip">
-                    <UserOutlined style={{ fontSize: 10 }} />
-                    {totalSelected} {totalSelected === 1 ? 'member' : 'members'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="scd-hero__metrics">
-              <div className="scd-hero__metric is-head">
-                <div className="scd-hero__metric-value">{watchedHeadIds.length}</div>
-                <div className="scd-hero__metric-label">Heads</div>
-              </div>
-              <div className="scd-hero__metric is-subhead">
-                <div className="scd-hero__metric-value">{watchedSubHeadIds.length}</div>
-                <div className="scd-hero__metric-label">Sub-Heads</div>
-              </div>
-              <div className="scd-hero__metric is-member">
-                <div className="scd-hero__metric-value">{watchedMemberIds.length}</div>
-                <div className="scd-hero__metric-label">Members</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="scd-stepper">
-            <div className={`scd-step${activeStep === 0 ? ' is-active' : ''}${stepIdentityDone ? ' is-done' : ''}`}>
-              <div className="scd-step__bullet">
-                {stepIdentityDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '1'}
-              </div>
-              <div className="scd-step__text">
-                <div className="scd-step__label">Identity</div>
-                <div className="scd-step__hint">Name & code</div>
-              </div>
-            </div>
-            <div
-              className="scd-step__line"
-              style={{ ['--scd-line-progress' as never]: lineProgress1 }}
-            />
-            <div className={`scd-step${activeStep === 1 ? ' is-active' : ''}${stepLeadershipDone ? ' is-done' : ''}`}>
-              <div className="scd-step__bullet">
-                {stepLeadershipDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '2'}
-              </div>
-              <div className="scd-step__text">
-                <div className="scd-step__label">Leadership</div>
-                <div className="scd-step__hint">Heads (req.)</div>
-              </div>
-            </div>
-            <div
-              className="scd-step__line"
-              style={{ ['--scd-line-progress' as never]: lineProgress2 }}
-            />
-            <div className={`scd-step${activeStep === 2 ? ' is-active' : ''}${stepMembersDone ? ' is-done' : ''}`}>
-              <div className="scd-step__bullet">
-                {stepMembersDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '3'}
-              </div>
-              <div className="scd-step__text">
-                <div className="scd-step__label">Members</div>
-                <div className="scd-step__hint">Optional</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="scd-banner">
-            <div className="scd-banner__icon">
-              <BulbOutlined />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="scd-banner__title">How squads are structured</div>
-              <div className="scd-banner__text">
-                Squads have a leadership hierarchy. Each role defines visibility and approval scope across projects.
-              </div>
-              <div className="scd-banner__roles">
-                <span className="scd-banner__role-chip is-head">
-                  <span className="scd-banner__role-chip-dot" /> Head — owns the squad
-                </span>
-                <span className="scd-banner__role-chip is-subhead">
-                  <span className="scd-banner__role-chip-dot" /> Sub-Head — assists leadership
-                </span>
-                <span className="scd-banner__role-chip is-member">
-                  <span className="scd-banner__role-chip-dot" /> Member — contributes
-                </span>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      <Form form={form} layout="vertical" onFinish={onFinish}>
-        {initialData ? (
-          <>
-            <div className="squad-section-title">
-              <TeamOutlined /> Squad Identity
-            </div>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="squadName"
-                  label="Squad Name"
-                  rules={[{ required: true, message: 'Please enter squad name' }]}
-                >
-                  <Input size="large" placeholder="Frontend Team" onChange={handleNameChange} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="squadCode"
-                  label="Squad Code"
-                  rules={[{ required: true, message: 'Please enter squad code' }]}
-                >
-                  <Input size="large" placeholder="FRONTEND_TEAM" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </>
-        ) : (
-          <div className="scd-field-card">
-            <div className="scd-field-card__header">
-              <div className="scd-field-card__icon is-identity">
-                <TeamOutlined />
-              </div>
-              <div className="scd-field-card__title-block">
-                <div className="scd-field-card__title">Squad Identity</div>
-                <div className="scd-field-card__sub">
-                  A clear name and unique code so this squad is easy to find and reference.
-                </div>
-              </div>
-            </div>
-            <Row gutter={16}>
-              <Col span={14}>
-                <Form.Item
-                  name="squadName"
-                  label="Squad Name"
-                  rules={[{ required: true, message: 'Please enter squad name' }]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input size="large" placeholder="e.g. Frontend Team" onChange={handleNameChange} />
-                </Form.Item>
-              </Col>
-              <Col span={10}>
-                <Form.Item
-                  name="squadCode"
-                  label="Squad Code"
-                  rules={[{ required: true, message: 'Please enter squad code' }]}
-                  style={{ marginBottom: 0 }}
-                  tooltip="Auto-generated from the name. You can edit it."
-                >
-                  <Input size="large" placeholder="FRONTEND_TEAM" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-        )}
-
-        {initialData ? (
-          <>
-            <div className="squad-section-title">
-              <UserOutlined /> Composition
-            </div>
-            <div className="squad-stat-strip">
-              <div className="squad-stat-strip__item">
-                <div className="squad-stat-strip__value">{localSquadMembers.length}</div>
-                <div className="squad-stat-strip__label">Total</div>
-              </div>
-              <div className="squad-stat-strip__item is-head">
-                <div className="squad-stat-strip__value">{headCount}</div>
-                <div className="squad-stat-strip__label">Heads</div>
-              </div>
-              <div className="squad-stat-strip__item is-subhead">
-                <div className="squad-stat-strip__value">{subHeadCount}</div>
-                <div className="squad-stat-strip__label">Sub-Heads</div>
-              </div>
-              <div className="squad-stat-strip__item is-member">
-                <div className="squad-stat-strip__value">{memberCount}</div>
-                <div className="squad-stat-strip__label">Members</div>
-              </div>
-            </div>
-
+    <>
+      <Drawer
+        className="squad-drawer"
+        title={
+          <Space size={12} align="center">
             <div
               style={{
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: 'var(--bg-slate-50)',
+                border: '1px solid var(--border-slate-200)',
+                color: 'var(--text-slate-500)',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 12,
+                justifyContent: 'center',
               }}
             >
-              <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
-                Members
-              </Text>
-              <Button
-                type={showAddMember ? 'default' : 'primary'}
-                icon={showAddMember ? <CloseOutlined /> : <UserAddOutlined />}
-                onClick={() => setShowAddMember(!showAddMember)}
-                style={{
-                  borderRadius: 8,
-                  fontWeight: 600,
-                  ...(showAddMember
-                    ? {}
-                    : {
-                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                        border: 'none',
-                        boxShadow: '0 6px 14px -8px rgba(37, 99, 235, 0.5)',
-                      }),
-                }}
-              >
-                {showAddMember ? 'Cancel' : 'Add Member'}
-              </Button>
+              <TeamOutlined style={{ fontSize: 18 }} />
             </div>
-
-            {showAddMember && (
-              <div className="squad-add-member-panel">
-                <Form form={addMemberForm} layout="vertical" onFinish={handleAddMember}>
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="memberId"
-                        label="Select Member"
-                        rules={[{ required: true, message: 'Pick a member' }]}
-                        style={{ marginBottom: 12 }}
-                      >
-                        <Select
-                          placeholder="Search by name or email"
-                          showSearch
-                          optionFilterProp="label"
-                          size="large"
-                        >
-                          {members.map(m => (
-                            <Option key={m.value} value={m.value} label={m.label}>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ color: 'var(--text-slate-900)' }}>{m.label}</span>
-                                <small style={{ color: 'var(--text-slate-400)' }}>{m.position}</small>
-                              </div>
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        name="role"
-                        label="Assign Role"
-                        rules={[{ required: true, message: 'Pick a role' }]}
-                        style={{ marginBottom: 12 }}
-                      >
-                        <Select placeholder="Choose role" size="large">
-                          <Option value="HEAD">Head</Option>
-                          <Option value="SUB_HEAD">Sub-Head</Option>
-                          <Option value="MEMBER">Member</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={4}>
-                      <Form.Item label=" " style={{ marginBottom: 12 }}>
-                        <Button
-                          type="primary"
-                          block
-                          size="large"
-                          icon={<PlusOutlined />}
-                          onClick={() => addMemberForm.submit()}
-                          style={{
-                            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                            border: 'none',
-                            borderRadius: 8,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Add
-                        </Button>
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Form>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                {initialData ? 'Manage Squad' : 'Create Squad'}
               </div>
-            )}
-
-            <div className="squad-member-list">
-              {sortedLocalMembers.length === 0 ? (
-                <div style={{ padding: '40px 16px' }}>
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <span style={{ color: 'var(--text-slate-400)' }}>
-                        No members in this squad yet
-                      </span>
-                    }
-                  />
+              <div style={{ fontSize: 12, color: 'var(--text-slate-400)', fontWeight: 400, marginTop: 2 }}>
+                {initialData
+                  ? `Configuring ${initialData.squadName}`
+                  : 'Define a new project team and assign leadership.'}
+              </div>
+            </div>
+          </Space>
+        }
+        width={580}
+        onClose={onClose}
+        open={visible}
+        destroyOnHidden
+        extra={
+          initialData && canReadActivityLog ? (
+            <Button
+              icon={<History size={14} />}
+              onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}
+              size="small"
+            >
+              History
+            </Button>
+          ) : null
+        }
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              onClick={() => form.submit()}
+              type="primary"
+              loading={loading}
+              style={{
+                background: '#3B82F6',
+                border: 'none',
+                fontWeight: 600,
+                height: 36,
+                padding: '0 18px',
+                borderRadius: 8,
+                boxShadow: 'none',
+              }}
+            >
+              {initialData ? 'Save Changes' : 'Create Squad'}
+            </Button>
+          </div>
+        }
+      >
+        {initialData && (
+          <div style={{
+            background: '#fafafa',
+            border: '1px solid #e2e8f0',
+            borderRadius: 2,
+            padding: 16,
+            marginBottom: 24,
+            boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
+          }}>
+            {/* Top Row */}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              {/* Avatar */}
+              <div style={{
+                width: 54, height: 54, borderRadius: 8, flexShrink: 0,
+                background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-500)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, fontWeight: 800,
+              }}>
+                {initials || <TeamOutlined />}
+              </div>
+              {/* Identity */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {initialData.squadName}
                 </div>
-              ) : (
-                sortedLocalMembers.map(renderMemberRow)
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                    {initialData.squadCode}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: initialData.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: initialData.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${initialData.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                    <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor', marginRight: 4 }}></span>
+                    {initialData.isArchived ? 'Archived' : initialData.squadStatus ? 'Active' : 'Inactive'}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                    <UserOutlined style={{ marginRight: 4 }} />
+                    {localSquadMembers.length} members
+                  </span>
+                </div>
+              </div>
+              {/* Led By */}
+              {localSquadMembers.filter(m => m.memberType === 'HEAD').length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>Led By</div>
+                  <Avatar.Group max={{ count: 3 }} size={28}>
+                    {localSquadMembers.filter(m => m.memberType === 'HEAD').map(h => (
+                      <Tooltip key={h.id} title={h.member.name}>
+                        <Avatar style={{ border: '2px solid #fff', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                          {h.member.name.substring(0, 2).toUpperCase()}
+                        </Avatar>
+                      </Tooltip>
+                    ))}
+                  </Avatar.Group>
+                </div>
               )}
             </div>
-
-            <div className="squad-section-title">
-              <StarOutlined /> Status
+            {/* Divider */}
+            <div style={{ height: 1, background: '#e2e8f0', margin: '16px 0' }}></div>
+            {/* Bottom Row: Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
+              <div style={{ borderRight: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{localSquadMembers.length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
+              </div>
+              <div style={{ borderRight: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'HEAD').length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
+              </div>
+              <div style={{ borderRight: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'SUB_HEAD').length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#64748b', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'MEMBER').length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
+              </div>
             </div>
-            <Form.Item name="squadStatus" style={{ marginBottom: 0 }}>
-              <Select size="large" style={{ width: 220 }}>
-                <Option value={true}>Active</Option>
-                <Option value={false}>Inactive</Option>
-              </Select>
-            </Form.Item>
-          </>
-        ) : (
+          </div>
+        )}
+
+        {/* CREATE MODE: live preview, stepper, helper banner */}
+        {!initialData && (
           <>
-            {/* Heads */}
-            <div className="scd-field-card">
-              <div className="scd-field-card__header">
-                <div className="scd-field-card__icon is-head">
-                  <CrownOutlined />
+            <div className="scd-hero">
+              <div className="scd-hero__top">
+                <div className={`scd-hero__avatar${liveInitials ? '' : ' is-empty'}`}>
+                  {liveInitials || <TeamOutlined />}
                 </div>
-                <div className="scd-field-card__title-block">
-                  <div className="scd-field-card__title">Squad Heads</div>
-                  <div className="scd-field-card__sub">
-                    Select one or more leads who own this squad. <span style={{ color: '#dc2626' }}>Required</span>
+                <div className="scd-hero__title-block">
+                  <div className={`scd-hero__name${watchedName ? '' : ' is-placeholder'}`}>
+                    {watchedName || 'New squad name'}
                   </div>
-                </div>
-                <div className={`scd-field-card__count${watchedHeadIds.length > 0 ? ' is-filled is-head' : ''}`}>
-                  {watchedHeadIds.length}
+                  <div className="scd-hero__sub">
+                    <span className="scd-hero__chip is-code">
+                      {watchedCode || 'SQUAD_CODE'}
+                    </span>
+                    <span className="scd-hero__chip is-draft">
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: 'currentColor',
+                        }}
+                      />
+                      Draft
+                    </span>
+                    <span className="scd-hero__chip">
+                      <UserOutlined style={{ fontSize: 10 }} />
+                      {totalSelected} {totalSelected === 1 ? 'member' : 'members'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <Form.Item
-                name="headIds"
-                rules={[{ required: true, message: 'Please select at least one head' }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="Search and assign heads…"
-                  showSearch
-                  optionFilterProp="label"
-                  size="large"
-                  maxTagCount="responsive"
-                >
-                  {members.map(m => (
-                    <Option key={m.value} value={m.value} label={m.label}>
-                      <div className="scd-option">
-                        <div className="scd-option__avatar" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                          {(m.label || '?').substring(0, 1).toUpperCase()}
-                        </div>
-                        <div className="scd-option__main">
-                          <div className="scd-option__name">{m.label}</div>
-                          <div className="scd-option__sub">{m.position} • {m.email}</div>
-                        </div>
-                      </div>
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              {watchedHeadIds.length > 0 && (
-                <div className="scd-selected-row">
-                  <span className="scd-selected-row__label">Selected</span>
-                  <Avatar.Group max={{ count: 6 }} size={26}>
-                    {watchedHeadIds.map(id => {
-                      const m = memberLookup.get(id);
-                      const initial = (m?.label || '?').substring(0, 1).toUpperCase();
-                      return (
-                        <Tooltip key={id} title={m?.label || id}>
-                          <Avatar className="scd-selected-row__avatar is-head">
-                            {initial}
-                          </Avatar>
-                        </Tooltip>
-                      );
-                    })}
-                  </Avatar.Group>
+              <div className="scd-hero__metrics">
+                <div className="scd-hero__metric is-head">
+                  <div className="scd-hero__metric-value">{watchedHeadIds.length}</div>
+                  <div className="scd-hero__metric-label">Heads</div>
                 </div>
-              )}
+                <div className="scd-hero__metric is-subhead">
+                  <div className="scd-hero__metric-value">{watchedSubHeadIds.length}</div>
+                  <div className="scd-hero__metric-label">Sub-Heads</div>
+                </div>
+                <div className="scd-hero__metric is-member">
+                  <div className="scd-hero__metric-value">{watchedMemberIds.length}</div>
+                  <div className="scd-hero__metric-label">Members</div>
+                </div>
+              </div>
             </div>
 
-            {/* Sub-Heads */}
-            <div className="scd-field-card">
-              <div className="scd-field-card__header">
-                <div className="scd-field-card__icon is-subhead">
-                  <StarOutlined />
+            <div className="scd-stepper">
+              <div className={`scd-step${activeStep === 0 ? ' is-active' : ''}${stepIdentityDone ? ' is-done' : ''}`}>
+                <div className="scd-step__bullet">
+                  {stepIdentityDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '1'}
                 </div>
-                <div className="scd-field-card__title-block">
-                  <div className="scd-field-card__title">Sub-Heads</div>
-                  <div className="scd-field-card__sub">
-                    Deputies who assist the heads. Optional but recommended for larger squads.
-                  </div>
-                </div>
-                <div className={`scd-field-card__count${watchedSubHeadIds.length > 0 ? ' is-filled is-subhead' : ''}`}>
-                  {watchedSubHeadIds.length}
+                <div className="scd-step__text">
+                  <div className="scd-step__label">Identity</div>
+                  <div className="scd-step__hint">Name & code</div>
                 </div>
               </div>
-
-              <Form.Item name="subHeadIds" style={{ marginBottom: 0 }}>
-                <Select
-                  mode="multiple"
-                  placeholder="Search and assign sub-heads…"
-                  showSearch
-                  optionFilterProp="label"
-                  size="large"
-                  maxTagCount="responsive"
-                >
-                  {members.map(m => (
-                    <Option key={m.value} value={m.value} label={m.label}>
-                      <div className="scd-option">
-                        <div className="scd-option__avatar" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                          {(m.label || '?').substring(0, 1).toUpperCase()}
-                        </div>
-                        <div className="scd-option__main">
-                          <div className="scd-option__name">{m.label}</div>
-                          <div className="scd-option__sub">{m.position} • {m.email}</div>
-                        </div>
-                      </div>
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              {watchedSubHeadIds.length > 0 && (
-                <div className="scd-selected-row">
-                  <span className="scd-selected-row__label">Selected</span>
-                  <Avatar.Group max={{ count: 6 }} size={26}>
-                    {watchedSubHeadIds.map(id => {
-                      const m = memberLookup.get(id);
-                      const initial = (m?.label || '?').substring(0, 1).toUpperCase();
-                      return (
-                        <Tooltip key={id} title={m?.label || id}>
-                          <Avatar className="scd-selected-row__avatar is-subhead">
-                            {initial}
-                          </Avatar>
-                        </Tooltip>
-                      );
-                    })}
-                  </Avatar.Group>
+              <div
+                className="scd-step__line"
+                style={{ ['--scd-line-progress' as never]: lineProgress1 }}
+              />
+              <div className={`scd-step${activeStep === 1 ? ' is-active' : ''}${stepLeadershipDone ? ' is-done' : ''}`}>
+                <div className="scd-step__bullet">
+                  {stepLeadershipDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '2'}
                 </div>
-              )}
+                <div className="scd-step__text">
+                  <div className="scd-step__label">Leadership</div>
+                  <div className="scd-step__hint">Heads (req.)</div>
+                </div>
+              </div>
+              <div
+                className="scd-step__line"
+                style={{ ['--scd-line-progress' as never]: lineProgress2 }}
+              />
+              <div className={`scd-step${activeStep === 2 ? ' is-active' : ''}${stepMembersDone ? ' is-done' : ''}`}>
+                <div className="scd-step__bullet">
+                  {stepMembersDone ? <CheckOutlined style={{ fontSize: 11 }} /> : '3'}
+                </div>
+                <div className="scd-step__text">
+                  <div className="scd-step__label">Members</div>
+                  <div className="scd-step__hint">Optional</div>
+                </div>
+              </div>
             </div>
 
-            {/* Members */}
-            <div className="scd-field-card">
-              <div className="scd-field-card__header">
-                <div className="scd-field-card__icon is-member">
-                  <UserOutlined />
+            <div className="scd-banner">
+              <div className="scd-banner__icon">
+                <BulbOutlined />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="scd-banner__title">How squads are structured</div>
+                <div className="scd-banner__text">
+                  Squads have a leadership hierarchy. Each role defines visibility and approval scope across projects.
                 </div>
-                <div className="scd-field-card__title-block">
-                  <div className="scd-field-card__title">Members</div>
-                  <div className="scd-field-card__sub">
-                    Contributors who are part of this squad. You can add more later.
-                  </div>
-                </div>
-                <div className={`scd-field-card__count${watchedMemberIds.length > 0 ? ' is-filled is-member' : ''}`}>
-                  {watchedMemberIds.length}
+                <div className="scd-banner__roles">
+                  <span className="scd-banner__role-chip is-head">
+                    <span className="scd-banner__role-chip-dot" /> Head — owns the squad
+                  </span>
+                  <span className="scd-banner__role-chip is-subhead">
+                    <span className="scd-banner__role-chip-dot" /> Sub-Head — assists leadership
+                  </span>
+                  <span className="scd-banner__role-chip is-member">
+                    <span className="scd-banner__role-chip-dot" /> Member — contributes
+                  </span>
                 </div>
               </div>
-
-              <Form.Item name="memberIds" style={{ marginBottom: 0 }}>
-                <Select
-                  mode="multiple"
-                  placeholder="Search and add members…"
-                  showSearch
-                  optionFilterProp="label"
-                  size="large"
-                  maxTagCount="responsive"
-                >
-                  {members.map(m => (
-                    <Option key={m.value} value={m.value} label={m.label}>
-                      <div className="scd-option">
-                        <div className="scd-option__avatar">
-                          {(m.label || '?').substring(0, 1).toUpperCase()}
-                        </div>
-                        <div className="scd-option__main">
-                          <div className="scd-option__name">{m.label}</div>
-                          <div className="scd-option__sub">{m.position} • {m.email}</div>
-                        </div>
-                      </div>
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              {watchedMemberIds.length > 0 && (
-                <div className="scd-selected-row">
-                  <span className="scd-selected-row__label">Selected</span>
-                  <Avatar.Group max={{ count: 8 }} size={26}>
-                    {watchedMemberIds.map(id => {
-                      const m = memberLookup.get(id);
-                      const initial = (m?.label || '?').substring(0, 1).toUpperCase();
-                      return (
-                        <Tooltip key={id} title={m?.label || id}>
-                          <Avatar className="scd-selected-row__avatar is-member">
-                            {initial}
-                          </Avatar>
-                        </Tooltip>
-                      );
-                    })}
-                  </Avatar.Group>
-                </div>
-              )}
             </div>
           </>
         )}
-      </Form>
-    </Drawer>
+
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          {initialData ? (
+            <>
+              <div className="squad-section-title">
+                <TeamOutlined /> Squad Identity
+              </div>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="squadName"
+                    label="Squad Name"
+                    rules={[{ required: true, message: 'Please enter squad name' }]}
+                  >
+                    <Input size="large" placeholder="Frontend Team" onChange={handleNameChange} style={{ borderRadius: 2 }} suffix={<EditOutlined style={{ color: '#94a3b8' }} />} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="squadCode"
+                    label="Squad Code"
+                    rules={[{ required: true, message: 'Please enter squad code' }]}
+                  >
+                    <Input size="large" placeholder="FRONTEND_TEAM" style={{ borderRadius: 2 }} suffix={<EditOutlined style={{ color: '#94a3b8' }} />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          ) : (
+            <div className="scd-field-card" style={{ borderRadius: 2 }}>
+              <div className="scd-field-card__header">
+                <div className="scd-field-card__icon is-identity">
+                  <TeamOutlined />
+                </div>
+                <div className="scd-field-card__title-block">
+                  <div className="scd-field-card__title">Squad Identity</div>
+                  <div className="scd-field-card__sub">
+                    A clear name and unique code so this squad is easy to find and reference.
+                  </div>
+                </div>
+              </div>
+              <Row gutter={16}>
+                <Col span={14}>
+                  <Form.Item
+                    name="squadName"
+                    label="Squad Name"
+                    rules={[{ required: true, message: 'Please enter squad name' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input size="large" placeholder="e.g. Frontend Team" onChange={handleNameChange} style={{ borderRadius: 2 }} suffix={<EditOutlined style={{ color: '#94a3b8' }} />} />
+                  </Form.Item>
+                </Col>
+                <Col span={10}>
+                  <Form.Item
+                    name="squadCode"
+                    label="Squad Code"
+                    rules={[{ required: true, message: 'Please enter squad code' }]}
+                    style={{ marginBottom: 0 }}
+                    tooltip="Auto-generated from the name. You can edit it."
+                  >
+                    <Input size="large" placeholder="FRONTEND_TEAM" style={{ borderRadius: 2 }} suffix={<EditOutlined style={{ color: '#94a3b8' }} />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {initialData ? (
+            <>
+
+
+              <div className="squad-add-member-panel">
+                <Form form={addMemberForm} layout="vertical" onFinish={handleAddMember}>
+                    <Row gutter={12}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="memberId"
+                          label="Select Member"
+                          rules={[{ required: true, message: 'Pick a member' }]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <SearchableDropdown
+                            placeholder="Select member"
+                            searchPlaceholder="Search by name or email"
+                            itemNoun="members"
+                            width="100%"
+                            options={members.map(m => ({
+                              value: m.value,
+                              label: m.label,
+                              description: m.position,
+                            }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="role"
+                          label="Assign Role"
+                          rules={[{ required: true, message: 'Pick a role' }]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <SearchableDropdown
+                            placeholder="Choose role"
+                            searchPlaceholder="Search role"
+                            itemNoun="roles"
+                            width="100%"
+                            options={[
+                              { value: 'HEAD', label: 'Head' },
+                              { value: 'SUB_HEAD', label: 'Sub-Head' },
+                              { value: 'MEMBER', label: 'Member' },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item label=" " style={{ marginBottom: 12 }}>
+                          <Button
+                            type="primary"
+                            block
+                            size="large"
+                            icon={<PlusOutlined />}
+                            onClick={() => addMemberForm.submit()}
+                            style={{
+                              background: '#3B82F6',
+                              border: 'none',
+                              borderRadius: 8,
+                              fontWeight: 600,
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Form>
+              </div>
+
+              <div className="squad-member-list">
+                {sortedLocalMembers.length === 0 ? (
+                  <div style={{ padding: '40px 16px' }}>
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={
+                        <span style={{ color: 'var(--text-slate-400)' }}>
+                          No members in this squad yet
+                        </span>
+                      }
+                    />
+                  </div>
+                ) : (
+                  sortedLocalMembers.map(renderMemberRow)
+                )}
+              </div>
+
+              <div className="squad-section-title">
+                <StarOutlined /> Status
+              </div>
+              <Form.Item name="squadStatus" style={{ marginBottom: 0 }}>
+                <Select size="large" style={{ width: 220 }}>
+                  <Option value={true}>Active</Option>
+                  <Option value={false}>Inactive</Option>
+                </Select>
+              </Form.Item>
+            </>
+          ) : (
+            <>
+              {/* Heads */}
+              <div className="scd-field-card">
+                <div className="scd-field-card__header">
+                  <div className="scd-field-card__icon is-head">
+                    <CrownOutlined />
+                  </div>
+                  <div className="scd-field-card__title-block">
+                    <div className="scd-field-card__title">Squad Heads</div>
+                    <div className="scd-field-card__sub">
+                      Select one or more leads who own this squad. <span style={{ color: '#dc2626' }}>Required</span>
+                    </div>
+                  </div>
+                  <div className={`scd-field-card__count${watchedHeadIds.length > 0 ? ' is-filled is-head' : ''}`}>
+                    {watchedHeadIds.length}
+                  </div>
+                </div>
+
+                <Form.Item
+                  name="headIds"
+                  rules={[{ required: true, message: 'Please select at least one head' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <SearchableDropdown
+                    mode="multiple"
+                    placeholder="Search and assign heads…"
+                    searchPlaceholder="Search by name or email"
+                    itemNoun="heads"
+                    width="100%"
+                    options={members.map(m => ({
+                      value: m.value,
+                      label: m.label,
+                      description: m.position,
+                    }))}
+                  />
+                </Form.Item>
+
+                {watchedHeadIds.length > 0 && (
+                  <div className="scd-selected-row">
+                    <span className="scd-selected-row__label">Selected</span>
+                    <Avatar.Group max={{ count: 6 }} size={26}>
+                      {watchedHeadIds.map(id => {
+                        const m = memberLookup.get(id);
+                        const initial = (m?.label || '?').substring(0, 1).toUpperCase();
+                        return (
+                          <Tooltip key={id} title={m?.label || id}>
+                            <Avatar className="scd-selected-row__avatar is-head">
+                              {initial}
+                            </Avatar>
+                          </Tooltip>
+                        );
+                      })}
+                    </Avatar.Group>
+                  </div>
+                )}
+              </div>
+
+              {/* Sub-Heads */}
+              <div className="scd-field-card">
+                <div className="scd-field-card__header">
+                  <div className="scd-field-card__icon is-subhead">
+                    <StarOutlined />
+                  </div>
+                  <div className="scd-field-card__title-block">
+                    <div className="scd-field-card__title">Sub-Heads</div>
+                    <div className="scd-field-card__sub">
+                      Deputies who assist the heads. Optional but recommended for larger squads.
+                    </div>
+                  </div>
+                  <div className={`scd-field-card__count${watchedSubHeadIds.length > 0 ? ' is-filled is-subhead' : ''}`}>
+                    {watchedSubHeadIds.length}
+                  </div>
+                </div>
+
+                <Form.Item name="subHeadIds" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown
+                    mode="multiple"
+                    placeholder="Search and assign sub-heads…"
+                    searchPlaceholder="Search by name or email"
+                    itemNoun="sub-heads"
+                    width="100%"
+                    options={members.map(m => ({
+                      value: m.value,
+                      label: m.label,
+                      description: m.position,
+                    }))}
+                  />
+                </Form.Item>
+
+                {watchedSubHeadIds.length > 0 && (
+                  <div className="scd-selected-row">
+                    <span className="scd-selected-row__label">Selected</span>
+                    <Avatar.Group max={{ count: 6 }} size={26}>
+                      {watchedSubHeadIds.map(id => {
+                        const m = memberLookup.get(id);
+                        const initial = (m?.label || '?').substring(0, 1).toUpperCase();
+                        return (
+                          <Tooltip key={id} title={m?.label || id}>
+                            <Avatar className="scd-selected-row__avatar is-subhead">
+                              {initial}
+                            </Avatar>
+                          </Tooltip>
+                        );
+                      })}
+                    </Avatar.Group>
+                  </div>
+                )}
+              </div>
+
+              {/* Members */}
+              <div className="scd-field-card">
+                <div className="scd-field-card__header">
+                  <div className="scd-field-card__icon is-member">
+                    <UserOutlined />
+                  </div>
+                  <div className="scd-field-card__title-block">
+                    <div className="scd-field-card__title">Members</div>
+                    <div className="scd-field-card__sub">
+                      Contributors who are part of this squad. You can add more later.
+                    </div>
+                  </div>
+                  <div className={`scd-field-card__count${watchedMemberIds.length > 0 ? ' is-filled is-member' : ''}`}>
+                    {watchedMemberIds.length}
+                  </div>
+                </div>
+
+                <Form.Item name="memberIds" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown
+                    mode="multiple"
+                    placeholder="Search and assign members…"
+                    searchPlaceholder="Search by name or email"
+                    itemNoun="members"
+                    width="100%"
+                    options={members.map(m => ({
+                      value: m.value,
+                      label: m.label,
+                      description: m.position,
+                    }))}
+                  />
+                </Form.Item>
+
+                {watchedMemberIds.length > 0 && (
+                  <div className="scd-selected-row">
+                    <span className="scd-selected-row__label">Selected</span>
+                    <Avatar.Group max={{ count: 8 }} size={26}>
+                      {watchedMemberIds.map(id => {
+                        const m = memberLookup.get(id);
+                        const initial = (m?.label || '?').substring(0, 1).toUpperCase();
+                        return (
+                          <Tooltip key={id} title={m?.label || id}>
+                            <Avatar className="scd-selected-row__avatar is-member">
+                              {initial}
+                            </Avatar>
+                          </Tooltip>
+                        );
+                      })}
+                    </Avatar.Group>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </Form>
+      </Drawer>
+      {initialData && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="squad"
+          entityId={initialData.id}
+          subtitle={initialData.squadName}
+          zIndex={1050}
+        />
+      )}
+    </>
   );
 };
 

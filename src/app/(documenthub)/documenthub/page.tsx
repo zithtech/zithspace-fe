@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
@@ -49,6 +50,8 @@ import {
   FileOutlined,
   CaretUpFilled,
   CaretDownFilled,
+  MenuOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
@@ -59,7 +62,6 @@ import {
   Input,
   Modal,
   Row,
-  Select,
   Table,
   Tooltip,
   DatePicker,
@@ -72,6 +74,8 @@ import {
   Popover,
   Switch,
   Grid,
+  Checkbox,
+  Pagination,
 } from "antd";
 import type { MenuProps } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,20 +85,29 @@ import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { Trash2 } from "lucide-react";
 
-const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 // Six brand-accent colors used to tag each hub by a deterministic id-hash.
 // Gives the table/grid/kanban a Notion-style visual identity per hub.
+// const HUB_ACCENTS = [
+//   { from: '#3B82F6', to: '#6366F1', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
+//   { from: '#10B981', to: '#14B8A6', tint: 'rgba(16, 185, 129, 0.10)' },   // emerald
+//   { from: '#8B5CF6', to: '#A855F7', tint: 'rgba(139, 92, 246, 0.10)' },   // violet
+//   { from: '#F97316', to: '#F59E0B', tint: 'rgba(249, 115, 22, 0.10)' },   // amber
+//   { from: '#EC4899', to: '#F43F5E', tint: 'rgba(236, 72, 153, 0.10)' },   // pink
+//   { from: '#06B6D4', to: '#0EA5E9', tint: 'rgba(6, 182, 212, 0.10)' },    // cyan
+// ];
 const HUB_ACCENTS = [
-  { from: '#3B82F6', to: '#6366F1', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
-  { from: '#10B981', to: '#14B8A6', tint: 'rgba(16, 185, 129, 0.10)' },   // emerald
-  { from: '#8B5CF6', to: '#A855F7', tint: 'rgba(139, 92, 246, 0.10)' },   // violet
-  { from: '#F97316', to: '#F59E0B', tint: 'rgba(249, 115, 22, 0.10)' },   // amber
-  { from: '#EC4899', to: '#F43F5E', tint: 'rgba(236, 72, 153, 0.10)' },   // pink
-  { from: '#06B6D4', to: '#0EA5E9', tint: 'rgba(6, 182, 212, 0.10)' },    // cyan
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // emerald
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // violet
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // amber
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // pink
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },    // cyan
 ];
 
 const accentForId = (id: string) => {
@@ -104,12 +117,12 @@ const accentForId = (id: string) => {
 };
 
 const RECENT_KEY = 'dh_recent_v1';
-const VIEW_KEY = 'dh_view_v1';
+const VIEW_KEY = 'dh_view_v2';
 const SAVED_VIEW_KEY = 'dh_savedview_v1';
 const TOUR_KEY = 'dh_tour_seen_v1';
 const DENSITY_KEY = 'dh_density_v1';
 const COLS_KEY = 'dh_cols_v1';
-const COL_WIDTHS_KEY = 'dh_col_widths_v1';
+const COL_WIDTHS_KEY = 'dh_col_widths_v3';
 const RAILS_KEY = 'dh_rails_v1';
 
 // Default rail visibility: only "Recently opened" is on by default; users opt
@@ -117,7 +130,7 @@ const RAILS_KEY = 'dh_rails_v1';
 const DEFAULT_RAILS = { pinned: false, recent: true };
 type RailVisibility = typeof DEFAULT_RAILS;
 
-type ViewMode = 'table' | 'grid' | 'kanban';
+type ViewMode = 'cards' | 'table';
 type SavedView = 'all' | 'mine' | 'shared' | 'public' | 'starred';
 type Density = 'compact' | 'comfortable' | 'spacious';
 
@@ -126,14 +139,14 @@ const NEW_BADGE_MS = 5 * 60 * 1000;
 
 // Default widths used when the user hasn't dragged a column yet.
 const DEFAULT_COL_WIDTHS: Record<string, number> = {
-  name: 320,
-  project: 150,
-  ticket: 160,
-  createdBy: 160,
-  createdAt: 140,
-  updatedAt: 140,
+  name: 280,
+  project: 110,
+  ticket: 126,
+  createdBy: 124,
+  createdAt: 120,
+  // updatedAt: 100,
   visibility: 120,
-  actions: 140,
+  actions: 50,
 };
 
 // Toggleable columns (star/name/actions are always visible).
@@ -147,7 +160,6 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
 ];
 
 const InlineTicketSelector = ({ record, updateHub, user }: any) => {
-  const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
   const { open: openTicketDrawer } = useTicketDrawer();
   const { theme } = useTheme();
@@ -157,34 +169,6 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
 
   const { data: rowTickets = [], isLoading: rowTicketsLoading } =
     useUserTicketsByProjects(record.projectId);
-
-  const getOptions = () => {
-    const sortedTickets = [...(rowTickets || [])].sort((a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    let filtered = sortedTickets;
-    if (searchValue) {
-      const search = searchValue.toLowerCase();
-      filtered = sortedTickets.filter((t: any) =>
-        t.ticketNumber?.toLowerCase().includes(search) ||
-        t.title?.toLowerCase().includes(search)
-      );
-    }
-    let limited = filtered.slice(0, 10);
-    if (record.ticketId && !limited.find(t => t.id === record.ticketId)) {
-      const currentTicket = sortedTickets.find(t => t.id === record.ticketId);
-      if (currentTicket) limited.push(currentTicket);
-    }
-    return limited.map((t: any) => ({
-      label: (
-        <div className="flex flex-col py-1">
-          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{t.ticketNumber}</span>
-          <span className="text-slate-400 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>{t.title}</span>
-        </div>
-      ),
-      value: t.id
-    }));
-  };
 
   if (record.ticketId && !isEditing) {
     const ticketTooltip = (
@@ -259,25 +243,28 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         }}
       >
         <div
-          className="dh-inline-cell flex flex-col py-0.5 px-2 rounded-md transition-colors group"
+          className="dh-inline-cell flex items-center gap-1 py-1 px-2 rounded-md transition-colors group"
           style={{ width: 'fit-content', maxWidth: '100%' }}
         >
           <span
             role="button"
             tabIndex={0}
             onClick={(e) => { e.stopPropagation(); openTicketDrawer(record.ticketId); }}
-            className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer"
-            style={{ fontSize: '11px', lineHeight: '1.2' }}
+            className="font-semibold text-[#3250ce] group-hover:text-[#3250ce] dark:text-sky-600 dark:hover:text-sky-700 cursor-pointer truncate"
+            style={{ fontSize: '12px', lineHeight: '1.2' }}
           >
             {record.ticket?.ticketNumber}
           </span>
-          <span
-            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-            className="text-slate-400 truncate group-hover:text-slate-500 cursor-pointer"
-            style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}
-          >
-            {record.ticket?.title}
-          </span>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+              className="dh-name-pencil opacity-0 group-hover:opacity-100"
+              aria-label="Change ticket"
+            >
+              <EditOutlined style={{ fontSize: 10 }} />
+            </button>
+          )}
         </div>
       </Tooltip>
     );
@@ -300,30 +287,40 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
     );
   }
 
+  const ddOptions = (() => {
+    const sorted = [...(rowTickets || [])].sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const limited = sorted.slice(0, 50);
+    if (record.ticketId && !limited.find((t: any) => t.id === record.ticketId)) {
+      const current = sorted.find((t: any) => t.id === record.ticketId);
+      if (current) limited.push(current);
+    }
+    return limited.map((t: any) => ({
+      value: t.id,
+      label: t.ticketNumber,
+      description: t.title,
+    }));
+  })();
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <Select
-        placeholder={<span className="text-slate-400">Search...</span>}
+      <SearchableDropdown
         value={record.ticketId || undefined}
         disabled={!isOwner}
         loading={rowTicketsLoading}
-        className="w-full premium-inline-select"
-        variant="borderless"
-        showSearch
-        allowClear
-        autoFocus
+        placeholder="Search ticket…"
+        searchPlaceholder="Search by number or title"
+        itemNoun="tickets"
         defaultOpen
-        onSearch={setSearchValue}
-        searchValue={searchValue}
-        onBlur={() => setIsEditing(false)}
+        onOpenChange={(open) => { if (!open) setIsEditing(false); }}
         onChange={(value) => {
           updateHub(record.id, { ticketId: value, name: record.name });
-          setSearchValue("");
           setIsEditing(false);
         }}
-        options={getOptions()}
-        filterOption={false}
-        style={{ minWidth: 220 }}
+        options={ddOptions}
+        width={300}
+        style={{ minWidth: 0, width: '100%', height: 28, padding: '0 8px' }}
       />
     </div>
   );
@@ -334,35 +331,17 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
   const { canUpdateDocument } = usePermission();
   const isOwner = user?.id === record.createdById && canUpdateDocument;
 
-  const getOptions = () => {
-    return (projects || []).map((p: any) => ({
-      label: (
-        <div className="flex flex-col py-1">
-          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{p.label}</span>
-          {p.code && (
-            <span className="text-slate-400" style={{ fontSize: '9px', lineHeight: '1.2' }}>{p.code}</span>
-          )}
-        </div>
-      ),
-      value: p.value
-    }));
-  };
-
   if (record.projectId && !isEditing) {
     return (
       <div
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-        className="dh-inline-cell flex flex-col py-0.5 px-2 rounded-md cursor-pointer transition-colors group"
+        className="dh-inline-cell flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
       >
-        <span className="font-semibold text-sky-600 group-hover:text-sky-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3b82f6', flex: 'none' }} />
+        <span className="font-semibold text-[#3250ce] group-hover:text-[#3250ce] dark:text-sky-600 dark:hover:text-sky-700 truncate" style={{ fontSize: '12px', lineHeight: '1.2', maxWidth: '100%' }}>
           {record.project?.name}
         </span>
-        {record.project?.code && (
-          <span className="text-slate-400 group-hover:text-slate-500 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '130px' }}>
-            {record.project.code}
-          </span>
-        )}
       </div>
     );
   }
@@ -386,23 +365,26 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <Select
-        placeholder={<span className="text-slate-400">Search project...</span>}
+      <SearchableDropdown
         value={record.projectId || undefined}
         disabled={!isOwner}
         loading={projectsLoading}
-        className="w-full premium-inline-select"
-        variant="borderless"
-        showSearch
-        autoFocus
+        placeholder="Search project…"
+        searchPlaceholder="Search by name or code"
+        itemNoun="projects"
         defaultOpen
-        onBlur={() => setIsEditing(false)}
+        onOpenChange={(open) => { if (!open) setIsEditing(false); }}
         onChange={(value) => {
           updateHub(record.id, { projectId: value, name: record.name });
           setIsEditing(false);
         }}
-        options={getOptions()}
-        style={{ minWidth: 220 }}
+        options={(projects || []).map((p: any) => ({
+          value: p.value,
+          label: p.label,
+          description: p.code,
+        }))}
+        width={280}
+        style={{ minWidth: 0, width: '100%', height: 28, padding: '0 8px' }}
       />
     </div>
   );
@@ -601,109 +583,74 @@ const HubCard: React.FC<{
   variant?: 'rail' | 'grid';
 }> = ({ hub, starred, onOpen, onToggleStar, onShare, onDelete, variant = 'rail' }) => {
   const { canDeleteDocument } = usePermission();
-  const accent = HUB_ACCENTS[0];
+  const accent = { from: '#7E6CE8', to: '#443199', tint: 'rgba(68, 49, 153, 0.10)' };
   const docCount = hub.treeNodes?.filter((n) => n.type === 'file').length || 0;
   const isRail = variant === 'rail';
   const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
+
+  const isPublic = hub.visibility === 'public';
 
   return (
     <div
       role="button"
       onClick={() => onOpen(hub.id)}
-      className={`dh-card ${isRail ? 'dh-card-rail' : ''} group cursor-pointer transition-all overflow-hidden flex flex-col`}
+      className={`dh-card ${isRail ? 'dh-card-rail' : ''} group cursor-pointer transition-all flex flex-col relative`}
       style={{
         width: isRail ? undefined : '100%',
-        minHeight: isRail ? 132 : 168,
-        borderRadius: 14,
+        minHeight: isRail ? 110 : 134,
+        borderRadius: 12,
         border: '1px solid var(--border-slate-200)',
         background: 'var(--bg-pure-white)',
       }}
     >
-      {/* Cover */}
-      <div
-        className="relative"
-        style={{
-          height: isRail ? 42 : 56,
-          background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-        }}
+      {/* Corner ribbon — Public/Private */}
+      <span
+        className={`dh-ribbon ${isPublic ? 'dh-ribbon-public' : 'dh-ribbon-private'}`}
+        aria-label={isPublic ? 'Public' : 'Private'}
       >
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18), transparent 60%)',
-          }}
-        />
-        <div className="absolute top-2 right-2 flex items-center gap-1.5">
-          <span
-            className="inline-flex items-center gap-1 rounded-full font-semibold"
-            style={{
-              height: 18,
-              padding: '0 7px',
-              fontSize: 9.5,
-              background: 'rgba(255,255,255,0.18)',
-              color: '#fff',
-              backdropFilter: 'blur(6px)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {hub.visibility === 'public' ? (
-              <GlobalOutlined style={{ fontSize: 9 }} />
-            ) : (
-              <LockOutlined style={{ fontSize: 9 }} />
-            )}
-            {hub.visibility === 'public' ? 'Public' : 'Private'}
-          </span>
-          <button
-            type="button"
-            onClick={(e) => onToggleStar(e, hub)}
-            aria-label={starred ? 'Unstar' : 'Star'}
-            className="dh-card-icon-btn"
-            style={{ color: starred ? '#fbbf24' : 'rgba(255,255,255,0.85)' }}
-          >
-            {starred ? <StarFilled style={{ fontSize: 12 }} /> : <StarOutlined style={{ fontSize: 12 }} />}
-          </button>
-        </div>
-        <div
-          className="absolute -bottom-4 left-3 flex items-center justify-center text-white shadow-md"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 10,
-            background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-            border: '2px solid var(--bg-pure-white)',
-          }}
-        >
-          <FolderOutlined style={{ fontSize: 13 }} />
-        </div>
-      </div>
+        {isPublic ? (
+          <GlobalOutlined style={{ fontSize: 9 }} />
+        ) : (
+          <LockOutlined style={{ fontSize: 9 }} />
+        )}
+        {isPublic ? 'Public' : 'Private'}
+      </span>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-3 pt-5 min-w-0">
-        <div className="flex items-start justify-between gap-2 min-w-0">
-          <h4
-            className="m-0 font-semibold text-[13px] leading-tight truncate flex-1"
-            style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
-            title={hub.name}
+      <div className="flex-1 flex flex-col p-3 min-w-0">
+        <div className="flex items-start gap-2 min-w-0 pr-[68px]">
+          <div
+            className="flex items-center justify-center shrink-0"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: accent.tint,
+              color: accent.from,
+            }}
           >
-            {hub.name}
-          </h4>
-        </div>
-
-        <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
-          {hub.project?.name && (
-            <Tooltip title={hub.project.name}>
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded text-[10px] font-medium truncate"
-                style={{ background: accent.tint, color: accent.from, maxWidth: 120 }}
-              >
-                <ProjectOutlined style={{ fontSize: 9 }} />
-                <span className="truncate">{hub.project.name}</span>
-              </span>
-            </Tooltip>
-          )}
+            <FolderOutlined style={{ fontSize: 14 }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4
+              className="m-0 font-semibold text-[13px] leading-tight truncate"
+              style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
+              title={hub.name}
+            >
+              {hub.name}
+            </h4>
+            {hub.project?.name && (
+              <Tooltip title={hub.project.name}>
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1"
+                  style={{ background: accent.tint, color: accent.from, maxWidth: 140 }}
+                >
+                  <ProjectOutlined style={{ fontSize: 9 }} />
+                  <span className="truncate">{hub.project.name}</span>
+                </span>
+              </Tooltip>
+            )}
+          </div>
         </div>
 
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
@@ -723,10 +670,18 @@ const HubCard: React.FC<{
               {docCount} {docCount === 1 ? 'doc' : 'docs'} · {updatedRel}
             </span>
           </div>
-          <div
-            className={`flex items-center gap-0.5 transition-opacity ${isRail ? '' : 'opacity-0 group-hover:opacity-100'
-              }`}
-          >
+          <div className="flex items-center gap-0.5">
+            <Tooltip title={starred ? 'Unstar' : 'Star'}>
+              <button
+                type="button"
+                onClick={(e) => onToggleStar(e, hub)}
+                aria-label={starred ? 'Unstar' : 'Star'}
+                className="dh-card-action-btn"
+                style={{ color: starred ? '#f59e0b' : undefined }}
+              >
+                {starred ? <StarFilled style={{ fontSize: 11 }} /> : <StarOutlined style={{ fontSize: 11 }} />}
+              </button>
+            </Tooltip>
             <Tooltip title="Share">
               <button
                 type="button"
@@ -767,6 +722,7 @@ const DocumentHubPage = () => {
     canUpdateDocument,
     canDeleteDocument,
   } = usePermission();
+  useActivitySource({ section: "WORK", module: "DocumentHub", page: "DocumentHubList" });
   // Ant breakpoints — used to scale card counts, button labels, and a few
   // layout decisions for narrower viewports.
   const screens = Grid.useBreakpoint();
@@ -791,6 +747,7 @@ const DocumentHubPage = () => {
   const [optimisticStarred, setOptimisticStarred] = useState<Record<string, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -901,7 +858,7 @@ const DocumentHubPage = () => {
   useEffect(() => {
     try {
       const v = localStorage.getItem(VIEW_KEY) as ViewMode | null;
-      if (v && ['table', 'grid', 'kanban'].includes(v)) setViewMode(v);
+      if (v && ['cards', 'table'].includes(v)) setViewMode(v);
       const s = localStorage.getItem(SAVED_VIEW_KEY) as SavedView | null;
       if (s && ['all', 'mine', 'shared', 'public', 'starred'].includes(s)) setSavedView(s);
       const r = localStorage.getItem(RECENT_KEY);
@@ -1237,7 +1194,7 @@ const DocumentHubPage = () => {
 
   // Keyboard navigation (j/k/enter) for the table view.
   useEffect(() => {
-    if (viewMode !== 'table') return;
+    if (viewMode !== 'table' && viewMode !== 'cards') return;
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
@@ -1280,7 +1237,7 @@ const DocumentHubPage = () => {
           margin: "0 -24px",
           padding: "24px 32px",
           background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)",
+          minHeight: "calc(100vh - 54px)",
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center'
@@ -1315,7 +1272,7 @@ const DocumentHubPage = () => {
       _key: 'name',
       title: (
         <span style={{ paddingLeft: 38, display: 'inline-flex' }}>
-          <ColumnTitle icon={<FolderOutlined />} label="Doc Name" sortKey="name" sortedKey={sortedKey} sortedDir={sortedDir} />
+          <ColumnTitle icon={<FolderOutlined />} label="Name" sortKey="name" sortedKey={sortedKey} sortedDir={sortedDir} />
         </span>
       ),
       dataIndex: 'name',
@@ -1323,7 +1280,6 @@ const DocumentHubPage = () => {
       width: colWidths.name,
       // fixed: 'left',
       render: (text, record) => {
-        const accent = accentForId(record.id);
         const docCount = (record as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
         const updatedRel = formatDistanceToNow(new Date(record.updatedAt), { addSuffix: true });
         const isNew = Date.now() - new Date(record.createdAt).getTime() < NEW_BADGE_MS;
@@ -1349,14 +1305,13 @@ const DocumentHubPage = () => {
               </button>
             </Tooltip>
             <div
-              className="flex items-center justify-center shrink-0 text-white"
+              className="flex items-center justify-center shrink-0 w-[30px] h-[30px] rounded-lg"
               style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-                boxShadow: `0 2px 6px ${accent.tint}`,
+                background: isDark ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-blue-50, #eff6ff)',
+                border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.20)' : 'var(--border-blue-100, #dbeafe)'}`,
               }}
             >
-              <FolderOutlined style={{ fontSize: 13 }} />
+              <FolderOutlined style={{ fontSize: 14, color: isDark ? '#60a5fa' : '#3b82f6' }} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               {isEditingThis ? (
@@ -1462,17 +1417,19 @@ const DocumentHubPage = () => {
       dataIndex: ['createdBy', 'name'],
       key: 'createdBy',
       width: colWidths.createdBy,
-      render: (text, record) => (
-        <Space>
+      render: (text, record: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Avatar
-            size={24}
+            size={20}
             src={record.createdBy?.avatarUrl}
-            style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: '10px' }}
+            style={!record.createdBy?.avatarUrl ? { backgroundColor: '#3b82f6', color: '#fff', fontSize: 10, fontWeight: 800 } : {}}
           >
-            {text?.charAt(0).toUpperCase()}
+            {!record.createdBy?.avatarUrl && (record.createdBy?.name || 'Unknown').charAt(0).toUpperCase()}
           </Avatar>
-          <span style={{ color: 'var(--text-slate-700)' }}>{text}</span>
-        </Space>
+          <span className="text-[12.5px]" style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>
+            {record.createdBy?.name || 'Unknown'}
+          </span>
+        </div>
       ),
     },
     {
@@ -1508,87 +1465,66 @@ const DocumentHubPage = () => {
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       sortOrder: sortedKey === 'createdAt' ? sortedDir ?? undefined : undefined,
     },
-    {
-      _key: 'updatedAt',
-      title: <ColumnTitle icon={<ClockCircleOutlined />} label="Updated" sortKey="updatedAt" sortedKey={sortedKey} sortedDir={sortedDir} />,
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
-      width: colWidths.updatedAt,
-      defaultSortOrder: 'descend' as const,
-      render: (date) => (
-        <Tooltip
-          title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
-          overlayInnerStyle={{
-            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
-            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
-            fontSize: '11.5px',
-            borderRadius: 8,
-            padding: '6px 10px',
-            boxShadow: isDark
-              ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
-              : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
-          }}
-        >
-          <div className="flex flex-col">
-            <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
-              {format(new Date(date), "MMM d, yyyy")}
-            </span>
-            <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-              {format(new Date(date), "h:mm a")}
-            </span>
-          </div>
-        </Tooltip>
-      ),
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-      sortOrder: sortedKey === 'updatedAt' ? sortedDir ?? undefined : undefined,
-    },
+    // {
+    //   _key: 'updatedAt',
+    //   title: <ColumnTitle icon={<ClockCircleOutlined />} label="Updated" sortKey="updatedAt" sortedKey={sortedKey} sortedDir={sortedDir} />,
+    //   dataIndex: 'updatedAt',
+    //   key: 'updatedAt',
+    //   width: colWidths.updatedAt,
+    //   defaultSortOrder: 'descend' as const,
+    //   render: (date) => (
+    //     <Tooltip
+    //       title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
+    //       overlayInnerStyle={{
+    //         background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+    //         color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+    //         fontSize: '11.5px',
+    //         borderRadius: 8,
+    //         padding: '6px 10px',
+    //         boxShadow: isDark
+    //           ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
+    //           : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+    //       }}
+    //     >
+    //       <div className="flex flex-col">
+    //         <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
+    //           {format(new Date(date), "MMM d, yyyy")}
+    //         </span>
+    //         <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
+    //           {format(new Date(date), "h:mm a")}
+    //         </span>
+    //       </div>
+    //     </Tooltip>
+    //   ),
+    //   sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    //   sortOrder: sortedKey === 'updatedAt' ? sortedDir ?? undefined : undefined,
+    // },
     {
       _key: 'visibility',
       title: <ColumnTitle icon={<LockOutlined />} label="Visibility" />,
       dataIndex: 'visibility',
       key: 'visibility',
       width: colWidths.visibility,
-      render: (visibility, record) => {
-        const isOwner = user?.id === record.createdById;
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select
-              size="small"
-              value={visibility || 'private'}
-              disabled={!isOwner}
-              style={{ width: 100 }}
-              variant="borderless"
-              className="visibility-select font-medium"
-              suffixIcon={null}
-              onChange={async (value) => {
-                try {
-                  if (value === 'public') {
-                    await DocumentHubService.shareDocumentHub(record.id, 'public');
-                  } else {
-                    await DocumentHubService.revokeHubShare(record.id);
-                  }
-                  messageApi.success(`Hub is now ${value}`);
-                  refetch();
-                } catch (error) {
-                  console.error(error);
-                  messageApi.error("Failed to update visibility");
-                }
-              }}
-              options={[
-                { value: 'private', label: <Space size={6} style={{ color: 'var(--text-slate-500)' }}><LockOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Private</span></Space> },
-                { value: 'public', label: <Space size={6} style={{ color: 'var(--text-blue-500)' }}><GlobalOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Public</span></Space> },
-              ]}
-            />
-          </div>
-        );
-      },
+      render: (_visibility, record) => renderVisibilityCell(record),
     },
     {
       _key: 'actions',
-      title: '',
+      title: (
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: 'var(--text-slate-500)',
+          }}
+        >
+          Actions
+        </span>
+      ),
       key: 'actions',
       width: colWidths.actions,
-      // fixed: 'right',
+      fixed: 'right',
       render: (_text, record) => (
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
@@ -1630,21 +1566,26 @@ const DocumentHubPage = () => {
       return { ...rest, onHeaderCell };
     });
 
-  const handleReload = () => {
+  const handleReload = async () => {
     setSearchText("");
     setFilterProjectId(undefined);
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
-    refetch();
+    try {
+      await refetch();
+      messageApi.success("Hubs refreshed successfully");
+    } catch {
+      messageApi.error("Failed to refresh hubs");
+    }
   };
 
   const savedViews: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
     { key: 'all', label: 'All hubs', icon: <FolderOutlined />, color: '#3B82F6' },
-    { key: 'mine', label: 'My hubs', icon: <UserOutlined />, color: '#8B5CF6' },
+    { key: 'mine', label: 'My hubs', icon: <UserOutlined />, color: '#3B82F6' },
     // { key: 'shared', label: 'Shared with me', icon: <TeamOutlined />, color: '#10B981' },
-    { key: 'public', label: 'Public', icon: <GlobalOutlined />, color: '#0EA5E9' },
-    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#F59E0B' },
+    { key: 'public', label: 'Public', icon: <GlobalOutlined />, color: '#3B82F6' },
+    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
   ];
 
   const renderEmpty = () => {
@@ -1785,451 +1726,408 @@ const DocumentHubPage = () => {
     );
   };
 
-  const renderGrid = () => {
-    if (!filteredHubs.length) return renderEmpty();
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {filteredHubs.map((hub) => (
-          <HubCard
-            key={hub.id}
-            hub={hub}
-            starred={isHubStarred(hub)}
-            onOpen={openHub}
-            onToggleStar={handleToggleStar}
-            onShare={handleShareHub}
-            onDelete={handleDeleteHub}
-            variant="grid"
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const renderKanban = () => {
-    if (!filteredHubs.length) return renderEmpty();
-    // Group by project; "Unassigned" column for hubs without a project.
-    const groups = new Map<string, { name: string; code?: string; hubs: DocumentHub[] }>();
-    filteredHubs.forEach((hub) => {
-      const key = hub.project?.id || '__none__';
-      const name = hub.project?.name || 'Unassigned';
-      const code = hub.project?.code;
-      if (!groups.has(key)) groups.set(key, { name, code, hubs: [] });
-      groups.get(key)!.hubs.push(hub);
-    });
-    const cols = Array.from(groups.entries()).sort((a, b) => {
-      if (a[0] === '__none__') return 1;
-      if (b[0] === '__none__') return -1;
-      return a[1].name.localeCompare(b[1].name);
-    });
+  const renderTable = () => {
+    // Manual paging so the shared fixed footer (below the table) drives pagination.
+    const total = filteredHubs.length;
+    const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+    const curPage = Math.min(tablePage, pageCount);
+    const pageStart = (curPage - 1) * tablePageSize;
+    const pagedHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
     return (
       <div
-        className="flex gap-3 overflow-x-auto pb-2 dh-kanban-scroll"
-        style={{ scrollSnapType: 'x mandatory' }}
+        className="dh-table-shell"
+        data-density={density}
+        style={{
+          borderRadius: 0,
+          background: 'var(--bg-pure-white)',
+          border: 'none',
+        }}
       >
-        {cols.map(([key, col]) => (
-          <div
-            key={key}
-            className="flex flex-col rounded-2xl shrink-0"
-            style={{
-              width: 304,
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-slate-200)',
-              scrollSnapAlign: 'start',
-              maxHeight: 'calc(100vh - 360px)',
-            }}
-          >
-            <div
-              className="flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: 'var(--border-slate-200)' }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="inline-flex items-center justify-center rounded-md shrink-0"
-                  style={{
-                    width: 22, height: 22,
-                    background: key === '__none__' ? 'var(--bg-slate-100)' : 'rgba(139, 92, 246, 0.10)',
-                    color: key === '__none__' ? 'var(--text-slate-500)' : '#8B5CF6',
-                  }}
-                >
-                  {key === '__none__' ? <FolderOutlined style={{ fontSize: 11 }} /> : <ProjectFilled style={{ fontSize: 11 }} />}
-                </span>
-                <span className="text-[12px] font-bold tracking-tight truncate" style={{ color: 'var(--text-slate-900)' }}>
-                  {col.name}
-                </span>
-                {col.code && (
-                  <span className="text-[10px] font-medium px-1.5 py-[1px] rounded" style={{ background: 'var(--bg-slate-100)', color: 'var(--text-slate-500)' }}>
-                    {col.code}
-                  </span>
-                )}
-              </div>
-              <span
-                className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
-                style={{ background: 'var(--bg-pure-white)', color: 'var(--text-slate-500)', border: '1px solid var(--border-slate-200)' }}
+        <Table
+          columns={visibleColumns}
+          dataSource={pagedHubs}
+          rowKey="id"
+          loading={hubsLoading || hubsFetching}
+          pagination={false}
+          size="small"
+          className="premium-table dh-table"
+          tableLayout="fixed"
+          sticky={{ offsetHeader: 0 }}
+          scroll={{ x: 'max-content' }}
+          locale={{ emptyText: renderEmpty() }}
+          components={{
+            header: { cell: ResizableHeaderCell },
+          }}
+          rowSelection={{
+            selectedRowKeys: selectedKeys,
+            onChange: (keys) => setSelectedKeys(keys),
+            columnWidth: 26,
+          }}
+          expandable={{
+            columnWidth: 24,
+            expandedRowKeys: expandedKeys,
+            onExpand: (expanded, record) => {
+              setExpandedKeys((prev) =>
+                expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
+              );
+            },
+            expandedRowRender: (record) => (
+              <HubInlinePreview hub={record} onOpen={openHub} />
+            ),
+            expandIcon: ({ expanded, onExpand, record }) => (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
+                className="dh-expand-btn"
+                aria-label={expanded ? 'Collapse' : 'Expand preview'}
+                aria-expanded={expanded}
+                style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
               >
-                {col.hubs.length}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 p-2 overflow-y-auto">
-              {col.hubs.map((hub) => (
-                <HubCard
-                  key={hub.id}
-                  hub={hub}
-                  starred={isHubStarred(hub)}
-                  onOpen={openHub}
-                  onToggleStar={handleToggleStar}
-                  onShare={handleShareHub}
-                  onDelete={handleDeleteHub}
-                  variant="grid"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+                <RightOutlined style={{ fontSize: 10 }} />
+              </button>
+            ),
+            expandIconColumnIndex: 1,
+            rowExpandable: () => true,
+            expandedRowClassName: () => 'dh-expanded-row',
+          }}
+          onChange={(_pagination, _filters, sorter: any) => {
+            if (sorter && !Array.isArray(sorter)) {
+              setSortedInfo({
+                key: sorter.order ? (sorter.columnKey as string) : null,
+                dir: sorter.order ?? null,
+              });
+            }
+          }}
+          onRow={(record) => ({
+            onClick: (e) => {
+              // Skip navigation if click came from selection cell or interactive control.
+              const target = e.target as HTMLElement;
+              if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
+                return;
+              }
+              openHub(record.id);
+            },
+            onMouseEnter: () => setFocusedRowId(record.id),
+            className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
+          })}
+        />
       </div>
     );
   };
 
-  const renderTableFooter = () => {
-    const total = filteredHubs.length;
-    if (!total) return null;
-    const start = (tablePage - 1) * tablePageSize + 1;
-    const end = Math.min(tablePage * tablePageSize, total);
+  // Visibility status-pill shared by the table column and the row-card list.
+  // Clean light-bordered pill with a green (public) / slate (private) dot and a
+  // chevron; owners can click to switch via a small dropdown.
+  const renderVisibilityCell = (record: DocumentHub) => {
+    const isOwner = user?.id === record.createdById;
+    const isPublic = ((record as any).visibility || 'private') === 'public';
+
+    const setVisibility = async (value: 'public' | 'private') => {
+      if ((isPublic ? 'public' : 'private') === value) return;
+      try {
+        if (value === 'public') {
+          await DocumentHubService.shareDocumentHub(record.id, 'public');
+        } else {
+          await DocumentHubService.revokeHubShare(record.id);
+        }
+        messageApi.success(`Hub is now ${value}`);
+        refetch();
+      } catch (error) {
+        console.error(error);
+        messageApi.error("Failed to update visibility");
+      }
+    };
+
+    const pill = (
+      <span
+        className={`dh-vis-pill ${isOwner ? 'is-clickable' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="dh-vis-dot" style={{ background: isPublic ? '#22c55e' : 'var(--text-slate-400)' }} />
+        <span className="dh-vis-label">{isPublic ? 'Public' : 'Private'}</span>
+        {isOwner && <DownOutlined className="dh-vis-chevron" style={{ fontSize: 9 }} />}
+      </span>
+    );
+
+    if (!isOwner) return pill;
+
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-0.5">
-        <div className="text-[12px]" style={{ color: 'var(--text-slate-500)' }}>
-          Showing <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{start}–{end}</span> of{' '}
-          <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{total}</span> hub{total === 1 ? '' : 's'}
-          {starredVisibleCount > 0 && (
-            <>
-              {' · '}
-              <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
-                <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
-              </span>
-            </>
-          )}
-          {sharedWithMeCount > 0 && (
-            <>
-              {' · '}
-              <span style={{ color: 'var(--text-slate-600)' }}>
-                {sharedWithMeCount} shared with you
-              </span>
-            </>
-          )}
+      <Dropdown
+        trigger={['click']}
+        placement="bottomLeft"
+        menu={{
+          selectedKeys: [isPublic ? 'public' : 'private'],
+          items: [
+            {
+              key: 'public',
+              label: (
+                <span className="dh-vis-item">
+                  <span className="dh-vis-dot" style={{ background: '#22c55e' }} /> Public
+                </span>
+              ),
+              onClick: () => setVisibility('public'),
+            },
+            {
+              key: 'private',
+              label: (
+                <span className="dh-vis-item">
+                  <span className="dh-vis-dot" style={{ background: 'var(--text-slate-400)' }} /> Private
+                </span>
+              ),
+              onClick: () => setVisibility('private'),
+            },
+          ],
+        }}
+      >
+        {pill}
+      </Dropdown>
+    );
+  };
+
+  const renderRichMenuItem = (icon: React.ReactNode, iconBg: string, iconColor: string, title: string, subtitle: string, isDanger?: boolean) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 2px' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '0px', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+        {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: isDanger ? '#ef4444' : 'var(--text-slate-700)', lineHeight: '1.2' }}>{title}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-slate-400)', marginTop: 2 }}>{subtitle}</span>
+      </div>
+    </div>
+  );
+
+  // Render Cards (List view matching Proposals)
+  const renderRowCards = () => {
+    if (!filteredHubs.length) return renderEmpty();
+    const allSelected = filteredHubs.every((h) => selectedKeys.includes(h.id));
+    const someSelected = filteredHubs.some((h) => selectedKeys.includes(h.id));
+    // Page the list — paging controls live in the fixed footer below.
+    const pageCount = Math.max(1, Math.ceil(filteredHubs.length / tablePageSize));
+    const curPage = Math.min(tablePage, pageCount);
+    const pageStart = (curPage - 1) * tablePageSize;
+    const pageHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
+
+    return (
+      <div className="dh-rowcards-wrap" style={{ padding: '16px 0px', overflowY: 'auto' }}>
+        <div className="dh-rowcards-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', paddingBottom: '24px' }}>
+          {pageHubs.map((hub) => {
+            const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+            const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
+            const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
+            const isEditingThis = editingNameId === hub.id;
+            const isOwner = user?.id === hub.createdById;
+            const starred = isHubStarred(hub);
+            const selected = selectedKeys.includes(hub.id);
+            const accent = accentForId(hub.id);
+
+            return (
+              <div
+                key={hub.id}
+                role="button"
+                onMouseEnter={() => setFocusedRowId(hub.id)}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
+                    return;
+                  }
+                  openHub(hub.id);
+                }}
+                className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  border: '1px solid var(--border-slate-100)',
+                  borderRadius: '0px',
+                  background: 'var(--bg-pure-white)',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  ...(selected ? { borderColor: '#3b82f6', boxShadow: '0 0 0 1px #3b82f6' } : {})
+                }}
+              >
+                {/* Top Section */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', flex: 1 }}>
+                  <div className="flex items-center gap-4">
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selected}
+                        onChange={(e) =>
+                          setSelectedKeys((prev) =>
+                            e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleStar(e, hub)}
+                        className={`dh-name-star ${starred ? 'is-starred' : ''}`}
+                      >
+                        {starred ? <StarFilled style={{ fontSize: 14 }} /> : <StarOutlined style={{ fontSize: 14 }} />}
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        width: 40, height: 40, borderRadius: 6,
+                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 600, fontSize: 16
+                      }}
+                    >
+                      {hub.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 group/name">
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-slate-900)' }}>{hub.name}</span>
+                        {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+                      </div>
+                      <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                        {docCount} {docCount === 1 ? 'doc' : 'docs'} · Updated {updatedRel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 dh-row-actions" onClick={(e) => e.stopPropagation()}>
+                    <Tooltip title="Share">
+                      <button type="button" onClick={(e) => handleShareHub(e, hub)} className="dh-row-action-btn" aria-label="Share">
+                        <ShareAltOutlined style={{ fontSize: 14 }} />
+                      </button>
+                    </Tooltip>
+                    <Dropdown
+                      overlayClassName="create-document-menu"
+                      menu={{
+                        items: [
+                          ...(isOwner && canUpdateDocument ? [{
+                            key: 'rename',
+                            label: renderRichMenuItem(<EditOutlined />, 'var(--bg-slate-100)', 'var(--text-slate-600)', 'Rename', 'Change the name of this hub'),
+                            onClick: () => startNameEdit(hub)
+                          }] : []),
+                          {
+                            key: 'star',
+                            label: renderRichMenuItem(
+                              starred ? <StarFilled /> : <StarOutlined />,
+                              starred ? '#FEF3C7' : 'var(--bg-blue-50)',
+                              starred ? '#D97706' : '#3B82F6',
+                              starred ? 'Unstar' : 'Star',
+                              starred ? 'Remove from your starred list' : 'Add to your starred list'
+                            ),
+                            onClick: () => handleToggleStar({ stopPropagation: () => { } } as any, hub)
+                          },
+                          ...(canDeleteDocument ? [
+                            { type: 'divider' as const },
+                            {
+                              key: 'delete',
+                              label: renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true),
+                              onClick: ({ domEvent }: any) => handleDeleteHub(domEvent, hub.id, hub.name)
+                            }
+                          ] : [])
+                        ]
+                      }}
+                      trigger={['click']}
+                      placement="bottomRight"
+                    >
+                      <button type="button" className="dh-row-action-btn" aria-label="More">
+                        <MoreOutlined style={{ fontSize: 14 }} />
+                      </button>
+                    </Dropdown>
+                  </div>
+                </div>
+
+                {/* Middle Section */}
+                <div style={{
+                  padding: '8px 16px',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
+                  borderTop: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
+                  borderBottom: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
+                  display: 'flex', alignItems: 'center', gap: '16px',
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
+                }}>
+                  <span className="flex items-center gap-2">
+                    Created by
+                    <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
+                      {hub.createdBy?.name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <span style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>{hub.createdBy?.name || 'Unknown'}</span>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span>Created {format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span>Updated {format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
+                </div>
+
+                {/* Bottom Section */}
+                <div style={{
+                  padding: '8px 16px',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
+                  display: 'flex', alignItems: 'center', gap: '16px',
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
+                }}>
+                  <span className="flex items-center gap-2">
+                    Project:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <InlineProjectSelector
+                        record={hub}
+                        projects={projects}
+                        projectsLoading={projectsLoading}
+                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                        user={user}
+                      />
+                    </div>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span className="flex items-center gap-2">
+                    Ticket:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <InlineTicketSelector
+                        record={hub}
+                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                        user={user}
+                      />
+                    </div>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span className="flex items-center gap-2">
+                    Visibility:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {renderVisibilityCell(hub)}
+                    </div>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   };
 
-  const renderTable = () => (
-    <div
-      className="dh-table-shell"
-      data-density={density}
-      style={{
-        borderRadius: 16,
-        background: 'var(--bg-pure-white)',
-        border: 'none',
-      }}
-    >
-      <Table
-        columns={visibleColumns}
-        dataSource={filteredHubs}
-        rowKey="id"
-        loading={hubsLoading || hubsFetching}
-        pagination={{
-          pageSize: tablePageSize,
-          current: tablePage,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 15, 25, 50, 100],
-          onChange: (p, size) => {
-            setTablePage(p);
-            setTablePageSize(size);
-          },
-          showTotal: () => null,
-        }}
-        size="small"
-        className="premium-table dh-table"
-        scroll={{ x: 1300 }}
-        sticky={{ offsetHeader: 142 }}
-        locale={{ emptyText: renderEmpty() }}
-        components={{
-          header: { cell: ResizableHeaderCell },
-        }}
-        rowSelection={{
-          selectedRowKeys: selectedKeys,
-          onChange: (keys) => setSelectedKeys(keys),
-          columnWidth: 36,
-          fixed: true,
-        }}
-        expandable={{
-          expandedRowKeys: expandedKeys,
-          onExpand: (expanded, record) => {
-            setExpandedKeys((prev) =>
-              expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
-            );
-          },
-          expandedRowRender: (record) => (
-            <HubInlinePreview hub={record} onOpen={openHub} />
-          ),
-          expandIcon: ({ expanded, onExpand, record }) => (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
-              className="dh-expand-btn"
-              aria-label={expanded ? 'Collapse' : 'Expand preview'}
-              aria-expanded={expanded}
-              style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-            >
-              <RightOutlined style={{ fontSize: 10 }} />
-            </button>
-          ),
-          expandIconColumnIndex: 1,
-          rowExpandable: () => true,
-          expandedRowClassName: () => 'dh-expanded-row',
-        }}
-        onChange={(_pagination, _filters, sorter: any) => {
-          if (sorter && !Array.isArray(sorter)) {
-            setSortedInfo({
-              key: sorter.order ? (sorter.columnKey as string) : null,
-              dir: sorter.order ?? null,
-            });
-          }
-        }}
-        footer={renderTableFooter}
-        onRow={(record) => ({
-          onClick: (e) => {
-            // Skip navigation if click came from selection cell or interactive control.
-            const target = e.target as HTMLElement;
-            if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
-              return;
-            }
-            openHub(record.id);
-          },
-          onMouseEnter: () => setFocusedRowId(record.id),
-          className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
-        })}
-      />
-    </div>
-  );
-
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       {contextHolder}
       {modalContextHolder}
-      <div style={{
-        margin: "0 -16px",
-        padding: "0 24px 24px 24px",
-        background: "var(--bg-pure-white)",
-        minHeight: "calc(100vh - 64px)",
-        display: "flex",
-        flexDirection: "column"
-      }}>
-        {/* === #1 Hero Header (Team-View pattern + live pulse) === */}
+      <div className="dh-shell">
+        {/* Mobile drawer backdrop */}
         <div
-          className="dh-hero sticky top-0 flex flex-wrap justify-between items-center gap-y-3 gap-x-4 flex-shrink-0"
-          style={{
-            margin: '0 -24px 0 -24px',
-            padding: '8px 32px',
-            minHeight: 58,
-            background: 'var(--bg-pure-white) !important',
-            borderBottom: '1px solid var(--border-slate-200)',
-            zIndex: 110,
-          }}
-        >
-          {/* Row 1: Hub name and content */}
-          <div className="dh-hero-section-title flex items-center gap-3 min-w-0">
-            <div className="dh-hero-icon-box">
-              <FileZipOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        {/* ===================== Left sidebar ===================== */}
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+          <div className="dh-sidebar-top">
+            <div className="dh-sidebar-brand">
+              <div className="dh-hero-icon-box">
+                <FileTextOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+              </div>
+              <div className="min-w-0">
+                <h1 className="dh-sidebar-title">Document Hub</h1>
+                <p className="dh-sidebar-subtitle">Wiki · specs · runbooks</p>
+              </div>
             </div>
-            <div className="dh-hero-title-content flex items-center gap-3 min-w-0">
-              <h1
-                className="text-[18px] font-extrabold m-0 tracking-tight leading-tight"
-                style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
-              >
-                Document Hub
-              </h1>
-              <Divider type="vertical" className="dh-hero-divider hidden sm:block" style={{ height: 18, margin: 0, backgroundColor: 'var(--border-slate-200)' }} />
-              <p className="dh-hero-description m-0 text-[12.5px] hidden sm:block font-medium" style={{ color: 'var(--text-slate-600)' }}>
-                Wiki, specs, runbooks — all linked to the work they belong to
-              </p>
-            </div>
-          </div>
 
-          {/* Row 2: Stats */}
-          <div className="dh-hero-section-stats flex items-center gap-2 mt-1 text-[11px]">
-            <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-500)' }}>
-              <span className="dh-pulse-dot" />
-              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
-            </span>
-            <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-            <span style={{ color: 'var(--text-slate-500)' }}>
-              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs
-            </span>
-            {lastUpdated && (
-              <>
-                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-                <span style={{ color: 'var(--text-slate-500)' }}>Updated {lastUpdated}</span>
-              </>
-            )}
-          </div>
-
-          {/* Row 3: Actions */}
-          <div className="dh-hero-section-actions flex flex-wrap items-center gap-2">
-            <Tooltip title="Refresh hubs">
-              <Button
-                icon={<ReloadOutlined spin={hubsFetching} />}
-                onClick={handleReload}
-                className="dh-header-icon-btn"
-                style={{
-                  height: 38, width: 38,
-                  borderRadius: 10,
-                  background: 'var(--bg-slate-50)',
-                  border: '1px solid var(--border-slate-200)',
-                  color: 'var(--text-slate-700)',
-                }}
-              />
-            </Tooltip>
-            <Popover
-              trigger={['click']}
-              placement="bottomRight"
-              classNames={{ root: 'dh-rails-popover' }}
-              content={
-                <div style={{ width: 268 }}>
-                  <div className="dh-popover-section-label">
-                    <AppstoreOutlined style={{ fontSize: 11 }} />
-                    <span>Show on this page</span>
-                  </div>
-                  <label className="dh-rail-toggle-row flex items-start gap-2.5">
-                    <span
-                      className="inline-flex items-center justify-center shrink-0"
-                      style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'rgba(245, 158, 11, 0.10)',
-                        color: '#F59E0B',
-                      }}
-                    >
-                      <PushpinOutlined style={{ fontSize: 13 }} />
-                    </span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="text-[12.5px] font-semibold"
-                          style={{ color: 'var(--text-slate-900)' }}
-                        >
-                          Pinned
-                        </span>
-                        <Switch
-                          size="small"
-                          checked={railVisibility.pinned}
-                          onChange={(checked) =>
-                            setRailVisibility((p) => ({ ...p, pinned: checked }))
-                          }
-                        />
-                      </div>
-                      <span
-                        className="text-[10.5px] leading-snug mt-0.5"
-                        style={{ color: 'var(--text-slate-500)' }}
-                      >
-                        {pinnedHubs.length
-                          ? `${pinnedHubs.length} starred ${pinnedHubs.length === 1 ? 'hub' : 'hubs'}`
-                          : 'Star a hub to pin it here'}
-                      </span>
-                    </div>
-                  </label>
-                  <label className="dh-rail-toggle-row flex items-start gap-2.5">
-                    <span
-                      className="inline-flex items-center justify-center shrink-0"
-                      style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'rgba(59, 130, 246, 0.10)',
-                        color: '#3B82F6',
-                      }}
-                    >
-                      <ClockCircleOutlined style={{ fontSize: 13 }} />
-                    </span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="text-[12.5px] font-semibold"
-                          style={{ color: 'var(--text-slate-900)' }}
-                        >
-                          Recently opened
-                        </span>
-                        <Switch
-                          size="small"
-                          checked={railVisibility.recent}
-                          onChange={(checked) =>
-                            setRailVisibility((p) => ({ ...p, recent: checked }))
-                          }
-                        />
-                      </div>
-                      <span
-                        className="text-[10.5px] leading-snug mt-0.5"
-                        style={{ color: 'var(--text-slate-500)' }}
-                      >
-                        Last hubs you visited!
-                      </span>
-                    </div>
-                  </label>
-                  <div
-                    className="flex items-center justify-between gap-2 mt-3 pt-3"
-                    style={{ borderTop: '1px solid var(--border-slate-200)' }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setRailVisibility(DEFAULT_RAILS)}
-                      className="text-[11.5px] font-semibold"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
-                    >
-                      Reset to default
-                    </button>
-                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                      Saved automatically
-                    </span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Page sections">
-                <Button
-                  icon={<MoreOutlined style={{ fontSize: 18 }} />}
-                  className="dh-header-icon-btn"
-                  aria-label="Page sections"
-                  style={{
-                    height: 38, width: 38,
-                    borderRadius: 10,
-                    background: 'var(--bg-slate-50)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                />
-              </Tooltip>
-            </Popover>
-            {canDeleteDocument && (
-              <Tooltip title={isMobile ? 'Trash' : ''}>
-                <Button
-                  icon={<RestOutlined />}
-                  onClick={() => setTrashVisible(true)}
-                  className="trash-action-btn"
-                  aria-label="Trash"
-                  style={{
-                    height: 38,
-                    ...(isMobile ? { width: 38, padding: 0 } : {}),
-                    borderRadius: 10,
-                    fontWeight: 500,
-                    background: 'var(--bg-slate-50)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                >
-                  {!isMobile && 'Trash'}
-                </Button>
-              </Tooltip>
-            )}
             {canCreateDocument && (
               <Dropdown
                 trigger={['hover', 'click']}
-                placement="bottomRight"
-                classNames={{ root: "create-document-menu" }}
+                placement="bottomLeft"
+                overlayClassName="create-document-menu"
                 menu={{
                   items: [
                     {
@@ -2293,326 +2191,378 @@ const DocumentHubPage = () => {
                   ] as MenuProps['items'],
                 }}
               >
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  className="create-document-btn"
-                  style={{
-                    height: 38,
-                    borderRadius: 10,
-                    fontWeight: 600,
-                    paddingInline: isMobile ? 12 : 16,
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  }}
-                >
-                  {isMobile ? 'Create' : 'Create Document'}
+                <Button type="primary" icon={<PlusOutlined />} className="dh-side-create" block>
+                  Create Document
                 </Button>
               </Dropdown>
             )}
           </div>
-        </div>
 
-        {/* Opaque sticky spacer to create visual gap while preventing content leakage */}
-        <div className="dh-sticky-gap sticky" style={{
-          top: 58,
-          height: 16,
-          background: 'var(--bg-pure-white) !important',
-          zIndex: 105,
-          margin: '0 -24px'
-        }} />
+          <div className="dh-sidebar-scroll">
+            {/* Saved views */}
+            {documentHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">Views</div>
+                <div className="flex flex-col gap-0.2" >
+                  {savedViews.map((sv) => {
+                    const active = savedView === sv.key;
+                    return (
+                      <button
+                        key={sv.key}
+                        type="button"
+                        onClick={() => { setSavedView(sv.key); setMobileSidebarOpen(false); }}
+                        className={`dh-side-view ${active ? 'active' : ''}`}
+                        style={active ? ({ background: `${sv.color}14` } as any) : undefined}
+                      >
+                        <span className="dh-side-view-icon" style={{ color: active ? sv.color : 'var(--text-slate-400)' }}>
+                          {sv.icon}
+                        </span>
+                        <span className="dh-side-view-label">{sv.label}</span>
+                        <span
+                          className="dh-side-view-count"
+                          style={active ? { background: `${sv.color}30`, color: sv.color } : undefined}
+                        >
+                          {viewCounts[sv.key]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-        <div>
-          {/* === #2 Compact stats strip === */}
-          <DocumentHubDashboard
-            documentHubs={documentHubs}
-            isLoading={hubsLoading || hubsFetching}
-            onHubClick={openHub}
-            onShareHub={handleShareHub}
-          />
-
-          {/* === #3 Pinned & Recent rail === */}
-          {renderRail()}
-
-          {/* === #6 Saved-views pills === */}
-          {documentHubs.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-3 overflow-x-auto dh-pills-row">
-              {savedViews.map((sv) => {
-                const active = savedView === sv.key;
-                return (
+            {/* Filters */}
+            <div className="dh-side-group">
+              <div className="dh-side-label">Filters</div>
+              <div className="dh-side-filters flex flex-col gap-2">
+                <SearchableDropdown
+                  value={filterProjectId}
+                  onChange={(v) => setFilterProjectId(v)}
+                  placeholder="Project"
+                  searchPlaceholder="Search by name or code"
+                  itemNoun="projects"
+                  loading={projectsLoading}
+                  width={280}
+                  style={{ width: '100%' }}
+                  options={projects.map((p: any) => ({ value: p.value, label: p.label, description: p.code }))}
+                />
+                <SearchableDropdown
+                  value={filterTicketId}
+                  onChange={(v) => setFilterTicketId(v)}
+                  placeholder="Ticket"
+                  searchPlaceholder="Search by number or title"
+                  itemNoun="tickets"
+                  loading={filterTicketsLoading}
+                  width={300}
+                  style={{ width: '100%' }}
+                  options={(() => {
+                    const source = filterProjectId
+                      ? filterTickets
+                      : Array.from(
+                        new Map(
+                          documentHubs
+                            .filter((hub) => hub.ticket)
+                            .map((hub) => [hub.ticket!.id, hub.ticket]),
+                        ).values(),
+                      );
+                    return (source as any[]).map((t: any) => ({ value: t.id, label: t.ticketNumber, description: t.title }));
+                  })()}
+                />
+                <SearchableDropdown
+                  value={selectedUser}
+                  onChange={(v) => setSelectedUser(v)}
+                  placeholder="Created by"
+                  searchPlaceholder="Search by name"
+                  itemNoun="people"
+                  loading={membersLoading}
+                  width={260}
+                  style={{ width: '100%' }}
+                  options={members.map((m: any) => ({ value: m.value, label: m.label }))}
+                />
+                <RangePicker
+                  className="premium-range-picker"
+                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+                {(filterProjectId || filterTicketId || selectedUser || (dateRange && (dateRange[0] || dateRange[1])) || searchText) && (
                   <button
-                    key={sv.key}
                     type="button"
-                    onClick={() => setSavedView(sv.key)}
-                    className="dh-pill flex items-center gap-1.5 transition-all shrink-0"
-                    style={{
-                      height: 32,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      background: active ? `${sv.color}15` : 'var(--bg-pure-white)',
-                      border: `1px solid ${active ? sv.color + '60' : 'var(--border-slate-200)'}`,
-                      color: active ? sv.color : 'var(--text-slate-600)',
+                    className="dh-side-clear"
+                    onClick={() => {
+                      setSearchText('');
+                      setFilterProjectId(undefined);
+                      setFilterTicketId(undefined);
+                      setSelectedUser(undefined);
+                      setDateRange(null);
                     }}
                   >
-                    <span style={{ fontSize: 11 }}>{sv.icon}</span>
-                    {sv.label}
-                    <span
-                      className="px-1.5 py-[1px] rounded-full text-[10px] font-bold"
-                      style={{
-                        background: active ? sv.color : 'var(--bg-slate-100)',
-                        color: active ? '#fff' : 'var(--text-slate-500)',
-                        marginLeft: 2,
-                      }}
-                    >
-                      {viewCounts[sv.key]}
-                    </span>
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                    Clear filters
                   </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* === #6 Filter bar — single row: search · filters · views · settings · refresh === */}
-          <div className="dh-toolbar-wrapper sticky" style={{
-            top: 74,
-            background: 'var(--bg-pure-white) !important',
-            zIndex: 100,
-            margin: '0 -24px',
-            padding: '0 24px',
-            height: 68,
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <div
-              className="dh-toolbar flex items-center gap-2 rounded-2xl w-full"
-              style={{
-                padding: '10px 14px',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-slate-200)',
-                overflowX: 'auto',
-              }}
-            >
-              <div className="relative shrink-0" style={{ width: isMobile ? 180 : 240 }}>
-                <Input
-                  placeholder={isMobile ? 'Search...' : 'Search hubs...'}
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  className="premium-search-input rounded-xl transition-all"
-                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 36 }}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
-              </div>
-              <div className="h-5 w-[1px] shrink-0 hidden md:block" style={{ background: 'var(--border-slate-200)' }} />
-              <Select
-                placeholder={<Space size={4}><ProjectOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Project</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 150 }}
-                allowClear
-                showSearch
-                value={filterProjectId}
-                onChange={setFilterProjectId}
-                loading={projectsLoading}
-                filterOption={(input, option: any) => {
-                  const project = projects.find(p => p.value === option.value);
-                  if (!project) return false;
-                  return (
-                    project.label?.toLowerCase().includes(input.toLowerCase()) ||
-                    project.code?.toLowerCase().includes(input.toLowerCase())
-                  );
-                }}
-                options={projects.map((p: any) => ({
-                  label: (
-                    <div className="flex flex-col py-1">
-                      <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{p.label}</span>
-                      {p.code && <span style={{ fontSize: 9, lineHeight: '1.2', color: 'var(--text-slate-500)' }}>{p.code}</span>}
-                    </div>
-                  ),
-                  value: p.value
-                }))}
-              />
-              <Select
-                placeholder={<Space size={4}><TagOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Ticket</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 180 }}
-                allowClear
-                showSearch
-                value={filterTicketId}
-                onChange={setFilterTicketId}
-                loading={filterTicketsLoading}
-                filterOption={(input, option: any) => {
-                  const options = filterProjectId ? filterTickets : Array.from(new Map(documentHubs.filter(h => h.ticket).map(h => [h.ticket!.id, h.ticket])).values());
-                  const ticket: any = options.find((t: any) => t.id === option.value);
-                  if (!ticket) return false;
-                  return (
-                    ticket.ticketNumber?.toLowerCase().includes(input.toLowerCase()) ||
-                    ticket.title?.toLowerCase().includes(input.toLowerCase())
-                  );
-                }}
-                options={(() => {
-                  if (filterProjectId) {
-                    return filterTickets.map((t: any) => ({
-                      label: (
-                        <div className="flex flex-col py-1">
-                          <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
-                          <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
-                        </div>
-                      ),
-                      value: t.id
-                    }));
-                  }
-                  const uniqueTickets = Array.from(
-                    new Map(
-                      documentHubs.filter(hub => hub.ticket).map(hub => [hub.ticket!.id, hub.ticket])
-                    ).values()
-                  );
-                  return uniqueTickets.map((t: any) => ({
-                    label: (
-                      <div className="flex flex-col py-1">
-                        <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
-                        <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
-                      </div>
-                    ),
-                    value: t.id
-                  }));
-                })()}
-              />
-              <Select
-                placeholder={<Space size={4}><UserOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Created By</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 150 }}
-                showSearch
-                allowClear
-                optionFilterProp="label"
-                value={selectedUser}
-                onChange={setSelectedUser}
-                loading={membersLoading}
-                options={members.map((m: any) => ({ label: m.label, value: m.value }))}
-              />
-              <RangePicker
-                className="premium-range-picker rounded-xl shrink-0"
-                style={{ width: 220, background: 'var(--bg-pure-white)', height: 36 }}
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
-              />
-
-              {/* Spacer pushes the right-side controls to the end of the row. */}
-              <div className="flex-1 min-w-[8px]" aria-hidden />
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Segmented
-                  value={viewMode}
-                  onChange={(v) => setViewMode(v as ViewMode)}
-                  size="middle"
-                  className="dh-view-segmented"
-                  options={[
-                    { label: <Tooltip title="Table"><UnorderedListOutlined /></Tooltip>, value: 'table' },
-                    { label: <Tooltip title="Grid"><AppstoreOutlined /></Tooltip>, value: 'grid' },
-                    { label: <Tooltip title="Kanban by project"><ProjectOutlined /></Tooltip>, value: 'kanban' },
-                  ]}
-                />
-                {viewMode === 'table' && (
-                  <Popover
-                    trigger={['click']}
-                    placement="bottomRight"
-                    classNames={{ root: 'dh-table-settings-popover' }}
-                    content={
-                      <div style={{ width: 240 }}>
-                        <div className="dh-popover-section-label">
-                          <ColumnHeightOutlined style={{ fontSize: 11 }} />
-                          <span>Density</span>
-                        </div>
-                        <Segmented
-                          block
-                          value={density}
-                          onChange={(v) => setDensity(v as Density)}
-                          options={[
-                            { label: 'Compact', value: 'compact' },
-                            { label: 'Cozy', value: 'comfortable' },
-                            { label: 'Roomy', value: 'spacious' },
-                          ]}
-                        />
-                        <div className="dh-popover-section-label" style={{ marginTop: 14 }}>
-                          <UnorderedListOutlined style={{ fontSize: 11 }} />
-                          <span>Columns</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          {TOGGLEABLE_COLUMNS.map((c) => (
-                            <label
-                              key={c.key}
-                              className="dh-col-toggle-row flex items-center justify-between gap-2"
-                            >
-                              <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>
-                                {c.label}
-                              </span>
-                              <Switch
-                                size="small"
-                                checked={!hiddenCols[c.key]}
-                                onChange={(checked) =>
-                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                                }
-                              />
-                            </label>
-                          ))}
-                        </div>
-                        <div
-                          className="flex items-center justify-between gap-2 mt-3 pt-3"
-                          style={{ borderTop: '1px solid var(--border-slate-200)' }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setColWidths(DEFAULT_COL_WIDTHS);
-                              setHiddenCols({});
-                              setDensity('comfortable');
-                            }}
-                            className="text-[11.5px] font-semibold"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
-                          >
-                            Reset to defaults
-                          </button>
-                          <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                            Saved automatically
-                          </span>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Tooltip title="Table settings">
-                      <Button
-                        icon={<SettingOutlined />}
-                        className="flex items-center justify-center rounded-xl border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
-                        style={{ height: 36, width: 36 }}
-                      />
-                    </Tooltip>
-                  </Popover>
                 )}
-                <Tooltip title="Reload Docs">
-                  <Button
-                    icon={<ReloadOutlined spin={hubsFetching} />}
-                    onClick={handleReload}
-                    className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                    style={{ height: 36, width: 36 }}
-                  />
-                </Tooltip>
               </div>
             </div>
-            <div style={{ height: 10, background: 'var(--bg-pure-white)' }} />
+
+            {/* Pinned */}
+            {/* {pinnedHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">Pinned</div>
+                <div className="flex flex-col gap-0.5">
+                  {pinnedHubs.slice(0, 6).map((h) => {
+                    const ac = accentForId(h.id);
+                    return (
+                      <button key={h.id} type="button" className="dh-side-hub" onClick={() => openHub(h.id)} title={h.name}>
+                        <span className="dh-side-hub-dot" style={{ background: `linear-gradient(135deg, ${ac.from} 0%, ${ac.to} 100%)` }} />
+                        <span className="dh-side-hub-name truncate">{h.name}</span>
+                        <StarFilled style={{ fontSize: 10, color: '#f59e0b' }} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )} */}
+
+            {/* Recent */}
+            {recentHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">{recentIds.length ? 'Recently opened' : 'Recently updated'}</div>
+                <div className="flex flex-col gap-0.5">
+                  {recentHubs.slice(0, 5).map((h) => {
+                    const docCount = (h as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+                    const updatedRel = formatDistanceToNow(new Date(h.updatedAt), { addSuffix: true });
+                    return (
+                      <button key={h.id} type="button" className="dh-recent-item" onClick={() => openHub(h.id)} title={h.name}>
+                        <span className="dh-recent-icon">
+                          <FileTextOutlined style={{ fontSize: 12 }} />
+                        </span>
+                        <span className="dh-recent-body">
+                          <span className="dh-recent-name truncate">{h.name}</span>
+                          <span className="dh-recent-meta truncate">
+                            {docCount} {docCount === 1 ? 'doc' : 'docs'} · {updatedRel}
+                          </span>
+                        </span>
+                        {isHubStarred(h) && <StarFilled style={{ fontSize: 10, color: '#f59e0b' }} className="shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* === #5 View body === */}
-          {hubsLoading && !documentHubs.length ? (
-            <div className="flex items-center justify-center py-16">
-              <Spin />
+          {canDeleteDocument && (
+            <button type="button" className="dh-side-trash" onClick={() => setTrashVisible(true)}>
+              <Trash2 size={16} strokeWidth={2} />
+              <span>Trash</span>
+            </button>
+          )}
+        </aside>
+
+        {/* ===================== Main pane ===================== */}
+        <main className="dh-main">
+          {/* Top bar: search · live stats · view controls */}
+          <div className="dh-main-topbar">
+            <Tooltip title="Views & filters">
+              <Button
+                className="dh-mobile-menu-btn"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileSidebarOpen((v) => !v)}
+                aria-label="Open views and filters"
+                style={{ height: 38, width: 38, borderRadius: 10 }}
+              />
+            </Tooltip>
+            <div className="dh-main-search">
+              <Input
+                placeholder="Search hubs, docs, tickets…"
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                // suffix={!searchText ? <span className="dh-search-kbd">⌘K</span> : undefined}
+                className="premium-search-input  transition-all"
+                style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 34 }}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
             </div>
-          ) : viewMode === 'table' ? renderTable()
-            : viewMode === 'grid' ? renderGrid()
-              : renderKanban()}
-        </div>
+
+            <div className="dh-main-stats">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="dh-pulse-dot" />
+                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
+              </span>
+              <span style={{ color: 'var(--text-slate-300)' }}>·</span>
+              <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs</span>
+              {lastUpdated && (
+                <>
+                  <span style={{ color: 'var(--text-slate-300)' }} className="hidden sm:inline">·</span>
+                  <span className="hidden sm:inline">Updated {lastUpdated}</span>
+                </>
+              )}
+            </div>
+
+            <div className="dh-main-controls">
+              <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                <Tooltip title="Cards">
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                    style={{
+                      width: 30, height: 30,
+                      background: viewMode === 'cards' ? 'var(--bg-blue-50)' : 'transparent',
+                      color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)',
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)' }} />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Table">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                    style={{
+                      width: 30, height: 30,
+                      background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
+                      color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)',
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)' }} />
+                  </button>
+                </Tooltip>
+              </div>
+              {viewMode === 'table' && (
+                <Popover
+                  trigger={['click']}
+                  placement="bottomRight"
+                  classNames={{ root: 'dh-table-settings-popover' }}
+                  content={
+                    <div style={{ width: 240 }}>
+                      <div className="dh-popover-section-label">
+                        <ColumnHeightOutlined style={{ fontSize: 11 }} />
+                        <span>Density</span>
+                      </div>
+                      <Segmented
+                        block
+                        value={density}
+                        onChange={(v) => setDensity(v as Density)}
+                        options={[
+                          { label: 'Compact', value: 'compact' },
+                          { label: 'Cozy', value: 'comfortable' },
+                          { label: 'Roomy', value: 'spacious' },
+                        ]}
+                      />
+                      <div className="dh-popover-section-label" style={{ marginTop: 14 }}>
+                        <UnorderedListOutlined style={{ fontSize: 11 }} />
+                        <span>Columns</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {TOGGLEABLE_COLUMNS.map((c) => (
+                          <label key={c.key} className="dh-col-toggle-row flex items-center justify-between gap-2">
+                            <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{c.label}</span>
+                            <Switch
+                              size="small"
+                              checked={!hiddenCols[c.key]}
+                              onChange={(checked) => setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                        <button
+                          type="button"
+                          onClick={() => { setColWidths(DEFAULT_COL_WIDTHS); setHiddenCols({}); setDensity('comfortable'); }}
+                          className="text-[11.5px] font-semibold"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                        >
+                          Reset to defaults
+                        </button>
+                        <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>Saved automatically</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Tooltip title="Table settings">
+                    <Button
+                      icon={<SettingOutlined />}
+                      className="flex items-center justify-center rounded-xl border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
+                      style={{ height: 38, width: 38 }}
+                    />
+                  </Tooltip>
+                </Popover>
+              )}
+              <Tooltip title="Refresh hubs">
+                <Button
+                  icon={<ReloadOutlined spin={hubsFetching} />}
+                  onClick={handleReload}
+                  className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                  style={{ height: 38, width: 38 }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="dh-main-scroll">
+            {/* Compact stats strip */}
+            <div className="dh-stats-wrap">
+              <DocumentHubDashboard
+                documentHubs={documentHubs}
+                isLoading={hubsLoading || hubsFetching}
+                onHubClick={openHub}
+                onShareHub={handleShareHub}
+              />
+            </div>
+
+            {/* View body */}
+            <div className="dh-main-body">
+              {hubsLoading && !documentHubs.length ? (
+                <div className="flex items-center justify-center py-16">
+                  <Spin />
+                </div>
+              ) : viewMode === 'cards' ? renderRowCards()
+                : renderTable()}
+            </div>
+          </div>
+
+          {/* Fixed pagination footer (Cards & Table views) */}
+          {!(hubsLoading && !documentHubs.length) && filteredHubs.length > 0 && (() => {
+            const total = filteredHubs.length;
+            const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+            const curPage = Math.min(tablePage, pageCount);
+            const start = (curPage - 1) * tablePageSize + 1;
+            const end = Math.min(curPage * tablePageSize, total);
+            return (
+              <div className="dh-main-footer">
+                <div className="dh-footer-summary">
+                  Showing <span className="dh-footer-strong">{start}–{end}</span> of{' '}
+                  <span className="dh-footer-strong">{total}</span> hub{total === 1 ? '' : 's'}
+                  {starredVisibleCount > 0 && (
+                    <>
+                      {' · '}
+                      <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
+                        <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
+                      </span>
+                    </>
+                  )}
+                  {sharedWithMeCount > 0 && (
+                    <>
+                      {' · '}
+                      <span style={{ color: 'var(--text-slate-600)' }}>{sharedWithMeCount} shared with you</span>
+                    </>
+                  )}
+                </div>
+                <Pagination
+                  current={curPage}
+                  pageSize={tablePageSize}
+                  total={total}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  onChange={(p, size) => { setTablePage(p); setTablePageSize(size); }}
+                />
+              </div>
+            );
+          })()}
+        </main>
       </div>
 
       {/* === Modals (unchanged structure) === */}
@@ -2731,54 +2681,38 @@ const DocumentHubPage = () => {
             <Row gutter={[12, 0]}>
               <Col span={24}>
                 <Form.Item name="projectId" className="mb-3">
-                  <Select
-                    size="large"
-                    placeholder={
-                      <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
-                        <ProjectOutlined style={{ fontSize: 12 }} /> Select a project
-                      </span>
-                    }
+                  <SearchableDropdown
+                    placeholder="Select a project"
+                    searchPlaceholder="Search by name or code"
+                    itemNoun="projects"
                     loading={projectsLoading}
-                    suffixIcon={<ProjectOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
                     onChange={(value) => {
                       setSelectedProjectId(value);
                       form.setFieldsValue({ projectId: value, ticketId: undefined });
                     }}
-                    allowClear
-                    style={{ borderRadius: 10 }}
-                  >
-                    {projects.map((project) => (
-                      <Option key={project.value} value={project.value}>
-                        {project.label} ({project.code})
-                      </Option>
-                    ))}
-                  </Select>
+                    options={projects.map((project) => ({
+                      value: project.value,
+                      label: project.label,
+                      description: project.code,
+                    }))}
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>
                 <Form.Item name="ticketId" className="mb-2">
-                  <Select
-                    size="large"
-                    showSearch
+                  <SearchableDropdown
                     placeholder={
-                      <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
-                        <TagOutlined style={{ fontSize: 12 }} />
-                        {selectedProjectId ? 'Select a ticket' : 'Pick a project first to link a ticket'}
-                      </span>
+                      selectedProjectId ? 'Select a ticket' : 'Pick a project first to link a ticket'
                     }
+                    searchPlaceholder="Search by number or title"
+                    itemNoun="tickets"
                     loading={ticketsLoading}
-                    suffixIcon={<TagOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
-                    allowClear
                     disabled={!selectedProjectId}
-                    optionFilterProp="label"
                     options={tickets.map((ticket: any) => ({
                       value: ticket.id,
-                      label: `${ticket.ticketNumber} (${ticket.title})`,
+                      label: ticket.ticketNumber,
+                      description: ticket.title,
                     }))}
-                    filterOption={(input, option) =>
-                      String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    style={{ borderRadius: 10 }}
                   />
                 </Form.Item>
               </Col>
@@ -3025,19 +2959,17 @@ const DocumentHubPage = () => {
           </div>
         </div>
         <div className="px-5 pt-4 pb-5">
-          <Select
-            size="large"
+          <SearchableDropdown
             placeholder="Select a project (or leave empty to unassign)"
+            searchPlaceholder="Search by name or code"
+            itemNoun="projects"
             value={bulkProjectId}
-            onChange={setBulkProjectId}
+            onChange={(v) => setBulkProjectId(v)}
             loading={projectsLoading}
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: '100%', borderRadius: 10 }}
             options={projects.map((p: any) => ({
-              label: `${p.label}${p.code ? ` (${p.code})` : ''}`,
               value: p.value,
+              label: p.label,
+              description: p.code,
             }))}
           />
         </div>
@@ -3192,6 +3124,433 @@ const DocumentHubPage = () => {
       </Modal>
 
       <style jsx global>{`
+        /* ===================== Side-layout shell ===================== */
+        .dh-shell {
+          margin: 0;
+          display: flex;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+          background: var(--bg-pure-white);
+        }
+
+        /* ----------------------- Sidebar ----------------------- */
+        .dh-sidebar {
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          height: calc(100vh - 54px);
+          width: 272px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-slate-200);
+        }
+        .dh-sidebar-top {
+          padding: 14px 14px 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .dh-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .dh-sidebar-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          color: var(--text-slate-900);
+        }
+        .dh-sidebar-subtitle {
+          margin: 2px 0 0 0;
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .dh-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3B82F6 0%, #3B82F6 100%) !important;
+          border: none !important;
+          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        [data-theme='dark'] .dh-side-create {
+          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
+        }
+        .dh-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
+          scrollbar-width: none;        /* Firefox */
+          -ms-overflow-style: none;     /* IE/Edge legacy */
+        }
+        .dh-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        /* Compact filters */
+        .dh-side-filters .sd-trigger {
+          height: 35px !important;
+          min-height: 35px !important;
+          font-size: 13px;
+        }
+        .premium-range-picker {
+          border-radius: 6px !important;
+          border: 1px dashed var(--border-slate-200) !important;
+        }
+        .dh-side-group { margin-bottom: 13px; }
+        .dh-side-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        /* Saved-view rows */
+        .dh-side-view {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 32px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          transition: background 0.15s, color 0.15s;
+        }
+        .dh-side-view:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .dh-side-view.active {
+          color: var(--text-slate-900);
+          font-weight: 600;
+        }
+        .dh-side-view-icon { display: inline-flex; font-size: 14px; width: 18px; justify-content: center; }
+        .dh-side-view-label { flex: 1; text-align: left; }
+        .dh-side-view-count {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 1px 8px;
+          border-radius: 5px;
+          background: transparent;
+          color: var(--text-slate-400);
+        }
+        .dh-side-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          align-self: flex-start;
+          margin-top: 2px;
+          padding: 5px 10px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          background: var(--bg-pure-white);
+          color: var(--text-slate-500);
+          font-size: 11.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .dh-side-clear:hover { color: #ef4444; border-color: #fecaca; }
+        /* Pinned / recent hub items */
+        .dh-side-hub {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 29px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .dh-side-hub:hover { background: var(--bg-slate-100); }
+        .dh-side-hub-dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+        .dh-side-hub-name {
+          flex: 1;
+          text-align: left;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: var(--text-slate-700);
+        }
+        /* Recently-opened items (icon + name + meta) */
+        .dh-recent-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          padding: 5px 8px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s;
+        }
+        .dh-recent-item:hover { background: var(--bg-slate-100); }
+        .dh-recent-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: rgba(59, 130, 246, 0.10);
+          color: #3B82F6;
+          flex-shrink: 0;
+        }
+        .dh-recent-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+        .dh-recent-name {
+          font-size: 12.5px;
+          font-weight: 600;
+          line-height: 1.25;
+          color: var(--text-slate-800, #1e293b);
+        }
+        .dh-recent-meta {
+          font-size: 10px;
+          line-height: 1.25;
+          color: var(--text-slate-400);
+        }
+        .dh-side-trash {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin: 0 0px 12px 0px;
+          padding: 20px 20px;
+          height: 38px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .dh-side-trash:hover { color: #ef4444; border-color: #fecaca; }
+
+        /* ----------------------- Main pane ----------------------- */
+        .dh-main {
+          flex: 1;
+          min-width: 0;
+          height: calc(100vh - 54px);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .dh-main-topbar {
+          flex-shrink: 0;
+          z-index: 60;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 4px 20px;
+          min-height: 50px;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .dh-main-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .dh-main-footer {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        .dh-footer-summary {
+          font-size: 13px;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .dh-footer-strong { font-weight: 700; color: var(--text-slate-700); }
+        
+        /* Custom Pagination Styles */
+        .dh-main-footer .ant-pagination-item,
+        .dh-main-footer .ant-pagination-prev .ant-pagination-item-link,
+        .dh-main-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .dh-main-footer .ant-pagination-item-active {
+          background: #3b82f6 !important; /* using standard blue accent */
+          border-color: #3b82f6 !important;
+        }
+        .dh-main-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .dh-main-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+        
+        .dh-main-search { width: 320px; max-width: 42%; flex-shrink: 0; }
+        .premium-search-input {
+          border-radius: 6px;
+        }
+        .dh-search-kbd {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1;
+          padding: 2px 6px;
+          border-radius: 6px;
+          color: var(--text-slate-400);
+          background: var(--bg-slate-100);
+          border: 1px solid var(--border-slate-200);
+        }
+        .dh-main-stats {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+          overflow: hidden;
+        }
+        .dh-main-controls {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .dh-stats-wrap { padding: 12px 20px 0 20px; }
+        .dh-main-body { padding: 12px 20px 14px 20px; }
+
+        /* ----------------------- Row-cards view ----------------------- */
+        .dh-rowcards-wrap { width: 100%; overflow-x: auto; }
+        .dh-new-rowcard:hover {
+          border-color: var(--border-slate-300, #cbd5e1) !important;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+        }
+        [data-theme='dark'] .dh-new-rowcard {
+          background: var(--bg-slate-50) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        [data-theme='dark'] .dh-new-rowcard:hover {
+          border-color: rgba(255, 255, 255, 0.16) !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Mobile drawer pieces (inert on desktop) */
+        .dh-mobile-menu-btn { display: none !important; }
+        .dh-sidebar-backdrop { display: none; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 1280px) {
+          .dh-sidebar { width: 244px; }
+          .dh-main-search { width: 280px; }
+        }
+        @media (max-width: 1100px) {
+          .dh-sidebar { width: 228px; }
+          .dh-main-search { width: 230px; max-width: 40%; }
+          .dh-main-stats { display: none; }
+        }
+        @media (max-width: 860px) {
+          .dh-shell {
+            display: block;
+            margin: 0;
+            padding-left: 0;
+            gap: 0;
+          }
+          /* Sidebar becomes a slide-in drawer */
+          .dh-sidebar {
+            position: fixed;
+            top: 54px; left: 0; bottom: 0;
+            height: auto;
+            width: 286px;
+            max-width: 86vw;
+            margin: 0;
+            border-radius: 0 18px 18px 0;
+            border-left: none;
+            transform: translateX(-103%);
+            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1200;
+          }
+          .dh-sidebar.is-mobile-open {
+            transform: translateX(0);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+          }
+          .dh-sidebar-backdrop {
+            display: block;
+            position: fixed;
+            inset: 54px 0 0 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.26s ease;
+            z-index: 1150;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+          .dh-main {
+            height: auto;
+            min-height: calc(100vh - 54px);
+            overflow: visible;
+          }
+          .dh-main-scroll { overflow: visible; }
+          .dh-main-topbar { flex-wrap: wrap; padding: 8px 14px; min-height: 0; }
+          .dh-mobile-menu-btn {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-200);
+            color: var(--text-slate-700);
+            order: 0;
+          }
+          .dh-main-search { width: 100%; max-width: none; order: 5; flex: 1 1 100%; }
+          .dh-main-controls { order: 2; margin-left: auto; }
+        }
+        @media (max-width: 560px) {
+          .dh-main-body { padding: 8px 12px 14px 12px; }
+          .dh-stats-wrap { padding: 10px 12px 0 12px; }
+          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px; }
+          .dh-footer-summary { text-align: center; white-space: normal; }
+          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap; }
+        }
+
+        /* Dark-mode surfaces */
+        [data-theme="dark"] .dh-shell,
+        [data-theme="dark"] .dh-main { background: var(--bg-pure-white); }
+        [data-theme="dark"] .dh-side-view.active { background: var(--bg-slate-100); }
+        [data-theme="dark"] .dh-recent-item:hover { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .dh-recent-icon { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
+        [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
+        [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
+        [data-theme="dark"] .dh-side-hub:hover { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .dh-mobile-menu-btn {
+          background: var(--bg-slate-50) !important;
+          border-color: var(--border-slate-200) !important;
+          color: var(--text-slate-700) !important;
+        }
+
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;
@@ -3200,8 +3559,10 @@ const DocumentHubPage = () => {
           font-size: 11px;
           letter-spacing: 0.05em;
           border-bottom: 2px solid #f1f5f9 !important;
-          padding-top: 14px !important;
-          padding-bottom: 14px !important;
+          padding-top: 9px !important;
+          padding-bottom: 9px !important;
+          padding-left: 10px !important;
+          padding-right: 10px !important;
           line-height: 1.2 !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
@@ -3244,16 +3605,16 @@ const DocumentHubPage = () => {
           border-radius: 4px;
         }
         .create-document-menu .ant-dropdown-menu {
-          padding: 6px !important;
-          border-radius: 14px !important;
+          padding: 4px 6px !important;
+          border-radius: 0px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
-          min-width: 290px !important;
+          min-width: 150px !important;
         }
         .create-document-menu .ant-dropdown-menu-item {
-          border-radius: 10px !important;
-          padding: 8px 10px !important;
+          border-radius: 0px !important;
+          padding: 4px 6px !important;
           margin-bottom: 2px !important;
         }
         .create-document-menu .ant-dropdown-menu-item:last-child {
@@ -3299,9 +3660,82 @@ const DocumentHubPage = () => {
           background: #0f172a !important;
         }
 
+        /* Filter bar */
+        .dh-filter-divider {
+          flex-shrink: 0;
+          width: 1px;
+          height: 22px;
+          background: var(--border-slate-200);
+          margin: 0 2px;
+        }
+        [data-theme='dark'] .dh-filter-divider {
+          background: rgba(255,255,255,0.08);
+        }
+        .dh-filter-group .sd-trigger {
+          height: 36px !important;
+          min-width: 0;
+        }
+        .dh-filter-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 36px;
+          padding: 0 10px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: color .15s ease, border-color .15s ease, background .15s ease;
+          white-space: nowrap;
+        }
+        .dh-filter-clear:hover {
+          color: #b91c1c;
+          border-color: rgba(185, 28, 28, 0.35);
+          border-style: solid;
+          background: rgba(239, 68, 68, 0.06);
+        }
+        [data-theme='dark'] .dh-filter-clear {
+          color: #94a3b8;
+          border-color: rgba(255,255,255,0.10);
+        }
+        [data-theme='dark'] .dh-filter-clear:hover {
+          color: #fca5a5;
+          border-color: rgba(252, 165, 165, 0.4);
+          background: rgba(239, 68, 68, 0.10);
+        }
+
         .dh-table-shell {
           border: none !important;
         }
+
+        /* Visibility status pill (table + row-card cells) */
+        .dh-vis-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 3px 9px;
+          border-radius: 8px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          font-size: 12.5px;
+          line-height: 1.2;
+          color: var(--text-slate-700);
+          width: fit-content;
+          max-width: 100%;
+          transition: border-color .15s ease, background .15s ease;
+        }
+        .dh-vis-pill.is-clickable { cursor: pointer; }
+        .dh-vis-pill.is-clickable:hover {
+          border-color: var(--text-slate-400);
+          background: var(--bg-slate-50, #f8fafc);
+        }
+        .dh-vis-dot { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+        .dh-vis-label { white-space: nowrap; }
+        .dh-vis-chevron { color: var(--text-slate-400); margin-left: 1px; }
+        .dh-vis-item { display: inline-flex; align-items: center; gap: 8px; }
         
         .premium-table {
           border-collapse: separate !important;
@@ -3309,11 +3743,31 @@ const DocumentHubPage = () => {
         }
 
         /* Top border and corners (sticky) */
+
+
+
+        /* Add border to the table container instead */
+        .premium-table .ant-table-container {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 0 !important;
+        }
+
+        [data-theme='dark'] .premium-table .ant-table-container {
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-pure-white) !important;
-          border-top: 1px solid var(--border-slate-200) !important;
+          border-top: none !important;
           border-bottom: 1px solid var(--border-slate-200) !important;
         }
+        .premium-table .ant-table-thead > tr > th:first-child {
+          border-left: none !important;
+        }
+        .premium-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
           background: #0f172a !important;
           border-top-color: rgba(255, 255, 255, 0.08) !important;
@@ -3321,12 +3775,12 @@ const DocumentHubPage = () => {
         }
         
         .premium-table .ant-table-thead > tr > th:first-child {
-          border-left: 1px solid var(--border-slate-200) !important;
-          border-top-left-radius: 16px !important;
+          border-left: none !important;
+          border-top-left-radius: 0px !important;
         }
         .premium-table .ant-table-thead > tr > th:last-child {
-          border-right: 1px solid var(--border-slate-200) !important;
-          border-top-right-radius: 16px !important;
+          border-right: none !important;
+          border-top-right-radius: 0px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:first-child,
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:last-child {
@@ -3336,10 +3790,10 @@ const DocumentHubPage = () => {
 
         /* Side borders for body rows */
         .premium-table .ant-table-tbody > tr > td:first-child {
-          border-left: 1px solid var(--border-slate-200) !important;
+          border-left: none !important;
         }
         .premium-table .ant-table-tbody > tr > td:last-child {
-          border-right: 1px solid var(--border-slate-200) !important;
+          border-right: none !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child,
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:last-child {
@@ -3349,13 +3803,13 @@ const DocumentHubPage = () => {
 
         /* Bottom border and corners for the last row */
         .premium-table .ant-table-tbody > tr:last-child > td {
-          border-bottom: 1px solid var(--border-slate-200) !important;
+          border-bottom: none !important;
         }
         .premium-table .ant-table-tbody > tr:last-child > td:first-child {
-          border-bottom-left-radius: 16px !important;
+          border-bottom-left-radius: 0px !important;
         }
         .premium-table .ant-table-tbody > tr:last-child > td:last-child {
-          border-bottom-right-radius: 16px !important;
+          border-bottom-right-radius: 0px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr:last-child > td {
           border-bottom-color: rgba(255, 255, 255, 0.08) !important;
@@ -3423,23 +3877,55 @@ const DocumentHubPage = () => {
         }
         /* Inline editable cells (Project/Ticket) — theme-aware hover bg.
          * Light: light-sky tint. Dark: subtle sky-tinted overlay. */
+        .dh-inline-cell {
+          background: #eff6ff;  /* always-on background */
+        }
+        [data-theme='dark'] .dh-inline-cell { background: rgba(56, 189, 248, 0.10); }
         .dh-inline-cell:hover { background: rgba(14, 165, 233, 0.08); }
         [data-theme='dark'] .dh-inline-cell:hover { background: rgba(56, 189, 248, 0.10); }
         /* "Add Project" / "Add Ticket" empty-state buttons. */
         .dh-inline-add-btn:hover:not(:disabled) { background: rgba(59, 130, 246, 0.08) !important; }
         [data-theme='dark'] .dh-inline-add-btn:hover:not(:disabled) { background: rgba(96, 165, 250, 0.12) !important; }
-        .dh-card-icon-btn {
-          width: 22px; height: 22px;
-          display: inline-flex; align-items: center; justify-content: center;
-          border: none;
-          border-radius: 7px;
-          cursor: pointer;
-          background: rgba(255, 255, 255, 0.18);
-          backdrop-filter: blur(4px);
-          transition: background 0.15s;
+        /* Corner ribbon on hub cards — flag-style tag pinned to top-right.
+         * Two variants: public (sky) and private (slate). Sits flush to the
+         * card edge with a small triangular notch on the left for the "flag"
+         * silhouette. */
+        .dh-ribbon {
+          position: absolute;
+          top: 10px;
+          right: -4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          height: 18px;
+          padding: 0 8px 0 10px;
+          font-size: 9.5px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          color: #fff;
+          z-index: 1;
+          clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%);
         }
-        .dh-card-icon-btn:hover {
-          background: rgba(255, 255, 255, 0.30);
+        .dh-ribbon::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          bottom: -4px;
+          border-style: solid;
+          border-width: 4px 4px 0 0;
+          border-color: transparent;
+        }
+        .dh-ribbon-public {
+          background: #0EA5E9;
+        }
+        .dh-ribbon-public::after {
+          border-top-color: #075985;
+        }
+        .dh-ribbon-private {
+          background: #64748B;
+        }
+        .dh-ribbon-private::after {
+          border-top-color: #334155;
         }
         .dh-card-action-btn {
           width: 24px; height: 24px;
@@ -3571,16 +4057,16 @@ const DocumentHubPage = () => {
         }
 
         /* Density (#C) — tunes per-row vertical padding */
-        .dh-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
-        .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
-        .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
+        .dh-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
+        .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 6px 10px !important; }
+        .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 10px 14px !important; }
 
-        /* Hover-only row actions (#D) */
+        /* Pinned row actions — always visible in the fixed Actions column (#D) */
         .dh-row-actions {
           display: inline-flex;
           align-items: center;
           gap: 2px;
-          opacity: 0;
+          opacity: 1;
           transition: opacity 0.15s;
         }
         .premium-table .ant-table-row:hover .dh-row-actions,
@@ -3711,18 +4197,35 @@ const DocumentHubPage = () => {
         }
 
         /* Sticky-left shadow when horizontally scrolled */
-        .premium-table .ant-table-cell-fix-left-last::after,
-        .premium-table .ant-table-cell-fix-right-first::after {
-          box-shadow: inset 10px 0 8px -8px rgba(15, 23, 42, 0.06) !important;
+        .premium-table .ant-table-cell-fix-left-last::after {
+          box-shadow: inset -10px 0 8px -8px rgba(15, 23, 42, 0.06) !important;
         }
-        [data-theme='dark'] .premium-table .ant-table-cell-fix-left-last::after,
+        .premium-table .ant-table-cell-fix-right-first::after {
+          box-shadow: none !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-cell-fix-left-last::after {
+          box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.45) !important;
+        }
         [data-theme='dark'] .premium-table .ant-table-cell-fix-right-first::after {
-          box-shadow: inset 10px 0 8px -8px rgba(0, 0, 0, 0.45) !important;
+          box-shadow: none !important;
         }
 
         /* Selection column polish */
         .premium-table .ant-table-selection-column { padding: 0 8px !important; }
         .premium-table .ant-checkbox-wrapper { transform: scale(0.95); }
+        .premium-table .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-inner {
+          border-color: var(--border-slate-300, #cbd5e1) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-checkbox-inner,
+        [data-theme='dark'] .dh-new-rowcard .ant-checkbox-inner {
+          border-color: #475569 !important;
+        }
+        .premium-table .ant-checkbox-checked .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-checked .ant-checkbox-inner {
+          border-color: #3b82f6 !important;
+          background-color: #3b82f6 !important;
+        }
 
         /* Footer area */
         .premium-table .ant-table-footer {
@@ -3869,16 +4372,16 @@ const DocumentHubPage = () => {
 
         /* Create Document Dropdown (#1) */
         .create-document-menu .ant-dropdown-menu {
-          padding: 6px !important;
-          border-radius: 14px !important;
+          padding: 4px 6px !important;
+          border-radius: 0px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
-          min-width: 320px !important;
+          min-width: 150px !important;
         }
         .create-document-menu .ant-dropdown-menu-item {
-          border-radius: 10px !important;
-          padding: 8px 10px !important;
+          border-radius: 0px !important;
+          padding: 4px 6px !important;
           margin-bottom: 2px !important;
         }
         .create-document-menu .ant-dropdown-menu-item:last-child {

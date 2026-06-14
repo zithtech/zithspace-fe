@@ -1,8 +1,11 @@
 "use client";
 
+import "../projects.css";
+
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Spin } from "antd";
@@ -11,6 +14,7 @@ import ProjectTrashManagementPage from "@/components/projects/trash/ProjectTrash
 export default function ProjectTrashPage() {
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission(); // Assuming we use PROJECT_READ for trash
+  useActivitySource({ section: "WORK", module: "Projects", page: "ProjectTrash" });
   const router = useRouter();
 
   // Route guard
@@ -45,7 +49,7 @@ export default function ProjectTrashPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <ProjectTrashManagementPage />
     </MainLayout>
   );

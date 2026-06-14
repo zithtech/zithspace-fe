@@ -10,7 +10,8 @@ export type WorkStatus =
   | "dev_complete"
   | "in_testing"
   | "pushed_to_staging"
-  | "pushed_to_production";
+  | "pushed_to_production"
+  | "completed";
 
 export interface WorkEntry {
   id?: string;
@@ -265,6 +266,11 @@ export function getStatusConfig(status: WorkStatus): {
       label: "Pushed to Production",
       color: "purple",
       icon: "🎉",
+    },
+    completed: {
+      label: "Completed",
+      color: "success",
+      icon: "✅",
     },
   };
 

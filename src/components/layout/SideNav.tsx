@@ -76,7 +76,15 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             };
 
             if (item.children) {
-                menuItem.children = mapItemsToMenu(item.children);
+                const mappedChildren = mapItemsToMenu(item.children);
+                // When collapsed, the children render in a hover flyout — give it a
+                // titled header (the parent's name) for a premium SaaS feel.
+                // When expanded, keep the plain inline submenu (no redundant header).
+                menuItem.children = collapsed
+                    ? [{ key: `${item.key}__group`, type: 'group', label: item.label, children: mappedChildren }]
+                    : mappedChildren;
+                // Premium flyout: scope the collapsed submenu popup for styling
+                menuItem.popupClassName = 'sidebar-flyout-popup';
             } else if (item.path) {
                 menuItem.onClick = () => router.push(item.path);
             }
@@ -168,7 +176,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             collapsible
             collapsed={collapsed}
             width={200}
-            collapsedWidth={65}
+            collapsedWidth={52}
             theme={theme as "light" | "dark"}
             className="glass-panel sidebar-sider"
             style={{
@@ -176,18 +184,18 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 borderRight: "1px solid var(--border-color) !important",
                 position: "fixed",
                 left: 0,
-                top: 64,
+                top: 54,
                 bottom: 0,
-                height: "calc(100vh - 64px)",
+                height: "calc(100vh - 54px)",
                 zIndex: 99,
                 overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
             }}
         >
             {/* Collapse Toggle Button at Top */}
             <div style={{
-                padding: '12px 8px',
+                padding: '8px 8px',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
@@ -198,9 +206,9 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                     icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                     onClick={onCollapse}
                     style={{
-                        fontSize: 18,
-                        width: 32,
-                        height: 32,
+                        fontSize: 16,
+                        width: 30,
+                        height: 30,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -212,6 +220,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             <div className="sidebar-scroll-container">
                 <Menu
                     mode="inline"
+                    inlineIndent={14}
                     inlineCollapsed={collapsed} // This controls icon-only mode
                     selectedKeys={getSelectedKey()}
                     openKeys={openKeys}
@@ -228,18 +237,20 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             <style dangerouslySetInnerHTML={{
                 __html: `
                 /* Scoped Sidebar Menu Overrides */
-                .sidebar-sider .ant-menu-item, 
+                .sidebar-sider .ant-menu-item,
                 .sidebar-sider .ant-menu-submenu-title {
-                    width: calc(100% - 24px) !important;
+                    width: calc(100% - 20px) !important;
                     margin-inline: auto !important;
-                    margin-block: 4px !important;
-                    border-radius: 12px !important;
+                    margin-block: 2px !important;
+                    border-radius: 10px !important;
+                    height: 38px !important;
+                    line-height: 38px !important;
                 }
 
                 /* Center icons when collapsed */
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-item,
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-submenu-title {
-                    width: 44px !important;
+                    width: 40px !important;
                     margin-inline: auto !important;
                     padding-inline: 0 !important;
                     display: flex !important;
@@ -251,26 +262,82 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-item .anticon,
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-submenu-title .anticon {
                     margin: 0 !important;
-                    font-size: 18px !important;
+                    font-size: 17px !important;
                     display: inline-flex !important;
                 }
 
                 /* Lucide icon defaults — premium, consistent sizing */
                 .sidebar-sider .nav-lucide-icon {
-                    width: 16px;
-                    height: 16px;
+                    width: 15px;
+                    height: 15px;
                     vertical-align: -0.125em;
                     flex-shrink: 0;
                 }
                 .sidebar-sider.ant-layout-sider-collapsed .nav-lucide-icon {
-                    width: 18px !important;
-                    height: 18px !important;
+                    width: 16px !important;
+                    height: 16px !important;
                     margin: 0 !important;
                 }
 
                 /* HIDE the text labels specifically when collapsed */
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-title-content {
                     display: none !important;
+                }
+
+                /* ===== Premium active / hover treatment ===== */
+                /* Remove Ant's default animated right border indicator */
+                .sidebar-sider .ant-menu-item::after,
+                .sidebar-sider .ant-menu-submenu-title::after {
+                    display: none !important;
+                }
+
+                /* Hover — subtle accent wash */
+                .sidebar-sider .ant-menu-item:not(.ant-menu-item-selected):hover,
+                .sidebar-sider .ant-menu-submenu-title:hover {
+                    background: color-mix(in srgb, var(--premium-blue) 8%, transparent) !important;
+                    color: var(--premium-blue) !important;
+                }
+
+                /* Selected — accent-tinted pill with bold text + accent icon */
+                .sidebar-sider .ant-menu-item-selected {
+                    position: relative;
+                    background: color-mix(in srgb, var(--premium-blue) 14%, transparent) !important;
+                    color: var(--premium-blue) !important;
+                    font-weight: 600 !important;
+                    box-shadow: 0 2px 8px -3px color-mix(in srgb, var(--premium-blue) 50%, transparent);
+                }
+                .sidebar-sider .ant-menu-item-selected .anticon,
+                .sidebar-sider .ant-menu-item-selected .nav-lucide-icon,
+                .sidebar-sider .ant-menu-item-selected svg {
+                    color: var(--premium-blue) !important;
+                }
+
+                /* Left accent indicator bar */
+                .sidebar-sider .ant-menu-item-selected::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 11px;
+                    bottom: 11px;
+                    width: 3px;
+                    border-radius: 0 3px 3px 0;
+                    background: linear-gradient(180deg, #3B82F6 0%, #6366F1 100%);
+                }
+
+                /* Dark theme accent tints */
+                [data-theme='dark'] .sidebar-sider .ant-menu-item-selected {
+                    background: color-mix(in srgb, var(--premium-blue) 22%, transparent) !important;
+                    color: #93C5FD !important;
+                }
+                [data-theme='dark'] .sidebar-sider .ant-menu-item-selected .anticon,
+                [data-theme='dark'] .sidebar-sider .ant-menu-item-selected .nav-lucide-icon,
+                [data-theme='dark'] .sidebar-sider .ant-menu-item-selected svg {
+                    color: #93C5FD !important;
+                }
+                [data-theme='dark'] .sidebar-sider .ant-menu-item:not(.ant-menu-item-selected):hover,
+                [data-theme='dark'] .sidebar-sider .ant-menu-submenu-title:hover {
+                    background: rgba(59, 130, 246, 0.14) !important;
+                    color: #E2E8F0 !important;
                 }
             `}} />
         </Sider>

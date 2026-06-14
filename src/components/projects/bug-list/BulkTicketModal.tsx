@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Select, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
+import { Modal, Select, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -50,6 +50,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const { data: projects } = useUserProjects();
   const { users: members } = useMembersSelect();
 
+  const { message } = App.useApp();
+
   const [mode, setMode] = useState<Mode>(null);
   const [pool, setPool] = useState<BugListItem[]>([]);
   const [staged, setStaged] = useState<Set<string>>(new Set());
@@ -60,6 +62,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
   const [assigneeId, setAssigneeId] = useState<string | undefined>();
+  const [isAssigneeManuallyChanged, setIsAssigneeManuallyChanged] = useState(false);
 
   const [createdCount, setCreatedCount] = useState(0);
 
@@ -78,13 +81,13 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     setCollapsed(new Set());
     setTitle("");
     setProjectId(prefilledProjectId);
-    
-    // Pre-fill assignee if all bugs have the same assignee
-    const bugsWithAssignee = bugs.filter(bug => bug.assigneeId);
-    const allSameAssignee = bugsWithAssignee.length > 0 && 
-      bugsWithAssignee.every(bug => bug.assigneeId === bugsWithAssignee[0].assigneeId);
-    setAssigneeId(allSameAssignee ? (bugsWithAssignee[0].assigneeId || undefined) : undefined);
-    
+
+    // Pre-fill assignee if all bugs have the same assignee (including unassigned state)
+    const allSameAssignee = bugs.length > 0 &&
+      bugs.every(bug => bug.assigneeId === bugs[0].assigneeId);
+    setAssigneeId(allSameAssignee ? (bugs[0].assigneeId || undefined) : undefined);
+    setIsAssigneeManuallyChanged(false);
+
     setCreatedCount(0);
   }, [open, prefilledProjectId]); // Remove 'bugs' to prevent mode reset during ticket creation
 
@@ -92,6 +95,29 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     () => pool.filter((b) => staged.has(b.id)),
     [pool, staged],
   );
+
+  const handleAssigneeChange = (value: string | undefined) => {
+    setAssigneeId(value);
+    setIsAssigneeManuallyChanged(true);
+  };
+
+  useEffect(() => {
+    if (stagedBugs.length === 0) {
+      setIsAssigneeManuallyChanged(false);
+      setAssigneeId(undefined);
+      return;
+    }
+
+    if (!isAssigneeManuallyChanged) {
+      const firstAssignee = stagedBugs[0].assigneeId;
+      const allSame = stagedBugs.every((b) => b.assigneeId === firstAssignee);
+      if (allSame) {
+        setAssigneeId(firstAssignee || undefined);
+      } else {
+        setAssigneeId(undefined);
+      }
+    }
+  }, [stagedBugs, isAssigneeManuallyChanged]);
 
   const filteredPool = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -174,7 +200,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
       // Collect all attachments and links from staged bugs
       const allAttachments = stagedBugs.flatMap((b) => b.attachments || []);
       const allExternalLinks = stagedBugs.flatMap((b) => b.externalLinks || []);
-      
+
       await convert.mutateAsync([
         {
           title: title.trim(),
@@ -211,7 +237,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         description: buildSingleBugDescription(b),
         bugIds: [b.id],
         projectId,
-        assigneeId,
+        assigneeId: assigneeId || b.assigneeId || undefined,
         attachments: b.attachments || [],
         externalLinks: b.externalLinks || [],
       }));
@@ -252,51 +278,51 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         }}
       >
         <div className="hb-btm">
-        {mode === null && (
-          <ModePicker
-            count={pool.length}
-            createdCount={createdCount}
-            onClose={onClose}
-            onManual={() => setMode("manual")}
-            onAi={onPickAi}
-          />
-        )}
+          {mode === null && (
+            <ModePicker
+              count={pool.length}
+              createdCount={createdCount}
+              onClose={onClose}
+              onManual={() => setMode("manual")}
+              onAi={onPickAi}
+            />
+          )}
 
-        {mode === "manual" && (
-          <ManualWorkspace
-            allDone={allDone}
-            createdCount={createdCount}
-            initialCount={bugs.length}
-            remaining={remaining}
-            stagedCount={staged.size}
-            search={search}
-            onSearch={setSearch}
-            groupBy={groupBy}
-            onGroupBy={setGroupBy}
-            buckets={buckets}
-            collapsed={collapsed}
-            onToggleCollapse={toggleCollapse}
-            staged={staged}
-            onToggleBug={toggleBug}
-            onStageAll={stageAll}
-            stagedBugs={stagedBugs}
-            onUnstage={unstage}
-            title={title}
-            onTitle={setTitle}
-            projectId={projectId}
-            onProjectId={setProjectId}
-            assigneeId={assigneeId}
-            onAssigneeId={setAssigneeId}
-            projects={projects || []}
-            members={members}
-            converting={convert.isPending}
-            onCreateSingle={handleCreateSingle}
-            onCreateSplit={handleCreateSplit}
-            onClose={onClose}
-            theme={theme}
-          />
-        )}
-      </div>
+          {mode === "manual" && (
+            <ManualWorkspace
+              allDone={allDone}
+              createdCount={createdCount}
+              initialCount={bugs.length}
+              remaining={remaining}
+              stagedCount={staged.size}
+              search={search}
+              onSearch={setSearch}
+              groupBy={groupBy}
+              onGroupBy={setGroupBy}
+              buckets={buckets}
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapse}
+              staged={staged}
+              onToggleBug={toggleBug}
+              onStageAll={stageAll}
+              stagedBugs={stagedBugs}
+              onUnstage={unstage}
+              title={title}
+              onTitle={setTitle}
+              projectId={projectId}
+              onProjectId={setProjectId}
+              assigneeId={assigneeId}
+              onAssigneeId={handleAssigneeChange}
+              projects={projects || []}
+              members={members}
+              converting={convert.isPending}
+              onCreateSingle={handleCreateSingle}
+              onCreateSplit={handleCreateSplit}
+              onClose={onClose}
+              theme={theme}
+            />
+          )}
+        </div>
       </ConfigProvider>
     </Modal>
   );
@@ -902,15 +928,48 @@ function groupBugs(bugs: BugListItem[], key: GroupKey) {
   return out;
 }
 
+/**
+ * Converts plain-text content (which may contain newlines) into an HTML
+ * paragraph block suitable for the Tiptap / dangerouslySetInnerHTML viewer.
+ */
+function plainTextToHtml(text: string): string {
+  if (!text || !text.trim()) return "";
+  // Escape basic HTML special chars to avoid XSS / rendering glitches.
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  // Preserve paragraph breaks (double newlines) and single line breaks.
+  const paragraphs = escaped.split(/\n{2,}/);
+  return paragraphs
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 function buildSingleBugDescription(b: BugListItem): string {
-  return b.description || "";
+  // Single-bug split ticket: render the bug's plain-text description as HTML.
+  return plainTextToHtml(b.description || "");
 }
 
 function buildDescription(bugs: BugListItem[]): string {
-  return bugs
-    .map((b) => b.description || "")
-    .filter((s) => s.trim().length > 0)
-    .join("\n\n---\n\n");
+  // Multi-bug single ticket: each bug gets its own labelled section with an
+  // <hr> separator so the reader can identify which content came from which bug.
+  const sections = bugs
+    .filter((b) => (b.description || "").trim().length > 0)
+    .map((b, index) => {
+      const label = b.bugNumber
+        ? b.bugNumber
+        : `Bug ${index + 1}`;
+      const titleLine = b.title ? ` — ${b.title}` : "";
+      const headerHtml = bugs.length > 1
+        ? `<p><strong>${label}${titleLine}</strong></p>`
+        : "";
+      return `${headerHtml}${plainTextToHtml(b.description || "")}`;
+    });
+
+  if (sections.length === 0) return "";
+  // Join sections with a visible horizontal rule.
+  return sections.join("<hr>");
 }
 
 function cap(s: string) {

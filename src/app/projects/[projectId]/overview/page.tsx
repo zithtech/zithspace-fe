@@ -22,8 +22,11 @@ import {
   EditOutlined
 } from "@ant-design/icons";
 import { Tag, Button, Space, Tooltip, Typography } from "antd";
+import { History } from "lucide-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -38,6 +41,8 @@ const ProjectOverviewPage = () => {
   });
 
   const [drawerVisible, setDrawerVisible] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const { canReadActivityLog } = usePermission();
 
   if (isLoading) {
     return (
@@ -120,18 +125,28 @@ const ProjectOverviewPage = () => {
                     }}
                   />
                 </Tooltip>
-                <div style={{
+                <style>{`
+                  .overview-project-avatar {
+                    background: #3b82f6 !important;
+                    color: #ffffff !important;
+                  }
+                  [data-theme='dark'] .overview-project-avatar {
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+                  }
+                `}</style>
+                <div 
+                  className="overview-project-avatar"
+                  style={{
                   width: 38,
                   height: 38,
                   borderRadius: 10,
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                  color: '#ffffff',
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 800,
                   fontSize: 15,
-                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.25)',
                   letterSpacing: '0.02em'
                 }}>
                   {project.name.split(' ').slice(0, 2).map((n: any[]) => n[0]).join('').toUpperCase() || <ProjectOutlined />}
@@ -207,6 +222,17 @@ const ProjectOverviewPage = () => {
                     }} />
                   </div>
                 </div>
+                {canReadActivityLog && (
+                  <Tooltip title="Activity history">
+                    <Button
+                      icon={<History size={14} strokeWidth={1.75} />}
+                      onClick={() => setHistoryOpen(true)}
+                      style={{ borderRadius: 8, height: 38, fontWeight: 600 }}
+                    >
+                      History
+                    </Button>
+                  </Tooltip>
+                )}
                 <Button
                   type="primary"
                   icon={<EditOutlined />}
@@ -265,6 +291,14 @@ const ProjectOverviewPage = () => {
           onClose={() => setDrawerVisible(false)}
           projectId={projectId}
           onSuccess={() => refetch()}
+        />
+
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="project"
+          entityId={projectId}
+          subtitle={`${project.code ? `#${project.code} — ` : ""}${project.name}`}
         />
       </div>
     </MainLayout>

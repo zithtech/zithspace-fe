@@ -95,6 +95,24 @@ export function SprintCreationForm({
     return diff >= 0 ? diff : null;
   }, [startDate, endDate]);
 
+  // Work days = excludes Sat/Sun. Counts inclusive of both endpoints.
+  const workingDays = useMemo(() => {
+    if (!startDate || !endDate || !endDate.isAfter(startDate, "day") && !endDate.isSame(startDate, "day")) {
+      return null;
+    }
+    let count = 0;
+    let cursor = startDate.startOf("day");
+    const stop = endDate.startOf("day");
+    while (cursor.isBefore(stop) || cursor.isSame(stop, "day")) {
+      const dow = cursor.day();
+      if (dow !== 0 && dow !== 6) count += 1;
+      cursor = cursor.add(1, "day");
+      // Guard against runaway loops for absurd date ranges
+      if (count > 5000) break;
+    }
+    return count;
+  }, [startDate, endDate]);
+
   const inferredPreset = useMemo(() => {
     if (durationDays === null) return null;
     if (durationDays === 7) return "1w";
@@ -259,19 +277,29 @@ export function SprintCreationForm({
           </div>
 
           {startDate && endDate && durationDays !== null && (
-            <div className="scf-timeline-preview">
-              <span className="scf-timeline-preview__chip">
-                {startDate.format("ddd, MMM D")}
-              </span>
-              <span className="scf-timeline-preview__bar" />
-              <span className="scf-timeline-preview__duration">
-                {durationDays} day{durationDays === 1 ? "" : "s"}
-              </span>
-              <span className="scf-timeline-preview__bar" />
-              <span className="scf-timeline-preview__chip">
-                {endDate.format("ddd, MMM D")}
-              </span>
-            </div>
+            <>
+              <div className="scf-timeline-preview">
+                <span className="scf-timeline-preview__chip">
+                  {startDate.format("ddd, MMM D")}
+                </span>
+                <span className="scf-timeline-preview__bar" />
+                <span className="scf-timeline-preview__duration">
+                  {durationDays} day{durationDays === 1 ? "" : "s"}
+                </span>
+                <span className="scf-timeline-preview__bar" />
+                <span className="scf-timeline-preview__chip">
+                  {endDate.format("ddd, MMM D")}
+                </span>
+              </div>
+              {workingDays !== null && (
+                <div className="scf-timeline-meta">
+                  <CalendarOutlined style={{ fontSize: 11 }} />
+                  <span>
+                    <b>{workingDays}</b> working day{workingDays === 1 ? "" : "s"} · weekends excluded
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </Form>

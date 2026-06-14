@@ -7,7 +7,7 @@ import {
   Space,
   Row,
   Col,
-  Table,
+  Pagination,
   Form,
   Input,
   Select,
@@ -51,6 +51,13 @@ import {
   WarningOutlined,
   ArrowRightOutlined,
   CalendarTwoTone,
+  DownOutlined,
+  CompressOutlined,
+  ExpandAltOutlined,
+  LeftOutlined,
+  RightOutlined,
+  UnorderedListOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -65,6 +72,7 @@ import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -75,21 +83,68 @@ const BulbDot = () => (
   </svg>
 );
 
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const height = 28;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 export default function SprintPlanComponent() {
   const { theme } = useTheme();
   const router = useRouter();
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  // const [api, contextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // });
   const { message } = App.useApp();
   const { socket, connected } = useSocket();
-  const { 
-    canCreateTicketPlan, 
-    canUpdateTicketPlan, 
-    canDeleteTicketPlan, 
-    canReadTicketPlan 
+  const {
+    canCreateTicketPlan,
+    canUpdateTicketPlan,
+    canDeleteTicketPlan,
+    canReadTicketPlan,
+    canReadActivityLog
   } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
@@ -110,9 +165,38 @@ export default function SprintPlanComponent() {
   const [, setSearchLoading] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
 
+  const ticketOptions = useMemo(() => {
+    const optionsMap = new Map<string, { label: string; value: string; item: any }>();
+
+    // Add available tickets
+    availableTickets.forEach(t => {
+      optionsMap.set(t.id, {
+        label: `${t.ticketNumber} - ${t.title}`,
+        value: t.id,
+        item: t
+      });
+    });
+
+    // Add editing plan tickets to ensure their labels render correctly even if not in availableTickets
+    if (editingPlan?.tickets) {
+      editingPlan.tickets.forEach(t => {
+        if (!optionsMap.has(t.id)) {
+          optionsMap.set(t.id, {
+            label: `${t.ticketNumber} - ${t.title}`,
+            value: t.id,
+            item: t
+          });
+        }
+      });
+    }
+
+    return Array.from(optionsMap.values());
+  }, [availableTickets, editingPlan]);
+
   // Drawer state for ticket details
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerSprintPlan, setDrawerSprintPlan] = useState<ReleasePlan | null>(null);
+  const [drawerCompact, setDrawerCompact] = useState(false);
   const [ticketBoardFilter, setTicketBoardFilter] = useState<'all' | 'done' | 'progress' | 'todo'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'progress' | 'endDate'>('recent');
 
@@ -161,7 +245,7 @@ export default function SprintPlanComponent() {
     try {
       setLoading(true);
       const activeFilters = filtersOverride || tableFilters;
-      
+
       // Fetch plans respecting search and project, but NOT status
       // This allows us to calculate accurate status counts in JS
       const data = await ReleasePlanService.getReleasePlans({
@@ -183,10 +267,11 @@ export default function SprintPlanComponent() {
       }
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load sprint plans",
-      });
+      message.error("Error!, Failed to load sprint plans.");
+      // api.error({
+      //   message: "Error",
+      //   description: "Failed to load sprint plans",
+      // });
     } finally {
       setLoading(false);
     }
@@ -330,10 +415,11 @@ export default function SprintPlanComponent() {
       if (errorMessage.includes("already exists")) {
         message.error(errorMessage);
       } else {
-        api.error({
-          message: "Error",
-          description: errorMessage,
-        });
+        message.error(`Error!, ${errorMessage}`);
+        // api.error({
+        //   message: "Error",
+        //   description: errorMessage,
+        // });
       }
     } finally {
       setSaving(false);
@@ -381,11 +467,12 @@ export default function SprintPlanComponent() {
       message.success("Sprint started successfully");
       loadData();
     } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to start sprint",
-
-      });
+      const errorMessage = error?.message || "Failed to start sprint";
+      message.error(`Error!, ${errorMessage}`);
+      // api.error({
+      //   message: "Error",
+      //   description: errorMessage,
+      // });
     }
   };
 
@@ -453,6 +540,29 @@ export default function SprintPlanComponent() {
     return { active, planning, completed, avgProgress };
   }, [allPlans]);
 
+  // Per-project plan counts (respects search + status filters, ignores projectId so user can switch)
+  const projectCounts = useMemo(() => {
+    const base = allPlans.filter(p => {
+      if (tableFilters.status && p.status !== tableFilters.status) return false;
+      if (tableFilters.search) {
+        const q = tableFilters.search.toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const goal = (p.goal || '').toLowerCase();
+        if (!name.includes(q) && !desc.includes(q) && !goal.includes(q)) return false;
+      }
+      return true;
+    });
+    const map = new Map<string, number>();
+    base.forEach(p => {
+      const pid = typeof p.project === 'object' ? p.project?.id : p.project;
+      if (pid) map.set(pid, (map.get(pid) || 0) + 1);
+    });
+    return { map, total: base.length };
+  }, [allPlans, tableFilters.status, tableFilters.search]);
+
+  const PROJECT_PALETTE = ['#3b82f6'];
+
   // Status counts for the segmented filter (respects search + project filters)
   const statusCounts = useMemo(() => {
     const base = allPlans.filter(p => {
@@ -477,6 +587,24 @@ export default function SprintPlanComponent() {
     };
   }, [allPlans, tableFilters.projectId, tableFilters.search]);
 
+  // List vs Calendar view
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
+  const [calLegendExpanded, setCalLegendExpanded] = useState(false);
+  const CAL_LEGEND_LIMIT = 8;
+
+  // Expanded card rows (for actual start/end details)
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  // Sidebar projects show more/less
+  const PROJECTS_COLLAPSED_LIMIT = 8;
+  const [showAllProjects, setShowAllProjects] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => { setCurrentPage(1); }, [tableFilters.search, tableFilters.projectId, tableFilters.status, sortBy]);
+
   // Sorted view of sprintPlans
   const sortedSprintPlans = useMemo(() => {
     const arr = [...sprintPlans];
@@ -491,596 +619,1232 @@ export default function SprintPlanComponent() {
     return arr;
   }, [sprintPlans, sortBy]);
 
+  const pagedSprintPlans = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedSprintPlans.slice(start, start + pageSize);
+  }, [sortedSprintPlans, currentPage, pageSize]);
+
+  // Project color helper (stable per project index)
+  const getProjectColor = useCallback((projectId?: string) => {
+    if (!projectId) return '#94a3b8';
+    const idx = projects.findIndex((p: any) => p.value === projectId);
+    return idx === -1 ? '#94a3b8' : PROJECT_PALETTE[idx % PROJECT_PALETTE.length];
+  }, [projects]);
+
+  // Calendar navigation bounds (clamped to actual sprint date range)
+  const calendarBounds = useMemo(() => {
+    const dates: dayjs.Dayjs[] = [];
+    allPlans.forEach(p => {
+      if (p.startDate) dates.push(dayjs(p.startDate));
+      if (p.endDate) dates.push(dayjs(p.endDate));
+    });
+    if (!dates.length) return null;
+    const earliest = dates.reduce((a, b) => (a.isBefore(b) ? a : b)).startOf('month');
+    const latest = dates.reduce((a, b) => (a.isAfter(b) ? a : b)).startOf('month');
+    return { earliest, latest };
+  }, [allPlans]);
+
+  // Projects & sprints visible in the current month (header stat)
+  const calendarMonthStats = useMemo(() => {
+    const monthStart = calendarMonth.startOf('month');
+    const monthEnd = calendarMonth.endOf('month');
+    const sprintsInMonth = sortedSprintPlans.filter(p => {
+      if (!p.startDate || !p.endDate) return false;
+      const s = dayjs(p.startDate);
+      const e = dayjs(p.endDate);
+      return !(e.isBefore(monthStart) || s.isAfter(monthEnd));
+    });
+    const uniqueProjects = new Set<string>();
+    sprintsInMonth.forEach(p => {
+      const pid = typeof p.project === 'object' ? p.project?.id : (p.project as any);
+      if (pid) uniqueProjects.add(pid);
+    });
+    return { sprintCount: sprintsInMonth.length, projectCount: uniqueProjects.size };
+  }, [sortedSprintPlans, calendarMonth]);
+
+  const canGoPrevMonth = !calendarBounds || calendarMonth.isAfter(calendarBounds.earliest, 'month');
+  // Allow up to 3 months past the latest sprint for forward planning
+  const canGoNextMonth = !calendarBounds || calendarMonth.isBefore(calendarBounds.latest.add(3, 'month'), 'month');
+
+  // Snap current month into range if sprints load and we're outside the bounds
+  useEffect(() => {
+    if (!calendarBounds) return;
+    if (calendarMonth.isBefore(calendarBounds.earliest, 'month')) {
+      setCalendarMonth(calendarBounds.earliest);
+    } else if (calendarMonth.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) {
+      setCalendarMonth(calendarBounds.latest);
+    }
+  }, [calendarBounds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Calendar data ─────────────────────────────────────────────
+  // Monday-start, month grid, lane-assigned sprint ribbons per week.
+  const calendarData = useMemo(() => {
+    const startOfWeekMon = (d: dayjs.Dayjs) => {
+      const dow = d.day();
+      const offset = (dow + 6) % 7;
+      return d.subtract(offset, 'day').startOf('day');
+    };
+    const endOfWeekMon = (d: dayjs.Dayjs) => startOfWeekMon(d).add(6, 'day').endOf('day');
+
+    const calStart = startOfWeekMon(calendarMonth.startOf('month'));
+    const calEnd = endOfWeekMon(calendarMonth.endOf('month'));
+
+    const weeks: dayjs.Dayjs[][] = [];
+    let cursor = calStart;
+    while (cursor.isBefore(calEnd) || cursor.isSame(calEnd, 'day')) {
+      const days: dayjs.Dayjs[] = [];
+      for (let i = 0; i < 7; i++) {
+        days.push(cursor);
+        cursor = cursor.add(1, 'day');
+      }
+      weeks.push(days);
+      if (weeks.length > 8) break; // safety
+    }
+
+    const filtered = sortedSprintPlans.filter(p => p.startDate && p.endDate);
+
+    type Ribbon = {
+      plan: ReleasePlan;
+      startCol: number;
+      span: number;
+      continuesLeft: boolean;
+      continuesRight: boolean;
+      color: string;
+      projectName?: string;
+      lane: number;
+    };
+
+    const weekRibbons: Ribbon[][] = weeks.map(week => {
+      const weekStart = week[0];
+      const weekEnd = week[6].endOf('day');
+
+      const overlapping = filtered
+        .filter(p => {
+          const s = dayjs(p.startDate!);
+          const e = dayjs(p.endDate!);
+          return !(e.isBefore(weekStart) || s.isAfter(weekEnd));
+        })
+        .map(p => {
+          const s = dayjs(p.startDate!);
+          const e = dayjs(p.endDate!);
+          const clipStart = s.isBefore(weekStart) ? weekStart : s.startOf('day');
+          const clipEnd = e.isAfter(weekEnd) ? weekEnd : e.endOf('day');
+          const startCol = clipStart.diff(weekStart, 'day');
+          const span = Math.max(clipEnd.startOf('day').diff(clipStart.startOf('day'), 'day') + 1, 1);
+          const projectObj = typeof p.project === 'object' ? p.project : null;
+          const projectId = projectObj?.id;
+          return {
+            plan: p,
+            startCol,
+            span,
+            continuesLeft: s.isBefore(weekStart),
+            continuesRight: e.isAfter(weekEnd),
+            color: getProjectColor(projectId),
+            projectName: projectObj?.name,
+            lane: 0,
+          };
+        })
+        .sort((a, b) => a.startCol - b.startCol || b.span - a.span);
+
+      // Lane assignment: greedy, first available lane
+      const lanes: number[] = []; // each entry = end col (exclusive) of last ribbon in that lane
+      overlapping.forEach(r => {
+        let li = lanes.findIndex(end => end <= r.startCol);
+        if (li === -1) {
+          li = lanes.length;
+          lanes.push(0);
+        }
+        lanes[li] = r.startCol + r.span;
+        r.lane = li;
+      });
+
+      return overlapping;
+    });
+
+    const maxLanesByWeek = weekRibbons.map(r => r.reduce((m, x) => Math.max(m, x.lane), -1) + 1);
+
+    return { weeks, weekRibbons, maxLanesByWeek };
+  }, [sortedSprintPlans, calendarMonth, getProjectColor]);
+
   const activeFilterCount = (tableFilters.search ? 1 : 0) + (tableFilters.projectId ? 1 : 0) + (tableFilters.status ? 1 : 0);
 
-  const columns = [
-    {
-      title: "Sprint",
-      dataIndex: "name",
-      key: "name",
-      width: 380,
-      render: (text: string, record: ReleasePlan) => {
-        const project = typeof record.project === 'object' ? record.project : null;
-        const initial = (text || '?').charAt(0).toUpperCase();
-        const accent =
-          record.status === 'active' ? '#3b82f6' :
-            record.status === 'completed' ? '#10b981' :
-              record.status === 'planning' ? '#f59e0b' : '#64748b';
-        return (
-          <div
-            className="sp-row-name"
-            role="button"
-            tabIndex={0}
-            onClick={() => handleViewTickets(record)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTickets(record); } }}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
-          >
-            <div className="sp-row-avatar" style={{ background: `${accent}14`, color: accent, borderColor: `${accent}33` }}>
-              {initial}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <Text strong className="sp-row-name-title" style={{ fontSize: 13.5, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1.3, letterSpacing: '-0.005em' }}>
-                {text}
-              </Text>
-              <div className="sp-row-meta">
-                {project ? (
-                  <span className="sp-row-meta-chip">
-                    <ProjectOutlined style={{ fontSize: 9.5 }} />
-                    {project.name}
-                  </span>
-                ) : (
-                  <span className="sp-row-meta-muted">No project</span>
-                )}
-                {record.goal && (
-                  <Tooltip title={record.goal}>
-                    <span className="sp-row-meta-goal">
-                      <BulbDot />
-                      {record.goal.length > 28 ? record.goal.substring(0, 28) + '…' : record.goal}
-                    </span>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 130,
-      render: (status: string) => {
-        const cfg =
-          status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
-            status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
-              status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
-                { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: status?.toUpperCase() || '—', pulse: false };
-        return (
-          <span className="sp-status-pill" style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
-            <span className={`sp-status-pill-dot ${cfg.pulse ? 'pulse' : ''}`} style={{ background: cfg.dot }} />
-            {cfg.label}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Progress",
-      dataIndex: "progress",
-      key: "progress",
-      width: 250,
-      render: (progress: number, record: ReleasePlan) => {
-        const pct = progress || 0;
-        const done = record?.completedTickets || 0;
-        const total = record?.totalTickets || 0;
-        const accent = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : pct >= 30 ? '#6366f1' : '#94a3b8';
-        return (
-          <div style={{ minWidth: 200 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <Text style={{ fontSize: 14, fontWeight: 800, color: accent, letterSpacing: '-0.02em', lineHeight: 1 }}>{pct}<span style={{ fontSize: 10 }}>%</span></Text>
-                {pct >= 100 && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 11 }} />}
-              </div>
-              <Text style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-slate-500)', fontVariantNumeric: 'tabular-nums' }}>
-                <b style={{ color: 'var(--text-slate-900)' }}>{done}</b>/{total}
-              </Text>
-            </div>
-            <div className="sp-progress-track">
-              <div className="sp-progress-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}cc)` }} />
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Timeline",
-      key: "timeline",
-      width: 250,
-      render: (_: any, record: ReleasePlan) => {
-        const today = dayjs();
-        const start = record.startDate ? dayjs(record.startDate) : null;
-        const end = record.endDate ? dayjs(record.endDate) : null;
-        const hasDates = start && end;
-        const days = hasDates ? Math.max(end.diff(start, 'day'), 1) : 0;
-        let phaseLabel = '';
-        let phaseColor = '#64748b';
-        let phaseBg = 'rgba(100,116,139,0.08)';
-        if (record.status === 'completed') {
-          phaseLabel = 'Closed';
-          phaseColor = '#3b82f6';
-          phaseBg = 'rgba(59,130,246,0.08)';
-        } else if (start && end) {
-          if (today.isBefore(start)) {
-            phaseLabel = `Starts in ${start.diff(today, 'day')}d`;
-            phaseColor = '#8b5cf6';
-            phaseBg = 'rgba(139,92,246,0.08)';
-          } else if (today.isAfter(end)) {
-            phaseLabel = `${today.diff(end, 'day')}d overdue`;
-            phaseColor = '#ef4444';
-            phaseBg = 'rgba(239,68,68,0.08)';
-          } else {
-            const remaining = end.diff(today, 'day');
-            phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
-            phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
-            phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
-          }
-        }
-        const elapsedPct = hasDates ? Math.min(Math.max((today.diff(start, 'day') / days) * 100, 0), 100) : 0;
-        return (
-          <div style={{ minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', fontVariantNumeric: 'tabular-nums' }}>
-                {start ? start.format("MMM D") : "—"}
-              </Text>
-              <span style={{ flex: 1, height: 1, background: 'var(--border-slate-200)', position: 'relative' }}>
-                {hasDates && (
-                  <span style={{ position: 'absolute', left: 0, top: '50%', height: 1, width: `${elapsedPct}%`, background: phaseColor, transform: 'translateY(-50%)' }} />
-                )}
-              </span>
-              <Text style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', fontVariantNumeric: 'tabular-nums' }}>
-                {end ? end.format("MMM D") : "—"}
-              </Text>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {phaseLabel && (
-                <span className="sp-phase-chip" style={{ color: phaseColor, background: phaseBg, borderColor: `${phaseColor}33` }}>
-                  {phaseLabel}
-                </span>
-              )}
-              {hasDates && (
-                <Text style={{ fontSize: 10.5, color: 'var(--text-slate-400)', fontWeight: 600 }}>{days}d cycle</Text>
-              )}
-            </div>
-          </div>
-        );
-      },
-    },
-    // {
-    //   title: "Team",
-    //   key: "team",
-    //   width: 130,
-    //   render: (_: any, record: ReleasePlan) => {
-    //     const seen = new Map<string, { name: string; color: string }>();
-    //     const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
-    //     (record.tickets || []).forEach((t, i) => {
-    //       if (t.assignee?.id && !seen.has(t.assignee.id)) {
-    //         seen.set(t.assignee.id, { name: t.assignee.name, color: palette[seen.size % palette.length] });
-    //       }
-    //     });
-    //     const members = Array.from(seen.values());
-    //     const visible = members.slice(0, 3);
-    //     const overflow = Math.max(members.length - 3, 0);
-    //     if (members.length === 0) {
-    //       return <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 500 }}>—</Text>;
-    //     }
-    //     return (
-    //       <Tooltip title={members.map(m => m.name).join(', ')}>
-    //         <div className="sp-avatar-stack">
-    //           {visible.map((m, i) => (
-    //             <span key={i} className="sp-avatar-stack-item" style={{ background: `${m.color}1a`, color: m.color, borderColor: `${m.color}55` }}>
-    //               {m.name.charAt(0).toUpperCase()}
-    //             </span>
-    //           ))}
-    //           {overflow > 0 && (
-    //             <span className="sp-avatar-stack-item sp-avatar-stack-more">+{overflow}</span>
-    //           )}
-    //         </div>
-    //       </Tooltip>
-    //     );
-    //   },
-    // },
-    {
-      title: "",
-      key: "actions",
-      align: "right" as const,
-      width: 180,
-      render: (_: any, record: ReleasePlan) => (
-        <div className="sp-row-actions">
-          {record.status === 'planning' && canUpdateTicketPlan && (
-            <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
-              <Tooltip title="Start sprint">
-                <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-row-action-btn" />
-              </Tooltip>
-            </Popconfirm>
-          )}
-          {record.status === 'active' && canUpdateTicketPlan && (
-            <Tooltip title="Complete sprint">
-              <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-row-action-btn" />
-            </Tooltip>
-          )}
-          {(record.status === 'active' || record.status === 'completed') && (
-            <Tooltip title="View report">
-              <Button type="text" size="small" icon={<LineChartOutlined style={{ color: '#6366f1' }} />} onClick={() => router.push(`/tickets/reports/${record.id}`)} className="sp-row-action-btn" />
-            </Tooltip>
-          )}
-          <Tooltip title="View details">
-            <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-row-action-btn" />
-          </Tooltip>
-          {canUpdateTicketPlan && (
-            <Tooltip title="Edit">
-              <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-row-action-btn" />
-            </Tooltip>
-          )}
-          {canDeleteTicketPlan && (
-            <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
-              <Tooltip title="Delete">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-row-action-btn" />
-              </Tooltip>
-            </Popconfirm>
-          )}
-        </div>
-      ),
-    },
-  ];
 
   return (
-    <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
-      {contextHolder}
-
-      {/* Workstation Header */}
-      <div className="saas-header-container" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(12px)',
-        padding: '13px 48px 6px 48px',
-        margin: '0 -24px 24px',
-        marginBottom: 24
-      }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]} className="sp-header-responsive-row">
-          <Col flex="1 1 auto" style={{ minWidth: 0 }} className="sp-header-left-col">
-            <div className="sp-header-main-flex">
-              <div className="sp-header-title-row">
-                <div className="sp-header-icon-box">
-                  <CalendarOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+    <div className="sp-page-root" style={{ minHeight: "calc(100vh - 54px)" }}>
+      {/* {contextHolder} */}
+      <div className="sp-shell-wrap">
+        <div className="sp-shell">
+          {/* ── Sidebar ──────────────────────────────────────────── */}
+          <aside className="sp-sidebar">
+            <div className="sp-sidebar-top">
+              <div className="sp-sidebar-brand">
+                <div className="sp-hero-icon-box">
+                  <CalendarOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
                 </div>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                  Sprint Cycles
-                </Title>
+                <div className="min-w-0">
+                  <h1 className="sp-sidebar-title">Sprint Plans</h1>
+                  <p className="sp-sidebar-subtitle">Milestone tracking</p>
+                </div>
               </div>
-
-              <Divider type="vertical" className="sp-header-divider" />
-              
-              <div className="sp-header-description-box">
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
-                  Engineered for continuous delivery and milestone tracking
-                </Text>
-              </div>
-            </div>
-          </Col>
-          <Col flex="0 0 auto" className="sp-header-extra-col">
-            <Space size={12} className="sp-header-extra-space">
-              <Button
-                icon={<ReloadOutlined spin={isRefreshing} />}
-                onClick={async () => {
-                  setIsRefreshing(true);
-                  await loadData();
-                  setIsRefreshing(false);
-                  api.success({
-                    message: "Success",
-                    description: "Sprint view refreshed",
-                  });
-                }}
-                loading={loading && !isRefreshing}
-                className="saas-button-item"
-                style={{ height: 36, fontWeight: 600 }}
-              />
               {canCreateTicketPlan && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => setShowCreateModal(true)}
-                  className="saas-button-item"
-                  style={{
-                    height: 36,
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    border: 'none'
-                  }}
+                  className="sp-side-create"
+                  block
                 >
                   Plan New Sprint
                 </Button>
               )}
-            </Space>
-          </Col>
-        </Row>
-      </div>
-
-      <div style={{ padding: "0 32px 32px" }}>
-        {/* Premium KPI Hero Row */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <div className="sp-kpi-card sp-kpi-blue">
-              <div className="sp-kpi-header">
-                <div className="sp-kpi-icon blue">
-                  <RocketOutlined style={{ fontSize: 16 }} />
-                </div>
-                <span className="sp-kpi-label">Active Cycles</span>
-                <span className="sp-kpi-pulse" />
-              </div>
-              <div className="sp-kpi-value-row">
-                <span className="sp-kpi-value">{metrics.active}</span>
-                <span className="sp-kpi-sub">in flight</span>
-              </div>
-              <div className="sp-kpi-bar">
-                <div
-                  className="sp-kpi-bar-fill blue"
-                  style={{ width: `${allPlans.length ? (metrics.active / allPlans.length) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </Col>
-
-          <Col xs={24} sm={12} lg={6}>
-            <div className="sp-kpi-card sp-kpi-amber">
-              <div className="sp-kpi-header">
-                <div className="sp-kpi-icon amber">
-                  <PieChartOutlined style={{ fontSize: 16 }} />
-                </div>
-                <span className="sp-kpi-label">In Planning</span>
-              </div>
-              <div className="sp-kpi-value-row">
-                <span className="sp-kpi-value">{metrics.planning}</span>
-                <span className="sp-kpi-sub">queued</span>
-              </div>
-              <div className="sp-kpi-bar">
-                <div
-                  className="sp-kpi-bar-fill amber"
-                  style={{ width: `${allPlans.length ? (metrics.planning / allPlans.length) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </Col>
-
-          <Col xs={24} sm={12} lg={6}>
-            <div className="sp-kpi-card sp-kpi-emerald">
-              <div className="sp-kpi-header">
-                <div className="sp-kpi-icon emerald">
-                  <CheckCircleOutlined style={{ fontSize: 16 }} />
-                </div>
-                <span className="sp-kpi-label">Shipped</span>
-              </div>
-              <div className="sp-kpi-value-row">
-                <span className="sp-kpi-value">{metrics.completed}</span>
-                <span className="sp-kpi-sub">delivered</span>
-              </div>
-              <div className="sp-kpi-bar">
-                <div
-                  className="sp-kpi-bar-fill emerald"
-                  style={{ width: `${allPlans.length ? (metrics.completed / allPlans.length) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </Col>
-
-          <Col xs={24} sm={12} lg={6}>
-            <div className="sp-kpi-card sp-kpi-violet">
-              <div className="sp-kpi-header">
-                <div className="sp-kpi-icon violet">
-                  <LineChartOutlined style={{ fontSize: 16 }} />
-                </div>
-                <span className="sp-kpi-label">Avg. Progress</span>
-              </div>
-              <div className="sp-kpi-value-row">
-                <span className="sp-kpi-value">{metrics.avgProgress}<span className="sp-kpi-unit">%</span></span>
-                <span className="sp-kpi-sub">across cycles</span>
-              </div>
-              <div className="sp-kpi-bar">
-                <div className="sp-kpi-bar-fill violet" style={{ width: `${metrics.avgProgress}%` }} />
-              </div>
-            </div>
-          </Col>
-        </Row>
-
-        {/* Premium Filter Workbench */}
-        <div className="sp-workbench">
-          {/* Top row: search + actions */}
-          <div className="sp-workbench-top">
-            <div className={`sp-search-box ${tableFilters.search ? 'active' : ''}`}>
-              <SearchOutlined style={{ color: tableFilters.search ? '#3b82f6' : '#94a3b8', fontSize: 14 }} />
-              <Input
-                placeholder="Search by name, goal, or description"
-                variant="borderless"
-                style={{ fontSize: 13, fontWeight: 500, padding: '6px 0', flex: 1, background: 'transparent' }}
-                value={tableFilters.search}
-                onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
-                allowClear
-              />
-              {/* {!tableFilters.search && (
-                <div className="sp-search-kbd">
-                  <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-400)' }}>⌘K</Text>
-                </div>
-              )} */}
             </div>
 
-            <div className="sp-workbench-divider" />
-
-            <Select
-              placeholder="All projects"
-              className="sp-filter-pill"
-              allowClear
-              suffixIcon={<ProjectOutlined style={{ color: '#64748b', fontSize: 12 }} />}
-              value={tableFilters.projectId || undefined}
-              onChange={(val) => setTableFilters(prev => ({ ...prev, projectId: val || "" }))}
-              popupMatchSelectWidth={false}
-              styles={{ popup: { root: { minWidth: 280, borderRadius: 10 } } }}
-            >
-              {projects?.map((project: any) => (
-                <Option key={project.value} value={project.value} label={project.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <Text style={{ fontSize: 12, fontWeight: 500 }}>{project.label}</Text>
-                    <Tag className="sp-project-code-tag">{project.code}</Tag>
-                  </div>
-                </Option>
-              ))}
-            </Select>
-
-            <Select
-              className="sp-filter-pill sp-sort-pill"
-              value={sortBy}
-              onChange={(v) => setSortBy(v as any)}
-              suffixIcon={<LineChartOutlined style={{ color: '#64748b', fontSize: 12 }} />}
-              popupMatchSelectWidth={false}
-              styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
-            >
-              <Option value="recent">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <HistoryOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                  <Text style={{ fontSize: 12, fontWeight: 500 }}>Recently updated</Text>
+            <div className="sp-sidebar-scroll">
+              {/* Projects */}
+              <div className="sp-sidebar-section">
+                <div className="dh-side-label">PROJECTS</div>
+                <div className="sp-sidebar-list sp-sidebar-list-scroll">
+                  <button
+                    className={`sp-sidebar-item ${!tableFilters.projectId ? 'active' : ''}`}
+                    onClick={() => setTableFilters(prev => ({ ...prev, projectId: "" }))}
+                  >
+                    <span className="sp-sidebar-item-avatar sp-sidebar-item-avatar-all">
+                      <ProjectOutlined style={{ fontSize: 10 }} />
+                    </span>
+                    <span className="sp-sidebar-item-label">All projects</span>
+                    <span className="sp-sidebar-item-count">{projectCounts.total}</span>
+                  </button>
+                  {(showAllProjects ? projects : projects.slice(0, PROJECTS_COLLAPSED_LIMIT)).map((proj: any, i: number) => {
+                    const count = projectCounts.map.get(proj.value) || 0;
+                    const active = tableFilters.projectId === proj.value;
+                    const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                    return (
+                      <button
+                        key={proj.value}
+                        className={`sp-sidebar-item ${active ? 'active' : ''}`}
+                        onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
+                        title={proj.label}
+                      >
+                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color: `${color}70`, borderColor: `${color}33` }}>
+                          <ProjectOutlined style={{ fontSize: 11 }} />
+                        </span>
+                        <span className="sp-sidebar-item-label">{proj.label}</span>
+                        <span className="sp-sidebar-item-count">{count}</span>
+                      </button>
+                    );
+                  })}
+                  {projects.length > PROJECTS_COLLAPSED_LIMIT && (
+                    <button
+                      className="sp-sidebar-toggle"
+                      onClick={() => setShowAllProjects(v => !v)}
+                    >
+                      {showAllProjects
+                        ? 'Show less'
+                        : `Show ${projects.length - PROJECTS_COLLAPSED_LIMIT} more`}
+                      <DownOutlined style={{ fontSize: 9, transform: showAllProjects ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                    </button>
+                  )}
+                  {projects.length === 0 && (
+                    <div className="sp-sidebar-empty">No projects yet</div>
+                  )}
                 </div>
-              </Option>
-              <Option value="endDate">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CalendarOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                  <Text style={{ fontSize: 12, fontWeight: 500 }}>End date · soonest</Text>
-                </div>
-              </Option>
-              <Option value="progress">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <LineChartOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                  <Text style={{ fontSize: 12, fontWeight: 500 }}>Progress · highest</Text>
-                </div>
-              </Option>
-              <Option value="name">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ProjectOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                  <Text style={{ fontSize: 12, fontWeight: 500 }}>Name · A → Z</Text>
-                </div>
-              </Option>
-            </Select>
+              </div>
 
-            {activeFilterCount > 0 && (
-              <Button
-                size="small"
-                type="text"
-                icon={<ReloadOutlined />}
-                className="sp-reset-btn"
-                onClick={() => {
-                  setTableFilters({ search: "", projectId: "", status: "" });
-                  loadData({ search: "", projectId: "", status: "" });
-                }}
-              >
-                Clear · {activeFilterCount}
-              </Button>
-            )}
-          </div>
+              {/* Status */}
+              <div className="sp-sidebar-divider" />
+              <div className="sp-sidebar-section">
+                <div className="dh-side-label">STATUS</div>
+                <div className="sp-sidebar-list">
+                  {([
+                    { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false, icon: <AppstoreOutlined /> },
+                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true, icon: <PlayCircleOutlined /> },
+                    { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false, icon: <ClockCircleOutlined /> },
+                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false, icon: <CheckCircleOutlined /> },
+                  ] as const).map(seg => {
+                    const active = (tableFilters.status || 'all') === seg.k;
+                    return (
+                      <button
+                        key={seg.k}
+                        className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
+                        onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
+                        style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
+                      >
+                        <span
+                          className="sp-sidebar-status-chip"
+                          style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                        >
+                          {seg.k === 'all' ? (
+                            <span
+                              className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
+                              style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
+                            />
+                          ) : (
+                            <span style={{ color: seg.color, fontSize: 11, display: 'flex' }}>{seg.icon}</span>
+                          )}
+                        </span>
+                        <span className="sp-sidebar-item-label">{seg.label}</span>
+                        <span
+                          className="sp-sidebar-item-count"
+                          style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
+                        >
+                          {seg.n}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Bottom row: segmented status filter with live counts */}
-          <div className="sp-segmented">
-            {([
-              { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b' },
-              { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981' },
-              { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b' },
-              { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6' },
-            ] as const).map(seg => {
-              const active = (tableFilters.status || 'all') === seg.k;
-              return (
-                <button
-                  key={seg.k}
-                  className={`sp-segmented-item ${active ? 'active' : ''}`}
-                  style={active ? ({ ['--seg-color' as any]: seg.color }) : undefined}
-                  onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
-                >
-                  <span className="sp-segmented-dot" style={{ background: seg.color, boxShadow: active ? `0 0 0 3px ${seg.color}22` : 'none' }} />
-                  <span className="sp-segmented-label">{seg.label}</span>
-                  <span className="sp-segmented-count" style={active ? { background: `${seg.color}1a`, color: seg.color } : undefined}>
-                    {seg.n}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Main Content Table */}
-        <div className="sp-table-card">
-          <div className="sp-table-toolbar">
-            <div className="sp-table-toolbar-title">
-              <span className="sp-table-toolbar-icon">
-                <CalendarOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
-              </span>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
-              <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
-            </div>
-            <div className="sp-table-toolbar-meta">
-              <span className="sp-table-toolbar-meta-item">
-                <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
-                {metrics.active} active
-              </span>
-              <span className="sp-table-toolbar-meta-divider" />
-              <span className="sp-table-toolbar-meta-item">
-                Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
-              </span>
-            </div>
-          </div>
-          <Table
-            columns={columns}
-            dataSource={sortedSprintPlans}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total, range) => (
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                  <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{range[0]}–{range[1]}</span> of <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{total}</span> sprint{total !== 1 ? 's' : ''}
-                </Text>
-              ),
-              style: { padding: '16px 24px', margin: 0 }
-            }}
-            className="sp-premium-table"
-            scroll={{ x: 1200 }}
-            locale={{
-              emptyText: (
-                <div className="sp-empty-state">
-                  <div className="sp-empty-icon">
-                    <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
-                  </div>
-                  <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
-                    No sprint cycles yet
-                  </Title>
-                  <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
-                    Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
-                  </Text>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setShowCreateModal(true)}
-                    style={{
-                      height: 38,
-                      fontWeight: 700,
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      border: 'none',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+              {activeFilterCount > 0 && (
+                <>
+                  <div className="sp-sidebar-divider" />
+                  <button
+                    className="sp-sidebar-clear"
+                    onClick={() => {
+                      setTableFilters({ search: "", projectId: "", status: "" });
+                      loadData({ search: "", projectId: "", status: "" });
                     }}
                   >
-                    Plan your first sprint
-                  </Button>
+                    <ReloadOutlined style={{ fontSize: 10 }} />
+                    Clear filters · {activeFilterCount}
+                  </button>
+                </>
+              )}
+            </div>
+          </aside>
+          {/* ── Main Content ─────────────────────────────────────── */}
+          <main className="sp-main">
+            {/* Top bar: search · live stats · view controls */}
+            <div className="sp-main-topbar">
+              <div className="sp-main-search">
+                <Input
+                  placeholder="Search by name, goal, or description..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  // suffix={!tableFilters.search ? <span className="sp-search-kbd">⌘K</span> : undefined}
+                  className="premium-search-input transition-all"
+                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38, width: 340 }}
+                  value={tableFilters.search}
+                  onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+                  allowClear
+                />
+              </div>
+
+              <div className="sp-main-stats">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="sp-pulse-dot" />
+                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.active}</span> active cycles
+                </span>
+                <span style={{ color: 'var(--text-slate-300)', margin: '0 8px' }}>·</span>
+                <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.planning}</span> in planning</span>
+              </div>
+
+              <div className="sp-main-controls">
+                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                  <Tooltip title="List">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                        border: 'none', cursor: 'pointer'
+                      }}
+                    >
+                      <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip title="Calendar">
+                    <button
+                      onClick={() => setViewMode('calendar')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'calendar' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'calendar' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                        border: 'none', cursor: 'pointer'
+                      }}
+                    >
+                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'calendar' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
                 </div>
-              )
-            }}
-          />
+
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined spin={isRefreshing} />}
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      await loadData();
+                      setIsRefreshing(false);
+                      message.success("Success, Sprint view refreshed");
+                    }}
+                    loading={loading && !isRefreshing}
+                    style={{ height: 38, width: 38, borderRadius: 10, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </Tooltip>
+
+                <Select
+                  value={sortBy}
+                  onChange={(v) => setSortBy(v as any)}
+                  suffixIcon={<DownOutlined style={{ color: 'var(--text-slate-400)', fontSize: 10 }} />}
+                  popupMatchSelectWidth={false}
+                  styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
+                  style={{ height: 38, width: 170 }}
+                  className="sp-premium-select"
+                >
+                  <Option value="recent">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Recently updated</Text>
+                    </div>
+                  </Option>
+                  <Option value="endDate">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>End date · soonest</Text>
+                    </div>
+                  </Option>
+                  <Option value="progress">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <LineChartOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Progress · highest</Text>
+                    </div>
+                  </Option>
+                  <Option value="name">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Name · A → Z</Text>
+                    </div>
+                  </Option>
+                </Select>
+              </div>
+            </div>
+
+            {/* Premium KPI Hero Row */}
+            <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <RocketOutlined />
+                      </span>
+                      <span className="sp-stat-label">Active Cycles</span>
+                    </div>
+                    <span className="sp-stat-pulse" />
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.active}</span>
+                      <span className="sp-stat-period">in flight</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.active)} color="#3b82f6" />
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
+                        <PieChartOutlined />
+                      </span>
+                      <span className="sp-stat-label">In Planning</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.planning}</span>
+                      <span className="sp-stat-period">queued</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.planning)} color="#64748b" />
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                        <CheckCircleOutlined />
+                      </span>
+                      <span className="sp-stat-label">Shipped</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.completed}</span>
+                      <span className="sp-stat-period">delivered</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.completed)} color="#10b981" />
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <LineChartOutlined />
+                      </span>
+                      <span className="sp-stat-label">Avg. Progress</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
+                      <span className="sp-stat-period">across cycles</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.avgProgress)} color="#3b82f6" />
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+
+            {/* Main Content — List or Calendar */}
+            {viewMode === 'calendar' && (
+              <div className="sp-cal-card">
+                <div className="sp-cal-header">
+                  <div className="sp-cal-title-block">
+                    <Text className="sp-cal-title">{calendarMonth.format('MMMM YYYY')}</Text>
+                    <div className="sp-cal-stat-row">
+                      <span className="sp-cal-stat">
+                        <span className="sp-cal-stat-num">{calendarMonthStats.projectCount}</span>
+                        <span className="sp-cal-stat-label">Project{calendarMonthStats.projectCount !== 1 ? 's' : ''}</span>
+                      </span>
+                      <span className="sp-cal-stat-sep" />
+                      <span className="sp-cal-stat">
+                        <span className="sp-cal-stat-num">{calendarMonthStats.sprintCount}</span>
+                        <span className="sp-cal-stat-label">Sprint{calendarMonthStats.sprintCount !== 1 ? 's' : ''}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="sp-cal-nav">
+                    <Tooltip title={canGoPrevMonth ? 'Previous month' : `No sprints before ${calendarBounds?.earliest.format('MMM YYYY')}`}>
+                      <Button
+                        size="small"
+                        icon={<LeftOutlined />}
+                        onClick={() => canGoPrevMonth && setCalendarMonth(m => m.subtract(1, 'month'))}
+                        disabled={!canGoPrevMonth}
+                        className="sp-cal-nav-btn"
+                      />
+                    </Tooltip>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const today = dayjs();
+                        if (!calendarBounds) { setCalendarMonth(today); return; }
+                        if (today.isBefore(calendarBounds.earliest, 'month')) setCalendarMonth(calendarBounds.earliest);
+                        else if (today.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) setCalendarMonth(calendarBounds.latest);
+                        else setCalendarMonth(today);
+                      }}
+                      className="sp-cal-nav-btn sp-cal-nav-today"
+                    >
+                      Current Month
+                    </Button>
+                    <Tooltip title={canGoNextMonth ? 'Next month' : 'No sprints further ahead'}>
+                      <Button
+                        size="small"
+                        icon={<RightOutlined />}
+                        onClick={() => canGoNextMonth && setCalendarMonth(m => m.add(1, 'month'))}
+                        disabled={!canGoNextMonth}
+                        className="sp-cal-nav-btn"
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
+
+                <div className="sp-cal-body sp-cal-body-weeks">
+                  {loading ? (
+                    <div className="sp-card-loading"><Spin /></div>
+                  ) : calendarData.weeks.map((week, wi) => {
+                    const lanes = calendarData.maxLanesByWeek[wi];
+                    const ribbonHeight = lanes > 0 ? lanes * 26 + 14 : 0;
+                    const ribbons = calendarData.weekRibbons[wi];
+                    const weekStart = week[0];
+                    const weekEnd = week[6];
+                    const dayOfYear = weekStart.diff(weekStart.startOf('year'), 'day');
+                    const weekNum = Math.floor(dayOfYear / 7) + 1;
+                    const containsToday = week.some(d => d.isSame(dayjs(), 'day'));
+                    return (
+                      <section className={`sp-cal-week-section ${containsToday ? 'has-today' : ''}`} key={wi}>
+                        <header className="sp-cal-week-label">
+                          <div className="sp-cal-week-label-left">
+                            <span className="sp-cal-week-num">Week {weekNum}</span>
+                            <span className="sp-cal-week-range">
+                              {weekStart.format(weekStart.month() === weekEnd.month() ? 'MMM D' : 'MMM D')} – {weekEnd.format(weekStart.month() === weekEnd.month() ? 'D, YYYY' : 'MMM D, YYYY')}
+                            </span>
+                          </div>
+                          <span className="sp-cal-week-count">
+                            {ribbons.length === 0 ? 'No sprints' : `${ribbons.length} sprint${ribbons.length !== 1 ? 's' : ''}`}
+                          </span>
+                        </header>
+                        <div className="sp-cal-week-grid">
+                          <div className="sp-cal-week-days">
+                            {week.map((day, di) => {
+                              const isOutside = day.month() !== calendarMonth.month();
+                              const isToday = day.isSame(dayjs(), 'day');
+                              const isWeekend = day.day() === 0 || day.day() === 6;
+                              return (
+                                <div
+                                  key={di}
+                                  className={`sp-cal-day-cell ${isOutside ? 'outside' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
+                                >
+                                  <span className="sp-cal-day-weekday">{day.format('ddd')}</span>
+                                  <span className={`sp-cal-day-num ${isToday ? 'today' : ''}`}>
+                                    {day.format('D')}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {ribbonHeight > 0 ? (
+                            <div className="sp-cal-week-ribbons" style={{ height: ribbonHeight }}>
+                              {ribbons.map(r => {
+                                const left = (r.startCol / 7) * 100;
+                                const width = (r.span / 7) * 100;
+                                const cfg =
+                                  r.plan.status === 'active' ? { dot: '#10b981', pulse: true } :
+                                    r.plan.status === 'completed' ? { dot: '#3b82f6', pulse: false } :
+                                      r.plan.status === 'planning' ? { dot: '#f59e0b', pulse: false } :
+                                        { dot: '#94a3b8', pulse: false };
+                                const hoverStart = r.plan.startDate ? dayjs(r.plan.startDate) : null;
+                                const hoverEnd = r.plan.endDate ? dayjs(r.plan.endDate) : null;
+                                const hoverDays = hoverStart && hoverEnd ? Math.max(hoverEnd.diff(hoverStart, 'day'), 1) : 0;
+                                const hoverPct = r.plan.progress || 0;
+                                const hoverDone = r.plan.completedTickets || 0;
+                                const hoverTotal = r.plan.totalTickets || 0;
+                                const hoverProgressColor = hoverPct >= 100 ? '#10b981' : hoverPct >= 60 ? '#3b82f6' : hoverPct >= 30 ? '#6366f1' : '#94a3b8';
+                                const hoverStartedAt = r.plan.startedAt ? dayjs(r.plan.startedAt) : null;
+                                const hoverCompletedAt = r.plan.completedAt ? dayjs(r.plan.completedAt) : null;
+                                const hoverStatusCfg =
+                                  r.plan.status === 'active' ? { color: '#047857', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', dot: '#10b981', label: 'Active', pulse: true } :
+                                    r.plan.status === 'planning' ? { color: '#b45309', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b', label: 'Planning', pulse: false } :
+                                      r.plan.status === 'completed' ? { color: '#1d4ed8', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6', label: 'Completed', pulse: false } :
+                                        { color: '#475569', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', dot: '#94a3b8', label: r.plan.status || '—', pulse: false };
+
+                                return (
+                                  <Tooltip
+                                    key={`${r.plan.id}-${wi}`}
+                                    overlayClassName="sp-cal-tooltip-wrap"
+                                    mouseEnterDelay={0.15}
+                                    placement="top"
+                                    title={
+                                      <div className="sp-cal-tooltip">
+                                        <span className="sp-cal-tooltip-accent" style={{ background: r.color }} />
+                                        <div className="sp-cal-tooltip-head">
+                                          <div className="sp-cal-tooltip-title-block">
+                                            <div className="sp-cal-tooltip-name">{r.plan.name}</div>
+                                            {r.projectName && (
+                                              <div className="sp-cal-tooltip-project">
+                                                <span className="sp-cal-tooltip-project-dot" style={{ background: r.color }} />
+                                                {r.projectName}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="sp-cal-tooltip-badges">
+                                            <span
+                                              className="sp-cal-tooltip-status"
+                                              style={{ background: hoverStatusCfg.bg, borderColor: hoverStatusCfg.border, color: hoverStatusCfg.color }}
+                                            >
+                                              <span
+                                                className={`sp-cal-tooltip-status-dot ${hoverStatusCfg.pulse ? 'pulse' : ''}`}
+                                                style={{ background: hoverStatusCfg.dot }}
+                                              />
+                                              {hoverStatusCfg.label}
+                                            </span>
+                                            {r.plan.priority && (
+                                              <span className={`sp-cal-tooltip-prio sp-cal-tooltip-prio-${(r.plan.priority || '').toLowerCase()}`}>
+                                                <FlagOutlined style={{ fontSize: 8 }} />
+                                                {r.plan.priority}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="sp-cal-tooltip-divider" />
+
+                                        <div className="sp-cal-tooltip-stats">
+                                          <div className="sp-cal-tooltip-stat">
+                                            <div className="sp-cal-tooltip-stat-label">
+                                              <CalendarOutlined style={{ fontSize: 9 }} />
+                                              Timeline
+                                            </div>
+                                            <div className="sp-cal-tooltip-stat-value">
+                                              {hoverStart ? hoverStart.format('MMM D') : '—'}
+                                              <span className="sp-cal-tooltip-stat-arrow">→</span>
+                                              {hoverEnd ? hoverEnd.format('MMM D, YYYY') : '—'}
+                                            </div>
+                                            <div className="sp-cal-tooltip-stat-sub">{hoverDays}d cycle</div>
+                                          </div>
+                                          <div className="sp-cal-tooltip-stat">
+                                            <div className="sp-cal-tooltip-stat-label">
+                                              <LineChartOutlined style={{ fontSize: 9 }} />
+                                              Progress
+                                            </div>
+                                            <div className="sp-cal-tooltip-stat-value">
+                                              <span className="sp-cal-tooltip-pct" style={{ color: hoverProgressColor }}>
+                                                {hoverPct}<span className="sp-cal-tooltip-pct-unit">%</span>
+                                              </span>
+                                            </div>
+                                            <div className="sp-cal-tooltip-stat-sub">
+                                              <b>{hoverDone}</b> of <b>{hoverTotal}</b> done
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="sp-cal-tooltip-bar">
+                                          <div
+                                            className="sp-cal-tooltip-bar-fill"
+                                            style={{
+                                              width: `${hoverPct}%`,
+                                              background: `linear-gradient(90deg, ${hoverProgressColor}, ${hoverProgressColor}cc)`,
+                                            }}
+                                          />
+                                        </div>
+
+                                        {(hoverStartedAt || hoverCompletedAt) && (
+                                          <div className="sp-cal-tooltip-actuals">
+                                            {hoverStartedAt && (
+                                              <span className="sp-cal-tooltip-actual">
+                                                <PlayCircleOutlined style={{ fontSize: 9, color: '#10b981' }} />
+                                                Started <b>{hoverStartedAt.format('MMM D')}</b>
+                                              </span>
+                                            )}
+                                            {hoverCompletedAt && (
+                                              <span className="sp-cal-tooltip-actual">
+                                                <CheckCircleOutlined style={{ fontSize: 9, color: '#3b82f6' }} />
+                                                Closed <b>{hoverCompletedAt.format('MMM D')}</b>
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {r.plan.goal && (
+                                          <>
+                                            <div className="sp-cal-tooltip-divider" />
+                                            <div className="sp-cal-tooltip-goal">
+                                              <div className="sp-cal-tooltip-stat-label">
+                                                <BulbDot />
+                                                Sprint Goal
+                                              </div>
+                                              <div className="sp-cal-tooltip-goal-text">
+                                                {r.plan.goal.length > 140 ? `${r.plan.goal.substring(0, 140)}…` : r.plan.goal}
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
+
+                                        <div className="sp-cal-tooltip-footer">
+                                          <ArrowRightOutlined style={{ fontSize: 9 }} />
+                                          Click to view full details
+                                        </div>
+                                      </div>
+                                    }
+                                  >
+                                    <button
+                                      className={`sp-cal-ribbon ${r.continuesLeft ? 'cont-left' : ''} ${r.continuesRight ? 'cont-right' : ''}`}
+                                      style={{
+                                        left: `calc(${left}% + 4px)`,
+                                        width: `calc(${width}% - 8px)`,
+                                        top: 6 + r.lane * 26,
+                                        background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
+                                        borderColor: `${r.color}66`,
+                                        color: r.color,
+                                      }}
+                                      onClick={() => handleViewTickets(r.plan)}
+                                    >
+                                      <span className={`sp-cal-ribbon-dot ${cfg.pulse ? 'pulse' : ''}`} style={{ background: cfg.dot }} />
+                                      <span className="sp-cal-ribbon-name">{r.plan.name}</span>
+                                      {r.projectName && r.span > 1 && (
+                                        <span className="sp-cal-ribbon-proj">· {r.projectName}</span>
+                                      )}
+                                    </button>
+                                  </Tooltip>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="sp-cal-week-empty">No sprints scheduled this week</div>
+                          )}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+
+                {projects.length > 0 && (
+                  <div className="sp-cal-legend">
+                    <span className="sp-cal-legend-label">Projects</span>
+                    {(calLegendExpanded ? projects : projects.slice(0, CAL_LEGEND_LIMIT)).map((p: any) => {
+                      const c = getProjectColor(p.value);
+                      const active = !tableFilters.projectId || tableFilters.projectId === p.value;
+                      return (
+                        <button
+                          key={p.value}
+                          className={`sp-cal-legend-chip ${!active ? 'muted' : ''}`}
+                          onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === p.value ? '' : p.value }))}
+                          title={p.label}
+                        >
+                          <span className="sp-cal-legend-dot" style={{ background: c }} />
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                    {projects.length > CAL_LEGEND_LIMIT && (
+                      <button
+                        className="sp-cal-legend-toggle"
+                        onClick={() => setCalLegendExpanded(v => !v)}
+                      >
+                        {calLegendExpanded
+                          ? 'Show less'
+                          : `+${projects.length - CAL_LEGEND_LIMIT} more`}
+                        <DownOutlined style={{ fontSize: 9, transform: calLegendExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {viewMode === 'list' && (
+              <div className="sp-table-card">
+                <div className="sp-table-toolbar">
+                  <div className="sp-table-toolbar-title">
+                    <span className="sp-table-toolbar-icon">
+                      <CalendarOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
+                    </span>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
+                    <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
+                  </div>
+                  <div className="sp-table-toolbar-meta">
+                    <span className="sp-table-toolbar-meta-item">
+                      <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
+                      {metrics.active} active
+                    </span>
+                    <span className="sp-table-toolbar-meta-divider" />
+                    <span className="sp-table-toolbar-meta-item">
+                      Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
+                    </span>
+                  </div>
+                </div>
+                {/* Premium card list */}
+                <div className="sp-plist">
+                  {loading ? (
+                    <div className="sp-card-loading">
+                      <Spin />
+                    </div>
+                  ) : pagedSprintPlans.length === 0 ? (
+                    <div className="sp-empty-state">
+                      <div className="sp-empty-icon">
+                        <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                      </div>
+                      <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                        No sprint cycles yet
+                      </Title>
+                      <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
+                        Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
+                      </Text>
+                      {canCreateTicketPlan && (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={() => setShowCreateModal(true)}
+                          style={{
+                            height: 36,
+                            fontWeight: 700,
+                            borderRadius: 8,
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            border: 'none'
+                          }}
+                        >
+                          Plan your first sprint
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    pagedSprintPlans.map((record) => {
+                      const project = typeof record.project === 'object' ? record.project : null;
+                      const initial = (record.name || '?').charAt(0).toUpperCase();
+                      const accent =
+                        record.status === 'active' ? '#3b82f6' :
+                          record.status === 'completed' ? '#10b981' :
+                            record.status === 'planning' ? '#f59e0b' : '#64748b';
+
+                      const statusCfg =
+                        record.status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
+                          record.status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
+                            record.status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
+                              { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: record.status?.toUpperCase() || '—', pulse: false };
+
+                      const pct = record.progress || 0;
+                      const done = record?.completedTickets || 0;
+                      const total = record?.totalTickets || 0;
+                      const progressAccent = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : pct >= 30 ? '#6366f1' : '#94a3b8';
+
+                      const today = dayjs();
+                      const start = record.startDate ? dayjs(record.startDate) : null;
+                      const end = record.endDate ? dayjs(record.endDate) : null;
+                      const hasDates = !!(start && end);
+                      const days = hasDates ? Math.max(end!.diff(start!, 'day'), 1) : 0;
+                      let phaseLabel = '';
+                      let phaseColor = '#64748b';
+                      let phaseBg = 'rgba(100,116,139,0.08)';
+                      if (record.status === 'completed') {
+                        phaseLabel = 'Closed';
+                        phaseColor = '#3b82f6';
+                        phaseBg = 'rgba(59,130,246,0.08)';
+                      } else if (hasDates) {
+                        if (today.isBefore(start!)) {
+                          phaseLabel = `Starts in ${start!.diff(today, 'day')}d`;
+                          phaseColor = '#8b5cf6';
+                          phaseBg = 'rgba(139,92,246,0.08)';
+                        } else if (today.isAfter(end!)) {
+                          phaseLabel = `${today.diff(end!, 'day')}d overdue`;
+                          phaseColor = '#ef4444';
+                          phaseBg = 'rgba(239,68,68,0.08)';
+                        } else {
+                          const remaining = end!.diff(today, 'day');
+                          phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
+                          phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
+                          phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+                        }
+                      }
+                      const elapsedPct = hasDates ? Math.min(Math.max((today.diff(start!, 'day') / days) * 100, 0), 100) : 0;
+
+                      const startedAt = record.startedAt ? dayjs(record.startedAt) : null;
+                      const completedAt = record.completedAt ? dayjs(record.completedAt) : null;
+                      const startVariance = startedAt && start ? startedAt.diff(start, 'day') : null;
+                      const endVariance = completedAt && end ? completedAt.diff(end, 'day') : null;
+                      const actualDuration = startedAt && completedAt ? Math.max(completedAt.diff(startedAt, 'day'), 1) : null;
+                      const isExpanded = expandedRowId === record.id;
+
+                      return (
+                        <article
+                          key={record.id}
+                          className="sp-plist-card"
+                          style={{ ['--row-accent' as any]: accent }}
+                        >
+                          {/* Header — single row: avatar | project | sprint name | priority | status */}
+                          <header className="sp-plist-head">
+                            <div
+                              className="sp-plist-row"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => handleViewTickets(record)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTickets(record); } }}
+                            >
+                              <div
+                                className="sp-plist-avatar sp-custom-avatar"
+                              >
+                                <span className="sp-plist-avatar-letter">{initial}</span>
+                              </div>
+
+                              <div className="sp-plist-row-segments">
+                                <span className="sp-plist-seg sp-plist-seg-project">
+                                  <span className="sp-plist-seg-label">Project:</span>
+                                  {project ? (
+                                    <span className="sp-plist-seg-value" title={project.name}>
+                                      <span className="sp-plist-seg-dot" style={{ background: accent }} />
+                                      {project.name}
+                                    </span>
+                                  ) : (
+                                    <span className="sp-plist-seg-value muted">—</span>
+                                  )}
+                                </span>
+
+                                <span className="sp-plist-row-div" />
+
+                                <span className="sp-plist-seg-name" title={record.name}>{record.name}</span>
+
+                                {record.priority && (
+                                  <>
+                                    <span className="sp-plist-row-div" />
+                                    <span className={`sp-plist-prio sp-plist-prio-${(record.priority || '').toLowerCase()}`}>
+                                      <FlagOutlined style={{ fontSize: 9 }} />
+                                      {record.priority}
+                                    </span>
+                                  </>
+                                )}
+
+                                <span className="sp-plist-row-div" />
+
+                                <span
+                                  className="sp-plist-status"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
+                                    borderColor: statusCfg.border,
+                                    color: statusCfg.color,
+                                  }}
+                                >
+                                  <span
+                                    className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
+                                    style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }}
+                                  />
+                                  {statusCfg.label}
+                                </span>
+                              </div>
+                            </div>
+                          </header>
+
+                          {record.goal && (
+                            <p className="sp-plist-goal-row" title={record.goal}>
+                              <BulbDot />
+                              {record.goal.length > 140 ? `${record.goal.substring(0, 140)}…` : record.goal}
+                            </p>
+                          )}
+
+                          {/* Body — Progress + Timeline */}
+                          <div className="sp-plist-body">
+                            {/* Progress block */}
+                            <div className="sp-plist-block">
+                              <div className="sp-plist-block-head">
+                                <div className="sp-plist-block-label">
+                                  <LineChartOutlined style={{ fontSize: 10 }} />
+                                  Progress
+                                </div>
+                                <div className="sp-plist-block-pct" style={{ color: progressAccent }}>
+                                  <span className="sp-plist-block-pct-num">{pct}</span>
+                                  <span className="sp-plist-block-pct-unit">%</span>
+                                  {pct >= 100 && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 11, marginLeft: 4 }} />}
+                                </div>
+                              </div>
+                              <div className="sp-plist-bar">
+                                <div
+                                  className="sp-plist-bar-fill"
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)`,
+                                  }}
+                                />
+                              </div>
+                              <div className="sp-plist-chips">
+                                <span className="sp-plist-chip done">
+                                  <span className="sp-plist-chip-dot" />
+                                  <b>{done}</b> done
+                                </span>
+                                <span className="sp-plist-chip total">
+                                  <b>{total}</b> total
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Timeline block */}
+                            <div className="sp-plist-block">
+                              <div className="sp-plist-block-head">
+                                <div className="sp-plist-block-label">
+                                  <CalendarOutlined style={{ fontSize: 10 }} />
+                                  Timeline
+                                </div>
+                                {hasDates && (
+                                  <span className="sp-plist-cycle">{days}d cycle</span>
+                                )}
+                              </div>
+                              <div className="sp-plist-dates">
+                                <div className="sp-plist-date-cell">
+                                  <span className="sp-plist-date-label">Start</span>
+                                  <span className="sp-plist-date-value">{start ? start.format('MMM D') : '—'}</span>
+                                </div>
+                                <div className="sp-plist-date-link">
+                                  <div
+                                    className="sp-plist-date-link-fill"
+                                    style={{ width: `${elapsedPct}%`, background: phaseColor }}
+                                  />
+                                </div>
+                                <div className="sp-plist-date-cell sp-plist-date-cell-right">
+                                  <span className="sp-plist-date-label">End</span>
+                                  <span className="sp-plist-date-value">{end ? end.format('MMM D') : '—'}</span>
+                                </div>
+                              </div>
+                              {phaseLabel && (
+                                <div className="sp-plist-phase-row">
+                                  <span
+                                    className="sp-plist-phase"
+                                    style={{ color: phaseColor, background: phaseBg, borderColor: `${phaseColor}40` }}
+                                  >
+                                    <span className="sp-plist-phase-dot" style={{ background: phaseColor }} />
+                                    {phaseLabel}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Footer — single inline meta line */}
+                          <footer className="sp-plist-foot">
+                            <div className="sp-plist-foot-inline">
+                              <span className="sp-plist-foot-item sp-plist-foot-item-creator" title={record.createdBy?.email}>
+                                <span className="sp-plist-foot-label">Created by:</span>
+                                {record.createdBy ? (
+                                  <span className="sp-plist-creator-mini">
+                                    {record.createdBy.avatarUrl ? (
+                                      <img
+                                        src={record.createdBy.avatarUrl}
+                                        alt={record.createdBy.name}
+                                        className="sp-plist-creator-avatar-sm sp-custom-avatar"
+                                        style={{ objectFit: 'cover' }}
+                                      />
+                                    ) : (
+                                      <span className="sp-plist-creator-avatar-sm sp-custom-avatar">
+                                        <span className="sp-plist-avatar-letter">{(record.createdBy.name || '?').charAt(0).toUpperCase()}</span>
+                                      </span>
+                                    )}
+                                    <b>{record.createdBy.name || record.createdBy.email}</b>
+                                  </span>
+                                ) : (
+                                  <span className="sp-plist-foot-muted">—</span>
+                                )}
+                              </span>
+
+                              {record.createdAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <CalendarOutlined style={{ fontSize: 10, color: '#64748b' }} />
+                                    <span className="sp-plist-foot-label">Created:</span>
+                                    <b>{dayjs(record.createdAt).format('MMM D, YYYY')}</b>
+                                  </span>
+                                </>
+                              )}
+
+                              {startedAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <PlayCircleOutlined style={{ fontSize: 10, color: '#10b981' }} />
+                                    <span className="sp-plist-foot-label">Started:</span>
+                                    <b>{startedAt.format('MMM D, YYYY')}</b>
+                                    {startVariance !== null && startVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${startVariance > 0 ? 'late' : 'early'}`}>
+                                        {startVariance > 0 ? `+${startVariance}d` : `${startVariance}d`}
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
+
+                              {completedAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <CheckCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
+                                    <span className="sp-plist-foot-label">Closed:</span>
+                                    <b>{completedAt.format('MMM D, YYYY')}</b>
+                                    {endVariance !== null && endVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${endVariance > 0 ? 'late' : 'early'}`}>
+                                        {endVariance > 0 ? `+${endVariance}d` : `${endVariance}d`}
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
+
+                              {(record.status === 'active' || record.status === 'completed') && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <button
+                                    className="sp-plist-foot-link"
+                                    onClick={() => router.push(`/tickets/reports/${record.id}`)}
+                                  >
+                                    <LineChartOutlined style={{ fontSize: 11 }} />
+                                    Report
+                                  </button>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="sp-plist-actions">
+                              {record.status === 'planning' && canUpdateTicketPlan && (
+                                <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
+                                  <Tooltip title="Start sprint">
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<RocketOutlined style={{ fontSize: 14, color: '#10b981' }} />}
+                                      className="sp-foot-btn sp-foot-btn-start"
+                                    >
+                                      Start Sprint
+                                    </Button>
+                                  </Tooltip>
+                                </Popconfirm>
+                              )}
+                              {record.status === 'active' && canUpdateTicketPlan && (
+                                <Tooltip title="Complete sprint">
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<CheckCircleOutlined style={{ fontSize: 14, color: '#3b82f6' }} />}
+                                    onClick={() => handleCompleteSprint(record)}
+                                    className="sp-foot-btn sp-foot-btn-complete"
+                                  >
+                                    Complete Sprint
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="View details">
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EyeOutlined style={{ fontSize: 12, color: '#3b82f6' }} />}
+                                  onClick={() => handleViewTickets(record)}
+                                  className="sp-foot-btn sp-foot-btn-view"
+                                >
+                                  View Details
+                                </Button>
+                              </Tooltip>
+                              {canUpdateTicketPlan && (
+                                <Tooltip title="Edit">
+                                  <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" />
+                                </Tooltip>
+                              )}
+                              {canDeleteTicketPlan && (
+                                <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                  <Tooltip title="Delete">
+                                    <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" />
+                                  </Tooltip>
+                                </Popconfirm>
+                              )}
+                            </div>
+                          </footer>
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* Fixed pagination footer */}
+            {!loading && sortedSprintPlans.length > 0 && (
+              <div className="sp-card-pagination">
+                <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                  Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
+                </Text>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={sortedSprintPlans.length}
+                  onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                />
+              </div>
+            )}
+          </main>
         </div>
 
         {/* Create/Edit Drawer */}
@@ -1125,18 +1889,18 @@ export default function SprintPlanComponent() {
           }}
         >
           <Form form={form} layout="vertical" requiredMark={false}>
-            <ConfigProvider 
-              theme={{ 
+            <ConfigProvider
+              theme={{
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
                 token: {
                   colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
                   colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
                 },
-                components: { 
-                  Input: { borderRadius: 0 }, 
-                  Select: { borderRadius: 0 }, 
-                  DatePicker: { borderRadius: 0 } 
-                } 
+                components: {
+                  Input: { borderRadius: 0 },
+                  Select: { borderRadius: 0 },
+                  DatePicker: { borderRadius: 0 }
+                }
               }}
             >
               {/* Section: Basic Information */}
@@ -1241,14 +2005,11 @@ export default function SprintPlanComponent() {
                     size="middle"
                     placeholder="ID or Title search..."
                     style={{ width: '100%' }}
+                    optionLabelProp="label"
                     onSearch={handleTicketSearch}
                     filterOption={false}
                     notFoundContent={ticketLoading ? <Spin size="small" /> : null}
-                    options={availableTickets.map(t => ({
-                      label: t.ticketNumber,
-                      value: t.id,
-                      item: t
-                    }))}
+                    options={ticketOptions}
                     dropdownStyle={{ borderRadius: 0 }}
                     optionRender={(option) => {
                       const t = option.data.item;
@@ -1300,7 +2061,7 @@ export default function SprintPlanComponent() {
           placement="right"
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
-          width={Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
+          width={drawerCompact ? 520 : Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 28px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-slate-50)' },
@@ -1308,6 +2069,24 @@ export default function SprintPlanComponent() {
           }}
           extra={
             <Space size={8}>
+              <Tooltip title={drawerCompact ? 'Expand view' : 'Minimize view'}>
+                <Button
+                  icon={drawerCompact ? <ExpandAltOutlined /> : <CompressOutlined />}
+                  onClick={() => setDrawerCompact(v => !v)}
+                  style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
+                />
+              </Tooltip>
+              {canReadActivityLog && drawerSprintPlan && (
+                <Tooltip title="Activity history">
+                  <Button
+                    icon={<HistoryOutlined />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
+                  >
+                    History
+                  </Button>
+                </Tooltip>
+              )}
               {drawerSprintPlan?.status === 'planning' && (
                 <Popconfirm title="Activate this sprint?" onConfirm={() => { handleStartSprint(drawerSprintPlan); setDrawerVisible(false); }}>
                   <Button icon={<PlayCircleOutlined />} style={{ borderRadius: 8, fontWeight: 600, height: 36 }}>
@@ -1452,7 +2231,7 @@ export default function SprintPlanComponent() {
             };
 
             return (
-              <div className="sp-detail-shell">
+              <div className={`sp-detail-shell ${drawerCompact ? 'compact' : ''}`}>
                 {/* ── LEFT RAIL — Analytics ─────────────────────── */}
                 <aside className="sp-detail-left">
 
@@ -1701,45 +2480,72 @@ export default function SprintPlanComponent() {
                           const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
                           const color = c.id === '__unassigned__' ? '#94a3b8' : palette[i % palette.length];
                           return (
-                            <div key={c.id} className="sp-contrib-row-card">
+                            <div
+                              key={c.id}
+                              className="sp-contrib-row-card"
+                              style={{ ['--contrib-accent' as any]: color }}
+                            >
+                              <span className="sp-contrib-stripe" style={{ background: color }} />
                               <div className="sp-contrib-rank" style={{ color }}>#{i + 1}</div>
-                              <div className="sp-contrib-avatar" style={{ background: `${color}18`, color, borderColor: `${color}33` }}>
+                              <div
+                                className="sp-contrib-avatar"
+                                style={{
+                                  background: `linear-gradient(135deg, ${color}1a 0%, ${color}33 100%)`,
+                                  color,
+                                  borderColor: `${color}55`,
+                                }}
+                              >
                                 {c.id === '__unassigned__' ? <UserOutlined /> : c.name.charAt(0).toUpperCase()}
                               </div>
 
                               <div className="sp-contrib-meta">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <Text style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900)' }} ellipsis>
+                                  <Text style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }} ellipsis>
                                     {c.name}
                                   </Text>
                                   {i === 0 && c.id !== '__unassigned__' && (
                                     <span className="sp-top-badge"><TrophyOutlined /> Top</span>
                                   )}
                                 </div>
-                                <Text style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                                  {c.total} ticket{c.total !== 1 ? 's' : ''} · {completion}% completion
-                                </Text>
+                                <div className="sp-contrib-summary">
+                                  <span className="sp-contrib-summary-num">{c.total}</span>
+                                  <span className="sp-contrib-summary-label">ticket{c.total !== 1 ? 's' : ''}</span>
+                                  <span className="sp-contrib-summary-dot" />
+                                  <span className="sp-contrib-summary-num" style={{ color: '#10b981' }}>{completion}%</span>
+                                  <span className="sp-contrib-summary-label">completion</span>
+                                </div>
 
                                 {c.total > 0 && (
-                                  <div className="sp-stack-bar" style={{ height: 5, margin: '8px 0 6px', maxWidth: 320 }}>
+                                  <div className="sp-stack-bar sp-contrib-stack" title={`${c.done} done · ${c.inProgress} active · ${c.notStarted} to do`}>
                                     <div style={{ width: `${(c.done / c.total) * 100}%`, background: '#10b981' }} />
                                     <div style={{ width: `${(c.inProgress / c.total) * 100}%`, background: '#3b82f6' }} />
                                     <div style={{ width: `${(c.notStarted / c.total) * 100}%`, background: '#f59e0b' }} />
                                   </div>
                                 )}
 
-                                <div className="sp-contrib-stats">
-                                  <span style={{ color: '#10b981' }}>● {c.done} done</span>
-                                  <span style={{ color: '#3b82f6' }}>● {c.inProgress} active</span>
-                                  <span style={{ color: '#f59e0b' }}>● {c.notStarted} to do</span>
+                                <div className="sp-contrib-chips">
+                                  <span className="sp-contrib-chip done">
+                                    <span className="sp-contrib-chip-dot" />
+                                    {c.done} done
+                                  </span>
+                                  <span className="sp-contrib-chip active">
+                                    <span className="sp-contrib-chip-dot" />
+                                    {c.inProgress} active
+                                  </span>
+                                  <span className="sp-contrib-chip todo">
+                                    <span className="sp-contrib-chip-dot" />
+                                    {c.notStarted} to do
+                                  </span>
                                 </div>
                               </div>
 
                               <div className="sp-contrib-share">
-                                <div className="sp-contrib-share-pct" style={{ color }}>{ownership}<span style={{ fontSize: 13 }}>%</span></div>
+                                <div className="sp-contrib-share-pct" style={{ color }}>
+                                  {ownership}<span className="sp-contrib-share-pct-unit">%</span>
+                                </div>
                                 <div className="sp-contrib-share-label">Sprint share</div>
                                 <div className="sp-prio-bar sp-contrib-share-bar">
-                                  <div className="sp-prio-bar-fill" style={{ width: `${ownership}%`, background: color }} />
+                                  <div className="sp-prio-bar-fill" style={{ width: `${ownership}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
                                 </div>
                               </div>
                             </div>
@@ -1842,6 +2648,16 @@ export default function SprintPlanComponent() {
           })()}
         </Drawer>
 
+        {drawerSprintPlan && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="release_plan"
+            entityId={drawerSprintPlan.id}
+            subtitle={drawerSprintPlan.name}
+          />
+        )}
+
         {/* Completion Modal */}
         <SprintCompletionModal
           sprintId={selectedSprintId}
@@ -1914,115 +2730,90 @@ export default function SprintPlanComponent() {
           }
         }
 
-        /* ── KPI Cards ─────────────────────────────────────────── */
-        .sp-kpi-card {
+        /* ── Stat Cards (Proposals Style) ─────────────────────── */
+        .sp-stat-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 14px;
-          padding: 16px 18px;
-          position: relative;
-          overflow: hidden;
-          transition: all 0.25s ease;
-          box-shadow: 0 1px 3px rgba(15,23,42,0.03);
+          border-radius: 0;
+          padding: 12px 14px;
+          min-height: 92px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
         }
-        .sp-kpi-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 3px;
-          opacity: 0.85;
-        }
-        .sp-kpi-blue::before { background: linear-gradient(90deg, #3b82f6, #6366f1); }
-        .sp-kpi-amber::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
-        .sp-kpi-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
-        .sp-kpi-violet::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
-        .sp-kpi-card:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(15,23,42,0.06);
+        .sp-stat-card:hover {
           border-color: var(--border-slate-300, #cbd5e1);
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.07);
+          transform: translateY(-1px);
         }
-        [data-theme='dark'] .sp-kpi-card {
+        [data-theme='dark'] .sp-stat-card {
           background: #161b22 !important;
           border-color: #1f2937 !important;
         }
-        [data-theme='dark'] .sp-kpi-card:hover {
+        [data-theme='dark'] .sp-stat-card:hover {
           border-color: #374151 !important;
         }
-        .sp-kpi-header {
+        .sp-stat-top {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin-bottom: 14px;
+          justify-content: space-between;
         }
-        .sp-kpi-icon {
-          width: 30px;
-          height: 30px;
-          border-radius: 8px;
+        .sp-stat-left {
           display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-stat-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 8px;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
+          font-size: 13px;
         }
-        .sp-kpi-icon.blue { background: rgba(59,130,246,0.1); color: #3b82f6; }
-        .sp-kpi-icon.amber { background: rgba(245,158,11,0.1); color: #f59e0b; }
-        .sp-kpi-icon.emerald { background: rgba(16,185,129,0.1); color: #10b981; }
-        .sp-kpi-icon.violet { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-        .sp-kpi-label {
-          font-size: 11.5px;
+        .sp-stat-label {
+          font-size: 12px;
           font-weight: 600;
-          color: var(--text-slate-500);
-          letter-spacing: 0.01em;
-          flex: 1;
+          color: var(--text-slate-600);
         }
-        [data-theme='dark'] .sp-kpi-label { color: #94a3b8 !important; }
-        .sp-kpi-pulse {
-          width: 8px; height: 8px;
+        [data-theme='dark'] .sp-stat-label { color: #94a3b8 !important; }
+        .sp-stat-pulse {
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: #10b981;
           box-shadow: 0 0 0 0 rgba(16,185,129,0.7);
           animation: sp-pulse 2s infinite;
         }
-        @keyframes sp-pulse {
-          0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
-          70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
-          100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        .sp-stat-bottom {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 8px;
         }
-        .sp-kpi-value-row {
+        .sp-stat-value-wrap {
           display: flex;
           align-items: baseline;
-          gap: 8px;
-          margin-bottom: 12px;
+          gap: 6px;
         }
-        .sp-kpi-value {
-          font-size: 30px;
+        .sp-stat-value {
+          font-size: 23px;
           font-weight: 800;
           color: var(--text-slate-900);
-          letter-spacing: -0.025em;
+          letter-spacing: -0.02em;
           line-height: 1;
         }
-        [data-theme='dark'] .sp-kpi-value { color: #f1f5f9 !important; }
-        .sp-kpi-unit {
-          font-size: 18px;
-          font-weight: 700;
+        [data-theme='dark'] .sp-stat-value { color: #f1f5f9 !important; }
+        .sp-stat-period {
+          font-size: 11px;
           color: var(--text-slate-400);
-        }
-        .sp-kpi-sub {
-          font-size: 11.5px;
-          color: var(--text-slate-500);
           font-weight: 500;
         }
-        [data-theme='dark'] .sp-kpi-sub { color: #94a3b8 !important; }
-        .sp-kpi-bar {
-          height: 4px;
-          background: var(--bg-slate-50);
-          border-radius: 999px;
-          overflow: hidden;
-        }
-        [data-theme='dark'] .sp-kpi-bar { background: #1f2937 !important; }
-        .sp-kpi-bar-fill {
-          height: 100%;
-          border-radius: 999px;
-          transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+
         .sp-kpi-bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #6366f1); }
         .sp-kpi-bar-fill.amber { background: linear-gradient(90deg, #f59e0b, #f97316); }
         .sp-kpi-bar-fill.emerald { background: linear-gradient(90deg, #10b981, #059669); }
@@ -2153,6 +2944,10 @@ export default function SprintPlanComponent() {
           border-color: #3b82f6 !important;
           box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
         }
+        .premium-search-input{
+          border-radius: 6px !important;
+          height: 32px !important;
+        }
         .sp-search-kbd {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
@@ -2255,30 +3050,30 @@ export default function SprintPlanComponent() {
           100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
         }
 
-        /* ── Table card ────────────────────────────────────────── */
+        /* ── Table shell (transparent — rows provide chrome) ───── */
         .sp-table-card {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 14px;
-          overflow: hidden;
-          box-shadow: 0 1px 3px rgba(15,23,42,0.03);
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          overflow: visible;
+          box-shadow: none;
         }
         [data-theme='dark'] .sp-table-card {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: transparent !important;
+          border-color: transparent !important;
         }
         .sp-table-toolbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 14px 18px;
-          border-bottom: 1px solid var(--border-slate-100);
-          background: linear-gradient(180deg, var(--bg-pure-white) 0%, var(--bg-slate-50) 100%);
+          padding: 4px 4px 10px;
+          border-bottom: none;
+          background: transparent;
         }
         [data-theme='dark'] .sp-table-toolbar {
-          background: linear-gradient(180deg, #161b22 0%, #0f1419 100%) !important;
-          border-bottom-color: #1f2937 !important;
+          background: transparent !important;
+          border-bottom-color: transparent !important;
         }
         .sp-table-toolbar-title {
           display: flex;
@@ -2341,24 +3136,31 @@ export default function SprintPlanComponent() {
         .sp-row-meta-chip {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          font-size: 10.5px;
+          gap: 5px;
+          font-size: 11px;
           font-weight: 600;
           color: var(--text-slate-600);
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          padding: 1.5px 7px;
-          border-radius: 5px;
+          background: transparent;
+          border: none;
+          padding: 0;
+          border-radius: 0;
           line-height: 1.5;
           max-width: 180px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          letter-spacing: -0.005em;
         }
         [data-theme='dark'] .sp-row-meta-chip {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
+          background: transparent !important;
+          border-color: transparent !important;
           color: #cbd5e1 !important;
+        }
+        .sp-row-meta-chip-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
         }
         .sp-row-meta-muted {
           font-size: 10.5px;
@@ -2485,8 +3287,8 @@ export default function SprintPlanComponent() {
           box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
         }
         .sp-row-avatar {
-          width: 36px;
-          height: 36px;
+          width: 38px;
+          height: 38px;
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -2495,6 +3297,35 @@ export default function SprintPlanComponent() {
           font-size: 14px;
           border: 1px solid;
           flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+          letter-spacing: -0.02em;
+        }
+        .sp-row-avatar-letter {
+          position: relative;
+          z-index: 1;
+          line-height: 1;
+        }
+        .sp-row-avatar::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 70% 0%, rgba(255,255,255,0.18), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.05), transparent 55%);
+          pointer-events: none;
+        }
+        .sp-row-avatar-ring {
+          position: absolute;
+          inset: 3px;
+          border-radius: 7px;
+          border: 1px solid;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .sp-card-row:hover .sp-row-avatar-ring,
+        .sp-card-row.expanded .sp-row-avatar-ring {
+          opacity: 0.35;
         }
         .sp-progress-track {
           width: 100%;
@@ -2536,6 +3367,9 @@ export default function SprintPlanComponent() {
           background: #1f2937 !important;
         }
 
+        .sp-custom-avatar{
+          background: #3b82f6 !important;
+        }
         /* ── Empty state ───────────────────────────────────────── */
         .sp-empty-state {
           display: flex;
@@ -2770,7 +3604,7 @@ export default function SprintPlanComponent() {
         .sp-form-section {
           background: var(--bg-pure-white);
           padding: 20px;
-          border-radius: 12px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
           box-shadow: 0 1px 3px rgba(0,0,0,0.02);
           margin-bottom: 16px;
@@ -2853,12 +3687,12 @@ export default function SprintPlanComponent() {
           .sp-detail-left, .sp-detail-mid { border-right: none !important; }
         }
         .sp-detail-left {
-          padding: 24px 20px 24px 28px;
+          padding: 16px 16px 24px 20px;
           border-right: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
           overflow-y: auto;
           max-height: calc(100vh - 73px);
         }
@@ -2893,6 +3727,90 @@ export default function SprintPlanComponent() {
           display: flex;
           flex-direction: column;
         }
+
+        /* ── Compact / minimized drawer view ───────────────────── */
+        .sp-detail-shell.compact {
+          grid-template-columns: 1fr !important;
+        }
+        .sp-detail-shell.compact .sp-detail-mid,
+        .sp-detail-shell.compact .sp-detail-right {
+          display: none !important;
+        }
+        .sp-detail-shell.compact .sp-detail-left {
+          padding: 16px 18px 24px;
+          border-right: none !important;
+          gap: 12px;
+        }
+        .sp-detail-shell.compact .sp-detail-card {
+          padding: 14px 16px;
+        }
+        .sp-detail-shell.compact .sp-detail-banner {
+          padding: 10px 14px;
+        }
+        .sp-detail-shell.compact .sp-detail-hero-row {
+          gap: 14px;
+        }
+        .sp-detail-shell.compact .sp-view-ring,
+        .sp-detail-shell.compact .sp-detail-ring {
+          width: 92px !important;
+          height: 92px !important;
+        }
+        .sp-detail-shell.compact .sp-view-ring-label > div:first-child {
+          font-size: 20px !important;
+        }
+        .sp-detail-shell.compact .sp-view-ring-label > div:last-child {
+          font-size: 8.5px !important;
+        }
+        .sp-detail-shell.compact .sp-mini-stat-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 8px !important;
+        }
+        .sp-detail-shell.compact .sp-mini-stat {
+          padding: 7px 9px !important;
+        }
+        .sp-detail-shell.compact .sp-mini-stat-icon {
+          width: 24px !important;
+          height: 24px !important;
+        }
+        .sp-detail-shell.compact .sp-mini-stat-value {
+          font-size: 16px !important;
+        }
+        .sp-detail-shell.compact .sp-mini-stat-label {
+          font-size: 9.5px !important;
+        }
+        .sp-detail-shell.compact .sp-stack-bar {
+          height: 6px !important;
+        }
+        .sp-detail-shell.compact .sp-pace-row {
+          padding: 7px 10px !important;
+        }
+        .sp-detail-shell.compact .sp-card-header {
+          margin-bottom: 8px !important;
+        }
+        .sp-detail-shell.compact .sp-card-title {
+          font-size: 11px !important;
+        }
+        .sp-detail-shell.compact .sp-tl-grid {
+          gap: 8px !important;
+        }
+        .sp-detail-shell.compact .sp-tl-stat {
+          padding: 8px 10px !important;
+        }
+        .sp-detail-shell.compact .sp-tl-stat-value {
+          font-size: 12.5px !important;
+        }
+        .sp-detail-shell.compact .sp-tl-stat-sub {
+          font-size: 10px !important;
+        }
+        .sp-detail-shell.compact .sp-view-timeline-bar {
+          height: 4px !important;
+        }
+        .sp-detail-shell.compact .sp-prio-row {
+          padding: 4px 0 !important;
+        }
+        .sp-detail-shell.compact .sp-prio-bar {
+          height: 5px !important;
+        }
         /* Hide scrollbars between column layout while keeping scroll functional */
         .sp-detail-left,
         .sp-detail-mid,
@@ -2912,9 +3830,9 @@ export default function SprintPlanComponent() {
         .sp-detail-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 14px;
-          padding: 18px;
-          box-shadow: 0 1px 3px rgba(15,23,42,0.03);
+          border-radius: 0px;
+          padding: 14px 16px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
         }
         [data-theme='dark'] .sp-detail-card {
           background: #161b22 !important;
@@ -2924,21 +3842,21 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 14px;
+          margin-bottom: 10px;
         }
         .sp-card-title {
-          font-size: 11.5px !important;
+          font-size: 10.5px !important;
           font-weight: 800 !important;
           color: var(--text-slate-700) !important;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.06em;
         }
         [data-theme='dark'] .sp-card-title { color: #cbd5e1 !important; }
 
         /* Banner */
         .sp-detail-banner {
-          padding: 14px 16px;
-          border-radius: 14px;
+          padding: 10px 14px;
+          border-radius: 0px;
           border: 1px solid;
           display: flex;
           align-items: center;
@@ -2952,7 +3870,7 @@ export default function SprintPlanComponent() {
           gap: 10px;
           padding: 6px 12px;
           background: var(--bg-pure-white);
-          border-radius: 10px;
+          border-radius: 0px;
           font-size: 14px;
         }
         [data-theme='dark'] .sp-delivery-note {
@@ -2980,27 +3898,37 @@ export default function SprintPlanComponent() {
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          gap: 14px;
-          margin-bottom: 16px;
+          gap: 10px;
+          margin-bottom: 10px;
         }
         .sp-detail-ring {
-          width: 120px;
-          height: 120px;
+          width: 96px;
+          height: 96px;
           align-self: center;
+        }
+        .sp-detail-ring .sp-view-ring-label > div:first-child {
+          font-size: 20px !important;
+        }
+        .sp-detail-ring .sp-view-ring-label > div:first-child > span {
+          font-size: 11px !important;
+        }
+        .sp-detail-ring .sp-view-ring-label > div:last-child {
+          font-size: 8.5px !important;
+          margin-top: 2px !important;
         }
         .sp-mini-stat-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
+          gap: 6px;
           width: 100%;
         }
         .sp-mini-stat {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
+          gap: 8px;
+          padding: 7px 10px;
           background: var(--bg-slate-50);
-          border-radius: 10px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
           min-width: 0;
         }
@@ -3009,42 +3937,42 @@ export default function SprintPlanComponent() {
           border-color: #2d3748 !important;
         }
         .sp-mini-stat-icon {
-          width: 28px;
-          height: 28px;
-          border-radius: 7px;
+          width: 24px;
+          height: 24px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 13px;
+          font-size: 11px;
           flex-shrink: 0;
         }
         .sp-mini-stat-text { min-width: 0; }
         .sp-mini-stat-value {
-          font-size: 17px;
+          font-size: 15px;
           font-weight: 800;
           color: var(--text-slate-900);
           line-height: 1;
-          letter-spacing: -0.01em;
+          letter-spacing: -0.02em;
         }
         [data-theme='dark'] .sp-mini-stat-value { color: #f1f5f9 !important; }
         .sp-mini-stat-label {
-          font-size: 10.5px;
+          font-size: 9.5px;
           color: var(--text-slate-500);
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
-          margin-top: 3px;
+          letter-spacing: 0.05em;
+          margin-top: 2px;
           white-space: nowrap;
         }
 
         /* Stacked composition bar */
         .sp-stack-bar {
           display: flex;
-          height: 8px;
+          height: 6px;
           background: var(--bg-slate-50);
           border-radius: 999px;
           overflow: hidden;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
         [data-theme='dark'] .sp-stack-bar { background: #1f2937 !important; }
         .sp-stack-bar > div {
@@ -3057,9 +3985,9 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 10px 12px;
+          padding: 7px 10px;
           background: var(--bg-slate-50);
-          border-radius: 8px;
+          border-radius: 0px;
           border: 1px dashed var(--border-slate-200);
         }
         [data-theme='dark'] .sp-pace-row {
@@ -3071,12 +3999,12 @@ export default function SprintPlanComponent() {
         .sp-tl-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          gap: 8px;
         }
         .sp-tl-stat {
-          padding: 12px;
+          padding: 9px 10px;
           background: var(--bg-slate-50);
-          border-radius: 10px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tl-stat {
@@ -3084,22 +4012,22 @@ export default function SprintPlanComponent() {
           border-color: #2d3748 !important;
         }
         .sp-tl-stat-label {
-          font-size: 10.5px;
+          font-size: 9.5px;
           color: var(--text-slate-500);
-          font-weight: 700;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
-          margin-bottom: 4px;
+          letter-spacing: 0.06em;
+          margin-bottom: 3px;
         }
         .sp-tl-stat-value {
-          font-size: 13.5px;
+          font-size: 12.5px;
           font-weight: 700;
           color: var(--text-slate-900);
           letter-spacing: -0.01em;
         }
         [data-theme='dark'] .sp-tl-stat-value { color: #f1f5f9 !important; }
         .sp-tl-stat-sub {
-          font-size: 11px;
+          font-size: 10.5px;
           color: var(--text-slate-500);
           font-weight: 500;
           margin-top: 2px;
@@ -3108,17 +4036,17 @@ export default function SprintPlanComponent() {
           display: flex;
           gap: 6px;
           flex-wrap: wrap;
-          margin-top: 12px;
+          margin-top: 10px;
         }
         .sp-tl-tag {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          padding: 3px 9px;
+          padding: 2px 8px;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-200);
           border-radius: 999px;
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 600;
           color: var(--text-slate-600);
         }
@@ -3172,36 +4100,52 @@ export default function SprintPlanComponent() {
         .sp-contrib-list {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
         .sp-contrib-row-card {
           display: grid;
-          grid-template-columns: 36px 44px 1fr 130px;
+          grid-template-columns: 32px 40px 1fr 120px;
           align-items: center;
-          gap: 14px;
-          padding: 14px 16px;
+          gap: 12px;
+          padding: 12px 14px 12px 18px;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
           border-radius: 12px;
-          transition: all 0.2s ease;
+          transition: border-color 0.18s ease, background 0.18s ease;
+          position: relative;
+          overflow: hidden;
         }
         .sp-contrib-row-card:hover {
-          border-color: #cbd5e1;
-          box-shadow: 0 2px 12px rgba(15,23,42,0.05);
-          transform: translateX(2px);
+          border-color: var(--contrib-accent, #3b82f6);
+        }
+        .sp-contrib-row-card:hover .sp-contrib-stripe {
+          opacity: 1;
+          transform: scaleY(1);
         }
         [data-theme='dark'] .sp-contrib-row-card {
           background: #161b22 !important;
           border-color: #1f2937 !important;
         }
         [data-theme='dark'] .sp-contrib-row-card:hover {
-          border-color: #475569 !important;
+          background: #1c232e !important;
+        }
+        .sp-contrib-stripe {
+          position: absolute;
+          left: 0;
+          top: 12px;
+          bottom: 12px;
+          width: 3px;
+          border-radius: 0 999px 999px 0;
+          opacity: 0;
+          transform: scaleY(0.4);
+          transform-origin: center;
+          transition: opacity 0.18s ease, transform 0.18s ease;
         }
         .sp-contrib-rank {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 800;
-          letter-spacing: -0.02em;
-          opacity: 0.85;
+          letter-spacing: -0.04em;
+          opacity: 0.7;
           font-family: ui-monospace, monospace;
           text-align: center;
         }
@@ -3209,7 +4153,98 @@ export default function SprintPlanComponent() {
           min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
+        }
+        .sp-contrib-summary {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 5px;
+          font-size: 11.5px;
+          color: var(--text-slate-500);
+          font-weight: 500;
+        }
+        [data-theme='dark'] .sp-contrib-summary { color: #94a3b8 !important; }
+        .sp-contrib-summary-num {
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .sp-contrib-summary-num { color: #f1f5f9 !important; }
+        .sp-contrib-summary-label {
+          font-weight: 600;
+        }
+        .sp-contrib-summary-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--text-slate-300);
+          align-self: center;
+          margin: 0 3px;
+        }
+        [data-theme='dark'] .sp-contrib-summary-dot {
+          background: #475569;
+        }
+        .sp-contrib-stack {
+          margin: 6px 0 4px !important;
+          height: 5px !important;
+          max-width: 320px !important;
+        }
+        .sp-contrib-chips {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+        .sp-contrib-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          border-radius: 5px;
+          border: 1px solid;
+          letter-spacing: -0.005em;
+          line-height: 1.6;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-contrib-chip-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .sp-contrib-chip.done {
+          color: #047857;
+          background: rgba(16,185,129,0.08);
+          border-color: rgba(16,185,129,0.22);
+        }
+        [data-theme='dark'] .sp-contrib-chip.done {
+          color: #34d399;
+          background: rgba(16,185,129,0.12);
+          border-color: rgba(16,185,129,0.35);
+        }
+        .sp-contrib-chip.active {
+          color: #1d4ed8;
+          background: rgba(59,130,246,0.08);
+          border-color: rgba(59,130,246,0.22);
+        }
+        [data-theme='dark'] .sp-contrib-chip.active {
+          color: #60a5fa;
+          background: rgba(59,130,246,0.12);
+          border-color: rgba(59,130,246,0.35);
+        }
+        .sp-contrib-chip.todo {
+          color: #b45309;
+          background: rgba(245,158,11,0.08);
+          border-color: rgba(245,158,11,0.22);
+        }
+        [data-theme='dark'] .sp-contrib-chip.todo {
+          color: #fbbf24;
+          background: rgba(245,158,11,0.12);
+          border-color: rgba(245,158,11,0.35);
         }
         .sp-contrib-share {
           text-align: right;
@@ -3221,22 +4256,29 @@ export default function SprintPlanComponent() {
         .sp-contrib-share-pct {
           font-size: 22px;
           font-weight: 800;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.03em;
           line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-contrib-share-pct-unit {
+          font-size: 12px;
+          font-weight: 700;
+          opacity: 0.7;
+          margin-left: 1px;
         }
         .sp-contrib-share-label {
           font-size: 9.5px;
           color: var(--text-slate-500);
-          font-weight: 700;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.06em;
         }
         .sp-contrib-share-bar {
           width: 100%;
           margin-top: 2px;
         }
         @media (max-width: 600px) {
-          .sp-contrib-row-card { grid-template-columns: 28px 40px 1fr; }
+          .sp-contrib-row-card { grid-template-columns: 28px 36px 1fr; }
           .sp-contrib-share { display: none; }
         }
 
@@ -3432,6 +4474,2582 @@ export default function SprintPlanComponent() {
           opacity: 1;
           color: #3b82f6;
           transform: translateX(2px);
+        }
+
+        /* ── Two-column shell ─────────────────────────────────── */
+        .sp-page-root {
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .sp-page-root {
+          background: var(--bg-pure-white) !important;
+        }
+        .sp-shell-wrap {
+        }
+        .sp-shell {
+          display: grid;
+          grid-template-columns: 252px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+        }
+        .sp-main {
+          min-width: 0;
+          padding: 14px 20px 28px;
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+        }
+        [data-theme='dark'] .sp-main {
+          background: transparent !important;
+        }
+
+        /* ── Sidebar (full-height left rail) ──────────────────── */
+        .sp-sidebar {
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-slate-200) !important;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 54px);
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          z-index: 10;
+        }
+        .sp-sidebar-top {
+          padding: 14px 14px 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .sp-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .sp-sidebar-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          color: var(--text-slate-900);
+        }
+        .sp-sidebar-subtitle {
+          margin: 2px 0 0 0;
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .sp-hero-icon-box {
+          width: 38px; height: 38px;
+          background: rgba(59, 130, 246, 0.10);
+          border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .sp-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
+          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        .sp-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
+        }
+        [data-theme='dark'] .sp-sidebar {
+          background: #0f1419 !important;
+          border-right-color: #1f2937 !important;
+        }
+        .sp-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .sp-sidebar-section {
+          padding: 4px 2px;
+          margin-bottom: 13px;
+        }
+        .dh-side-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        .sp-sidebar-list {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .sp-sidebar-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 32px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          font-family: inherit;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          text-align: left;
+          transition: background 0.15s, color 0.15s;
+        }
+        .sp-sidebar-item:hover {
+          background: var(--bg-slate-100);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .sp-sidebar-item {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .sp-sidebar-item:hover {
+          background: #1c232e !important;
+        }
+        .sp-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.08);
+          color: #1d4ed8;
+          font-weight: 700;
+        }
+        [data-theme='dark'] .sp-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          color: #60a5fa !important;
+        }
+        .sp-sidebar-status-chip {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-status-dot.pulse {
+          animation: sp-pulse-dot 2s infinite;
+        }
+        .sp-sidebar-item-avatar {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 800;
+          flex-shrink: 0;
+          letter-spacing: -0.01em;
+        }
+        .sp-sidebar-item-avatar-all {
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        [data-theme='dark'] .sp-sidebar-item-avatar-all {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .sp-sidebar-item-label {
+          flex: 1;
+          font-size: 12.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: -0.005em;
+        }
+        .sp-sidebar-item-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          padding: 0 6px;
+          line-height: 1.6;
+          border: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-sidebar-item-count {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .sp-sidebar-item.active .sp-sidebar-item-count {
+          background: rgba(59,130,246,0.14);
+          border-color: rgba(59,130,246,0.25);
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-count {
+          background: rgba(59,130,246,0.2) !important;
+          border-color: rgba(59,130,246,0.35) !important;
+          color: #60a5fa !important;
+        }
+        .sp-sidebar-divider {
+          height: 1px;
+          background: var(--border-slate-200);
+          margin: 8px 6px;
+        }
+        [data-theme='dark'] .sp-sidebar-divider {
+          background: #1f2937 !important;
+        }
+        .sp-sidebar-empty {
+          padding: 10px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        .sp-sidebar-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin: 4px 8px 0;
+          padding: 5px 8px;
+          background: transparent;
+          border: none;
+          font-size: 11px;
+          font-weight: 700;
+          color: #3b82f6;
+          cursor: pointer;
+          font-family: inherit;
+          border-radius: 6px;
+          align-self: flex-start;
+          transition: background 0.15s ease, color 0.15s ease;
+          letter-spacing: -0.005em;
+        }
+        .sp-sidebar-toggle:hover {
+          background: rgba(59,130,246,0.08);
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .sp-sidebar-toggle {
+          color: #60a5fa;
+        }
+        [data-theme='dark'] .sp-sidebar-toggle:hover {
+          background: rgba(59,130,246,0.15);
+        }
+        .sp-sidebar-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          padding: 7px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.15s ease;
+        }
+        .sp-sidebar-clear:hover {
+          color: #3b82f6;
+          border-color: rgba(59,130,246,0.3);
+          background: rgba(59,130,246,0.04);
+        }
+        [data-theme='dark'] .sp-sidebar-clear {
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .sp-sidebar-clear:hover {
+          color: #60a5fa !important;
+          border-color: rgba(59,130,246,0.4) !important;
+          background: rgba(59,130,246,0.08) !important;
+        }
+
+        /* ── Compact metric strip ─────────────────────────────── */
+        .sp-metric-strip {
+          display: flex;
+          align-items: stretch;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          padding: 6px 2px;
+          margin-bottom: 12px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
+          overflow: hidden;
+        }
+        [data-theme='dark'] .sp-metric-strip {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .sp-metric {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 14px;
+          position: relative;
+          min-width: 0;
+        }
+        .sp-metric-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-metric-icon.blue { background: rgba(59,130,246,0.10); color: #3b82f6; }
+        .sp-metric-icon.amber { background: rgba(245,158,11,0.10); color: #f59e0b; }
+        .sp-metric-icon.emerald { background: rgba(16,185,129,0.10); color: #10b981; }
+        .sp-metric-icon.violet { background: rgba(139,92,246,0.10); color: #8b5cf6; }
+        .sp-metric-body {
+          min-width: 0;
+          line-height: 1.2;
+        }
+        .sp-metric-val {
+          font-size: 18px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1.1;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-metric-val { color: #f1f5f9 !important; }
+        .sp-metric-sub {
+          font-size: 10.5px;
+          color: var(--text-slate-500);
+          font-weight: 600;
+          margin-left: 6px;
+          letter-spacing: 0;
+        }
+        [data-theme='dark'] .sp-metric-sub { color: #94a3b8 !important; }
+        .sp-metric-pct {
+          font-size: 12px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-left: 1px;
+        }
+        .sp-metric-label {
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          margin-top: 2px;
+        }
+        [data-theme='dark'] .sp-metric-label { color: #94a3b8 !important; }
+        .sp-metric-pulse {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 0 rgba(16,185,129,0.7);
+          animation: sp-pulse 2s infinite;
+        }
+        .sp-metric-divider {
+          width: 1px;
+          background: var(--border-slate-100);
+          margin: 8px 0;
+        }
+        [data-theme='dark'] .sp-metric-divider { background: #1f2937 !important; }
+
+        /* ── Main Topbar ──────────────────────────────────────── */
+        .sp-main-topbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 6px 20px;
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--border-slate-200);
+          margin: -24px -24px 16px -21px;
+          border-left: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-main-topbar {
+          background: rgba(15, 20, 25, 0.85);
+          border-bottom-color: #1f2937;
+        }
+        .sp-main-search {
+          flex: 0 0 auto;
+        }
+        .sp-main-stats {
+          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
+          font-size: 13px;
+          color: var(--text-slate-500);
+        }
+        .sp-main-controls {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-pulse-dot {
+          width: 6px; height: 6px; border-radius: 9999px;
+          background: #10b981;
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+          animation: sp-pulse 2s infinite;
+        }
+        .sp-search-kbd {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 4px;
+          background: var(--bg-slate-100);
+          color: var(--text-slate-400);
+          border: 1px solid var(--border-slate-200);
+          font-family: inherit;
+        }
+        [data-theme='dark'] .sp-search-kbd {
+          background: #1f2937;
+          border-color: #374151;
+        }
+        .sp-premium-select .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+          padding-left: 12px !important;
+          font-weight: 500 !important;
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .sp-premium-select .ant-select-selector {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 1024px) {
+          .sp-shell {
+            grid-template-columns: 1fr;
+            gap: 0;
+            min-height: 0;
+          }
+          .sp-sidebar {
+            position: static;
+            height: auto;
+            border-right: none;
+            border-bottom: 1px solid var(--border-slate-200);
+          }
+          [data-theme='dark'] .sp-sidebar {
+            border-bottom-color: #1f2937 !important;
+          }
+          .sp-metric-strip {
+            overflow-x: auto;
+          }
+          .sp-metric {
+            flex: 1 0 160px;
+          }
+        }
+        @media (max-width: 640px) {
+          .sp-main-topbar {
+            flex-wrap: wrap;
+          }
+          .sp-main-search {
+            width: 100%;
+          }
+          .sp-main-controls {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
+
+        /* ── Card-as-row table ────────────────────────────────── */
+        .sp-card-table-header {
+          display: grid;
+          grid-template-columns: minmax(280px, 1.6fr) 130px minmax(140px, 0.7fr) minmax(140px, 0.55fr) 160px;
+          gap: 16px;
+          padding: 4px 18px 8px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .sp-card-table-header {
+          color: #94a3b8 !important;
+        }
+        .sp-card-col-actions {
+          text-align: right;
+        }
+        .sp-card-table-body {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .sp-card-row {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          position: relative;
+          transition: border-color 0.15s ease, background 0.15s ease;
+          overflow: hidden;
+        }
+        [data-theme='dark'] .sp-card-row {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .sp-card-row:hover {
+          border-color: var(--row-accent, #3b82f6);
+        }
+        .sp-card-row.expanded {
+          border-color: var(--row-accent, #3b82f6);
+        }
+        .sp-card-row-grid {
+          display: grid;
+          grid-template-columns: minmax(280px, 1.6fr) 130px minmax(140px, 0.7fr) minmax(140px, 0.55fr) 160px;
+          gap: 16px;
+          align-items: center;
+          padding: 14px 18px;
+        }
+        .sp-card-row-accent {
+          position: absolute;
+          left: 0;
+          top: 14px;
+          bottom: 14px;
+          width: 3px;
+          border-radius: 0 999px 999px 0;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .sp-card-row:hover .sp-card-row-accent,
+        .sp-card-row.expanded .sp-card-row-accent {
+          opacity: 1;
+        }
+
+        /* ── Expanded child panel (actual dates) ──────────────── */
+        .sp-card-row-expand {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          padding: 14px 18px;
+          background: var(--bg-slate-50);
+          border-top: 1px dashed var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-card-row-expand {
+          background: #0f1419 !important;
+          border-top-color: #2d3748 !important;
+        }
+        .sp-expand-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 8px 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+        }
+        [data-theme='dark'] .sp-expand-cell {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .sp-expand-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .sp-expand-label { color: #94a3b8 !important; }
+        .sp-expand-value {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.005em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-expand-value { color: #f1f5f9 !important; }
+        .sp-expand-muted {
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        .sp-expand-muted-inline {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          margin-left: 4px;
+        }
+        .sp-expand-variance {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 1px 7px;
+          border-radius: 999px;
+          align-self: flex-start;
+          letter-spacing: 0.01em;
+          border: 1px solid;
+        }
+        .sp-expand-variance.late {
+          color: #b45309;
+          background: rgba(245,158,11,0.08);
+          border-color: rgba(245,158,11,0.2);
+        }
+        .sp-expand-variance.early,
+        .sp-expand-variance.on-time {
+          color: #047857;
+          background: rgba(16,185,129,0.08);
+          border-color: rgba(16,185,129,0.2);
+        }
+        .sp-expand-variance.neutral {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-expand-variance.neutral {
+          color: #94a3b8 !important;
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .sp-expand-creator {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          min-width: 0;
+        }
+        .sp-expand-avatar {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #f59e0b1f 0%, #f59e0b33 100%);
+          color: #b45309;
+          border: 1px solid #f59e0b40;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 800;
+          flex-shrink: 0;
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .sp-expand-avatar {
+          color: #fbbf24 !important;
+          border-color: #f59e0b66 !important;
+        }
+        .sp-expand-creator-name {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.005em;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-expand-creator-name { color: #f1f5f9 !important; }
+
+        @media (max-width: 1100px) {
+          .sp-card-row-expand {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 860px) {
+          .sp-card-row-expand {
+            grid-template-columns: 1fr;
+          }
+        }
+        .sp-card-col {
+          min-width: 0;
+        }
+        .sp-card-col-actions {
+          display: flex;
+          justify-content: flex-end;
+        }
+        .sp-card-row .sp-row-actions {
+          opacity: 1;
+        }
+        .sp-card-loading {
+          display: flex;
+          justify-content: center;
+          padding: 60px 0;
+        }
+        .sp-card-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          margin: auto -20px -28px -20px;
+          flex-wrap: wrap;
+          position: sticky;
+          bottom: 0;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme='dark'] .sp-card-pagination {
+          background: #161b22 !important;
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Custom Pagination Styles */
+        .sp-card-pagination .ant-pagination-item,
+        .sp-card-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .sp-card-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .sp-card-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .sp-card-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .sp-card-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+
+        @media (max-width: 1100px) {
+          .sp-card-table-header,
+          .sp-card-row-grid {
+            grid-template-columns: minmax(220px, 1.6fr) 120px minmax(130px, 0.7fr) minmax(130px, 0.5fr) 150px;
+            gap: 12px;
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+        }
+        @media (max-width: 860px) {
+          .sp-card-table-header {
+            display: none;
+          }
+          .sp-card-row-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .sp-card-col-actions {
+            justify-content: flex-start;
+          }
+        }
+
+        /* ── Premium status pill ──────────────────────────────── */
+        .sp-status-pill-premium {
+          padding: 5px 11px 5px 9px;
+          font-size: 10.5px;
+          letter-spacing: 0.02em;
+          font-weight: 700;
+          text-transform: none;
+        }
+        .sp-status-pill-premium .sp-status-pill-dot {
+          width: 7px;
+          height: 7px;
+        }
+
+        /* ── Premium progress ─────────────────────────────────── */
+        .sp-progress-wrap {
+          width: 100%;
+        }
+        .sp-progress-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 7px;
+        }
+        .sp-progress-pct {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 1px;
+        }
+        .sp-progress-pct-num {
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-progress-pct-unit {
+          font-size: 9.5px;
+          font-weight: 700;
+          opacity: 0.7;
+          margin-left: 1px;
+        }
+        .sp-progress-count {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.01em;
+          display: inline-flex;
+          align-items: baseline;
+          gap: 1px;
+        }
+        [data-theme='dark'] .sp-progress-count { color: #94a3b8 !important; }
+        .sp-progress-count b {
+          color: var(--text-slate-900);
+          font-weight: 700;
+        }
+        [data-theme='dark'] .sp-progress-count b { color: #f1f5f9 !important; }
+        .sp-progress-count-sep {
+          opacity: 0.5;
+          margin: 0 1px;
+        }
+        .sp-progress-track-premium {
+          height: 6px;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          overflow: hidden;
+          position: relative;
+        }
+        [data-theme='dark'] .sp-progress-track-premium {
+          background: #1c232e !important;
+        }
+        .sp-progress-track-premium::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          border: 1px solid rgba(15,23,42,0.04);
+          pointer-events: none;
+        }
+        [data-theme='dark'] .sp-progress-track-premium::after {
+          border-color: rgba(255,255,255,0.04);
+        }
+        .sp-progress-track-premium .sp-progress-fill {
+          position: relative;
+          height: 100%;
+          border-radius: 999px;
+        }
+        .sp-progress-track-premium .sp-progress-fill::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);
+          border-radius: 999px;
+        }
+
+        /* ── Premium timeline ─────────────────────────────────── */
+        .sp-timeline-wrap {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .sp-timeline-range {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-timeline-date {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .sp-timeline-date { color: #f1f5f9 !important; }
+        .sp-timeline-link {
+          width: 30px;
+          height: 2px;
+          background: var(--border-slate-200);
+          border-radius: 999px;
+          position: relative;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        [data-theme='dark'] .sp-timeline-link {
+          background: #2d3748 !important;
+        }
+        .sp-timeline-link-fill {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          border-radius: 999px;
+        }
+        .sp-timeline-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .sp-timeline-cycle {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-400);
+          letter-spacing: 0.02em;
+        }
+        [data-theme='dark'] .sp-timeline-cycle { color: #64748b !important; }
+        .sp-phase-chip-premium {
+          padding: 2px 8px 2px 7px;
+          font-size: 9.5px;
+          font-weight: 800;
+          border-radius: 5px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          border-width: 1px;
+          border-style: solid;
+        }
+        .sp-phase-chip-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        /* ── Premium row actions ──────────────────────────────── */
+        .sp-card-row .sp-row-action-btn {
+          width: 28px;
+          height: 28px;
+          border-radius: 7px !important;
+          color: var(--text-slate-500);
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+          border: 1px solid transparent;
+        }
+        .sp-card-row .sp-row-action-btn:hover {
+          background: var(--bg-slate-50) !important;
+          border-color: var(--border-slate-200);
+          transform: none;
+        }
+        [data-theme='dark'] .sp-card-row .sp-row-action-btn:hover {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .sp-card-row .sp-row-action-details.is-active {
+          background: rgba(59,130,246,0.1) !important;
+          border-color: rgba(59,130,246,0.3);
+        }
+        [data-theme='dark'] .sp-card-row .sp-row-action-details.is-active {
+          background: rgba(59,130,246,0.18) !important;
+          border-color: rgba(59,130,246,0.4) !important;
+        }
+
+        /* ── View toggle (List / Calendar) ────────────────────── */
+        .sp-view-toggle {
+          display: inline-flex;
+          padding: 2px;
+          background: transparent;
+          border: none;
+          border-radius: 8px;
+          gap: 2px;
+        }
+        [data-theme='dark'] .sp-view-toggle {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .sp-view-toggle-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 11px;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          font-family: inherit;
+          letter-spacing: -0.005em;
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .sp-view-toggle-btn:hover {
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .sp-view-toggle-btn:hover {
+          color: #f1f5f9;
+        }
+        .sp-view-toggle-btn.active {
+          background: var(--bg-slate-100);
+          color: var(--text-slate-700);
+          border-color: transparent;
+        }
+        [data-theme='dark'] .sp-view-toggle-btn.active {
+          background: #161b22 !important;
+          color: #60a5fa !important;
+          border-color: #2d3748 !important;
+        }
+
+        /* ── Calendar view ────────────────────────────────────── */
+        .sp-cal-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          position: relative;
+          flex: 1;
+        }
+        [data-theme='dark'] .sp-cal-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .sp-cal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          gap: 12px;
+          position: sticky;
+          top: 52px;
+          z-index: 5;
+          border-radius: 0;
+        }
+        [data-theme='dark'] .sp-cal-header {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .sp-cal-title-block {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .sp-cal-title {
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+        }
+        [data-theme='dark'] .sp-cal-title { color: #f1f5f9 !important; }
+        .sp-cal-subtitle {
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-500) !important;
+          letter-spacing: 0.01em;
+        }
+        [data-theme='dark'] .sp-cal-subtitle { color: #94a3b8 !important; }
+        .sp-cal-stat-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 2px;
+        }
+        .sp-cal-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .sp-cal-stat-num {
+          font-size: 12.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-cal-stat-num { color: #f1f5f9 !important; }
+        .sp-cal-stat-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .sp-cal-stat-label { color: #94a3b8 !important; }
+        .sp-cal-stat-sep {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--text-slate-300);
+        }
+        [data-theme='dark'] .sp-cal-stat-sep { background: #475569; }
+        .sp-cal-nav {
+          display: inline-flex;
+          gap: 4px;
+        }
+        .sp-cal-nav-btn {
+          border-radius: 8px !important;
+          height: 32px !important;
+          font-weight: 700 !important;
+        }
+        .sp-cal-nav-today {
+          padding: 0 12px !important;
+          font-size: 11.5px !important;
+        }
+        .sp-cal-body {
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-cal-body-weeks {
+          gap: 0;
+          background: var(--bg-slate-50);
+        }
+        [data-theme='dark'] .sp-cal-body-weeks {
+          background: #0b0f1a !important;
+        }
+
+        /* Week section — each week is its own labeled block */
+        .sp-cal-week-section {
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-cal-week-section {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .sp-cal-week-section:last-child { border-bottom: none; }
+        .sp-cal-week-section.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.025), var(--bg-pure-white));
+        }
+        [data-theme='dark'] .sp-cal-week-section.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.06), #161b22) !important;
+        }
+
+        .sp-cal-week-label {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 18px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          gap: 12px;
+        }
+        [data-theme='dark'] .sp-cal-week-label {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .sp-cal-week-section.has-today .sp-cal-week-label {
+          background: rgba(59,130,246,0.06);
+          border-bottom-color: rgba(59,130,246,0.2);
+        }
+        [data-theme='dark'] .sp-cal-week-section.has-today .sp-cal-week-label {
+          background: rgba(59,130,246,0.12) !important;
+          border-bottom-color: rgba(59,130,246,0.3) !important;
+        }
+        .sp-cal-week-label-left {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
+        }
+        .sp-cal-week-num {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-700);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-cal-week-num { color: #cbd5e1 !important; }
+        .sp-cal-week-section.has-today .sp-cal-week-num {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .sp-cal-week-section.has-today .sp-cal-week-num {
+          color: #60a5fa !important;
+        }
+        .sp-cal-week-range {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.005em;
+        }
+        [data-theme='dark'] .sp-cal-week-range { color: #94a3b8 !important; }
+        .sp-cal-week-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          letter-spacing: 0.01em;
+        }
+        [data-theme='dark'] .sp-cal-week-count { color: #94a3b8 !important; }
+
+        .sp-cal-week-grid {
+          position: relative;
+        }
+        .sp-cal-week-days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .sp-cal-week-days {
+          background: #161b22 !important;
+        }
+        .sp-cal-week-ribbons {
+          position: relative;
+          padding: 0 0 12px;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .sp-cal-week-ribbons {
+          background: #161b22 !important;
+        }
+        .sp-cal-week-empty {
+          padding: 14px 18px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          font-style: italic;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .sp-cal-week-empty {
+          color: #64748b !important;
+          background: #161b22 !important;
+        }
+
+        .sp-cal-day-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 8px 12px;
+          border-right: 1px solid var(--border-slate-100);
+          background: transparent;
+        }
+        [data-theme='dark'] .sp-cal-day-cell {
+          background: #161b22 !important;
+          border-right-color: #1f2937 !important;
+        }
+        .sp-cal-day-cell:last-child { border-right: none; }
+        .sp-cal-day-cell.outside .sp-cal-day-weekday,
+        .sp-cal-day-cell.outside .sp-cal-day-num {
+          opacity: 0.45;
+        }
+        .sp-cal-day-weekday {
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-cal-day-weekday { color: #94a3b8 !important; }
+        .sp-cal-day-cell.today .sp-cal-day-weekday {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .sp-cal-day-cell.today .sp-cal-day-weekday {
+          color: #60a5fa !important;
+        }
+        .sp-cal-day-cell.weekend:not(.outside) {
+          background: linear-gradient(180deg, rgba(148,163,184,0.04), transparent);
+        }
+        .sp-cal-day-cell.today {
+          background: rgba(59,130,246,0.04);
+        }
+        [data-theme='dark'] .sp-cal-day-cell.today {
+          background: rgba(59,130,246,0.1) !important;
+        }
+        .sp-cal-day-num {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-cal-day-num { color: #cbd5e1 !important; }
+        .sp-cal-day-cell.outside .sp-cal-day-num {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        .sp-cal-day-num.today {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          background: #3b82f6;
+          color: #fff !important;
+          border-radius: 999px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+        }
+
+        .sp-cal-ribbons {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          pointer-events: none;
+        }
+        .sp-cal-week-ribbons .sp-cal-ribbon { pointer-events: auto; }
+        .sp-cal-ribbon {
+          position: absolute;
+          height: 22px;
+          padding: 0 8px;
+          border-radius: 5px;
+          border: 1px solid;
+          background: transparent;
+          font-family: inherit;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-align: left;
+          transition: filter 0.15s ease, transform 0.15s ease;
+          pointer-events: auto;
+        }
+        .sp-cal-ribbon:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+        .sp-cal-ribbon.cont-left {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          border-left: none;
+          padding-left: 6px;
+        }
+        .sp-cal-ribbon.cont-right {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          border-right: none;
+          padding-right: 6px;
+        }
+        .sp-cal-ribbon-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-cal-ribbon-dot.pulse {
+          animation: sp-pulse-dot 2s infinite;
+        }
+        .sp-cal-ribbon-name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 1;
+        }
+        .sp-cal-ribbon-proj {
+          opacity: 0.75;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 1;
+        }
+
+        .sp-cal-legend {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          flex-wrap: wrap;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          position: sticky;
+          bottom: 0;
+          z-index: 5;
+          border-radius: 0 0 12px 12px;
+        }
+        [data-theme='dark'] .sp-cal-legend {
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
+        }
+        .sp-cal-legend-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-right: 4px;
+        }
+        [data-theme='dark'] .sp-cal-legend-label { color: #94a3b8 !important; }
+        .sp-cal-legend-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 9px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-700);
+          cursor: pointer;
+          font-family: inherit;
+          transition: border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+          max-width: 180px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: -0.005em;
+        }
+        .sp-cal-legend-chip:hover {
+          border-color: var(--text-slate-400);
+        }
+        .sp-cal-legend-chip.muted {
+          opacity: 0.4;
+        }
+        [data-theme='dark'] .sp-cal-legend-chip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        .sp-cal-legend-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-cal-legend-more {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+        }
+        .sp-cal-legend-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-300, #cbd5e1);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #3b82f6;
+          cursor: pointer;
+          font-family: inherit;
+          letter-spacing: -0.005em;
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .sp-cal-legend-toggle:hover {
+          background: rgba(59,130,246,0.08);
+          border-color: rgba(59,130,246,0.4);
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .sp-cal-legend-toggle {
+          color: #60a5fa;
+          border-color: #2d3748;
+        }
+        [data-theme='dark'] .sp-cal-legend-toggle:hover {
+          background: rgba(59,130,246,0.15);
+          border-color: rgba(59,130,246,0.45);
+        }
+
+        @media (max-width: 900px) {
+          .sp-cal-day-cell { padding: 4px 6px; min-height: 24px; }
+          .sp-cal-ribbon { font-size: 9.5px; padding: 0 5px; height: 20px; }
+          .sp-cal-ribbon-proj { display: none; }
+        }
+
+        /* ── Calendar ribbon hover card (premium) ─────────────── */
+        .sp-cal-tooltip-wrap .ant-tooltip-arrow { display: none !important; }
+        .sp-cal-tooltip-wrap .ant-tooltip-inner {
+          background: transparent !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          min-width: 320px !important;
+          max-width: 360px !important;
+        }
+        .sp-cal-tooltip {
+          width: 320px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          padding: 14px 16px 12px 18px;
+          position: relative;
+          overflow: hidden;
+          color: var(--text-slate-900);
+          font-family: inherit;
+        }
+        [data-theme='dark'] .sp-cal-tooltip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #f1f5f9 !important;
+        }
+        .sp-cal-tooltip-accent {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+        }
+        .sp-cal-tooltip-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .sp-cal-tooltip-title-block {
+          min-width: 0;
+          flex: 1;
+        }
+        .sp-cal-tooltip-name {
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: var(--text-slate-900);
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          word-break: break-word;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-name { color: #f1f5f9 !important; }
+        .sp-cal-tooltip-project {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          margin-top: 4px;
+          letter-spacing: -0.005em;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-project { color: #cbd5e1 !important; }
+        .sp-cal-tooltip-project-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-cal-tooltip-badges {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .sp-cal-tooltip-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 9px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          border-radius: 999px;
+          border: 1px solid;
+          line-height: 1.5;
+        }
+        .sp-cal-tooltip-status-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+        .sp-cal-tooltip-status-dot.pulse {
+          animation: sp-pulse-dot 2s infinite;
+        }
+        .sp-cal-tooltip-prio {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 1px 7px;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 4px;
+          line-height: 1.6;
+        }
+        .sp-cal-tooltip-prio-high { color: #dc2626; background: rgba(239,68,68,0.1); }
+        .sp-cal-tooltip-prio-medium { color: #d97706; background: rgba(245,158,11,0.1); }
+        .sp-cal-tooltip-prio-low { color: #059669; background: rgba(16,185,129,0.1); }
+        [data-theme='dark'] .sp-cal-tooltip-prio-high { color: #f87171; background: rgba(239,68,68,0.15); }
+        [data-theme='dark'] .sp-cal-tooltip-prio-medium { color: #fbbf24; background: rgba(245,158,11,0.15); }
+        [data-theme='dark'] .sp-cal-tooltip-prio-low { color: #34d399; background: rgba(16,185,129,0.15); }
+        .sp-cal-tooltip-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 12px 0 10px;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-divider { background: #1f2937 !important; }
+        .sp-cal-tooltip-stats {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 16px;
+        }
+        .sp-cal-tooltip-stat-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 5px;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-stat-label { color: #94a3b8 !important; }
+        .sp-cal-tooltip-stat-value {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.005em;
+          display: inline-flex;
+          align-items: baseline;
+          gap: 5px;
+          flex-wrap: wrap;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-stat-value { color: #f1f5f9 !important; }
+        .sp-cal-tooltip-stat-arrow {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-stat-arrow { color: #64748b !important; }
+        .sp-cal-tooltip-pct {
+          font-size: 19px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          line-height: 1;
+        }
+        .sp-cal-tooltip-pct-unit {
+          font-size: 10px;
+          font-weight: 700;
+          opacity: 0.7;
+          margin-left: 1px;
+        }
+        .sp-cal-tooltip-stat-sub {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          margin-top: 4px;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.01em;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-stat-sub { color: #94a3b8 !important; }
+        .sp-cal-tooltip-stat-sub b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-stat-sub b { color: #f1f5f9 !important; }
+        .sp-cal-tooltip-bar {
+          height: 5px;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          overflow: hidden;
+          margin: 12px 0 4px;
+          position: relative;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-bar { background: #1c232e !important; }
+        .sp-cal-tooltip-bar-fill {
+          height: 100%;
+          border-radius: 999px;
+          position: relative;
+        }
+        .sp-cal-tooltip-bar-fill::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);
+          border-radius: 999px;
+        }
+        .sp-cal-tooltip-actuals {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-top: 8px;
+        }
+        .sp-cal-tooltip-actual {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-actual { color: #94a3b8 !important; }
+        .sp-cal-tooltip-actual b {
+          color: var(--text-slate-900);
+          font-weight: 700;
+          margin-left: 2px;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-actual b { color: #f1f5f9 !important; }
+        .sp-cal-tooltip-goal-text {
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-600);
+          line-height: 1.55;
+          letter-spacing: -0.005em;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-goal-text { color: #cbd5e1 !important; }
+        .sp-cal-tooltip-footer {
+          margin-top: 12px;
+          padding-top: 9px;
+          border-top: 1px dashed var(--border-slate-200);
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        [data-theme='dark'] .sp-cal-tooltip-footer {
+          border-top-color: #2d3748 !important;
+          color: #64748b !important;
+        }
+
+        /* ── Premium list view (card stack) ──────────────────── */
+        .sp-plist {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          flex: 1;
+        }
+        .sp-plist-card {
+          position: relative;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0px;
+          padding: 12px 16px 12px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 17px;
+          overflow: hidden;
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        // [data-theme='dark'] .sp-plist-card {
+        //   background: #161b22 !important;
+        //   border-color: #1f2937 !important;
+        // }
+        // .sp-plist-card:hover {
+        //   background: #f8fafc !important;
+        //   border-color: #cbd5e1 !important;
+        // }
+        //   .sp-plist-card:hover .sp-plist-block{
+        //   background: #ffffff !important;
+        // }
+        // [data-theme='dark'] .sp-plist-card:hover {
+        //   background: #1c232e !important;
+        // }
+        //     [data-theme='dark'] .sp-plist-card:hover .sp-plist-block{
+        //   background: #1f2937 !important;
+        // }
+
+        .sp-plist-card:hover {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme='dark'] .sp-plist-card:hover {
+          background: #1c232e !important;
+          border-color: #1f2937 !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .sp-plist-stripe {
+          position: absolute;
+          left: 0;
+          top: 18px;
+          bottom: 18px;
+          width: 3px;
+          border-radius: 0 999px 999px 0;
+          opacity: 0.85;
+        }
+
+        /* Header — single horizontal row */
+        .sp-plist-head {
+          display: flex;
+          align-items: center;
+        }
+        .sp-plist-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+          min-width: 0;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          padding: 0;
+          text-align: left;
+          font-family: inherit;
+          outline: none;
+        }
+        .sp-plist-row:focus-visible {
+          outline: 2px solid rgba(59,130,246,0.3);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+        .sp-plist-row-segments {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+        .sp-plist-row-div {
+          width: 1px;
+          height: 18px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-plist-row-div {
+          background: #2d3748 !important;
+        }
+        .sp-plist-seg {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .sp-plist-seg-project {
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .sp-plist-seg-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-plist-seg-label { color: #94a3b8 !important; }
+        .sp-plist-seg-value {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-plist-seg-value { color: #cbd5e1 !important; }
+        .sp-plist-seg-value.muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .sp-plist-creator-avatar-sm {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 0.5px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 800;
+          position: relative;
+          overflow: hidden;
+        }
+        .sp-plist-creator-avatar-sm::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 75% 0%, rgba(255,255,255,0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.06), transparent 55%);
+          pointer-events: none;
+        }
+        .sp-plist-seg-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-plist-seg-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 15.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1.25;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-plist-seg-name { color: #f1f5f9 !important; }
+        .sp-plist-row:hover .sp-plist-seg-name {
+          color: #2563eb;
+        }
+        [data-theme='dark'] .sp-plist-row:hover .sp-plist-seg-name {
+          color: #60a5fa !important;
+        }
+
+        /* Goal on its own row */
+        .sp-plist-goal-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin: -6px 0 0;
+          padding: 6px 10px 6px 8px;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--text-slate-600);
+          letter-spacing: -0.005em;
+          background: var(--bg-slate-50);
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 6px;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          line-height: 1.5;
+          align-self: flex-start;
+        }
+        [data-theme='dark'] .sp-plist-goal-row {
+          color: #cbd5e1 !important;
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .sp-plist-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 11px;
+          border: 1px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 17px;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+          background: #3b82f6 !important;
+        }
+        .sp-plist-avatar::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 75% 0%, rgba(255,255,255,0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.06), transparent 55%);
+          pointer-events: none;
+        }
+        .sp-plist-avatar-letter {
+          position: relative;
+          z-index: 1;
+          line-height: 1;
+          color: #fff !important;
+        }
+        .sp-plist-identity-text {
+          min-width: 0;
+          flex: 1;
+        }
+        .sp-plist-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-plist-eyebrow { color: #94a3b8 !important; }
+        .sp-plist-eyebrow-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+        .sp-plist-eyebrow-proj {
+          color: var(--text-slate-700);
+          max-width: 240px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-plist-eyebrow-proj { color: #cbd5e1 !important; }
+        .sp-plist-eyebrow-proj.muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .sp-plist-eyebrow-sep {
+          opacity: 0.45;
+        }
+        .sp-plist-title {
+          margin: 4px 0 0;
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1.25;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          word-break: break-word;
+        }
+        [data-theme='dark'] .sp-plist-title { color: #f1f5f9 !important; }
+        .sp-plist-identity:hover .sp-plist-title {
+          color: #2563eb;
+        }
+        [data-theme='dark'] .sp-plist-identity:hover .sp-plist-title {
+          color: #60a5fa !important;
+        }
+        .sp-plist-goal {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin: 6px 0 0;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+          max-width: 560px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          line-height: 1.5;
+        }
+        [data-theme='dark'] .sp-plist-goal { color: #94a3b8 !important; }
+
+        .sp-plist-badges {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .sp-plist-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 4px 12px 4px 10px;
+          font-size: 11px;
+          font-weight: 800;
+          border-radius: 999px;
+          border: 1px solid;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          line-height: 1.4;
+        }
+        .sp-plist-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .sp-plist-status-dot.pulse {
+          animation: sp-pulse-dot 2s infinite;
+        }
+        .sp-plist-prio {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 8px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 4px;
+          line-height: 1.6;
+        }
+        .sp-plist-prio-high { color: #dc2626; background: rgba(239,68,68,0.1); }
+        .sp-plist-prio-medium { color: #d97706; background: rgba(245,158,11,0.1); }
+        .sp-plist-prio-low { color: #059669; background: rgba(16,185,129,0.1); }
+        [data-theme='dark'] .sp-plist-prio-high { color: #f87171; background: rgba(239,68,68,0.15); }
+        [data-theme='dark'] .sp-plist-prio-medium { color: #fbbf24; background: rgba(245,158,11,0.15); }
+        [data-theme='dark'] .sp-plist-prio-low { color: #34d399; background: rgba(16,185,129,0.15); }
+
+        /* Body — 2 column stat blocks */
+        .sp-plist-body {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .sp-plist-block {
+          padding: 7px 12px 7px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        [data-theme='dark'] .sp-plist-block {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .sp-plist-block-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 7px;
+        }
+        .sp-plist-block-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-plist-block-label { color: #94a3b8 !important; }
+        .sp-plist-block-pct {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 1px;
+        }
+        .sp-plist-block-pct-num {
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-plist-block-pct-unit {
+          font-size: 11px;
+          font-weight: 700;
+          opacity: 0.7;
+          margin-left: 1px;
+        }
+        .sp-plist-cycle {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-600);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        [data-theme='dark'] .sp-plist-cycle { color: #cbd5e1 !important; }
+
+        /* Progress bar */
+        .sp-plist-bar {
+          height: 5px;
+          background: var(--bg-pure-white);
+          border-radius: 999px;
+          overflow: hidden;
+          position: relative;
+          margin-bottom: 7px;
+          border: 1px solid rgba(15,23,42,0.04);
+        }
+        [data-theme='dark'] .sp-plist-bar {
+          background: #0f1419 !important;
+          border-color: rgba(255,255,255,0.04);
+        }
+        .sp-plist-bar-fill {
+          height: 100%;
+          border-radius: 999px;
+          position: relative;
+        }
+        .sp-plist-bar-fill::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);
+          border-radius: 999px;
+        }
+        .sp-plist-chips {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .sp-plist-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          border-radius: 6px;
+          border: 1px solid;
+          letter-spacing: -0.005em;
+          line-height: 1.6;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-plist-chip b { font-weight: 800; }
+        .sp-plist-chip-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .sp-plist-chip.done {
+          color: #047857;
+          background: rgba(16,185,129,0.08);
+          border-color: rgba(16,185,129,0.22);
+        }
+        [data-theme='dark'] .sp-plist-chip.done {
+          color: #34d399;
+          background: rgba(16,185,129,0.12);
+          border-color: rgba(16,185,129,0.35);
+        }
+        .sp-plist-chip.total {
+          color: var(--text-slate-600);
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-plist-chip.total {
+          color: #cbd5e1;
+          background: #161b22;
+          border-color: #2d3748;
+        }
+
+        /* Timeline block */
+        .sp-plist-dates {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 6px;
+        }
+        .sp-plist-date-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .sp-plist-date-cell-right {
+          align-items: flex-end;
+        }
+        .sp-plist-date-label {
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-plist-date-label { color: #94a3b8 !important; }
+        .sp-plist-date-value {
+          font-size: 13px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.015em;
+        }
+        [data-theme='dark'] .sp-plist-date-value { color: #f1f5f9 !important; }
+        .sp-plist-date-link {
+          flex: 1;
+          height: 2px;
+          background: var(--border-slate-200);
+          border-radius: 999px;
+          position: relative;
+          overflow: hidden;
+          min-width: 24px;
+        }
+        [data-theme='dark'] .sp-plist-date-link {
+          background: #2d3748 !important;
+        }
+        .sp-plist-date-link-fill {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          border-radius: 999px;
+        }
+        .sp-plist-phase-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-plist-phase {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 9px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 5px;
+          border: 1px solid;
+          line-height: 1.6;
+        }
+        .sp-plist-phase-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+
+        /* Footer — single inline meta line */
+        .sp-plist-foot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding-top: 10px;
+          border-top: 1px dashed var(--border-slate-100);
+        }
+        [data-theme='dark'] .sp-plist-foot {
+          border-top-color: #1f2937 !important;
+        }
+        .sp-plist-foot-inline {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          flex: 1;
+          min-width: 0;
+        }
+        .sp-plist-foot-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .sp-plist-foot-item { color: #94a3b8 !important; }
+        .sp-plist-foot-item b {
+          color: var(--text-slate-900);
+          font-weight: 700;
+          margin-left: 2px;
+        }
+        [data-theme='dark'] .sp-plist-foot-item b { color: #f1f5f9 !important; }
+        .sp-plist-foot-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .sp-plist-foot-label { color: #94a3b8 !important; }
+        .sp-plist-foot-div {
+          width: 1px;
+          height: 14px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-plist-foot-div {
+          background: #2d3748 !important;
+        }
+        .sp-plist-foot-muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .sp-plist-foot-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: transparent;
+          border: 1px solid transparent;
+          padding: 2px 8px 2px 7px;
+          font-family: inherit;
+          font-size: 11.5px;
+          font-weight: 800;
+          color: #6366f1;
+          cursor: pointer;
+          letter-spacing: 0.01em;
+          border-radius: 5px;
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .sp-plist-foot-link:hover {
+          background: rgba(99,102,241,0.08);
+          border-color: rgba(99,102,241,0.25);
+          color: #4f46e5;
+        }
+        [data-theme='dark'] .sp-plist-foot-link {
+          color: #818cf8;
+        }
+        [data-theme='dark'] .sp-plist-foot-link:hover {
+          background: rgba(99,102,241,0.15);
+          border-color: rgba(99,102,241,0.35);
+          color: #a5b4fc;
+        }
+        .sp-plist-creator-mini {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sp-plist-creator-avatar-sm {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.4));
+          color: #b45309;
+          border: 1px solid rgba(245,158,11,0.45);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-plist-creator-avatar-sm {
+          color: #fbbf24 !important;
+          border-color: rgba(245,158,11,0.55) !important;
+        }
+        .sp-plist-variance {
+          padding: 0 5px;
+          font-size: 9.5px;
+          font-weight: 800;
+          border-radius: 3px;
+          margin-left: 4px;
+          letter-spacing: 0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+        .sp-plist-variance.late {
+          color: #b45309;
+          background: rgba(245,158,11,0.12);
+        }
+        .sp-plist-variance.early {
+          color: #047857;
+          background: rgba(16,185,129,0.12);
+        }
+        [data-theme='dark'] .sp-plist-variance.late {
+          color: #fbbf24;
+          background: rgba(245,158,11,0.18);
+        }
+        [data-theme='dark'] .sp-plist-variance.early {
+          color: #34d399;
+          background: rgba(16,185,129,0.18);
+        }
+
+        .sp-plist-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .sp-plist-action-btn {
+          width: 30px !important;
+          height: 30px !important;
+          border-radius: 8px !important;
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid transparent !important;
+          transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .sp-plist-action-btn:hover {
+          background: var(--bg-slate-50) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme='dark'] .sp-plist-action-btn:hover {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+
+        .sp-foot-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          height: 28px !important;
+          padding: 0 10px !important;
+          border-radius: 7px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-700) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.005em;
+          transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .sp-foot-btn:hover:not(:disabled) {
+          border-color: #8b5cf6 !important;
+          color: #8b5cf6 !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .sp-foot-btn:disabled {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .sp-foot-btn {
+          background: #1e293b !important;
+          border-color: #334155 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .sp-foot-btn:hover:not(:disabled) {
+          background: #1c232e !important;
+          border-color: #8b5cf6 !important;
+          color: #8b5cf6 !important;
+        }
+
+       .sp-foot-btn-start {
+          background: #ecfdf5 !important;
+          border-color: #a7f3d0 !important;
+          color: #10b981 !important;
+          margin-right: 10px !important;
+
+        }
+
+        .sp-foot-btn-start:hover:not(:disabled) {
+          background: #d1fae5 !important;
+          border-color: #10b981 !important;
+          color: #059669 !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-start {
+          background: rgba(16, 185, 129, 0.15) !important;
+          border-color: rgba(16, 185, 129, 0.4) !important;
+          color: #34d399 !important;
+        }
+
+        .sp-foot-btn-view {
+          background: rgba(100, 116, 139, 0.08) !important;
+          border-color: rgba(100, 116, 139, 0.3) !important;
+          color: #64748b !important;
+        }
+
+        .sp-foot-btn-view:hover:not(:disabled) {
+          background: rgba(100, 116, 139, 0.15) !important;
+          border-color: #64748b !important;
+          color: #64748b !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-view {
+          background: rgba(148, 163, 184, 0.15) !important;
+          border-color: rgba(148, 163, 184, 0.4) !important;
+          color: #94a3b8 !important;
+        }
+
+        .sp-foot-btn-complete {
+          background: #eff6ff !important;
+          border-color: #bfdbfe !important;
+          color: #3b82f6 !important;
+          margin-right: 10px !important;
+        }
+
+        .sp-foot-btn-complete:hover:not(:disabled) {
+          background: #dbeafe !important;
+          border-color: #3b82f6 !important;
+          color: #2563eb !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-complete {
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.4) !important;
+          color: #60a5fa !important;
+        }
+
+        @media (max-width: 900px) {
+          .sp-plist-body {
+            grid-template-columns: 1fr;
+          }
+          .sp-plist-foot {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .sp-plist-actions {
+            justify-content: flex-end;
+          }
+          .sp-plist-row-segments {
+            gap: 8px;
+          }
+          .sp-plist-seg-name {
+            font-size: 14px;
+          }
         }
       `}</style>
       </div>

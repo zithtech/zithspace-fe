@@ -81,6 +81,22 @@ const formatTenure = (months: number) => {
   return `${m}m`;
 };
 
+const getProficiencyBlocks = (level: string) => {
+  if (level === "beginner") return 1;
+  if (level === "intermediate") return 2;
+  if (level === "advanced") return 3;
+  if (level === "expert") return 4;
+  return 1;
+};
+
+const getExperienceBlocks = (yrs?: number) => {
+  if (!yrs) return 0;
+  if (yrs <= 1) return 1;
+  if (yrs <= 3) return 2;
+  if (yrs <= 6) return 3;
+  return 4;
+};
+
 export default function SkillsPage() {
   const {
     skills,
@@ -107,18 +123,25 @@ export default function SkillsPage() {
   const [api, contextHolder] = notification.useNotification();
   const isCurrent = Form.useWatch("current_job", form);
 
+  const [isViewMode, setIsViewMode] = useState(false);
+  const [viewedRecord, setViewedRecord] = useState<any | null>(null);
+
   useEffect(() => {
     fetchSkills();
     fetchExperience();
   }, []);
 
   const showDrawer = () => {
+    setIsViewMode(false);
+    setViewedRecord(null);
     setEditingId(null);
     form.resetFields();
     setIsDrawerOpen(true);
   };
 
   const handleEdit = (record: any) => {
+    setIsViewMode(false);
+    setViewedRecord(record);
     setEditingId(record.id);
     const formattedRecord = { ...record };
     if (record.start_date) {
@@ -131,6 +154,21 @@ export default function SkillsPage() {
     }
     form.setFieldsValue(formattedRecord);
     setIsDrawerOpen(true);
+  };
+
+  const handleView = (record: any) => {
+    setViewedRecord(record);
+    setIsViewMode(true);
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setTimeout(() => {
+      setIsViewMode(false);
+      setViewedRecord(null);
+      setEditingId(null);
+    }, 300);
   };
 
   const handleOk = async () => {
@@ -276,6 +314,31 @@ export default function SkillsPage() {
       },
     },
     {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      width: 250,
+      render: (desc: string) => (
+        desc ? (
+          <Tooltip title={desc}>
+            <span style={{ 
+              display: "block", 
+              maxWidth: 250, 
+              whiteSpace: "nowrap", 
+              overflow: "hidden", 
+              textOverflow: "ellipsis",
+              color: "var(--text-slate-500)",
+              fontSize: "12.5px"
+            }}>
+              {desc}
+            </span>
+          </Tooltip>
+        ) : (
+          <span style={{ color: "var(--text-slate-400)", fontSize: "12.5px" }}>—</span>
+        )
+      )
+    },
+    {
       title: "Experience",
       dataIndex: "years_of_experience",
       key: "years_of_experience",
@@ -298,11 +361,9 @@ export default function SkillsPage() {
         const list = Array.isArray(certs) ? certs : [];
         if (list.length === 0) return <span className="skl-meta-text">None</span>;
         return (
-          <Tooltip title={list.join(" · ")}>
-            <span className="skl-cert-pill">
-              <ShieldCheck size={11} /> {list.length}
-            </span>
-          </Tooltip>
+          <span className="skl-cert-pill">
+            <ShieldCheck size={11} /> {list.length}
+          </span>
         );
       },
     },
@@ -312,7 +373,7 @@ export default function SkillsPage() {
       key: "is_active",
       width: 130,
       render: (val: boolean, record: any) => (
-        <div className="skl-visibility">
+        <div className="skl-visibility" onClick={(e) => e.stopPropagation()}>
           <Switch
             size="small"
             disabled={!canUpdateSkills}
@@ -333,12 +394,13 @@ export default function SkillsPage() {
       ),
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       width: 100,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
-        <div className="skl-row-actions">
+        <div className="skl-row-actions" onClick={(e) => e.stopPropagation()}>
           {canUpdateSkills && (
             <Tooltip title="Edit">
               <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
@@ -421,6 +483,31 @@ export default function SkillsPage() {
         ),
     },
     {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      width: 250,
+      render: (desc: string) => (
+        desc ? (
+          <Tooltip title={desc}>
+            <span style={{ 
+              display: "block", 
+              maxWidth: 250, 
+              whiteSpace: "nowrap", 
+              overflow: "hidden", 
+              textOverflow: "ellipsis",
+              color: "var(--text-slate-500)",
+              fontSize: "12.5px"
+            }}>
+              {desc}
+            </span>
+          </Tooltip>
+        ) : (
+          <span style={{ color: "var(--text-slate-400)", fontSize: "12.5px" }}>—</span>
+        )
+      )
+    },
+    {
       title: "Timeline",
       key: "timeline",
       width: 220,
@@ -441,12 +528,13 @@ export default function SkillsPage() {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       width: 100,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
-        <div className="skl-row-actions">
+        <div className="skl-row-actions" onClick={(e) => e.stopPropagation()}>
           {canUpdateSkills && (
             <Tooltip title="Edit">
               <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
@@ -555,7 +643,7 @@ export default function SkillsPage() {
 
           {/* STATS */}
           <Row gutter={[16, 16]} className="skl-stats">
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} xl={6}>
               <StatTile
                 icon={<Award size={17} />}
                 label="Total Skills"
@@ -564,7 +652,7 @@ export default function SkillsPage() {
                 sublabel={`${stats.expertSkills} expert · ${stats.activeSkills} visible`}
               />
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} xl={6}>
               <StatTile
                 icon={<Layers size={17} />}
                 label="Top Category"
@@ -573,7 +661,7 @@ export default function SkillsPage() {
                 sublabel="Most-represented domain"
               />
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} xl={6}>
               <StatTile
                 icon={<Briefcase size={17} />}
                 label="Career Span"
@@ -586,7 +674,7 @@ export default function SkillsPage() {
                 sublabel={`${stats.experienceCount} role${stats.experienceCount === 1 ? "" : "s"} logged`}
               />
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} xl={6}>
               <StatTile
                 icon={<Activity size={17} />}
                 label="Currently"
@@ -670,9 +758,16 @@ export default function SkillsPage() {
               columns={(activeTab === "1" ? skillColumns : expColumns) as any}
               dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
               pagination={{ pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
+              scroll={{ x: "max-content" }}
               size="middle"
               className="skl-table"
               rowClassName="skl-row"
+              onRow={(record) => ({
+                onClick: () => {
+                  handleView(record);
+                },
+                style: { cursor: "pointer" }
+              })}
               locale={{
                 emptyText: (
                   <div className="skl-empty">
@@ -683,15 +778,15 @@ export default function SkillsPage() {
                       {searchText
                         ? "No matches"
                         : activeTab === "1"
-                        ? "No skills yet"
-                        : "No experience yet"}
+                          ? "No skills yet"
+                          : "No experience yet"}
                     </div>
                     <div className="skl-empty-sub">
                       {searchText
                         ? "Try a different keyword or clear the filter."
                         : activeTab === "1"
-                        ? "Add your first skill to begin building your portfolio."
-                        : "Capture your first role to start your career timeline."}
+                          ? "Add your first skill to begin building your portfolio."
+                          : "Capture your first role to start your career timeline."}
                     </div>
                     {(searchText || canCreateSkills) && (
                       <Button
@@ -726,22 +821,32 @@ export default function SkillsPage() {
             >
               <div className="skl-drawer-bg" aria-hidden />
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
-                <div className="skl-drawer-icon">
+                <div className="skl-drawer-icon" style={{
+                  background: activeTab === "1" ? "rgba(99,102,241,0.08)" : "rgba(236,72,153,0.08)",
+                  color: activeTab === "1" ? "#6366f1" : "#ec4899",
+                }}>
                   {activeTab === "1" ? <Award size={20} /> : <Briefcase size={20} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="skl-drawer-title">
-                    {editingId
-                      ? `Edit ${activeTab === "1" ? "Skill" : "Experience"}`
-                      : `New ${activeTab === "1" ? "Skill" : "Experience"}`}
+                    {isViewMode
+                      ? `${activeTab === "1" ? "Skill" : "Experience"} Details`
+                      : editingId
+                        ? `Edit ${activeTab === "1" ? "Skill" : "Experience"}`
+                        : `New ${activeTab === "1" ? "Skill" : "Experience"}`}
                   </div>
                   <div className="skl-drawer-sub">
-                    {activeTab === "1"
-                      ? "Define expertise, level, and certifications"
-                      : "Capture role details and accomplishments"}
+                    {isViewMode
+                      ? `Overview of your logged ${activeTab === "1" ? "skill competency" : "professional role"}`
+                      : activeTab === "1"
+                        ? "Define expertise, level, and certifications"
+                        : "Capture role details and accomplishments"}
                   </div>
                 </div>
-                <span className="skl-drawer-badge">
+                <span className="skl-drawer-badge" style={{
+                  background: activeTab === "1" ? "rgba(99,102,241,0.08)" : "rgba(236,72,153,0.08)",
+                  color: activeTab === "1" ? "#6366f1" : "#ec4899",
+                }}>
                   <Sparkles size={10} />
                   {activeTab === "1" ? "Skill" : "Role"}
                 </span>
@@ -750,34 +855,348 @@ export default function SkillsPage() {
           }
           width={560}
           open={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={handleCloseDrawer}
           className="skl-drawer"
           closable={!isSaving}
           footer={
             <div className="skl-drawer-footer">
               <span className="skl-drawer-footer-hint">
-                <ShieldCheck size={12} /> Saved instantly to your profile
+                <ShieldCheck size={12} /> {isViewMode ? "View mode" : "Saved instantly to your profile"}
               </span>
               <div style={{ display: "flex", gap: 10 }}>
-                <Button onClick={() => setIsDrawerOpen(false)} className="skl-btn-cancel">
-                  Cancel
+                <Button onClick={handleCloseDrawer} className="skl-btn-cancel">
+                  {isViewMode ? "Close" : "Cancel"}
                 </Button>
-                <Button
-                  type="primary"
-                  loading={isSaving}
-                  onClick={handleOk}
-                  className="skl-cta-btn"
-                  style={{ minWidth: 180 }}
-                >
-                  {editingId ? "Update" : "Create"} {activeTab === "1" ? "Skill" : "Experience"}
-                  <ArrowUpRight size={13} />
-                </Button>
+                {isViewMode ? (
+                  (activeTab === "1" ? canUpdateSkills : canUpdateSkills) && (
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setIsViewMode(false);
+                        handleEdit(viewedRecord);
+                      }}
+                      className="skl-cta-btn"
+                      style={{ minWidth: 150 }}
+                    >
+                      Edit {activeTab === "1" ? "Skill" : "Experience"}
+                      <Edit2 size={13} style={{ marginLeft: 6 }} />
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    type="primary"
+                    loading={isSaving}
+                    onClick={handleOk}
+                    className="skl-cta-btn"
+                    style={{ minWidth: 180 }}
+                  >
+                    {editingId ? "Update" : "Create"} {activeTab === "1" ? "Skill" : "Experience"}
+                    <ArrowUpRight size={13} />
+                  </Button>
+                )}
               </div>
             </div>
           }
         >
-          <Form
-            form={form}
+          {isViewMode && viewedRecord ? (
+            <div className="skl-view-details">
+              {activeTab === "1" ? (
+                /* SKILL VIEW */
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  {(() => {
+                    const matched = searchSkills(viewedRecord.name);
+                    const skill = matched.find((s: any) => s.name.toLowerCase() === viewedRecord.name?.toLowerCase());
+                    const meta = PROFICIENCY_META[viewedRecord.proficiency_level] || PROFICIENCY_META.beginner;
+                    const accentColor = meta.accent;
+                    
+                    return (
+                      <>
+                        {/* HERO HEADER CARD */}
+                        <div 
+                          className="skl-view-hero-card" 
+                          style={{
+                            borderColor: `${accentColor}26`,
+                            background: `radial-gradient(135deg, ${accentColor}08 0%, ${accentColor}02 100%), var(--bg-slate-50)`,
+                          }}
+                        >
+                          <div className="skl-view-hero-logo" style={{
+                            borderColor: `${accentColor}33`,
+                            boxShadow: `0 8px 24px -6px ${accentColor}26`,
+                            background: "var(--bg-pure-white)"
+                          }}>
+                            {skill ? (
+                              <img
+                                src={skill.logo}
+                                alt={skill.name}
+                                style={{ width: 36, height: 36, objectFit: "contain" }}
+                                onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                              />
+                            ) : (
+                              <Award size={26} color={accentColor} />
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <h3 className="skl-view-main-name" style={{ margin: 0 }}>{viewedRecord.name}</h3>
+                              <span className="skl-view-status-badge" style={{
+                                background: viewedRecord.is_active !== false ? "rgba(16,185,129,0.08)" : "var(--bg-slate-100)",
+                                color: viewedRecord.is_active !== false ? "#10b981" : "var(--text-slate-400)",
+                                borderColor: viewedRecord.is_active !== false ? "rgba(16,185,129,0.2)" : "var(--border-slate-100)"
+                              }}>
+                                <span className="skl-view-status-dot" style={{
+                                  background: viewedRecord.is_active !== false ? "#10b981" : "#cbd5e1"
+                                }} />
+                                {viewedRecord.is_active !== false ? "Active & Visible" : "Hidden"}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                              <span className="skl-view-category-tag">{viewedRecord.category || "General"}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* STATS GRID */}
+                        <div className="skl-view-grid">
+                          {/* Proficiency Card */}
+                          <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: accentColor }}>
+                            <div>
+                              <span className="skl-view-card-label">Expertise Level</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                <span
+                                  className="skl-prof-pill"
+                                  style={{
+                                    margin: 0,
+                                    background: `${accentColor}14`,
+                                    color: accentColor,
+                                    border: `1px solid ${accentColor}33`,
+                                  }}
+                                >
+                                  {meta.icon} {meta.label}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="skl-view-segments" style={{ marginTop: 12 }}>
+                              {[1, 2, 3, 4].map((i) => {
+                                const activeCount = getProficiencyBlocks(viewedRecord.proficiency_level);
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`skl-view-segment-dot ${i <= activeCount ? "is-active" : ""}`}
+                                    style={{
+                                      backgroundColor: i <= activeCount ? accentColor : "var(--dot-inactive)",
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Experience Card */}
+                          <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: "#6366f1" }}>
+                            <div>
+                              <span className="skl-view-card-label">Experience Span</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                <div className="skl-view-card-icon-box" style={{ background: "rgba(99,102,241,0.08)", color: "#6366f1" }}>
+                                  <Clock size={12} />
+                                </div>
+                                <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-800)" }}>
+                                  {viewedRecord.years_of_experience
+                                    ? `${viewedRecord.years_of_experience} ${viewedRecord.years_of_experience === 1 ? "year" : "years"}`
+                                    : "—"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="skl-view-segments" style={{ marginTop: 12 }}>
+                              {[1, 2, 3, 4].map((i) => {
+                                const activeCount = getExperienceBlocks(viewedRecord.years_of_experience);
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`skl-view-segment-dot ${i <= activeCount ? "is-active" : ""}`}
+                                    style={{
+                                      backgroundColor: i <= activeCount ? "#6366f1" : "var(--dot-inactive)",
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* DESCRIPTION BOX */}
+                        {viewedRecord.description && (
+                          <div className="skl-view-section-box">
+                            <h4 className="skl-view-section-title" style={{ borderLeftColor: accentColor }}>Description</h4>
+                            <p className="skl-view-desc-paragraph" style={{ whiteSpace: "pre-line" }}>
+                              {viewedRecord.description}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* CERTIFICATIONS BOX */}
+                        <div className="skl-view-section-box">
+                          <h4 className="skl-view-section-title" style={{ borderLeftColor: "#10b981" }}>Certifications & Credentials</h4>
+                          {viewedRecord.certifications && viewedRecord.certifications.length > 0 ? (
+                            <div className="skl-view-certs-grid">
+                              {viewedRecord.certifications.map((cert: string, idx: number) => (
+                                <div key={idx} className="skl-view-cert-card">
+                                  <div className="skl-view-cert-icon">
+                                    <ShieldCheck size={16} />
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="skl-view-cert-name">{cert}</div>
+                                    <div className="skl-view-cert-badge">Verified Credential</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="skl-view-empty-state">
+                              <ShieldCheck size={18} style={{ opacity: 0.5 }} />
+                              <span>No verified certifications logged for this skill</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                /* EXPERIENCE VIEW */
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  {/* HERO HEADER CARD */}
+                  <div 
+                    className="skl-view-hero-card" 
+                    style={{
+                      borderColor: "rgba(236,72,153,0.15)",
+                      background: "radial-gradient(135deg, rgba(236,72,153,0.06) 0%, rgba(236,72,153,0.02) 100%), var(--bg-slate-50)",
+                    }}
+                  >
+                    <div className="skl-view-hero-logo" style={{
+                      borderColor: "rgba(236,72,153,0.22)",
+                      boxShadow: "0 8px 24px -6px rgba(236,72,153,0.2)",
+                      background: "var(--bg-pure-white)"
+                    }}>
+                      <Briefcase size={26} color="#ec4899" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <h3 className="skl-view-main-name" style={{ margin: 0 }}>{viewedRecord.job_title}</h3>
+                        <span className="skl-view-status-badge" style={{
+                          background: viewedRecord.current_job ? "rgba(16,185,129,0.08)" : "var(--bg-slate-100)",
+                          color: viewedRecord.current_job ? "#10b981" : "var(--text-slate-400)",
+                          borderColor: viewedRecord.current_job ? "rgba(16,185,129,0.2)" : "var(--border-slate-100)"
+                        }}>
+                          <span className="skl-view-status-dot" style={{
+                            background: viewedRecord.current_job ? "#10b981" : "#cbd5e1"
+                          }} />
+                          {viewedRecord.current_job ? "Current Role" : "Previous Role"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                        <span className="skl-view-category-tag" style={{ background: "rgba(236,72,153,0.06)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.18)" }}>
+                          {viewedRecord.company_name}
+                        </span>
+                        {viewedRecord.employment_type && (
+                          <span className="skl-type-pill" style={{ margin: 0 }}>
+                            <Layers size={10} /> {viewedRecord.employment_type.replace("-", " ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* STATS GRID */}
+                  <div className="skl-view-grid">
+                    {/* Timeline Card */}
+                    <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: "#f59e0b" }}>
+                      <div>
+                        <span className="skl-view-card-label">Timeline & Tenure</span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: "13px", color: "var(--text-slate-800)" }}>
+                            <Calendar size={13} color="#f59e0b" />
+                            {formatDateRange(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job)}
+                          </span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "11px", color: "var(--text-slate-500)", fontWeight: 500 }}>
+                            {viewedRecord.current_job ? <Activity size={10} /> : <Clock size={10} />}{" "}
+                            {formatTenure(tenureMonths(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job))}
+                            {viewedRecord.current_job && " (Active)"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Location Card */}
+                    <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: "#3b82f6" }}>
+                      <div>
+                        <span className="skl-view-card-label">Location</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                          <div className="skl-view-card-icon-box" style={{ background: "rgba(59,130,246,0.08)", color: "#3b82f6" }}>
+                            <MapPin size={12} />
+                          </div>
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-800)" }}>
+                            {viewedRecord.location || "Remote / —"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {viewedRecord.description && (
+                    <div className="skl-view-section-box">
+                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Job Description</h4>
+                      <p className="skl-view-desc-paragraph" style={{ whiteSpace: "pre-line" }}>
+                        {viewedRecord.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {viewedRecord.responsibilities && viewedRecord.responsibilities.length > 0 && (
+                    <div className="skl-view-section-box">
+                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Key Responsibilities</h4>
+                      <ul style={{ paddingLeft: 18, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                        {viewedRecord.responsibilities.map((resp: string, idx: number) => (
+                          <li key={idx} className="skl-view-list-item">
+                            {resp}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {viewedRecord.achievements && viewedRecord.achievements.length > 0 && (
+                    <div className="skl-view-section-box">
+                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Notable Achievements</h4>
+                      <ul style={{ paddingLeft: 18, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                        {viewedRecord.achievements.map((ach: string, idx: number) => (
+                          <li key={idx} className="skl-view-list-item">
+                            {ach}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {viewedRecord.skills_used && viewedRecord.skills_used.length > 0 && (
+                    <div className="skl-view-section-box">
+                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#6366f1" }}>Skills Used</h4>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                        {viewedRecord.skills_used.map((skill: string, idx: number) => (
+                          <span key={idx} className="skl-type-pill" style={{ background: "rgba(99,102,241,0.06)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.15)", margin: 0, padding: "4px 10px" }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Form
+              form={form}
             layout="vertical"
             requiredMark={false}
             initialValues={{ is_active: true, current_job: false, proficiency_level: "intermediate" }}
@@ -849,7 +1268,7 @@ export default function SkillsPage() {
                     </div>
                   </div>
                   <Row gutter={12}>
-                    <Col span={14}>
+                    <Col xs={24} sm={14}>
                       <Form.Item
                         name="proficiency_level"
                         label={<span className="skl-form-label">Level</span>}
@@ -867,7 +1286,7 @@ export default function SkillsPage() {
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={10}>
+                    <Col xs={24} sm={10}>
                       <Form.Item
                         name="years_of_experience"
                         label={<span className="skl-form-label">Years</span>}
@@ -964,7 +1383,7 @@ export default function SkillsPage() {
                     <Input placeholder="e.g. Acme Corp" />
                   </Form.Item>
                   <Row gutter={12}>
-                    <Col span={14}>
+                    <Col xs={24} sm={14}>
                       <Form.Item
                         name="location"
                         label={<span className="skl-form-label">Location</span>}
@@ -972,7 +1391,7 @@ export default function SkillsPage() {
                         <Input placeholder="City, State or Remote" />
                       </Form.Item>
                     </Col>
-                    <Col span={10}>
+                    <Col xs={24} sm={10}>
                       <Form.Item
                         name="employment_type"
                         label={<span className="skl-form-label">Type</span>}
@@ -1027,7 +1446,7 @@ export default function SkillsPage() {
                   </div>
 
                   <Row gutter={12}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item
                         name="start_date"
                         label={<span className="skl-form-label">Start Date</span>}
@@ -1035,7 +1454,7 @@ export default function SkillsPage() {
                         <Input type="date" />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item
                         name="end_date"
                         label={<span className="skl-form-label">End Date</span>}
@@ -1122,25 +1541,33 @@ export default function SkillsPage() {
               </div>
             </div>
           </Form>
+          )}
         </Drawer>
 
         <style dangerouslySetInnerHTML={{
           __html: `
           .skl-canvas {
             margin: 0 -24px;
-            padding: 16px 32px 60px;
+            padding: 24px 32px 60px;
             min-height: calc(100vh - 64px);
-            background: var(--bg-pure-white);
+            background: var(--bg-secondary);
             font-family: 'Inter', -apple-system, sans-serif;
           }
 
           /* HEADER */
           .skl-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex; align-items: center; justify-content: space-between;
             gap: 16px; flex-wrap: wrap;
-            padding: 4px 0 16px;
-            margin-bottom: 14px;
+            padding: 10px 32px;
+            margin: -24px -32px 24px;
             border-bottom: 1px solid var(--border-slate-100);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
           }
           .skl-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
           .skl-header-icon {
@@ -1296,6 +1723,8 @@ export default function SkillsPage() {
             transition: background 0.15s ease;
           }
           .skl-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+          .skl-table .ant-table-cell-fix-right { background: var(--bg-pure-white) !important; transition: background 0.15s ease !important; }
+          .skl-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-right { background: var(--bg-slate-50) !important; }
           .skl-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
 
           .skl-skill-cell { display: flex; align-items: center; gap: 12px; }
@@ -1541,9 +1970,260 @@ export default function SkillsPage() {
           }
           .skl-drawer-note-text { font-size: 11.5px; color: var(--text-slate-700); line-height: 1.5; font-weight: 500; }
 
+          /* ENHANCED VIEW DETAILS */
+          .skl-view-hero-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-radius: 14px;
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+          }
+          .skl-view-hero-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 1px solid var(--border-slate-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .skl-view-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid transparent;
+          }
+          .skl-view-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+          }
+          .skl-view-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+          }
+          .skl-view-card {
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 106px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+            transition: border-color 0.2s ease;
+            --dot-inactive: var(--border-slate-100);
+          }
+          .skl-view-card:hover {
+            border-color: var(--border-slate-200);
+          }
+          .skl-view-card-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-slate-400);
+          }
+          .skl-view-card-premium {
+            border-left: 3px solid #ddd;
+          }
+          .skl-view-card-icon-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .skl-view-segments {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+          }
+          .skl-view-segment-dot {
+            flex: 1;
+            height: 6px;
+            border-radius: 999px;
+            transition: background-color 0.2s ease;
+          }
+          .skl-view-certs-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 10px;
+          }
+          .skl-view-cert-card {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-100);
+          }
+          .skl-view-section-box {
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+          }
+          .skl-view-section-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-slate-800);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding-left: 8px;
+            border-left: 3px solid #6366f1;
+            margin: 0 0 12px 0;
+            line-height: 1.2;
+          }
+          .skl-view-desc-paragraph {
+            font-size: 13px;
+            color: var(--text-slate-600);
+            line-height: 1.6;
+            margin: 0;
+          }
+          .skl-view-list-item {
+            color: var(--text-slate-700);
+            font-size: 13px;
+            line-height: 1.55;
+          }
+          .skl-view-cert-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(16,185,129,0.08);
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .skl-view-cert-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-slate-800);
+            line-height: 1.4;
+          }
+          .skl-view-cert-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: #10b981;
+            background: rgba(16,185,129,0.06);
+            padding: 1px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          .skl-view-empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px;
+            color: var(--text-slate-400);
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px dashed var(--border-slate-100);
+            border-radius: 10px;
+            margin-top: 10px;
+          }
+
+          /* RESPONSIVE */
+          @media (max-width: 1024px) {
+            .skl-header {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 12px;
+            }
+            .skl-header-left {
+              width: 100%;
+            }
+            .skl-header-actions {
+              width: 100%;
+              justify-content: flex-start;
+              gap: 10px;
+            }
+            .skl-view-grid {
+              grid-template-columns: 1fr;
+              gap: 12px;
+            }
+            .skl-table-head {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 10px;
+              padding: 14px 16px;
+            }
+            .skl-table-head-left {
+              width: 100%;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .skl-canvas {
+              margin: 0 -16px;
+              padding: 24px 16px 40px;
+            }
+            .skl-header {
+              padding: 16px;
+              margin: -24px -16px 14px;
+            }
+          }
+
+          @media (max-width: 576px) {
+            .skl-header-actions {
+              flex-direction: column;
+              align-items: stretch;
+              gap: 8px;
+            }
+            .skl-search {
+              width: 100% !important;
+            }
+            .skl-cta-btn {
+              width: 100% !important;
+              justify-content: center !important;
+            }
+            .skl-drawer .ant-drawer-content-wrapper {
+              width: 100% !important;
+            }
+            .skl-drawer .ant-drawer-body {
+              padding: 16px !important;
+            }
+            .skl-drawer .ant-drawer-footer {
+              padding: 12px 16px !important;
+            }
+            .skl-view-hero-card {
+              padding: 12px 14px !important;
+              gap: 12px !important;
+            }
+            .skl-view-hero-logo {
+              width: 48px !important;
+              height: 48px !important;
+            }
+            .skl-view-main-name {
+              font-size: 16px !important;
+            }
+          }
+
           /* DARK */
           [data-theme='dark'] .skl-canvas { background: #0d1117 !important; }
-          [data-theme='dark'] .skl-header { border-bottom-color: #30363d !important; }
+          [data-theme='dark'] .skl-header { border-bottom-color: #30363d !important; background: rgba(13, 17, 23, 0.85) !important; }
           [data-theme='dark'] .skl-header-title { color: #f0f6fc !important; }
           [data-theme='dark'] .skl-header-sub { color: #8b949e !important; }
           [data-theme='dark'] .skl-header-icon { background: rgba(99,102,241,0.14) !important; color: #818cf8 !important; }
@@ -1563,6 +2243,8 @@ export default function SkillsPage() {
           [data-theme='dark'] .skl-table .ant-table-thead > tr > th { background: #0d1117 !important; color: #6e7681 !important; border-bottom-color: #30363d !important; }
           [data-theme='dark'] .skl-table .ant-table-tbody > tr > td { border-bottom-color: #21262d !important; color: #c9d1d9 !important; }
           [data-theme='dark'] .skl-table .ant-table-tbody > tr:hover > td { background: #1c2128 !important; }
+          [data-theme='dark'] .skl-table .ant-table-cell-fix-right { background: #161b22 !important; }
+          [data-theme='dark'] .skl-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-right { background: #1c2128 !important; }
           [data-theme='dark'] .skl-skill-name { color: #f0f6fc !important; }
           [data-theme='dark'] .skl-skill-meta { color: #6e7681 !important; }
           [data-theme='dark'] .skl-skill-icon { background: rgba(99,102,241,0.12) !important; border-color: rgba(99,102,241,0.28) !important; color: #818cf8 !important; }
@@ -1602,6 +2284,21 @@ export default function SkillsPage() {
           [data-theme='dark'] .skl-drawer-note-text { color: #c9d1d9 !important; }
           [data-theme='dark'] .skl-drawer-footer-hint { color: #6e7681 !important; }
           [data-theme='dark'] .skl-btn-cancel { background: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+          
+          /* Dark mode overrides for enhanced Skill Details */
+          [data-theme='dark'] .skl-view-card { background: #161b22 !important; border-color: #30363d !important; --dot-inactive: #30363d !important; }
+          [data-theme='dark'] .skl-view-card:hover { border-color: #3d444d !important; }
+          [data-theme='dark'] .skl-view-card-label { color: #6e7681 !important; }
+          [data-theme='dark'] .skl-view-card-value { color: #f0f6fc !important; }
+          [data-theme='dark'] .skl-view-hero-card { background: #161b22 !important; border-color: #30363d !important; }
+          [data-theme='dark'] .skl-view-hero-logo { background: #0d1117 !important; border-color: #30363d !important; }
+          [data-theme='dark'] .skl-view-cert-card { background: #161b22 !important; border-color: #30363d !important; }
+          [data-theme='dark'] .skl-view-cert-name { color: #f0f6fc !important; }
+          [data-theme='dark'] .skl-view-empty-state { border-color: #30363d !important; color: #6e7681 !important; }
+          [data-theme='dark'] .skl-view-section-box { background: #161b22 !important; border-color: #30363d !important; }
+          [data-theme='dark'] .skl-view-section-title { color: #f0f6fc !important; }
+          [data-theme='dark'] .skl-view-desc-paragraph { color: #c9d1d9 !important; }
+          [data-theme='dark'] .skl-view-list-item { color: #c9d1d9 !important; }
           `,
         }} />
       </MainLayout>

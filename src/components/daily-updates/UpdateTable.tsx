@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Table, Avatar, Tag, Space, Typography, Button } from "antd";
+import { Table, Avatar, Tag, Space, Typography, Button, Popconfirm, Tooltip } from "antd";
 import {
   MoreHorizontal,
   Clock,
@@ -10,7 +10,12 @@ import {
   Eye,
   Activity,
   User,
+  Edit2,
+  Trash2,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import {
@@ -26,6 +31,7 @@ interface UpdateTableProps {
   updates: DailyStatusUpdate[];
   loading: boolean;
   onViewDetails: (update: DailyStatusUpdate) => void;
+  onDeleteUpdate?: (updateId: string) => Promise<void>;
 }
 
 interface TableDataType {
@@ -45,8 +51,12 @@ export default function UpdateTable({
   updates,
   loading,
   onViewDetails,
+  onDeleteUpdate,
 }: UpdateTableProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { user } = useAuth();
+  const { canUpdateDailyUpdate, canDeleteDailyUpdate } = usePermission();
+  const router = useRouter();
 
   const columns: ColumnsType<TableDataType> = [
     {
@@ -109,32 +119,30 @@ export default function UpdateTable({
         const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
         const firstTask = projectUpdates[0]?.tasks?.[0];
         const showAsTicketLink = count === 1 && !!firstTask?.ticketNumber && !!firstTask?.ticketId;
+        if (showAsTicketLink) {
+          return (
+            <Text
+              ellipsis
+              onClick={(e) => {
+                e.stopPropagation();
+                openTicketDrawer(firstTask!.ticketId!);
+              }}
+              style={{
+                fontSize: 12,
+                color: "var(--text-sky-500, #0ea5e9)",
+                maxWidth: 160,
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              {firstTask!.ticketNumber}
+            </Text>
+          );
+        }
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <CheckCircle2 size={14} color="var(--text-green-500)" />
-            {showAsTicketLink ? (
-              <Text
-                ellipsis
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openTicketDrawer(firstTask!.ticketId!);
-                }}
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-sky-500, #0ea5e9)",
-                  maxWidth: 160,
-                  cursor: "pointer",
-                  fontWeight: 500,
-                }}
-              >
-                {firstTask!.ticketNumber}
-              </Text>
-            ) : (
-              <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
-                {count === 1 ? (firstTask?.description) : `${count} Tasks Completed`}
-              </Text>
-            )}
-          </div>
+          <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
+            {count === 1 ? (firstTask?.description) : `${count} Tasks Completed`}
+          </Text>
         );
       },
     },
@@ -187,27 +195,83 @@ export default function UpdateTable({
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
-      width: 80,
+      width: 140,
       fixed: "right",
-      render: (_, record) => (
-        <Button
-          type="text"
-          icon={<Eye size={16} color="var(--text-sky-500)" />}
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDetails(record.update);
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--bg-sky-50)",
-            borderRadius: 8
-          }}
-        />
-      ),
+      render: (_, record) => {
+        const update = record.update;
+        const isEditable = dayjs().diff(dayjs(update.createdAt), "hour") < 24;
+        const isOwner = user?.id === update.userId;
+        const editDisabled = !isEditable || !canUpdateDailyUpdate;
+
+        return (
+          <Space size={8} onClick={(e) => e.stopPropagation()}>
+            <Tooltip title="View Details">
+              <Button
+                type="text"
+                size="small"
+                icon={<Eye size={15} color="var(--text-sky-500)" />}
+                onClick={() => onViewDetails(update)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--bg-sky-50)",
+                  borderRadius: 6
+                }}
+              />
+            </Tooltip>
+            {isOwner && (
+              <Tooltip title={editDisabled ? "Daily update is no longer editable (24h limit) or permission denied" : "Edit Update"}>
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={editDisabled}
+                  icon={<Edit2 size={15} color={editDisabled ? undefined : "var(--text-blue-700)"} />}
+                  onClick={() => router.push(`/daily-updates/submit?edit=${update.id}`)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: editDisabled ? undefined : "var(--bg-blue-50)",
+                    borderRadius: 6
+                  }}
+                />
+              </Tooltip>
+            )}
+            {canDeleteDailyUpdate && (
+              <Popconfirm
+                title="Delete Update"
+                description="Are you sure you want to delete this status update?"
+                onConfirm={async () => {
+                  if (onDeleteUpdate) {
+                    await onDeleteUpdate(update.id);
+                  }
+                }}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Tooltip title="Delete Update">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Trash2 size={15} color="var(--text-leave, #ef4444)" />}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "var(--bg-leave, rgba(239, 68, 68, 0.08))",
+                      borderRadius: 6
+                    }}
+                  />
+                </Tooltip>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -251,7 +315,7 @@ export default function UpdateTable({
         showTotal: (total) => `Total ${total} updates`,
         style: { padding: "0 24px 24px" }
       }}
-      scroll={{ x: 1000 }}
+      scroll={{ x: 1060 }}
       onRow={(record) => ({
         onClick: () => onViewDetails(record.update),
         style: { cursor: "pointer" },

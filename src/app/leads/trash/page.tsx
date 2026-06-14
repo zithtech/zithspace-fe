@@ -34,12 +34,14 @@ import LeadService, { Lead } from "@/services/leadService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 dayjs.extend(relativeTime);
 
 const { Text } = Typography;
 export default function LeadsTrashPage() {
+  useActivitySource({ section: "WORK", module: "Leads", page: "LeadsTrash" });
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { message } = App.useApp();
@@ -138,6 +140,7 @@ export default function LeadsTrashPage() {
       key: "actions",
       align: "right" as const,
       width: 120,
+      fixed: "right" as const,
       render: (record: Lead) => (
         <Space size={8}>
           {canRestoreLeadTrash && (
@@ -346,6 +349,7 @@ export default function LeadsTrashPage() {
                 }))}
                 dataSource={(loading || isRefreshing) ? Array(5).fill({}) : filteredLeads}
                 loading={false}
+                scroll={{ x: "max-content" }}
                 rowKey={(record: any) => record.id || Math.random()}
                 pagination={{ pageSize: 10, size: "small" }}
                 className="saas-table"
@@ -383,7 +387,29 @@ export default function LeadsTrashPage() {
             border-bottom: 1px solid var(--border-color) !important;
           }
 
+          /* Hide horizontal scrollbar but keep scroll functionality */
+          .saas-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+          .saas-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+            display: none !important;
+          }
+          .saas-table.ant-table-wrapper .ant-table-content,
+          .saas-table.ant-table-wrapper .ant-table-body {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+
           .saas-table .ant-table-tbody > tr:hover > td {
+            background: var(--bg-slate-50) !important;
+          }
+
+          /* Fixed column backgrounds (Light Mode) */
+          .saas-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+            background: var(--bg-pure-white) !important;
+          }
+          .saas-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+            background: var(--bg-slate-50) !important;
+          }
+          .saas-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
             background: var(--bg-slate-50) !important;
           }
 
@@ -408,6 +434,17 @@ export default function LeadsTrashPage() {
 
           [data-theme='dark'] .ant-table-tbody > tr:hover > td {
             background: #1F2937 !important;
+          }
+
+          /* Fixed column backgrounds (Dark Mode) */
+          [data-theme='dark'] .saas-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .saas-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+            background: #1F2937 !important;
+          }
+          [data-theme='dark'] .saas-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+            background: #161B22 !important;
           }
 
           [data-theme='dark'] .ant-card {

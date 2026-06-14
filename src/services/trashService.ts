@@ -53,6 +53,10 @@ class TrashService {
     limit?: number;
     projectId?: string;
     search?: string;
+    status?: string;
+    deletedBy?: string;
+    startDate?: string;
+    endDate?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {}): Promise<TrashListResponse['data']> {

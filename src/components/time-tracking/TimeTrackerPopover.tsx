@@ -6,6 +6,8 @@ import {
   PlayCircleFilled,
   PauseCircleFilled,
   HistoryOutlined,
+  CaretRightFilled,
+  PauseOutlined
 } from "@ant-design/icons";
 import {
   Briefcase,
@@ -266,7 +268,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await pauseTimer();
-                  } catch (e) { }
+                    message.success("Timer paused");
+                  } catch (e: any) { 
+                    message.error(e.message || "Error pausing timer");
+                  }
                 }}
                 disabled={isLoading}
                 aria-label="Pause"
@@ -294,7 +299,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await resumeTimer();
-                  } catch (e) { }
+                    message.success("Timer resumed");
+                  } catch (e: any) {
+                    message.error(e.message || "Error resuming timer");
+                  }
                 }}
                 disabled={isLoading}
                 aria-label="Resume"
@@ -583,10 +591,16 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           gap: 6px;
         }
         .ttp-form .ant-select-selector,
-        .ttp-form .ant-input,
+        .ttp-form .ant-input {
+          border-radius: 10px !important;
+          background: var(--bg-pure-white) !important;
+        }
         .ttp-form textarea.ant-input {
           border-radius: 10px !important;
           background: var(--bg-pure-white) !important;
+          padding: 10px 12px 26px 12px !important;
+          line-height: 1.5;
+          resize: none;
         }
         .ttp-form .ant-select-selector:hover,
         .ttp-form .ant-input:hover {
@@ -654,10 +668,16 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       : ""
   }`;
 
+  const getTriggerIcon = () => {
+    if (state === "running") return <CaretRightFilled style={{ color: '#10b981', fontSize: 14 }} />;
+    if (state === "paused") return <PauseOutlined style={{ color: '#f59e0b', fontSize: 14 }} />;
+    return <CaretRightFilled style={{ color: '#10b981', fontSize: 14 }} />; // Default to green play icon
+  };
+
   if (isMenuItem) {
     return (
       <div className={triggerClass} style={{ pointerEvents: 'none', border: '1px solid var(--border-slate-300)' }}>
-        <span className="ttp-trigger-dot" />
+        {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
         <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, textTransform: 'uppercase' }}>
           {activeEntry
@@ -706,7 +726,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       arrow={false}
     >
       <button type="button" className={triggerClass}>
-        <span className="ttp-trigger-dot" />
+        {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
       </button>
     </Popover>

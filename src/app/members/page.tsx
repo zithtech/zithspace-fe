@@ -15,7 +15,7 @@ import {
   Modal,
   Drawer,
   Form,
-  Alert,
+  App,
   Dropdown,
   Row,
   Col,
@@ -55,8 +55,11 @@ import { ApiError } from "@/lib/axios";
 import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -249,6 +252,9 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   const personalEmail = Form.useWatch("personalEmail", form);
   const positionType = Form.useWatch("positionType", form) || "grade";
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { canReadActivityLog } = usePermission();
+
   const ROLE_OPTIONS = [
     {
       value: "user",
@@ -345,14 +351,26 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="mm-drawer-close"
-        >
-          <CloseOutlined />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {mode === "edit" && selectedMember && canReadActivityLog && (
+            <Button
+              icon={<History size={14} />}
+              onClick={() => setHistoryOpen(true)}
+              size="small"
+              style={{ borderRadius: 6 }}
+            >
+              History
+            </Button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="mm-drawer-close"
+          >
+            <CloseOutlined />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable form body */}
@@ -413,9 +431,32 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           <Form.Item
             name="phone"
             label="Phone number"
-            rules={[{ required: true, message: "Please enter phone number" }]}
+            rules={[
+              { required: true, message: "Please enter phone number" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const digits = value.replace(/\D/g, "");
+                  if (digits.length < 10) {
+                    return Promise.reject(new Error("Phone number must be 10 digit"));
+                  }
+                  if (digits.length > 10) {
+                    return Promise.reject(new Error("Phone number must be 10 digit"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
-            <Input placeholder="+1 555 123 4567" />
+            <Input
+              placeholder="e.g. 9876543210"
+              maxLength={10}
+              onKeyPress={(e) => {
+                if (!/[0-9]/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+            />
           </Form.Item>
 
           <div style={{ height: 8 }} />
@@ -616,6 +657,16 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           {mode === "add" ? "Add Member" : "Save Changes"}
         </Button>
       </div>
+
+      {mode === "edit" && selectedMember && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="user"
+          entityId={selectedMember.id}
+          subtitle={selectedMember.name}
+        />
+      )}
     </div>
   );
 };
@@ -705,6 +756,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 };
 
 export default function MembersPage() {
+  useActivitySource({ section: "ADMIN", module: "Members", page: "MemberList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -719,8 +771,7 @@ export default function MembersPage() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { message: messageApi } = App.useApp();
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -775,9 +826,9 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Failed to fetch members:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Failed to fetch members");
+        messageApi.error("Failed to fetch members");
       }
     } finally {
       setLoading(false);
@@ -847,7 +898,6 @@ export default function MembersPage() {
   const handleSubmit = async (values: any) => {
     try {
       setFormLoading(true);
-      setError("");
 
       const isCustom = values.positionType === "custom";
 
@@ -866,7 +916,7 @@ export default function MembersPage() {
           assignedShiftId: values.assignedShift || null,
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
-        setSuccess("Member updated successfully");
+        messageApi.success("Member updated successfully");
       } else {
         const createPayload: CreateMemberData = {
           name: values.name,
@@ -884,7 +934,7 @@ export default function MembersPage() {
           sendEmailTo: values.sendEmailTo || "work",
         };
         await MembersService.createMember(createPayload);
-        setSuccess("Member created successfully");
+        messageApi.success("Member created successfully");
       }
 
       setIsModalVisible(false);
@@ -894,9 +944,9 @@ export default function MembersPage() {
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Operation failed");
+        messageApi.error("Operation failed");
       }
     } finally {
       setFormLoading(false);
@@ -909,16 +959,16 @@ export default function MembersPage() {
     try {
       setFormLoading(true);
       await MembersService.deleteMember(selectedMember.id);
-      setSuccess("Member deleted successfully");
+      messageApi.success("Member deleted successfully");
       setIsModalVisible(false);
       setSelectedMember(null);
       fetchMembers();
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Delete failed");
+        messageApi.error("Delete failed");
       }
     } finally {
       setFormLoading(false);
@@ -1207,15 +1257,7 @@ export default function MembersPage() {
     },
   ];
 
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
+
 
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
@@ -1407,26 +1449,7 @@ export default function MembersPage() {
           </div>
 
           {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setError("")}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setSuccess("")}
-            />
-          )}
+
 
           {/* Filters + Table */}
           <Card

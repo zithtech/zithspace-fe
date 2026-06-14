@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Drawer, Select, Tooltip, message, ConfigProvider, theme as antdTheme, notification } from "antd";
+import { Avatar, Drawer, Select, Tooltip, message, App, ConfigProvider, theme as antdTheme, notification } from "antd";
 import {
   X,
   UploadCloud,
@@ -25,9 +25,12 @@ import {
   Download,
   Edit2,
   Check,
+  History,
 } from "lucide-react";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import BugListService, {
   BugAttachment,
   BugExternalLink,
@@ -75,9 +78,10 @@ export default function CreateBugDrawer({
 }: Props) {
   const { theme } = useTheme();
   const { users: members } = useMembersSelect();
+  const { canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
-  const [messageApi, messageContextHolder] = message.useMessage();
-
+  const { message } = App.useApp();
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -400,19 +404,43 @@ export default function CreateBugDrawer({
                   Describe what's broken — refinement happens later via AI.
                 </div>
               </div>
-              <button
-                className="hb-cbd-iconbtn"
-                onClick={onClose}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {editingBug && canReadActivityLog && (
+                  <Tooltip title="View activity history">
+                    <button
+                      className="hb-cbd-iconbtn"
+                      onClick={() => setHistoryOpen(true)}
+                      aria-label="History"
+                      type="button"
+                    >
+                      <History size={16} />
+                    </button>
+                  </Tooltip>
+                )}
+                <button
+                  className="hb-cbd-iconbtn"
+                  onClick={onClose}
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
+
+            {editingBug && (
+              <TransactionHistoryDrawer
+                open={historyOpen}
+                onClose={() => setHistoryOpen(false)}
+                entityType="bug"
+                entityId={editingBug.id}
+                subtitle={`${editingBug.bugNumber || "Bug"}${editingBug.title ? ` — ${editingBug.title}` : ""}`}
+              />
+            )}
 
             {/* Body */}
             <div className="hb-cbd-body">
               {notificationContextHolder}
-              {messageContextHolder}
+              {/* {messageContextHolder} */}
               {/* Title */}
               <input
                 type="text"
@@ -672,7 +700,7 @@ export default function CreateBugDrawer({
                         onRemove={() => removeAttachment(idx)}
                         onPreview={() => setPreviewAttachment(a)}
                         onRename={(newName) => renameAttachment(idx, newName)}
-                        messageApi={messageApi}
+                        message={message}
                       />
                     ))}
                   </div>
@@ -921,13 +949,13 @@ function AttachmentTile({
   onRemove,
   onPreview,
   onRename,
-  messageApi,
+  message,
 }: {
   attachment: BugAttachment;
   onRemove: () => void;
   onPreview: () => void;
   onRename: (newName: string) => void;
-  messageApi: any;
+  message: any;
 }) {
   const [imageError, setImageError] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -941,7 +969,7 @@ function AttachmentTile({
     const trimmed = tempName.trim();
     if (trimmed && trimmed !== attachment.fileName) {
       onRename(trimmed);
-      messageApi.success("Attachment renamed");
+      message.success("Attachment renamed");
     } else {
       setTempName(attachment.fileName);
     }
@@ -1027,7 +1055,7 @@ function AttachmentTile({
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                messageApi.success("Download successfully");
+                message.success("Download successfully");
               } catch (err) {
                 // Fallback for CORS issues
                 const a = document.createElement("a");
@@ -1037,7 +1065,7 @@ function AttachmentTile({
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                messageApi.success("Download successfully");
+                message.success("Download successfully");
               }
             }}
             title="Download"

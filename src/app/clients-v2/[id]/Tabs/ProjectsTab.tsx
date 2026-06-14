@@ -14,7 +14,7 @@ import {
   Tag,
   Space,
   Popconfirm,
-  notification,
+  message,
   Card,
   Row,
   Col,
@@ -85,7 +85,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editForm] = Form.useForm();
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Import-existing-projects modal state
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -178,11 +178,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       setProjects(data || []);
     } catch (error) {
       console.error("Error fetching projects:", error);
-      notify.error({
-        message: "Load Error",
-        description: "Failed to load project database.",
-        placement: "top",
-      });
+      messageApi.error("Load Error: Failed to load project database.");
     } finally {
       setLoading(false);
     }
@@ -216,11 +212,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
   const handleCreateProject = async (values: any) => {
     if (nameCheck.status === "taken" || codeCheck.status === "taken") {
-      notify.warning({
-        message: "Duplicate detected",
-        description: "Please choose a unique project name and code before creating.",
-        placement: "top",
-      });
+      messageApi.warning(
+        "Duplicate detected: Please choose a unique project name and code before creating."
+      );
       return;
     }
     setSubmitting(true);
@@ -232,22 +226,16 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       };
 
       await api.post(`/api/clients-v2/${clientId}/projects`, payload);
-      notify.success({
-        message: "Project Created",
-        description: "New client project has been initialized successfully.",
-        placement: "top",
-      });
+      messageApi.success("Project Created: New client project has been initialized successfully.");
       setIsModalVisible(false);
       form.resetFields();
       resetChecks();
       fetchProjects();
       onRefresh();
     } catch (error: any) {
-      notify.error({
-        message: "Creation Failed",
-        description: error.response?.data?.error || "Failed to create project record.",
-        placement: "top",
-      });
+      messageApi.error(
+        `Creation Failed: ${error.response?.data?.error || "Failed to create project record."}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -279,22 +267,16 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       };
 
       await api.put(`/api/clients-v2/projects/${editingProject.id}`, payload);
-      notify.success({
-        message: "Project Updated",
-        description: "Project configuration has been successfully modified.",
-        placement: "top",
-      });
+      messageApi.success("Project Updated: Project configuration has been successfully modified.");
       setIsEditModalVisible(false);
       editForm.resetFields();
       setEditingProject(null);
       fetchProjects();
       onRefresh();
     } catch (error: any) {
-      notify.error({
-        message: "Update Failed",
-        description: error.response?.data?.error || "Failed to save project changes.",
-        placement: "top",
-      });
+      messageApi.error(
+        `Update Failed: ${error.response?.data?.error || "Failed to save project changes."}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -303,19 +285,13 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const handleDeleteProject = async (projectId: string, projectName: string) => {
     try {
       await api.delete(`/api/clients-v2/projects/${projectId}`);
-      notify.success({
-        message: "Project Deleted",
-        description: `"${projectName}" has been permanently deleted.`,
-        placement: "top",
-      });
+      messageApi.success(`Project Deleted: "${projectName}" has been permanently deleted.`);
       fetchProjects();
       onRefresh();
     } catch (error: any) {
-      notify.error({
-        message: "Delete Failed",
-        description: error.response?.data?.error || "Failed to delete project.",
-        placement: "top",
-      });
+      messageApi.error(
+        `Delete Failed: ${error.response?.data?.error || "Failed to delete project."}`
+      );
     }
   };
 
@@ -427,7 +403,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       )
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) => (
@@ -902,7 +878,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         open={isImportModalVisible}
         onClose={() => setIsImportModalVisible(false)}
         clientId={clientId}
-        notify={notify}
+        messageApi={messageApi}
         onImported={() => {
           setIsImportModalVisible(false);
           fetchProjects();
@@ -990,31 +966,6 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
-        }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .projects-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .projects-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
           }
         }
 
@@ -1296,13 +1247,13 @@ function ImportProjectsModal({
   onClose,
   clientId,
   onImported,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
   clientId: string;
   onImported: () => void;
-  notify: any;
+  messageApi: any;
 }) {
   const [items, setItems] = useState<ImportableProject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1316,10 +1267,7 @@ function ImportProjectsModal({
       const data = await ClientV2Service.getImportableProjects(clientId, q);
       setItems(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load projects",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load projects: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -1355,20 +1303,14 @@ function ImportProjectsModal({
     setSubmitting(true);
     try {
       const res = await ClientV2Service.importProjects(clientId, selected);
-      notify.success({
-        message: `Linked ${res.linked} project${res.linked === 1 ? "" : "s"
-          }${res.skipped > 0
-            ? ` · ${res.skipped} already linked, skipped`
-            : ""
-          }`,
-        placement: "top",
-      });
+      messageApi.success(
+        `Linked ${res.linked} project${res.linked === 1 ? "" : "s"}${
+          res.skipped > 0 ? ` · ${res.skipped} already linked, skipped` : ""
+        }`
+      );
       onImported();
     } catch (err: any) {
-      notify.error({
-        message: "Import failed",
-        description: err?.message,
-      });
+      messageApi.error(`Import failed: ${err?.message}`);
     } finally {
       setSubmitting(false);
     }

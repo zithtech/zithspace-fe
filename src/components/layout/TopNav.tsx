@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
+import { App } from 'antd';
 import {
   Mail,
   MessageSquareText,
@@ -14,6 +15,7 @@ import {
   Plus,
   MoreHorizontal,
   Sparkles,
+  History,
   Bookmark,
   BookmarkCheck,
   // Module icons (top navbar)
@@ -33,11 +35,11 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
-  HOME: '#6366F1',     // indigo
-  WORK: '#0EA5E9',     // sky
-  ADMIN: '#10B981',    // emerald
-  HRMS: '#F59E0B',     // amber
-  FINANCE: '#8B5CF6',  // violet
+  HOME: '#3b82f6',     // indigo
+  WORK: '#3b82f6',     // sky
+  ADMIN: '#3b82f6',    // emerald
+  HRMS: '#3b82f6',     // amber
+  FINANCE: '#3b82f6',  // violet
 };
 
 interface ShortcutItem {
@@ -91,11 +93,13 @@ export default function TopNav({
     canCreateBookmark,
     canDeleteBookmark,
     canReadTimeTracking,
-    canCreateTimeTracking
+    canCreateTimeTracking,
+    canReadActivityLogAll
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
   const isDark = appTheme === "dark";
+  const { modal } = App.useApp();
 
   const novuAppearance = {
     baseTheme: isDark ? { variables: {} } : undefined,
@@ -201,6 +205,7 @@ export default function TopNav({
   const [newShortcutName, setNewShortcutName] = useState('');
   const [newShortcutPath, setNewShortcutPath] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const deleteModalOpenRef = React.useRef(false);
 
   const handleSaveBookmark = () => {
     if (!newShortcutName.trim() || !newShortcutPath.trim()) return;
@@ -215,17 +220,22 @@ export default function TopNav({
 
   const handleDeleteBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    deleteModalOpenRef.current = true;
     setDeleteModalOpen(true);
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete Bookmark',
       content: 'Are you sure you want to delete this bookmark?',
       onOk: () => {
         const updated = shortcuts.filter(s => s.id !== id);
         setShortcuts(updated);
         localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+        deleteModalOpenRef.current = false;
         setDeleteModalOpen(false);
       },
-      onCancel: () => setDeleteModalOpen(false),
+      onCancel: () => {
+        deleteModalOpenRef.current = false;
+        setDeleteModalOpen(false);
+      },
     });
   };
 
@@ -515,7 +525,7 @@ export default function TopNav({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 64,
+        height: 54,
         position: "fixed",
         top: 0,
         right: 0,
@@ -529,8 +539,8 @@ export default function TopNav({
         {/* Logo Area */}
         <div
           style={{
-            width: isMobile ? 'auto' : (collapsed ? 65 : 200),
-            minWidth: isMobile ? 'auto' : (collapsed ? 65 : 200),
+            width: isMobile ? 'auto' : (collapsed ? 52 : 200),
+            minWidth: isMobile ? 'auto' : (collapsed ? 52 : 200),
             marginRight: isMobile ? 12 : 0,
             paddingLeft: (!isMobile && !collapsed) ? 24 : 0,
             height: '100%',
@@ -572,20 +582,20 @@ export default function TopNav({
               )}
             </div>
           ) : (
-            <Text
-              strong
-              style={{
-                fontSize: isMobile ? 22 : 26,
-                background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontWeight: 800,
-                lineHeight: 1,
-                letterSpacing: "-0.5px"
-              }}
-            >
-              {collapsed ? (user?.tenantName?.charAt(0) || 'Z') : (user?.tenantName || 'Zithtech')}
-            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="brand-badge">
+                {(user?.tenantName?.charAt(0) || 'Z').toUpperCase()}
+              </div>
+              {!collapsed && (
+                <Text
+                  strong
+                  className="brand-name"
+                  style={{ fontSize: isMobile ? 17 : 19 }}
+                >
+                  {user?.tenantName || 'Zithtech'}
+                </Text>
+              )}
+            </div>
           )}
         </div>
 
@@ -601,7 +611,7 @@ export default function TopNav({
               flex: 1,
               maxWidth: 700,
               background: 'transparent',
-              marginLeft: 25,
+              marginLeft: 14,
             }}
           />
         )}
@@ -627,7 +637,7 @@ export default function TopNav({
       </div>
 
       {/* Right Side: User Actions */}
-      <Space size={isSmallMobile ? 4 : 12} align="center" style={{ flexShrink: 0 }}>
+      <Space size={isSmallMobile ? 4 : 8} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
@@ -650,7 +660,7 @@ export default function TopNav({
                 <Button
                   type="text"
                   className={`nav-action-btn${isRouteActive('/mail') ? ' nav-action-btn-active' : ''}`}
-                  icon={<Mail size={18} strokeWidth={isRouteActive('/mail') ? 2 : 1.75} />}
+                  icon={<Mail size={17} strokeWidth={isRouteActive('/mail') ? 2 : 1.75} />}
                   onClick={() => router.push('/mail')}
                 />
               </Tooltip>
@@ -671,7 +681,7 @@ export default function TopNav({
                 <Button
                   type="text"
                   className={`nav-action-btn${isRouteActive('/calendar') ? ' nav-action-btn-active' : ''}`}
-                  icon={<CalendarDays size={18} strokeWidth={isRouteActive('/calendar') ? 2 : 1.75} />}
+                  icon={<CalendarDays size={17} strokeWidth={isRouteActive('/calendar') ? 2 : 1.75} />}
                   onClick={() => router.push('/calendar')}
                 />
               </Tooltip>
@@ -692,7 +702,7 @@ export default function TopNav({
                 <Button
                   type="text"
                   className={`nav-action-btn${isRouteActive('/skills') ? ' nav-action-btn-active' : ''}`}
-                  icon={<Sparkles size={18} strokeWidth={isRouteActive('/skills') ? 2 : 1.75} />}
+                  icon={<Sparkles size={17} strokeWidth={isRouteActive('/skills') ? 2 : 1.75} />}
                   onClick={() => router.push('/skills')}
                 />
               </Tooltip>
@@ -714,12 +724,33 @@ export default function TopNav({
                 <Button
                   type="text"
                   className={`nav-action-btn${isRouteActive('/chat') ? ' nav-action-btn-active' : ''}`}
-                  icon={<MessageSquareText size={18} strokeWidth={isRouteActive('/chat') ? 2 : 1.75} />}
+                  icon={<MessageSquareText size={17} strokeWidth={isRouteActive('/chat') ? 2 : 1.75} />}
                   onClick={() => router.push('/chat')}
                 />
               </Tooltip>
             )}
-            {canReadNotification && (
+            {canReadActivityLogAll && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Activity</span>
+                    <span className="navbar-tooltip-sub">Transaction history</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  className={`nav-action-btn${isRouteActive('/activity') ? ' nav-action-btn-active' : ''}`}
+                  icon={<History size={17} strokeWidth={isRouteActive('/activity') ? 2 : 1.75} />}
+                  onClick={() => router.push('/activity')}
+                />
+              </Tooltip>
+            )}
+            {/* {canReadNotification && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -732,7 +763,7 @@ export default function TopNav({
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
-                <div className={`nav-action-btn nav-action-btn-inbox novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                <div className={`nav-action-btn-inbox novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                   <Inbox
                     applicationIdentifier="67g_5lVLFWvd"
                     subscriberId={user?.id}
@@ -741,7 +772,7 @@ export default function TopNav({
                   />
                 </div>
               </Tooltip>
-            )}
+            )} */}
             {canReadBookmark && (
               <Tooltip
                 title={
@@ -759,7 +790,7 @@ export default function TopNav({
                 <Dropdown
                   open={shortcutPopoverVisible && !isCustomBreakpoint}
                   onOpenChange={(visible) => {
-                    if (!visible && deleteModalOpen) return;
+                    if (!visible && deleteModalOpenRef.current) return;
                     setShortcutPopoverVisible(visible);
                     if (!visible) {
                       setIsAddMode(false);
@@ -775,9 +806,9 @@ export default function TopNav({
                     className={`nav-action-btn${(shortcutPopoverVisible && !isCustomBreakpoint) ? ' nav-action-btn-active' : ''}`}
                     icon={
                       (shortcutPopoverVisible && !isCustomBreakpoint) ? (
-                        <Bookmark size={18} strokeWidth={2} fill="#1677ff" color="#1677ff" />
+                        <Bookmark size={17} strokeWidth={2} fill="#1677ff" color="#1677ff" />
                       ) : (
-                        <Bookmark size={18} strokeWidth={1.75} />
+                        <Bookmark size={17} strokeWidth={1.75} />
                       )
                     }
                   />
@@ -848,7 +879,7 @@ export default function TopNav({
           <Modal
             open={shortcutPopoverVisible}
             onCancel={() => {
-              if (deleteModalOpen) return;
+              if (deleteModalOpenRef.current) return;
               setShortcutPopoverVisible(false);
               setIsAddMode(false);
             }}
@@ -902,7 +933,7 @@ export default function TopNav({
               }}
             >
               <Avatar
-                size={isSmallMobile ? 32 : 36}
+                size={isSmallMobile ? 28 : 32}
                 style={{
                   background: user.avatarUrl ? 'transparent' : 'var(--bg-slate-200)',
                   color: 'var(--text-slate-700)',
@@ -930,7 +961,7 @@ export default function TopNav({
 
       <style jsx global>{`
                 .ant-menu-horizontal {
-                    line-height: 64px !important;
+                    line-height: 54px !important;
                     border-bottom: none !important;
                     background: transparent !important;
                 }
@@ -955,13 +986,13 @@ export default function TopNav({
                 .module-pill {
                     display: inline-flex;
                     align-items: center;
-                    gap: 8px;
-                    padding: 0 12px;
-                    height: 36px;
-                    border-radius: 10px;
+                    gap: 6px;
+                    padding: 0 10px;
+                    height: 32px;
+                    border-radius: 0px;
                     font-weight: 600;
-                    font-size: 13px;
-                    letter-spacing: 0.3px;
+                    font-size: 12.5px;
+                    letter-spacing: 0.2px;
                     color: #475569;
                     border: 1px solid transparent;
                     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
@@ -971,8 +1002,8 @@ export default function TopNav({
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    width: 22px;
-                    height: 22px;
+                    width: 20px;
+                    height: 20px;
                     color: inherit;
                     transition: color 0.2s ease;
                 }
@@ -983,16 +1014,43 @@ export default function TopNav({
                 .module-pill:hover .module-pill-icon {
                     color: var(--module-accent);
                 }
+                /* Active module — soft accent-tinted pill (matches reference) */
                 .module-pill-active {
                     background: color-mix(in srgb, var(--module-accent) 12%, transparent);
                     color: var(--module-accent);
-                    border-color: color-mix(in srgb, var(--module-accent) 22%, transparent);
+                    border-color: color-mix(in srgb, var(--module-accent) 20%, transparent);
                 }
                 .module-pill-active:hover {
                     background: color-mix(in srgb, var(--module-accent) 16%, transparent);
                 }
                 .module-pill-active .module-pill-icon {
                     color: var(--module-accent);
+                }
+
+                /* Brand badge (logo) — compact indigo→blue square */
+                .brand-badge {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 10px;
+                    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+                    color: #ffffff;
+                    font-weight: 800;
+                    font-size: 16px;
+                    line-height: 1;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    letter-spacing: -0.5px;
+                    box-shadow: 0 4px 12px -3px rgba(79, 70, 229, 0.45);
+                }
+                /* Wordmark — solid dark text (matches reference, not gradient) */
+                .brand-name {
+                    color: var(--text-primary);
+                    font-weight: 700 !important;
+                    letter-spacing: -0.3px;
+                    white-space: nowrap;
+                    line-height: 1;
                 }
                 .ant-menu-horizontal .ant-menu-item:active .module-pill {
                     transform: scale(0.97);
@@ -1056,14 +1114,14 @@ export default function TopNav({
                 /* Premium nav action buttons (top navbar right side) */
                 .nav-action-btn.ant-btn,
                 .nav-action-btn {
-                    width: 36px !important;
-                    height: 36px !important;
-                    min-width: 36px !important;
+                    width: 32px !important;
+                    height: 32px !important;
+                    min-width: 32px !important;
                     padding: 0 !important;
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    border-radius: 10px !important;
+                    border-radius: 9px !important;
                     color: #475569;
                     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
                 }
@@ -1088,21 +1146,47 @@ export default function TopNav({
                 /* Novu inbox bell wrapped as nav-action-btn */
                 .nav-action-btn-inbox {
                     position: relative;
+                    width: 32px !important;
+                    height: 32px !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    border-radius: 9px !important;
                 }
                 .nav-action-btn-inbox .nv-button,
                 .nav-action-btn-inbox button {
                     background: transparent !important;
                     border: none !important;
-                    width: 36px !important;
-                    height: 36px !important;
+                    box-shadow: none !important;
+                    outline: none !important;
+                    width: 32px !important;
+                    height: 32px !important;
                     padding: 0 !important;
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
+                    border-radius: 9px !important;
+                    color: #475569;
+                    transition: background-color 0.2s ease, color 0.2s ease;
+                }
+                .nav-action-btn-inbox .nv-button:hover,
+                .nav-action-btn-inbox button:hover {
+                    background: rgba(22, 119, 255, 0.08) !important;
+                    color: #1677ff !important;
+                    box-shadow: none !important;
+                    outline: none !important;
+                }
+                .nav-action-btn-inbox .nv-button:focus,
+                .nav-action-btn-inbox button:focus,
+                .nav-action-btn-inbox .nv-button:focus-visible,
+                .nav-action-btn-inbox button:focus-visible {
+                    box-shadow: none !important;
+                    outline: none !important;
+                    border: none !important;
                 }
                 .nav-action-btn-inbox svg {
-                    width: 18px !important;
-                    height: 18px !important;
+                    width: 17px !important;
+                    height: 17px !important;
                     stroke-width: 1.75 !important;
                 }
                 /* Dark theme tints */
@@ -1239,6 +1323,17 @@ export default function TopNav({
                 }
                 [data-theme='dark'] .nv-moreActionsDropdownItem:hover {
                     background: rgba(59, 130, 246, 0.12) !important;
+                }
+                [data-theme='dark'] .nav-action-btn-inbox .nv-button,
+                [data-theme='dark'] .nav-action-btn-inbox button {
+                    color: #94A3B8;
+                }
+                [data-theme='dark'] .nav-action-btn-inbox .nv-button:hover,
+                [data-theme='dark'] .nav-action-btn-inbox button:hover {
+                    background: rgba(59, 130, 246, 0.14) !important;
+                    color: #E2E8F0 !important;
+                    box-shadow: none !important;
+                    outline: none !important;
                 }
                 [data-theme='dark'] .nv-button:hover {
                     background: rgba(148, 163, 184, 0.08) !important;

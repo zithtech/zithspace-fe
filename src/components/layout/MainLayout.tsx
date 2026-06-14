@@ -12,6 +12,7 @@ import { useLayout } from "@/context/LayoutContext";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
 import { TimerSocketListener } from "../time-tracking/TimerSocketListener";
+import { useSocket } from "@/providers/SocketProvider";
 
 const { Content } = Layout;
 
@@ -24,6 +25,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
   const { token } = theme.useToken();
   const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission } = useAuth();
   const { notification } = AntApp.useApp();
+  const { socket } = useSocket();
 
   const router = useRouter();
   const pathname = usePathname();
@@ -45,9 +47,9 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
 
     if (foundModule) {
       // Check if user has permission for this module
-      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission 
-        ? true 
-        : foundModule.requiredPermission 
+      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
+        ? true
+        : foundModule.requiredPermission
           ? hasPermission(foundModule.requiredPermission)
           : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
 
@@ -65,7 +67,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
               : item.requiredPermission
                 ? hasPermission(item.requiredPermission)
                 : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
-            
+
             if (!itemAccess) return false;
           }
           if (item.children && !checkItemAccess(item.children)) {
@@ -93,15 +95,48 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     }
   }, [pathname, user, hasPermission, hasAnyPermission]);
 
-  // Connect to user stream for global notifications
+  // Listen for service worker messages to play custom notification sounds in-tab
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "PLAY_SOUND") {
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch((err) => {
+          console.warn("[MainLayout] Custom sound playback failed or blocked by browser autoplay policy:", err);
+        });
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+    };
+  }, []);
+
+  // Connect to user stream for global notifications and web push notifications
   useEffect(() => {
     if (user?.id) {
+      // Register for system-level background push notifications
+      try {
+        const { registerPushNotifications } = require("@/utils/pushNotificationHelper");
+        registerPushNotifications();
+      } catch (err) {
+        console.error("Error registering web push:", err);
+      }
+
       const { streamClient } = require("@/services/streamClient");
 
       streamClient.connectUser(user.id);
 
       streamClient.onNotification((data: any) => {
         if (pathname.includes(`/chat/${data.channelId}`)) return;
+
+        // Play custom notification sound in-tab
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch((err) => {
+          console.warn("[MainLayout] Custom sound playback failed or blocked by browser autoplay policy:", err);
+        });
 
         const key = `notification-${Date.now()}`;
         notification.info({
@@ -126,6 +161,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     }
   }, [user?.id, pathname, router, notification]);
 
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -143,9 +179,9 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     );
 
     if (foundModule) {
-      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission 
-        ? true 
-        : foundModule.requiredPermission 
+      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
+        ? true
+        : foundModule.requiredPermission
           ? hasPermission(foundModule.requiredPermission)
           : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
 
@@ -162,7 +198,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
               : item.requiredPermission
                 ? hasPermission(item.requiredPermission)
                 : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
-            
+
             if (!itemAccess) return false;
           }
           if (item.children && !checkItemAccess(item.children)) {
@@ -209,7 +245,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
         collapsed={collapsed}
       />
 
-      <Layout style={{ marginTop: 64, background: 'var(--bg-pure-white)' }}>
+      <Layout style={{ marginTop: 54, background: 'var(--bg-pure-white)' }}>
         <SideNav
           activeModule={activeModule}
           collapsed={collapsed}
@@ -224,9 +260,9 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
-            marginLeft: collapsed ? 65 : 200,
+            marginLeft: collapsed ? 50 : 200,
             transition: "all 0.2s",
-            height: "calc(100vh - 64px)",
+            height: "calc(100vh - 54px)",
             overflowY: "auto",
             overflowX: "hidden",
             position: "relative",

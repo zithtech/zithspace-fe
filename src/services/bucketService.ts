@@ -24,6 +24,7 @@ export interface Bucket {
     id: string;
     name: string;
     workEmail: string;
+    avatarUrl?: string;
   };
   project?: {
     id: string;
@@ -63,6 +64,7 @@ export interface BucketTicket {
     id: string;
     name: string;
     workEmail: string;
+    avatarUrl?: string;
   };
   project: {
     id: string;

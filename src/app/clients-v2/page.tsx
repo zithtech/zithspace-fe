@@ -16,6 +16,8 @@ import {
   Dropdown,
   Modal,
   message,
+  Pagination,
+  Popconfirm,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
 import {
@@ -41,6 +43,10 @@ import {
   CircleDot,
   FolderKanban,
   Trash2,
+  ChevronDown,
+  RefreshCw,
+  LayoutGrid,
+  List as ListIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -51,6 +57,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -95,6 +102,51 @@ const formatCurrency = (val?: number, currency = "USD") => {
 /*                              Premium StatCard                              */
 /* -------------------------------------------------------------------------- */
 
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const height = 28;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 interface StatCardProps {
   label: string;
   value: React.ReactNode;
@@ -116,86 +168,88 @@ const StatCard: React.FC<StatCardProps> = ({
   loading,
   chart,
 }) => (
-  <div className="cm-stat-card" style={{ ["--cm-accent" as any]: accent }}>
-    <div className="cm-stat-head">
-      <div
-        className="cm-stat-icon"
-        style={{
-          background: `${accent}12`,
+  <div
+    className="dh-stats-card flex flex-col justify-between p-4 transition-all"
+    style={{
+      border: '1px solid var(--border-slate-200)',
+      background: 'var(--bg-pure-white)',
+      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      height: 100,
+    }}
+  >
+    <div className="flex items-start justify-between w-full">
+      <div className="flex items-center gap-2">
+        <div style={{
           color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        <Icon size={16} color={accent} />
+          fontSize: 15,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 26,
+          height: 26,
+          background: `${accent}1c`,
+          borderRadius: 6,
+        }}>
+          <Icon />
+        </div>
+        <span
+          className="text-[12.5px] font-medium"
+          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
+        >
+          {label}
+        </span>
       </div>
-      <Text className="cm-stat-label">{label}</Text>
-      <div className="cm-stat-value-wrap">
-        {loading ? (
-          <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
-        ) : (
-          <span className="cm-stat-value">{value}</span>
-        )}
-        {trend && (
-          <span className={`cm-trend ${trend.positive ? "up" : "down"}`}>
-            {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            <span className="cm-trend-value">
-              {trend.value > 0 ? "+" : ""}
-              {trend.value}%
-            </span>
+      {trend && trend.value > 0 && (
+        <Tooltip title={trend.label || "Trend"}>
+          <span
+            className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full"
+            style={{
+              color: trend.positive ? '#10b981' : '#ef4444',
+              background: trend.positive ? '#10b9811c' : '#ef44441c'
+            }}
+          >
+            {trend.positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}+{trend.value}
+          </span>
+        </Tooltip>
+      )}
+    </div>
+
+    <div className="flex items-end justify-between w-full mt-auto">
+      <div className="flex items-baseline gap-1.5 pb-1">
+        <span
+          className="text-[26px] font-semibold leading-none tracking-tight"
+          style={{ color: 'var(--text-slate-800)' }}
+        >
+          {loading ? <Skeleton.Input active size="small" style={{ width: 64, height: 26 }} /> : value}
+        </span>
+        {subtle && (
+          <span
+            className="text-[11px] font-medium"
+            style={{ color: 'var(--text-slate-400)' }}
+          >
+            {subtle}
           </span>
         )}
       </div>
+      <div className="shrink-0 mb-[2px]">
+        {chart}
+      </div>
     </div>
-    {subtle && <Text className="cm-stat-subtle">{subtle}</Text>}
-    {chart && <div className="cm-stat-chart">{chart}</div>}
-    <span
-      className="cm-stat-accent"
-      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-    />
   </div>
 );
-
-/* Mini distribution bar — segmented progress using real data */
-interface MiniBarProps {
-  segments: { value: number; color: string; label: string }[];
-}
-const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-  return (
-    <div className="cm-minibar">
-      <div className="cm-minibar-track">
-        {segments.map((s, i) => (
-          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
-            <span
-              className="cm-minibar-seg"
-              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
-            />
-          </Tooltip>
-        ))}
-      </div>
-      <div className="cm-minibar-legend">
-        {segments.map((s, i) => (
-          <span key={i} className="cm-minibar-legend-item">
-            <span className="cm-minibar-dot" style={{ background: s.color }} />
-            {s.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 /* -------------------------------------------------------------------------- */
 /*                                 Page                                       */
 /* -------------------------------------------------------------------------- */
 
 export default function ClientsV2ListPage() {
+  useActivitySource({ section: "ADMIN", module: "ClientsV2", page: "ClientList" });
   const router = useRouter();
   const { tenantId } = useTenant();
   const { canCreateClient, canUpdateClient, canDeleteClient } = usePermission();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
-  
+
   // Delete modal state
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -208,7 +262,9 @@ export default function ClientsV2ListPage() {
   const [highRiskCount, setHighRiskCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "highRisk">("all");
   const [expandedClientProjects, setExpandedClientProjects] = useState<{ [key: string]: any[] }>({});
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [expandedLoading, setExpandedLoading] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   // Quick-filter dropdown state
   const [allClientsOpts, setAllClientsOpts] = useState<{ value: string; label: string; code?: string }[]>([]);
@@ -368,7 +424,7 @@ export default function ClientsV2ListPage() {
 
       const res = await apiUtils.getPaginated("/api/clients-v2", params);
       const allData = res.data || [];
-      
+
       if (allData.length === 0) {
         messageApi.warning("No data to export");
         return;
@@ -399,6 +455,14 @@ export default function ClientsV2ListPage() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+    fetchProjectStats();
+    fetchHighRiskStats();
+    fetchAllClientOptions();
+    fetchAllProjectOptions();
+  };
+
   useEffect(() => {
     if (tenantId) {
       fetchClients();
@@ -412,10 +476,10 @@ export default function ClientsV2ListPage() {
   /* Distinct client types derived from the loaded option list */
   const typeOptions = useMemo(() => {
     const set = new Set<string>();
-    allClientsOpts.forEach(() => {}); // placeholder so order of hooks stays stable
+    allClientsOpts.forEach(() => { }); // placeholder so order of hooks stays stable
     data.forEach((c) => c.clientType && set.add(c.clientType));
     // Common fallbacks if data is sparse
-    ["B2B", "B2C", "Enterprise", "SME", "Government", "Partner"].forEach((t) => set.add(t));
+    ["B2B", "B2C", "Direct", "Enterprise", "Government", "Partner", "Reseller", "SME", "Vendor"].forEach((t) => set.add(t));
     return Array.from(set).sort().map((t) => ({ value: t, label: t }));
   }, [data, allClientsOpts]);
 
@@ -455,7 +519,7 @@ export default function ClientsV2ListPage() {
         return (
           <Space size={14} align="center">
             <div className={`cm-avatar-wrap ${isActive ? "is-active" : ""}`}>
-              <div className="cm-avatar" style={{ background: grad }}>
+              <div className="cm-avatar">
                 <span>{initials}</span>
               </div>
               {isActive && <span className="cm-avatar-pulse" />}
@@ -585,10 +649,10 @@ export default function ClientsV2ListPage() {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
-      width: 110,
+      width: 150,
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <Space size={4} className="cm-actions">
@@ -633,26 +697,18 @@ export default function ClientsV2ListPage() {
               />
             </Tooltip>
           )}
-          <Dropdown
-            menu={{
-              items: [
-                { key: "view", label: "View overview", icon: <Eye size={14} />, onClick: () => router.push(`/clients-v2/${record.id}`) },
-                canUpdateClient ? { key: "edit", label: "Edit profile", icon: <Settings2 size={14} />, onClick: () => router.push(`/clients-v2/create?id=${record.id}`) } : null,
-                canDeleteClient ? { key: "delete", label: "Delete client", danger: true, icon: <Trash2 size={14} />, onClick: () => handleDeleteClient(record.id, record.companyName) } : null,
-                { type: "divider" },
-                { key: "projects", label: "View projects", icon: <FolderKanban size={14} /> },
-              ].filter(Boolean) as any,
-            }}
-            trigger={["click"]}
-          >
+          <Tooltip title="View projects">
             <Button
               type="text"
               size="small"
-              icon={<MoreHorizontal size={16} />}
+              icon={<FolderKanban size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/clients-v2/${record.id}?tab=projects`);
+              }}
               className="cm-action-btn"
-              onClick={(e) => e.stopPropagation()}
             />
-          </Dropdown>
+          </Tooltip>
         </Space>
       ),
     },
@@ -660,12 +716,12 @@ export default function ClientsV2ListPage() {
 
   /* ---------------------- Expanded row ---------------------- */
 
-  const expandedRowRender = (record: any) => {
+  const expandedRowRender = (record: any, isCardView = false) => {
     const projects = expandedClientProjects[record.id];
     const isLoading = expandedLoading === record.id;
 
     return (
-      <div className="cm-expanded-wrap">
+      <div className={`cm-expanded-wrap ${isCardView ? "cm-expanded-wrap-card" : ""}`}>
         <div className="cm-expanded-header">
           <div className="cm-expanded-title">
             <FolderKanban size={14} />
@@ -706,7 +762,7 @@ export default function ClientsV2ListPage() {
             {projects.map((p: any) => (
               <div key={p.id} className="cm-project-card">
                 <div className="cm-project-top">
-                  <div className="cm-project-icon" style={{ background: gradientFor(p.name) }}>
+                  <div className="cm-project-icon">
                     <Briefcase size={14} color="#fff" />
                   </div>
                   <Tag className="cm-project-code">{p.code}</Tag>
@@ -721,9 +777,56 @@ export default function ClientsV2ListPage() {
                   </div>
                   <div>
                     <Text className="cm-project-stat-label">Manager</Text>
-                    <Text strong className="cm-project-stat-value">
-                      {p.projectManager?.name || "—"}
-                    </Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      {p.projectManager ? (
+                        p.projectManager.avatarUrl ? (
+                          <img
+                            src={p.projectManager.avatarUrl}
+                            alt={p.projectManager.name}
+                            style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div
+                            className="cm-mini-avatar"
+                            style={{
+                              width: 18,
+                              height: 18,
+                              background: '#3b82f6',
+                              fontSize: 9,
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '50%',
+                              color: '#fff',
+                            }}
+                          >
+                            {((p.projectManager.name || "?")[0]).toUpperCase()}
+                          </div>
+                        )
+                      ) : null}
+                      <Text strong className="cm-project-stat-value">
+                        {p.projectManager?.name || "—"}
+                      </Text>
+                    </div>
+                  </div>
+                  <div>
+                    <Text className="cm-project-stat-label">Tickets</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <CheckCircle2 size={13} color="var(--text-slate-400)" />
+                      <Text strong className="cm-project-stat-value">
+                        {p._count?.tickets || p.totalTickets || 0}
+                      </Text>
+                    </div>
+                  </div>
+                  <div>
+                    <Text className="cm-project-stat-label">Members</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Users size={13} color="var(--text-slate-400)" />
+                      <Text strong className="cm-project-stat-value">
+                        {p._count?.members || 0}
+                      </Text>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -738,7 +841,7 @@ export default function ClientsV2ListPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         {modalContextHolder}
         {messageContextHolder}
 
@@ -780,11 +883,11 @@ export default function ClientsV2ListPage() {
           }}
           footer={
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-              <Button 
+              <Button
                 onClick={() => {
                   setIsDeleteModalVisible(false);
                   setClientToDelete(null);
-                }} 
+                }}
                 style={{ borderRadius: 8 }}
                 disabled={isDeleting}
               >
@@ -808,357 +911,1884 @@ export default function ClientsV2ListPage() {
             <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5, lineHeight: 1.6 }}>
               Are you sure you want to delete{" "}
               <strong style={{ color: "var(--text-slate-900)" }}>{clientToDelete?.name}</strong>
-              ? This will permanently remove the client and all associated data, including contacts, 
+              ? This will permanently remove the client and all associated data, including contacts,
               allocations, and documents.
             </Text>
           </div>
         </Modal>
 
-        <div className="cm-page">
-          <TimeTrackingHeader
-            icon={<Building2 size={20} color="#8b5cf6" />}
-            title="Client Management"
-            description="Monitor, manage, and configure all client entity profiles."
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 100,
-              boxShadow: "none",
-              borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
-            }}
-            extra={
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Input
-                  placeholder="Search by name or code…"
-                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                  className="cm-search-input"
-                  onChange={(e) => handleSearch(e.target.value)}
-                  allowClear
-                />
-                <Button 
-                  icon={<Download size={15} />} 
-                  className="cm-secondary-btn"
-                  onClick={handleExport}
-                  loading={loading}
-                >
-                  Export
-                </Button>
-                {canCreateClient && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={16} />}
-                    className="cm-primary-btn"
-                    onClick={() => router.push("/clients-v2/create")}
-                  >
-                    New Client
-                  </Button>
-                )}
-              </div>
-            }
-          />
-
-          <div className="cm-ambient" />
-
-          <div className="cm-body">
-            {/* Stat grid */}
-            <div className="cm-stat-grid">
-              <StatCard
-                label="Total Clients"
-                value={globalStats.totalClients}
-                icon={Users}
-                accent="#3b82f6"
-                subtle="Across all segments"
-                loading={globalStats.totalClients === 0 && loading}
-                chart={
-                  globalStats.totalClients > 0 ? (
-                    <MiniBar
-                      segments={[
-                        {
-                          value: globalStats.activeClients,
-                          color: "#10b981",
-                          label: `${globalStats.activeClients} active`,
-                        },
-                        {
-                          value: globalStats.inactiveClients,
-                          color: "#94a3b8",
-                          label: `${globalStats.inactiveClients} other`,
-                        },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Total Projects"
-                value={projectStats.total}
-                icon={FolderKanban}
-                accent="#0ea5e9"
-                subtle="Across all clients"
-                loading={projectStats.total === 0 && loading}
-                chart={
-                  projectStats.total > 0 ? (
-                    <MiniBar
-                      segments={[
-                        { value: projectStats.active, color: "#0ea5e9", label: `${projectStats.active} active` },
-                        {
-                          value: Math.max(0, projectStats.total - projectStats.active),
-                          color: "#94a3b8",
-                          label: `${Math.max(0, projectStats.total - projectStats.active)} other`,
-                        },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Active Projects"
-                value={projectStats.active}
-                icon={CheckCircle2}
-                accent="#10b981"
-                subtle={
-                  projectStats.total > 0
-                    ? `${Math.round((projectStats.active / projectStats.total) * 100)}% of total`
-                    : "No projects yet"
-                }
-                loading={projectStats.total === 0 && loading}
-                chart={
-                  projectStats.total > 0 ? (
-                    <div className="cm-progress-row">
-                      <div className="cm-progress-track">
-                        <span
-                          className="cm-progress-fill"
-                          style={{
-                            width: `${Math.round((projectStats.active / projectStats.total) * 100)}%`,
-                            background: "linear-gradient(90deg, #10b981, #34d399)",
-                          }}
-                        />
-                      </div>
-                      <span className="cm-progress-label">
-                        {Math.round((projectStats.active / projectStats.total) * 100)}%
-                      </span>
+        <div className="bh2-page">
+          <div className="bh2-shell-wrap">
+            <div className="bh2-shell">
+              {/* ── Sidebar ───────────────────────────────────────────── */}
+              <aside className="bh2-sidebar">
+                <div className="bh2-sidebar-top">
+                  <div className="bh2-sidebar-brand">
+                    <div className="bh2-hero-icon-box">
+                      <Building2 size={18} color="#3b82f6" />
                     </div>
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Contract Value"
-                value={formatCurrency(globalStats.totalContractValue)}
-                icon={Wallet}
-                accent="#8b5cf6"
-                subtle="Across all clients"
-                loading={globalStats.totalClients === 0 && loading}
-                chart={
-                  globalStats.totalClients > 0 ? (
-                    <div className="cm-cv-row">
-                      <Sparkles size={11} />
-                      <span>
-                        Avg{" "}
-                        <strong>
-                          {formatCurrency(globalStats.totalContractValue / globalStats.totalClients)}
-                        </strong>{" "}
-                        per client
-                      </span>
+                    <div className="min-w-0">
+                      <h1 className="bh2-sidebar-title">Client Management</h1>
+                      <p className="bh2-sidebar-subtitle">Monitor and configure profiles</p>
                     </div>
-                  ) : null
-                }
-              />
-            </div>
-
-            {/* Divider between stats and filters */}
-            <div className="cm-section-divider">
-              <span className="cm-section-divider-label">Filters &amp; quick navigation</span>
-            </div>
-
-            {/* Filter / toolbar row */}
-            <div className="cm-toolbar">
-              <Segmented
-                value={activeFilter}
-                onChange={(v) => handleFilter(v as any)}
-                options={[
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <ShieldCheck size={13} /> All
-                        <span className="cm-seg-count">{globalStats.totalClients}</span>
-                      </span>
-                    ),
-                    value: "all",
-                  },
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <CheckCircle2 size={13} /> Active
-                        <span className="cm-seg-count">{globalStats.activeClients}</span>
-                      </span>
-                    ),
-                    value: "active",
-                  },
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <AlertCircle size={13} /> High risk
-                        <span className="cm-seg-count">{highRiskCount}</span>
-                      </span>
-                    ),
-                    value: "highRisk",
-                  },
-                ]}
-                className="cm-segmented"
-              />
-
-              <div className="cm-toolbar-mid">
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Jump to client…"
-                  className="cm-quick-select cm-quick-select-client"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<Building2 size={13} />}
-                  options={allClientsOpts}
-                  onChange={(id?: string) => {
-                    if (id) router.push(`/clients-v2/${id}`);
-                  }}
-                  filterOption={(input, option) => {
-                    const q = (input || "").toLowerCase();
-                    const label = ((option?.label as string) || "").toLowerCase();
-                    const code = ((option as any)?.code || "").toLowerCase();
-                    return label.includes(q) || code.includes(q);
-                  }}
-                  optionRender={(opt) => (
-                    <div className="cm-quick-opt">
-                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                      {(opt.data as any)?.code && (
-                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                      )}
-                    </div>
-                  )}
-                />
-
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Jump to project…"
-                  className="cm-quick-select cm-quick-select-project"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<FolderKanban size={13} />}
-                  options={allProjectsOpts}
-                  onChange={(id?: string) => {
-                    if (id) router.push(`/projects/${id}/overview`);
-                  }}
-                  filterOption={(input, option) => {
-                    const q = (input || "").toLowerCase();
-                    const label = ((option?.label as string) || "").toLowerCase();
-                    const code = ((option as any)?.code || "").toLowerCase();
-                    return label.includes(q) || code.includes(q);
-                  }}
-                  optionRender={(opt) => (
-                    <div className="cm-quick-opt">
-                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                      {(opt.data as any)?.code && (
-                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                      )}
-                    </div>
-                  )}
-                />
-
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Client type"
-                  className="cm-quick-select cm-quick-select-type"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<Sparkles size={13} />}
-                  value={typeFilter}
-                  options={typeOptions}
-                  onChange={(v?: string) => handleTypeChange(v)}
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || "")
-                      .toLowerCase()
-                      .includes((input || "").toLowerCase())
-                  }
-                />
-              </div>
-
-              <div className="cm-toolbar-right">
-                <span className="cm-result-count">
-                  {pagination.total
-                    ? `Showing ${(pagination.current - 1) * pagination.pageSize + 1}–${Math.min(pagination.current * pagination.pageSize, pagination.total)} of ${pagination.total}`
-                    : "No results"}
-                </span>
-              </div>
-            </div>
-
-            {/* Premium table card */}
-            <div className="cm-table-card">
-              <Table
-                columns={columns}
-                dataSource={data}
-                rowKey="id"
-                size="middle"
-                scroll={{ x: 1100 }}
-                pagination={{
-                  ...pagination,
-                  pageSizeOptions: ["10", "20", "50"],
-                  showSizeChanger: true,
-                  position: ["bottomRight"],
-                  showTotal: (total) => `${total} clients`,
-                }}
-                loading={loading}
-                onChange={handleTableChange}
-                onRow={(record) => ({
-                  onClick: () => router.push(`/clients-v2/${record.id}`),
-                  style: { cursor: "pointer" },
-                })}
-                locale={{
-                  emptyText: (
-                    <div className="cm-table-empty">
-                      <div className="cm-empty-icon">
-                        <Building2 size={28} />
-                      </div>
-                      <div className="cm-empty-title">No clients yet</div>
-                      <div className="cm-empty-desc">
-                        Add your first client to start tracking projects and contracts.
-                      </div>
-                      {canCreateClient && (
-                        <Button
-                          type="primary"
-                          icon={<Plus size={14} />}
-                          className="cm-primary-btn"
-                          style={{ marginTop: 16 }}
-                          onClick={() => router.push("/clients-v2/create")}
-                        >
-                          Create Client
-                        </Button>
-                      )}
-                    </div>
-                  ),
-                }}
-                expandable={{
-                  expandedRowRender,
-                  onExpand: (expanded, record) => {
-                    if (expanded) fetchClientProjects(record.id);
-                  },
-                  expandIcon: ({ expanded, onExpand, record }) => (
-                    <button
-                      type="button"
-                      className={`cm-expand-btn ${expanded ? "open" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExpand(record, e as any);
-                      }}
+                  </div>
+                  {canCreateClient && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={16} />}
+                      className="bh2-side-create"
+                      block
+                      onClick={() => router.push("/clients-v2/create")}
                     >
-                      <ChevronRight size={14} />
-                    </button>
-                  ),
-                }}
-                rowClassName={() => "cm-row"}
-              />
+                      New Client
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bh2-sidebar-scroll">
+                  {/* Views */}
+                  <div className="bh2-side-group">
+                    <div className="bh2-side-label">VIEWS</div>
+                    <div className="flex flex-col gap-0.5">
+                      {[
+                        { k: "all", label: "All clients", icon: <ShieldCheck size={14} />, count: globalStats.totalClients },
+                        { k: "active", label: "Active", icon: <CheckCircle2 size={14} />, count: globalStats.activeClients },
+                        { k: "highRisk", label: "High risk", icon: <AlertCircle size={14} />, count: highRiskCount },
+                      ].map((item) => {
+                        const active = activeFilter === item.k;
+                        return (
+                          <button
+                            key={item.k}
+                            className={`bh2-view-btn ${active ? "active" : ""}`}
+                            onClick={() => handleFilter(item.k as any)}
+                          >
+                            <span className="bh2-view-icon">{item.icon}</span>
+                            <span className="bh2-view-label">{item.label}</span>
+                            <span className="bh2-view-count">{item.count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="bh2-side-group" style={{ marginTop: 22 }}>
+                    <div className="bh2-side-label">Filters</div>
+                    <div className="bh2-side-filters flex flex-col gap-2">
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Jump to client…"
+                        className="cm-quick-select cm-quick-select-client"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<Building2 size={13} />}
+                        options={allClientsOpts}
+                        style={{ width: '100%' }}
+                        onChange={(id?: string) => {
+                          if (id) router.push(`/clients-v2/${id}`);
+                        }}
+                        filterOption={(input, option) => {
+                          const q = (input || "").toLowerCase();
+                          const label = ((option?.label as string) || "").toLowerCase();
+                          const code = ((option as any)?.code || "").toLowerCase();
+                          return label.includes(q) || code.includes(q);
+                        }}
+                        optionRender={(opt) => (
+                          <div className="cm-quick-opt">
+                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                            {(opt.data as any)?.code && (
+                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                            )}
+                          </div>
+                        )}
+                      />
+
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Jump to project…"
+                        className="cm-quick-select cm-quick-select-project"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<FolderKanban size={13} />}
+                        options={allProjectsOpts}
+                        style={{ width: '100%' }}
+                        onChange={(id?: string) => {
+                          if (id) router.push(`/projects/${id}/overview`);
+                        }}
+                        filterOption={(input, option) => {
+                          const q = (input || "").toLowerCase();
+                          const label = ((option?.label as string) || "").toLowerCase();
+                          const code = ((option as any)?.code || "").toLowerCase();
+                          return label.includes(q) || code.includes(q);
+                        }}
+                        optionRender={(opt) => (
+                          <div className="cm-quick-opt">
+                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                            {(opt.data as any)?.code && (
+                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                            )}
+                          </div>
+                        )}
+                      />
+
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Client type"
+                        className="cm-quick-select cm-quick-select-type"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<Sparkles size={13} />}
+                        value={typeFilter}
+                        options={typeOptions}
+                        style={{ width: '100%' }}
+                        onChange={(v?: string) => handleTypeChange(v)}
+                        filterOption={(input, option) =>
+                          ((option?.label as string) || "")
+                            .toLowerCase()
+                            .includes((input || "").toLowerCase())
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              {/* ── Main ──────────────────────────────────────────────── */}
+              <main className="bh2-main">
+                {/* Toolbar */}
+                <div className="bh2-toolbar">
+                  <div className="bh2-main-search">
+                    <Input
+                      placeholder="Search by name or code…"
+                      prefix={<Search size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                      className="premium-search-input rounded-lg transition-all"
+                      style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
+                      value={searchText}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      allowClear
+                    />
+                  </div>
+
+                  <div className="bh2-main-stats">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="bh2-pulse-dot" />
+                      <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>
+                        {pagination.total}
+                      </span> {pagination.total === 1 ? "result" : "results"}
+                    </span>
+                  </div>
+
+                  <div className="bh2-main-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                      <Tooltip title="List">
+                        <button
+                          onClick={() => setViewMode('list')}
+                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                          style={{
+                            width: 30, height: 30,
+                            background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
+                            color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                            border: 'none', cursor: 'pointer'
+                          }}
+                        >
+                          <ListIcon size={16} style={{ color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="Card">
+                        <button
+                          onClick={() => setViewMode('card')}
+                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                          style={{
+                            width: 30, height: 30,
+                            background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
+                            color: viewMode === 'card' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                            border: 'none', cursor: 'pointer'
+                          }}
+                        >
+                          <LayoutGrid size={16} style={{ color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                    <Button
+                      icon={<RefreshCw size={14} className={loading ? "animate-spin" : ""} />}
+                      onClick={handleRefresh}
+                      style={{ height: 38, width: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    />
+                    <Button
+                      icon={<Download size={14} />}
+                      onClick={handleExport}
+                      loading={loading}
+                      style={{ height: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)' }}
+                    >
+                      Export
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="cm-ambient" style={{ position: 'absolute', top: 56, left: 0, right: 0, height: 320, zIndex: 0 }} />
+
+                <div className="cm-body" style={{ padding: '12px 0px 14px 0px', position: 'relative', zIndex: 1 }}>
+                  {/* Stat grid */}
+                  <div className="cm-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" style={{ marginBottom: 24, display: 'grid' }}>
+                    <StatCard
+                      label="Total Clients"
+                      value={globalStats.totalClients}
+                      icon={Users}
+                      accent="#3b82f6"
+                      subtle="this week"
+                      loading={globalStats.totalClients === 0 && loading}
+                      trend={{ value: 4, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0].map(r => r * globalStats.totalClients)} color="#cbd5e1" />}
+                    />
+                    <StatCard
+                      label="Total Projects"
+                      value={projectStats.total}
+                      icon={FolderKanban}
+                      accent="#3b82f6"
+                      subtle="this week"
+                      loading={projectStats.total === 0 && loading}
+                      trend={{ value: 7, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * projectStats.total)} color="#10b981" />}
+                    />
+                    <StatCard
+                      label="Active Projects"
+                      value={projectStats.active}
+                      icon={CheckCircle2}
+                      accent="#10b981"
+                      subtle="this week"
+                      loading={projectStats.total === 0 && loading}
+                      trend={{ value: 3, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * projectStats.active)} color="#cbd5e1" />}
+                    />
+                    <StatCard
+                      label="Contract Value"
+                      value={formatCurrency(globalStats.totalContractValue)}
+                      icon={Wallet}
+                      accent="#687487"
+                      subtle="this week"
+                      loading={globalStats.totalClients === 0 && loading}
+                      trend={{ value: 1, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0].map(r => r * globalStats.totalContractValue)} color="#cbd5e1" />}
+                    />
+                  </div>
+
+                  {/* Premium table card or Grid */}
+                  {viewMode === 'list' ? (
+                    <div className="cm-table-card">
+                      <Table
+                        columns={columns}
+                        dataSource={data}
+                        rowKey="id"
+                        size="middle"
+                        scroll={{ x: 1100 }}
+                        pagination={false}
+                        loading={loading}
+                        onChange={handleTableChange}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/clients-v2/${record.id}`),
+                          style: { cursor: "pointer" },
+                        })}
+                        locale={{
+                          emptyText: (
+                            <div className="cm-table-empty">
+                              <div className="cm-empty-icon">
+                                <Building2 size={28} />
+                              </div>
+                              <div className="cm-empty-title">No clients yet</div>
+                              <div className="cm-empty-desc">
+                                Add your first client to start tracking projects and contracts.
+                              </div>
+                              {canCreateClient && (
+                                <Button
+                                  type="primary"
+                                  icon={<Plus size={14} />}
+                                  className="cm-primary-btn"
+                                  style={{ marginTop: 16 }}
+                                  onClick={() => router.push("/clients-v2/create")}
+                                >
+                                  Create Client
+                                </Button>
+                              )}
+                            </div>
+                          ),
+                        }}
+                        expandable={{
+                          expandedRowRender: (record) => expandedRowRender(record, false),
+                          onExpand: (expanded, record) => {
+                            if (expanded) fetchClientProjects(record.id);
+                          },
+                          expandIcon: ({ expanded, onExpand, record }) => (
+                            <button
+                              type="button"
+                              className={`cm-expand-btn ${expanded ? "open" : ""}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExpand(record, e as any);
+                              }}
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          ),
+                        }}
+                        rowClassName={() => "cm-row"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="bh2-grid">
+                      {data.length === 0 ? (
+                        <div className="bh2-empty" style={{ gridColumn: "1 / -1" }}>
+                          <div className="bh2-empty-icon">
+                            <Building2 size={28} style={{ color: "#3b82f6" }} />
+                          </div>
+                          <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                            No clients yet
+                          </Title>
+                          <Text style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
+                            Add your first client to start tracking projects and contracts.
+                          </Text>
+                          {canCreateClient && (
+                            <Button
+                              type="primary"
+                              icon={<Plus size={14} />}
+                              onClick={() => router.push("/clients-v2/create")}
+                              style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", border: "none" }}
+                            >
+                              Create Client
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        data.map((record) => {
+                          const initials = initialsOf(record.companyName, record.clientCode);
+                          const grad = gradientFor(record.companyName || record.clientCode);
+                          const isActive = record.status === "Active";
+                          const am = record.accountManager;
+                          const fullName = am ? `${am.first_name || ""} ${am.last_name || ""}`.trim() : "Unassigned";
+                          const projectCount = record?._count?.ClientProject ?? 0;
+                          const amInitials = am ? `${am.first_name?.[0] || "?"}${am.last_name?.[0] || ""}`.toUpperCase() : "U";
+
+                          const accent = isActive ? "#3b82f6" : "#64748b";
+
+                          return (
+                            <article
+                              key={record.id}
+                              className="bh2-list-card"
+                              style={{ ["--row-accent" as any]: accent }}
+                            >
+                              <header className="bh2-list-head" style={{ padding: '12px' }}>
+                                <div
+                                  className="bh2-list-row"
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => router.push(`/clients-v2/${record.id}`)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      router.push(`/clients-v2/${record.id}`);
+                                    }
+                                  }}
+                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
+                                >
+                                  <div className="bh2-list-avatar">
+                                    <span className="bh2-list-avatar-letter">{initials}</span>
+                                  </div>
+
+                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {record.companyName}
+                                    </span>
+                                    <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
+                                      {record.clientCode}
+                                      {isActive ? (
+                                        <span
+                                          className="bh2-list-status"
+                                          style={{
+                                            background: "rgba(16,185,129,0.08)",
+                                            borderColor: "rgba(16,185,129,0.2)",
+                                            color: "#047857",
+                                          }}
+                                        >
+                                          <Globe2 size={9} style={{ marginRight: 4 }} />
+                                          Active
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className="bh2-list-status"
+                                          style={{
+                                            background: "rgba(100,116,139,0.08)",
+                                            borderColor: "rgba(100,116,139,0.2)",
+                                            color: "#475569",
+                                          }}
+                                        >
+                                          <ShieldCheck size={9} style={{ marginRight: 4 }} />
+                                          Inactive
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Right side more icon */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div className="bh2-list-more" onClick={e => e.stopPropagation()}>
+                                    <Dropdown
+                                      menu={{
+                                        items: [
+                                          {
+                                            key: 'view',
+                                            icon: <div className="cm-drop-icon" style={{ background: '#eff6ff', color: '#3b82f6', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} /></div>,
+                                            label: (
+                                              <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                                <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>View client</div>
+                                                <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open the full view</div>
+                                              </div>
+                                            ),
+                                            style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                            onClick: () => router.push(`/clients-v2/${record.id}`)
+                                          },
+                                          ...(canUpdateClient ? [{
+                                            key: 'edit',
+                                            icon: <div className="cm-drop-icon" style={{ background: '#f1f5f9', color: '#64748b', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Settings2 size={16} /></div>,
+                                            label: (
+                                              <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                                <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>Configure</div>
+                                                <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open in the builder</div>
+                                              </div>
+                                            ),
+                                            style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                            onClick: () => router.push(`/clients-v2/create?id=${record.id}`)
+                                          }] : []),
+                                          ...(canDeleteClient ? [
+                                            { type: 'divider' as const },
+                                            {
+                                              key: 'delete',
+                                              icon: <div className="cm-drop-icon" style={{ background: '#fef2f2', color: '#ef4444', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></div>,
+                                              label: (
+                                                <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                                  <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Delete</div>
+                                                  <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Remove this client</div>
+                                                </div>
+                                              ),
+                                              style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                              onClick: () => handleDeleteClient(record.id, record.companyName)
+                                            }
+                                          ] : [])
+                                        ]
+                                      }}
+                                      trigger={['click']}
+                                      placement="bottomRight"
+                                    >
+                                      <Button
+                                        type="text"
+                                        className="bh2-more-btn"
+                                        icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+                                        style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
+                                      />
+                                    </Dropdown>
+                                  </div>
+                                </div>
+                              </header>
+
+                              <div className="bh2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
+                                <div className="bh2-list-foot-inline">
+                                  <span className="bh2-list-foot-item">
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Manager</span>
+                                    {am ? (
+                                      <div
+                                        className="cm-mini-avatar"
+                                        style={{
+                                          width: 18,
+                                          height: 18,
+                                          background: gradientFor(fullName),
+                                          fontSize: 9,
+                                          fontWeight: 800,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderRadius: '50%',
+                                          color: '#fff',
+                                          marginLeft: 4,
+                                          marginRight: 4
+                                        }}
+                                      >
+                                        {amInitials}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="cm-mini-avatar"
+                                        style={{
+                                          width: 18,
+                                          height: 18,
+                                          background: '#e2e8f0',
+                                          fontSize: 9,
+                                          fontWeight: 800,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderRadius: '50%',
+                                          color: '#94a3b8',
+                                          marginLeft: 4,
+                                          marginRight: 4
+                                        }}
+                                      >
+                                        U
+                                      </div>
+                                    )}
+                                    <b>{fullName}</b>
+                                  </span>
+
+                                  {/* <span className="bh2-list-foot-div" style={{ height: 12, width: 1, background: 'var(--border-slate-300)', margin: '0 8px' }} /> */}
+                                  <span className="bh2-list-foot-div" />
+
+                                  <span className="bh2-list-foot-item">
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Allocation</span>
+                                    <b style={{ marginLeft: 4 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</b>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <footer className="bh2-list-foot">
+                                <div className="bh2-list-foot-inline">
+                                  <span className="bh2-list-foot-item">
+                                    <span className="bh2-list-foot-label">Created:</span>
+                                    <b>
+                                      {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}
+                                    </b>
+                                  </span>
+
+                                  <span className="bh2-list-foot-div" />
+
+                                  <button
+                                    type="button"
+                                    className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
+                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 6 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedCardId((prev) => {
+                                        const next = prev === record.id ? null : record.id;
+                                        if (next && !expandedClientProjects[next]) {
+                                          fetchClientProjects(next);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    <FolderKanban size={13} />
+                                    <span style={{ fontWeight: 600 }}>Active Projects</span>
+                                    <ChevronDown size={14} style={{ marginLeft: 2, transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                                  </button>
+                                </div>
+                              </footer>
+
+                              {expandedCardId === record.id && (
+                                <>
+                                  <div className="bh2-list-divider" />
+                                  <div className="cm-card-expanded-area">
+                                    {expandedRowRender(record, true)}
+                                  </div>
+                                </>
+                              )}
+                            </article>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Fixed pagination footer */}
+                {!loading && data.length > 0 && pagination && (
+                  <div className="bh2-pagination">
+                    <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                      Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                        {(pagination.current! - 1) * pagination.pageSize! + 1}–{Math.min(pagination.current! * pagination.pageSize!, pagination.total!)}
+                      </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{pagination.total}</span> client{pagination.total !== 1 ? 's' : ''}
+                    </Text>
+                    <Pagination
+                      current={pagination.current}
+                      pageSize={pagination.pageSize}
+                      total={pagination.total}
+                      onChange={(p, s) => {
+                        fetchClients(p, s, searchText, activeFilter, typeFilter);
+                      }}
+                      showSizeChanger
+                      pageSizeOptions={["10", "20", "50"]}
+                    />
+                  </div>
+                )}
+              </main>
             </div>
           </div>
 
           {/* ----------------------------- Styles ------------------------------ */}
           <style jsx global>{`
+
+/* === BH2 LAYOUT STYLES COPIED === */
+
+        /* ── Page shell ──────────────────────────────────────────── */
+        .bh2-page {
+          background: var(--bg-pure-white);
+          min-height: calc(100vh - 54px);
+          display: flex;
+          flex-direction: column;
+          margin: 0 ;
+        }
+        [data-theme="dark"] .bh2-page {
+          background: var(--bg-pure-white) !important;
+        }
+
+        .bh2-shell-wrap {
+          flex: 1;
+        }
+        .bh2-shell {
+          display: grid;
+          grid-template-columns: 252px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+        }
+        .bh2-main {
+          min-width: 0;
+          padding: 14px 24px 32px;
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+        }
+        [data-theme="dark"] .bh2-main {
+          background: transparent !important;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────────── */
+        .bh2-sidebar {
+          width: 252px;
+          background: var(--bg-pure-white);
+          border-right: 1px solid var(--border-slate-200);
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 54px);
+          overflow: hidden;
+          z-index: 10;
+        }
+        [data-theme="dark"] .bh2-sidebar {
+          background: #0f1419 !important;
+          border-right-color: #1f2937 !important;
+        }
+
+        .bh2-sidebar-top { 
+          padding: 14px 14px 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-sidebar-top {
+          border-bottom-color: #1f2937 !important;
+        }
+        .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .bh2-hero-icon-box {
+          width: 38px; height: 38px; border-radius: 10px;
+          background: rgba(59, 130, 246, 0.08);
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .bh2-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
+        [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
+        .bh2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .bh2-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
+        }
+        [data-theme="dark"] .bh2-side-create {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        }
+
+        .bh2-sidebar-scroll {
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
+        }
+
+        .bh2-side-group { margin-bottom: 22px; }
+        .bh2-side-label {
+          font-size: 10px; font-weight: 800; color: var(--text-slate-400);
+          text-transform: uppercase; letter-spacing: 0.08em;
+          padding: 0 10px; margin-bottom: 8px;
+        }
+
+        .bh2-view-btn {
+          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          border-radius: 6px; background: transparent; border: none; cursor: pointer;
+          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          color: var(--text-slate-600); transition: all 0.15s ease;
+        }
+        .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
+        [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+        .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
+        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        [data-theme='dark'] .bh2-view-icon { color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+
+        .bh2-view-count {
+          margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+        }
+        .bh2-view-btn.active .bh2-view-count {
+          background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
+        }
+        [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+
+        .bh2-view-label {
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-sidebar-item:hover {
+          background: #1c232e !important;
+        }
+        .bh2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+          color: #60a5fa !important;
+        }
+        .bh2-sidebar-item-icon {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 800;
+          flex-shrink: 0;
+          letter-spacing: -0.01em;
+        }
+        .bh2-icon-all {
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        [data-theme="dark"] .bh2-icon-all {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .bh2-sidebar-item-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          margin: 0 6px 0 7px;
+        }
+        .bh2-sidebar-item-label {
+          flex: 1;
+          font-size: 12.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: -0.005em;
+        }
+        .bh2-sidebar-item-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          padding: 0 6px;
+          line-height: 1.6;
+          border: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .bh2-sidebar-item-count {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .bh2-sidebar-item.active .bh2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.14);
+          border-color: rgba(59, 130, 246, 0.28);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.22) !important;
+          border-color: rgba(59, 130, 246, 0.38) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Project row with expandable toggle */
+        .bh2-sidebar-proj-row {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          padding: 0;
+          border-radius: 8px;
+          border: 1px solid transparent;
+          transition: background 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-sidebar-proj-row:hover {
+          background: var(--bg-slate-50);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row:hover {
+          background: #1c232e !important;
+        }
+        .bh2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+        }
+        .bh2-sidebar-proj-toggle {
+          flex-shrink: 0;
+          width: 18px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          border-radius: 4px;
+          transition: color 0.12s ease;
+        }
+        .bh2-sidebar-proj-toggle:hover {
+          color: #1d4ed8;
+        }
+        .bh2-sidebar-proj-main {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 6px 10px 6px 4px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-700);
+          text-align: left;
+          min-width: 0;
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-main {
+          color: #cbd5e1 !important;
+        }
+        .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
+          color: #60a5fa !important;
+        }
+
+        /* Nested buckets under project */
+        .bh2-sidebar-children {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          margin: 2px 0 4px 22px;
+          padding-left: 8px;
+          border-left: 1px dashed var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-sidebar-children {
+          border-left-color: #2d3748 !important;
+        }
+        .bh2-sidebar-bucket {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 5px 8px;
+          border-radius: 6px;
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-600);
+          text-align: left;
+          width: 100%;
+          transition: background 0.12s ease, color 0.12s ease;
+          min-width: 0;
+        }
+        .bh2-sidebar-bucket:hover {
+          background: var(--bg-slate-50);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-bucket {
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .bh2-sidebar-bucket:hover {
+          background: #1c232e !important;
+          color: #60a5fa !important;
+        }
+        .bh2-sidebar-bucket-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .bh2-sidebar-bucket-label {
+          flex: 1;
+          font-size: 11.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .bh2-sidebar-bucket-count {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-slate-400);
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0;
+        }
+        .bh2-sidebar-empty-mini {
+          padding: 6px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        .bh2-sidebar-empty {
+          padding: 10px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+        }
+        .bh2-sidebar-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 6px 4px;
+        }
+        [data-theme="dark"] .bh2-sidebar-divider {
+          background: #1f2937 !important;
+        }
+        .bh2-sidebar-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 6px;
+          padding: 8px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          color: var(--text-slate-500);
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: color 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-sidebar-clear:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .bh2-sidebar-clear {
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+
+        /* ── Main toolbar ───────────────────────────────────────── */
+        .bh2-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: var(--bg-pure-white);
+          margin: -14px -24px 0;
+          padding: 6px 20px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-toolbar {
+          background: #0d1117 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .bh2-main-search {
+          flex: 1;
+          max-width: 320px;
+        }
+         .premium-search-input{
+          border-radius: 6px !important;
+          height: 32px !important;
+        }
+        .bh2-search-kbd {
+          display: inline-block;
+          font-family: ui-monospace, SFMono-Regular, monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          margin: 0 2px;
+          border-radius: 5px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-700);
+          box-shadow: 0 1px 0 var(--border-slate-200);
+        }
+        .bh2-main-stats {
+          margin-left: 12px;
+          color: var(--text-slate-500);
+          font-size: 13px;
+        }
+        .bh2-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+          animation: bh2-pulse 2s infinite;
+        }
+        @keyframes bh2-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .bh2-main-controls {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .bh2-vis-badge {
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid;
+        }
+        .bh2-vis-badge-public {
+          background: rgba(16, 185, 129, 0.1);
+          border-color: rgba(16, 185, 129, 0.25);
+          color: #047857;
+        }
+        .bh2-vis-badge-private {
+          background: rgba(245, 158, 11, 0.1);
+          border-color: rgba(245, 158, 11, 0.25);
+          color: #b45309;
+        }
+        /* RangePicker — match the SearchableDropdown trigger height/border */
+        .bh2-range-picker {
+          height: 32px !important;
+          border-radius: 8px !important;
+          font-size: 12px;
+        }
+        .bh2-range-picker.ant-picker {
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .bh2-range-picker.ant-picker {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        .bh2-toolbar-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .bh2-toolbar-chip {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-200);
+          padding: 2px 8px;
+          border-radius: 999px;
+          letter-spacing: 0.01em;
+        }
+        [data-theme="dark"] .bh2-toolbar-chip {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        .bh2-search-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          width: 260px;
+          transition: border-color 0.15s ease;
+        }
+        .bh2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .bh2-search-box {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        [data-theme="dark"] .bh2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.5) !important;
+        }
+
+        /* ── List cards ─────────────────────────────────────────── */
+        .bh2-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding-top: 10px;
+        }
+        
+        .bh2-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          padding-top: 10px;
+        }
+        
+        @media (max-width: 1200px) {
+          .bh2-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* ── Sticky pagination footer ──────────────────────────── */
+        .bh2-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          margin: auto -24px -32px -24px;
+          flex-wrap: wrap;
+          position: sticky;
+          bottom: 0;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="dark"] .bh2-pagination {
+          background: #161b22 !important;
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Custom Pagination Styles */
+        .bh2-pagination .ant-pagination-item,
+        .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .bh2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .bh2-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .bh2-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+
+        .bh2-list-card {
+          position: relative;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0px;
+          /* When we smooth-scroll a card into view on Manage-Tickets click,
+             land its top 120px below the viewport so it clears the sticky
+             page header (~52px) + sticky toolbar (~60px). */
+          scroll-margin-top: 120px;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        [data-theme="dark"] .bh2-list-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .bh2-list-card:hover {
+          border-color: var(--row-accent, #3b82f6);
+        }
+        [data-theme="dark"] .bh2-list-card:hover {
+          background: #1c232e !important;
+        }
+        .bh2-list-card-skel {
+          min-height: 96px;
+        }
+
+        .bh2-list-head {
+          display: flex;
+          align-items: center;
+        }
+        .bh2-list-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+          min-width: 0;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          padding: 0;
+          text-align: left;
+          font-family: inherit;
+          outline: none;
+        }
+        .bh2-list-row:focus-visible {
+          outline: 2px solid rgba(59, 130, 246, 0.3);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+        .bh2-list-row-segments {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+        .bh2-list-more {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .bh2-list-row-div {
+          width: 1px;
+          height: 18px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .bh2-list-row-div {
+          background: #2d3748 !important;
+        }
+        .bh2-list-seg {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .bh2-list-seg-project {
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .bh2-list-seg-bucket {
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        .bh2-list-seg-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .bh2-list-seg-label {
+          color: #94a3b8 !important;
+        }
+        .bh2-list-seg-value {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-seg-value {
+          color: #cbd5e1 !important;
+        }
+        .bh2-list-seg-value.muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .bh2-list-seg-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .bh2-list-seg-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 13.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1.25;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-seg-name {
+          color: #f1f5f9 !important;
+        }
+        .bh2-list-row:hover .bh2-list-seg-name {
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-list-row:hover .bh2-list-seg-name {
+          color: #60a5fa !important;
+        }
+        .bh2-list-avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 9px;
+          border: 1px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+          background: #3b82f6;
+          color: #fff;
+        }
+        [data-theme="dark"] .bh2-list-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        }
+        .bh2-list-avatar::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 75% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0, 0, 0, 0.06), transparent 55%);
+          pointer-events: none;
+        }
+        .bh2-list-avatar-letter {
+          position: relative;
+          z-index: 1;
+          line-height: 1;
+          color: #fff;
+        }
+        .bh2-list-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 9px;
+          border-radius: 999px;
+          border: 1px solid;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+        }
+
+        .bh2-list-desc {
+          margin: 0;
+          padding: 4px 8px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 6px;
+          align-self: flex-start;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-desc {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+
+        /* Body */
+        .bh2-list-body {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 12px;
+          background: var(--bg-slate-50);
+          padding: 10px;
+          border-top: 1px solid var(--border-slate-100);
+        }
+        [data-theme="dark"] .bh2-list-body {
+          background: rgba(30, 41, 59, 0.4) !important;
+          border-top-color: #1f2937 !important;
+        }
+        .bh2-list-block {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        [data-theme="dark"] .bh2-list-block {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .bh2-list-block-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .bh2-list-block-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .bh2-list-block-label {
+          color: #94a3b8 !important;
+        }
+        .bh2-list-stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .bh2-list-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 5px;
+        }
+        .bh2-list-stat-value {
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
+        }
+        [data-theme="dark"] .bh2-list-stat-value {
+          color: #f1f5f9 !important;
+        }
+        .bh2-list-stat-label {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+        }
+        .bh2-list-stat-sep {
+          width: 1px;
+          height: 14px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-list-stat-sep {
+          background: #2d3748 !important;
+        }
+        .bh2-list-owner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .bh2-list-owner-info {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          line-height: 1.25;
+        }
+        .bh2-list-owner-name {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-800);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-owner-name {
+          color: #e2e8f0 !important;
+        }
+        .bh2-list-owner-email {
+          font-size: 10.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* Footer */
+        .bh2-list-foot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 6px 16px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+        }
+        [data-theme="dark"] .bh2-list-foot {
+          background: rgba(30, 41, 59, 0.4) !important;
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Divider between footer and the inline Manage-Tickets panel */
+        .bh2-list-divider {
+          height: 1px;
+          background: var(--border-slate-200);
+          margin: 0;
+        }
+        [data-theme="dark"] .bh2-list-divider {
+          background: #1f2937 !important;
+        }
+        .bh2-list-foot-inline {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .bh2-list-foot-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .bh2-list-foot-item b {
+          color: var(--text-slate-800);
+          font-weight: 700;
+        }
+        [data-theme="dark"] .bh2-list-foot-item b {
+          color: #e2e8f0 !important;
+        }
+        .bh2-list-foot-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .bh2-list-foot-div {
+          width: 1px;
+          height: 12px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-list-foot-div {
+          background: #2d3748 !important;
+        }
+        .bh2-list-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .bh2-list-action-btn {
+          width: 28px;
+          height: 28px;
+          padding: 0 !important;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 7px !important;
+        }
+
+        /* Labeled footer button (e.g. Move to Sprint / Move to Backlog) */
+        .bh2-foot-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          height: 28px !important;
+          padding: 0 10px !important;
+          border-radius: 7px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-700) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.005em;
+          transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .bh2-foot-btn:hover:not(:disabled) {
+          border-color: var(--row-accent, #3b82f6) !important;
+          color: var(--row-accent, #3b82f6) !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .bh2-foot-btn:disabled {
+          opacity: 0.5;
+        }
+        [data-theme="dark"] .bh2-foot-btn {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-foot-btn:hover:not(:disabled) {
+          background: #1c232e !important;
+        }
+
+        /* Manage Tickets button */
+        .bh2-manage-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 11px;
+          background: #4f689426;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          color: var(--text-slate-600);
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-manage-btn:hover {
+          color: var(--row-accent, #3b82f6);
+          border-color: var(--row-accent, #3b82f6);
+          background: var(--bg-slate-50);
+        }
+        .bh2-manage-btn.active {
+          color: var(--row-accent, #3b82f6);
+          border-color: var(--row-accent, #3b82f6);
+          background: rgba(59, 130, 246, 0.08);
+        }
+        [data-theme="dark"] .bh2-manage-btn {
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-manage-btn:hover {
+          background: #1c232e !important;
+        }
+        [data-theme="dark"] .bh2-manage-btn.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+        }
+
+        /* Empty */
+        .bh2-empty {
+          padding: 64px 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .bh2-empty-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: rgba(59, 130, 246, 0.08);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+
+        /* Slim sidebar + tighter toolbar on smaller desktop */
+        @media (max-width: 1200px) {
+          .bh2-shell {
+            grid-template-columns: 240px minmax(0, 1fr);
+          }
+          .bh2-sidebar {
+            padding: 12px 8px 14px 14px;
+          }
+          .bh2-search-box {
+            width: 220px;
+          }
+          .bh2-list-card {
+            padding: 16px 18px 14px 20px;
+          }
+        }
+
+        /* Tablet — toolbar filters wrap to their own row */
+        @media (max-width: 1024px) {
+          .bh2-toolbar-filters {
+            margin-left: 0;
+            width: 100%;
+            order: 3;
+          }
+          .bh2-search-box {
+            width: 200px;
+          }
+          .bh2-list-foot {
+            flex-wrap: wrap;
+            row-gap: 10px;
+          }
+        }
+
+        /* Sidebar collapses above content */
+        @media (max-width: 900px) {
+          .bh2-page {
+            margin: 0 -16px;
+          }
+          .bh2-shell {
+            grid-template-columns: 1fr;
+          }
+          .bh2-sidebar {
+            position: relative;
+            top: 0;
+            height: auto;
+            max-height: 320px;
+            padding: 10px 16px 12px;
+            border-right: none;
+            border-bottom: 1px solid var(--border-slate-200);
+          }
+          .bh2-main {
+            padding: 14px 16px 28px;
+          }
+          .bh2-list-body {
+            grid-template-columns: 1fr;
+          }
+          .bh2-toolbar {
+            margin: -14px -16px 0;
+            padding: 12px 16px;
+          }
+          .bh2-pagination {
+            margin: 14px -16px -28px;
+            padding: 10px 16px;
+          }
+          .bh2-list-card {
+            padding: 14px 16px 14px 18px;
+            gap: 12px;
+          }
+          .bh2-list-stripe {
+            top: 14px;
+            bottom: 14px;
+          }
+          /* When sidebar is above the main column, drop the desktop scroll-margin
+             since the user no longer has to clear a fixed left rail. */
+          .bh2-list-card {
+            scroll-margin-top: 88px;
+          }
+        }
+
+        /* Phone */
+        @media (max-width: 640px) {
+          .bh2-page {
+            margin: 0 -8px;
+          }
+          .bh2-main {
+            padding: 12px 12px 24px;
+          }
+          .bh2-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            margin: -12px -12px 0;
+            padding: 10px 12px;
+          }
+          .bh2-toolbar-title {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .bh2-toolbar-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+          }
+          .bh2-toolbar-filters > * {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .bh2-range-picker {
+            grid-column: 1 / -1;
+          }
+          .bh2-search-box {
+            width: 100%;
+          }
+          /* Bucket cards */
+          .bh2-list-card {
+            padding: 14px 14px 12px 16px;
+            scroll-margin-top: 76px;
+          }
+          .bh2-list-row {
+            gap: 10px;
+          }
+          .bh2-list-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 15px;
+          }
+          .bh2-list-seg-name {
+            font-size: 14px;
+            white-space: normal;
+          }
+          .bh2-list-foot {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .bh2-list-actions {
+            flex-wrap: wrap;
+            row-gap: 6px;
+            justify-content: flex-start;
+          }
+          .bh2-foot-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          /* Pagination */
+          .bh2-pagination {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            margin: 12px -12px -24px;
+            padding: 10px 12px;
+          }
+          .bh2-pagination-meta {
+            text-align: center;
+          }
+          /* Sidebar items more compact */
+          .bh2-sidebar {
+            padding: 8px 14px 10px;
+            max-height: 280px;
+          }
+          .bh2-sidebar-section-head {
+            padding: 4px 6px 6px;
+          }
+        }
+
+        /* Very small phones */
+        @media (max-width: 400px) {
+          .bh2-list-stripe {
+            display: none;
+          }
+          .bh2-list-status {
+            font-size: 9.5px;
+          }
+          .bh2-list-seg-name {
+            font-size: 13px;
+          }
+        }
+      
+/* ================================ */
             .cm-page {
               position: relative;
               margin: 0 -24px;
@@ -1284,8 +2914,13 @@ export default function ClientsV2ListPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 14px;
-              padding: 14px 16px 14px;
+              border-radius: 0;
+              padding: 12px 14px;
+              min-height: 92px;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              gap: 10px;
               overflow: hidden;
               transition: transform .25s cubic-bezier(.2,.8,.2,1),
                           box-shadow .25s cubic-bezier(.2,.8,.2,1),
@@ -1306,45 +2941,64 @@ export default function ClientsV2ListPage() {
               transition: opacity .25s ease;
               pointer-events: none;
             }
-            /* Single-row head: icon | title | value */
-            .cm-stat-head {
+            .dh-stats-card:hover {
+                border-color: var(--border-slate-300, #cbd5e1) !important;
+                box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07) !important;
+            }
+            [data-theme='dark'] .dh-stats-card:hover {
+                background: rgba(255, 255, 255, 0.02) !important;
+            }
+            
+            .cm-stat-top {
               display: flex;
               align-items: center;
-              gap: 10px;
-              min-width: 0;
+              justify-content: space-between;
+            }
+            .cm-stat-left {
+              display: flex;
+              align-items: center;
+              gap: 8px;
             }
             .cm-stat-icon {
-              width: 32px; height: 32px;
-              border-radius: 9px;
+              width: 26px; height: 26px;
+              border-radius: 8px;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
             }
             .cm-stat-label {
-              flex: 1;
-              min-width: 0;
-              font-size: 13px;
+              font-size: 12px;
               font-weight: 600;
-              color: var(--text-slate-700);
-              letter-spacing: -0.005em;
-              text-transform: none;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+              color: var(--text-slate-600);
+            }
+            
+            .cm-stat-bottom {
+              display: flex;
+              align-items: flex-end;
+              justify-content: space-between;
+              gap: 8px;
             }
             .cm-stat-value-wrap {
               display: flex;
-              align-items: center;
-              gap: 8px;
-              flex-shrink: 0;
+              align-items: baseline;
+              gap: 6px;
             }
             .cm-stat-value {
-              font-size: 22px;
+              font-size: 23px;
               font-weight: 800;
               color: var(--text-slate-900);
-              letter-spacing: -0.025em;
+              letter-spacing: -0.02em;
               line-height: 1;
               font-variant-numeric: tabular-nums;
             }
+            .cm-stat-period {
+              font-size: 11px;
+              color: var(--text-slate-400);
+              font-weight: 500;
+            }
+            .cm-stat-chart {
+              opacity: 0.95;
+            }
+            
             .cm-trend {
               display: inline-flex;
               align-items: center;
@@ -1359,21 +3013,6 @@ export default function ClientsV2ListPage() {
             .cm-trend.up { background: rgba(16,185,129,0.1); color: #047857; }
             .cm-trend.down { background: rgba(239,68,68,0.1); color: #b91c1c; }
             .cm-trend-value { letter-spacing: 0.01em; }
-            .cm-stat-subtle {
-              display: block;
-              font-size: 11.5px;
-              color: var(--text-slate-500);
-              margin-top: 8px;
-              padding-left: 42px;
-              font-weight: 500;
-              line-height: 1.4;
-            }
-            .cm-stat-chart {
-              margin-top: 10px;
-              padding-top: 10px;
-              padding-left: 42px;
-              border-top: 1px dashed var(--border-slate-100);
-            }
 
             /* MiniBar */
             .cm-minibar { display: flex; flex-direction: column; gap: 7px; }
@@ -1523,7 +3162,7 @@ export default function ClientsV2ListPage() {
             }
             .cm-quick-select.ant-select .ant-select-selector {
               height: 36px !important;
-              border-radius: 10px !important;
+              border-radius: 6px !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-slate-50) !important;
               padding: 0 12px !important;
@@ -1532,12 +3171,12 @@ export default function ClientsV2ListPage() {
               transition: all .18s ease;
             }
             .cm-quick-select.ant-select:hover .ant-select-selector {
-              border-color: rgba(139, 92, 246, 0.45) !important;
+              border-color: #3b82f6 !important;
             }
             .cm-quick-select.ant-select-focused .ant-select-selector {
-              border-color: #8b5cf6 !important;
+              border-color: #3b82f6 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
             }
             .cm-quick-select .ant-select-selection-search-input { height: 34px !important; }
             .cm-quick-select .ant-select-selection-placeholder,
@@ -1552,11 +3191,11 @@ export default function ClientsV2ListPage() {
             }
             .cm-quick-select.ant-select-focused .ant-select-arrow,
             .cm-quick-select.ant-select:hover .ant-select-arrow {
-              color: #8b5cf6 !important;
+              color: #3b82f6 !important;
             }
-            .cm-quick-select-client.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
-            .cm-quick-select-project.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
-            .cm-quick-select-type.ant-select { min-width: 160px; max-width: 200px; }
+            .cm-quick-select-client.ant-select { width: 100%; }
+            .cm-quick-select-project.ant-select { width: 100%; }
+            .cm-quick-select-type.ant-select { width: 100%; }
 
             /* Dropdown popup */
             .cm-quick-popup .ant-select-item {
@@ -1608,7 +3247,7 @@ export default function ClientsV2ListPage() {
               background: var(--bg-secondary) !important;
             }
             [data-theme='dark'] .cm-quick-popup .ant-select-item-option-selected {
-              color: #c4b5fd !important;
+              color: #3b82f6 !important;
             }
             [data-theme='dark'] .cm-quick-opt-code {
               background: var(--bg-primary);
@@ -1731,20 +3370,24 @@ export default function ClientsV2ListPage() {
               display: inline-flex !important;
               align-items: center !important;
               gap: 6px !important;
-              background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+              background: #3b82f6 !important;
               border: 0 !important;
-              box-shadow: 0 6px 16px -8px rgba(139,92,246,0.6) !important;
+              box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.6) !important;
             }
             .cm-primary-btn:hover {
               filter: brightness(1.05);
               transform: translateY(-1px);
               transition: all .2s ease;
             }
+            [data-theme="dark"] .cm-primary-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+              box-shadow: 0 6px 16px -8px rgba(59, 109, 252, 0.4) !important;
+            }
 
             /* ---------- Table card ---------- */
             .cm-table-card {
               background: var(--bg-pure-white);
-              border-radius: 16px;
+              border-radius: 0;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
               box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
@@ -1776,11 +3419,11 @@ export default function ClientsV2ListPage() {
               top: 0;
               bottom: 0;
               width: 3px;
-              background: linear-gradient(180deg, #8b5cf6, #6366f1);
               opacity: 0;
               transition: opacity .2s ease;
               pointer-events: none;
             }
+
             .cm-table-card .cm-row:hover > td {
               background: var(--bg-slate-50) !important;
             }
@@ -1801,6 +3444,7 @@ export default function ClientsV2ListPage() {
               width: 42px; height: 42px;
               border-radius: 12px;
               display: flex; align-items: center; justify-content: center;
+              background: #3b82f6;
               color: #fff;
               font-weight: 700;
               font-size: 13px;
@@ -1808,6 +3452,9 @@ export default function ClientsV2ListPage() {
               box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
                           inset 0 1px 0 rgba(255,255,255,0.18);
               flex-shrink: 0;
+            }
+            [data-theme="dark"] .cm-avatar {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
             }
             .cm-avatar-wrap.is-active .cm-avatar-pulse {
               position: absolute;
@@ -1897,9 +3544,9 @@ export default function ClientsV2ListPage() {
               transition: all .2s ease;
             }
             .cm-projects-pill.has {
-              background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(99,102,241,0.06));
-              border-color: rgba(139,92,246,0.25);
-              color: #6d28d9;
+              background: rgba(59, 130, 246, 0.08);
+              border-color: rgba(59, 130, 246, 0.25);
+              color: #2563eb;
             }
             .cm-projects-pill.empty { color: var(--text-slate-500); }
             .cm-projects-ico {
@@ -1911,9 +3558,9 @@ export default function ClientsV2ListPage() {
               flex-shrink: 0;
             }
             .cm-projects-pill.has .cm-projects-ico {
-              background: linear-gradient(135deg, #8b5cf6, #6366f1);
+              background: #3b82f6;
               color: #fff;
-              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45);
+              box-shadow: 0 4px 10px -4px rgba(59, 130, 246, 0.45);
             }
             .cm-projects-count {
               font-weight: 800;
@@ -1927,8 +3574,12 @@ export default function ClientsV2ListPage() {
             }
             [data-theme='dark'] .cm-projects-pill { background: var(--bg-secondary); }
             [data-theme='dark'] .cm-projects-pill.has {
-              background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.12));
+              background: rgba(139, 92, 246, 0.12);
               color: #a78bfa;
+            }
+            [data-theme='dark'] .cm-projects-pill.has .cm-projects-ico {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45) !important;
             }
             [data-theme='dark'] .cm-projects-ico { background: var(--bg-slate-50); }
 
@@ -2011,9 +3662,15 @@ export default function ClientsV2ListPage() {
               color: var(--text-blue-700);
               border-color: var(--border-blue-200);
             }
-            .cm-expand-btn.open { transform: rotate(90deg); background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; border-color: transparent; }
+            .cm-expand-btn.open { transform: rotate(90deg); background: #3b82f6; color: #fff; border-color: transparent; }
+            [data-theme='dark'] .cm-expand-btn.open { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important; }
 
             /* expanded row */
+            .cm-expanded-wrap-card {
+              padding: 12px 0 0 0 !important;
+              background: transparent !important;
+              border-bottom: none !important;
+            }
             .cm-expanded-wrap {
               padding: 18px 24px 22px 64px;
               background:
@@ -2024,6 +3681,7 @@ export default function ClientsV2ListPage() {
             .cm-expanded-header {
               display: flex; align-items: center; justify-content: space-between;
               margin-bottom: 14px;
+              padding: 0px 12px;
             }
             .cm-expanded-title {
               display: flex; align-items: center; gap: 8px;
@@ -2034,26 +3692,35 @@ export default function ClientsV2ListPage() {
               letter-spacing: 0.06em;
             }
             .cm-expanded-add {
-              color: #8b5cf6 !important;
+              color: #3b82f6 !important;
               font-weight: 600 !important;
               font-size: 12.5px !important;
+            }
+            [data-theme='dark'] .cm-expanded-add {
+              color: #a78bfa !important;
             }
             .cm-project-grid {
               display: grid;
               grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
               gap: 12px;
+              padding: 0px 12px;
+              margin-bottom: 12px;
             }
             .cm-project-card {
               background: var(--bg-pure-white);
-              border: 1px solid var(--border-slate-100);
-              border-radius: 12px;
+              border: 1px solid var(--border-slate-200);
+              border-radius: 6px;
               padding: 14px;
               transition: all .2s ease;
             }
             .cm-project-card:hover {
-              border-color: #8b5cf6;
-              box-shadow: 0 8px 18px -10px rgba(139,92,246,0.4);
+              border-color: #3b82f6;
+              box-shadow: 0 8px 18px -10px rgba(59, 130, 246, 0.4);
               transform: translateY(-1px);
+            }
+            [data-theme='dark'] .cm-project-card:hover {
+              border-color: #8b5cf6 !important;
+              box-shadow: 0 8px 18px -10px rgba(139, 92, 246, 0.4) !important;
             }
             .cm-project-skeleton:hover { transform: none; box-shadow: none; border-color: var(--border-slate-100); }
             .cm-project-top {
@@ -2064,6 +3731,10 @@ export default function ClientsV2ListPage() {
               width: 28px; height: 28px;
               border-radius: 8px;
               display: flex; align-items: center; justify-content: center;
+              background: #3b82f6;
+            }
+            [data-theme='dark'] .cm-project-icon {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
             }
             .cm-project-code {
               border: 0 !important;
@@ -2123,9 +3794,13 @@ export default function ClientsV2ListPage() {
               width: 60px; height: 60px;
               border-radius: 16px;
               display: inline-flex; align-items: center; justify-content: center;
-              background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
-              color: #8b5cf6;
+              background: rgba(59, 130, 246, 0.1);
+              color: #3b82f6;
               margin-bottom: 10px;
+            }
+            [data-theme="dark"] .cm-empty-icon {
+              background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 64, 175, 0.15));
+              color: #60a5fa;
             }
             .cm-empty-title {
               font-size: 16px;

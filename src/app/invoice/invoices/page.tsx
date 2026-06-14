@@ -24,7 +24,7 @@ import {
   Popover,
   Drawer,
   Spin,
-  message,
+  App,
   Menu,
   Progress,
   Timeline,
@@ -81,6 +81,7 @@ import type {
   PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -158,7 +159,7 @@ const getStatusIcon = (status: InvoiceStatus) => {
 
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const {
     canReadInvoice,
     canCreateInvoice,
@@ -225,6 +226,9 @@ export default function InvoiceInvoicesPage() {
       router.push('/dashboard');
     }
   }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceList" });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
@@ -337,7 +341,7 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
-    const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+    const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
@@ -997,7 +1001,8 @@ export default function InvoiceInvoicesPage() {
     {
       title: "ACTIONS",
       align: "center",
-      width: 80,
+      width: 100,
+      fixed: "right" as const,
       render: (_, record) => {
         const menuItems = getMenuItems(record);
         if (!menuItems || menuItems.length === 0) return null;
@@ -1169,7 +1174,7 @@ export default function InvoiceInvoicesPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
+
       <div style={{
         margin: "0 -24px",
         background: "var(--customers-page-bg)",
@@ -1184,37 +1189,39 @@ export default function InvoiceInvoicesPage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "var(--bg-blue-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
-              >
-                <FileText size={14} strokeWidth={2.25} />
+          <div className="px-8 py-3 lg:py-0 min-h-[56px] lg:h-14 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--bg-blue-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)",
+                  }}
+                >
+                  <FileText size={14} strokeWidth={2.25} />
+                </div>
+                <span
+                  className="text-[14px] font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Invoices
+                </span>
               </div>
-              <span
-                className="text-[14px] font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Invoices
-              </span>
               <span
                 className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px] hidden sm:inline truncate"
+                className="text-[12px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Manage, track payments, and monitor invoice statuses
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
               <Input
                 placeholder="Search invoices..."
                 allowClear
@@ -1226,7 +1233,7 @@ export default function InvoiceInvoicesPage() {
                 }
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className="w-[130px] sm:w-[180px] md:w-[280px]"
+                className="w-full sm:w-[200px] md:w-[280px]"
                 style={{
                   height: 36,
                   borderRadius: 8,
@@ -1234,34 +1241,37 @@ export default function InvoiceInvoicesPage() {
                   borderColor: "var(--border-color)",
                 }}
               />
-              <Popover content={filterContent} trigger="click" placement="bottomRight">
-                <Button
-                  icon={<Filter size={14} />}
-                  style={{
-                    borderRadius: 8,
-                    height: 36,
-                    fontWeight: 600,
-                  }}
-                >
-                  <span className="hidden sm:inline">Filter</span>
-                </Button>
-              </Popover>
-              {canCreateInvoice && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={14} />}
-                  onClick={() => router.push("/invoice/newinvoice")}
-                  style={{
-                    borderRadius: 8,
-                    height: 36,
-                    fontWeight: 600,
-                    background: "#2563eb",
-                  }}
-                >
-                  <span className="hidden sm:inline">New invoice</span>
-                  <span className="inline sm:hidden">New</span>
-                </Button>
-              )}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Popover content={filterContent} trigger="click" placement="bottomRight">
+                  <Button
+                    icon={<Filter size={14} />}
+                    className="flex-1 sm:flex-initial flex items-center justify-center"
+                    style={{
+                      borderRadius: 8,
+                      height: 36,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>Filter</span>
+                  </Button>
+                </Popover>
+                {canCreateInvoice && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={14} />}
+                    onClick={() => router.push("/invoice/newinvoice")}
+                    className="flex-1 sm:flex-initial flex items-center justify-center"
+                    style={{
+                      borderRadius: 8,
+                      height: 36,
+                      fontWeight: 600,
+                      background: "#2563eb",
+                    }}
+                  >
+                    <span>New invoice</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1480,7 +1490,7 @@ export default function InvoiceInvoicesPage() {
                 showTotal: (total, range) =>
                   `${range[0]}–${range[1]} of ${total}`,
               }}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 1100 }}
               className="invoices-table"
               rowClassName={() => "invoice-table-row"}
             />
@@ -1498,6 +1508,7 @@ export default function InvoiceInvoicesPage() {
           font-weight: 600 !important;
           font-size: 11px !important;
           padding: 10px 16px !important;
+          white-space: nowrap !important;
           letter-spacing: 0.06em !important;
           border-bottom: 1px solid var(--border-color) !important;
         }

@@ -11,7 +11,7 @@ import {
   Dropdown,
   Modal,
   Table,
-  message,
+  App,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -41,6 +41,7 @@ import InvoiceTemplateDrawer from "./InvoiceTemplateDrawer";
 import { InvoiceTemplate } from "@/services/invoiceTemplateService";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -54,7 +55,7 @@ export default function InvoiceTemplatePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const router = useRouter();
   const {
     canReadInvoiceTemplate,
@@ -70,6 +71,9 @@ export default function InvoiceTemplatePage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceTemplate, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceTemplateList" });
 
   const { data: templates, isLoading } = useInvoiceTemplates();
   const deleteMutation = useDeleteInvoiceTemplate();
@@ -336,7 +340,6 @@ export default function InvoiceTemplatePage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div
         style={{
           margin: "0 -24px",
@@ -353,35 +356,37 @@ export default function InvoiceTemplatePage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                type="button"
-                onClick={() => router.push("/invoice/invoices")}
-                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-                aria-label="Back"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "var(--bg-blue-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
-              >
-                <Layers size={14} strokeWidth={2.25} />
+          <div className="px-8 py-3 md:py-0 min-h-[56px] md:h-14 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/invoice/invoices")}
+                  className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                  aria-label="Back"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--bg-blue-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)",
+                  }}
+                >
+                  <Layers size={14} strokeWidth={2.25} />
+                </div>
+                <span
+                  className="text-[14px] font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Invoice templates
+                </span>
               </div>
               <span
-                className="text-[14px] font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Invoice templates
-              </span>
-              <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
@@ -392,12 +397,13 @@ export default function InvoiceTemplatePage() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
               {canCreateInvoiceTemplate && (
                 <Button
                   type="primary"
                   icon={<Plus size={16} />}
                   onClick={handleCreate}
+                  className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{
                     borderRadius: 8,
                     height: 36,
@@ -405,7 +411,7 @@ export default function InvoiceTemplatePage() {
                     background: "#2563eb",
                   }}
                 >
-                  New template
+                  <span>New template</span>
                 </Button>
               )}
             </div>

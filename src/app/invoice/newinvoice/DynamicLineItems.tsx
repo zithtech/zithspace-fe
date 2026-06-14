@@ -1045,8 +1045,8 @@ export default function DynamicLineItems({
               onDragEnd={(e) => handleDragEnd(e, fields, move)}
             >
               {/* Toolbar */}
-              <div className="mb-0 flex justify-between items-center bg-[var(--bg-secondary)] px-6 py-4 border-b border-[var(--border-color)]">
-                <div className="flex items-center gap-2.5">
+              <div className="mb-0 flex flex-wrap justify-between items-center gap-y-2 bg-[var(--bg-secondary)] px-4 sm:px-6 py-3 sm:py-4 border-b border-[var(--border-color)]">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className="inline-flex items-center justify-center w-6 h-6 rounded-md"
                     style={{
@@ -1081,14 +1081,14 @@ export default function DynamicLineItems({
                     </span>
                   )}
                 </div>
-                <div className="flex gap-1.5 items-center">
+                <div className="flex flex-wrap gap-1.5 items-center">
                   <Button
                     icon={<CopyOutlined style={{ fontSize: 13 }} />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDuplicateRows(fields, add)}
                     className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
                   >
-                    Duplicate
+                    <span className="hidden sm:inline">Duplicate</span>
                   </Button>
                   <Button
                     icon={<DeleteOutlined style={{ fontSize: 13 }} />}
@@ -1101,15 +1101,15 @@ export default function DynamicLineItems({
                       background: 'var(--bg-secondary)',
                     }}
                   >
-                    Delete
+                    <span className="hidden sm:inline">Delete</span>
                   </Button>
-                  <Divider type="vertical" className="h-6 mx-1.5 border-[var(--border-color)]" />
+                  <Divider type="vertical" className="hidden sm:block h-6 mx-0.5 border-[var(--border-color)]" />
                   <Button
                     icon={<SettingOutlined style={{ fontSize: 13 }} />}
                     onClick={() => setShowAddFieldModal(true)}
                     className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
                   >
-                    Customize
+                    <span className="hidden sm:inline">Customize</span>
                   </Button>
                   <Button
                     type="primary"
@@ -1118,7 +1118,7 @@ export default function DynamicLineItems({
                     className="flex items-center gap-1 font-semibold rounded-lg h-9 text-[12.5px] transition-all"
                     style={{ background: '#2563eb' }}
                   >
-                    Add row
+                    <span className="hidden sm:inline">Add row</span>
                   </Button>
                 </div>
               </div>

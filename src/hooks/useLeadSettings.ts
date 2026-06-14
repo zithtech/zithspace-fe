@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import leadSettingsService, { LeadStatus, LeadAction } from '@/services/leadSettings.service';
+import leadSettingsService, { LeadStatus, LeadAction, LeadPlatform } from '@/services/leadSettings.service';
 
 export const useLeadSettings = () => {
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [actions, setActions] = useState<LeadAction[]>([]);
+  const [platforms, setPlatforms] = useState<LeadPlatform[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchStatuses = useCallback(async () => {
@@ -90,17 +91,64 @@ export const useLeadSettings = () => {
     }
   };
 
+  const fetchPlatforms = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await leadSettingsService.getPlatforms();
+      setPlatforms(data);
+    } catch (error) {
+      console.error('Error fetching lead platforms:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createPlatform = async (data: Partial<LeadPlatform>) => {
+    setLoading(true);
+    try {
+      await leadSettingsService.createPlatform(data);
+      await fetchPlatforms();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePlatform = async (id: string, data: Partial<LeadPlatform>) => {
+    setLoading(true);
+    try {
+      await leadSettingsService.updatePlatform(id, data);
+      await fetchPlatforms();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePlatform = async (id: string) => {
+    setLoading(true);
+    try {
+      await leadSettingsService.deletePlatform(id);
+      await fetchPlatforms();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     statuses,
     actions,
+    platforms,
     loading,
     fetchStatuses,
     fetchActions,
+    fetchPlatforms,
     createStatus,
     updateStatus,
     deleteStatus,
     createAction,
     updateAction,
-    deleteAction
+    deleteAction,
+    createPlatform,
+    updatePlatform,
+    deletePlatform,
   };
 };

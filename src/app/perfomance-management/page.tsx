@@ -7,7 +7,6 @@ import {
   Row,
   Col,
   Typography,
-  Select,
   Space,
   Spin,
   Tag,
@@ -43,8 +42,10 @@ import {
   ProjectOutlined,
   UserOutlined as AntUserOutlined,
   AreaChartOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import MainLayout from "@/components/layout/MainLayout";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { MembersService } from "@/services/membersService";
 import {
   AttendanceService,
@@ -85,7 +86,6 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 
-const { Option } = Select;
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color, suffix }: any) => (
@@ -131,6 +131,9 @@ export default function PerformanceManagePage() {
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [dailyBreakdownVisible, setDailyBreakdownVisible] = useState(false);
   const [escalationBreakdownVisible, setEscalationBreakdownVisible] = useState(false);
+
+  // Active section for the left-rail navigation (Proposals-style)
+  const [activeSection, setActiveSection] = useState<string>("overview");
 
   // Get all positions data
   const { dataSource: positions, loading: positionsLoading } = usePositions();
@@ -642,100 +645,71 @@ export default function PerformanceManagePage() {
     <MainLayout>
       <div style={{
         margin: "0 -24px",
-        padding: "24px 32px",
+        padding: "10px 24px",
         background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* Header Section */}
-        <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
-            <Space size={12} align="center">
-              <div style={{
-                background: "#eff6ff",
-                padding: 10,
-                borderRadius: 12,
-                color: "#2563eb",
-                display: "flex"
-              }}>
-                <TrendingUp size={24} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Performance Management</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: 15 }}>Comprehensive tracking of employee efficiency and engagement metrics.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Select
-                placeholder="Select Employee"
-                style={{ width: 200, height: 44 }}
-                value={selectedMember}
-                onChange={setSelectedMember}
-                loading={loading}
-                allowClear
-                showSearch
-                className="header-select"
-                optionFilterProp="label"
-                filterOption={(input, option) =>
-                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {members.map((member) => (
-                  <Option key={member.value} value={member.value} label={member.label}>
-                    <Space>
-                      <Avatar
-                        size="small"
-                        src={member.avatarUrl}
-                        style={{ backgroundColor: "#2563eb", fontSize: 10 }}
-                      >
-                        {member.label?.charAt(0)}
-                      </Avatar>
-                      {member.label}
-                    </Space>
-                  </Option>
-                ))}
-              </Select>
-
-              <Select
-                placeholder="Month"
-                style={{ width: 120, height: 44 }}
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                className="header-select"
-              >
-                {months.map((month) => (
-                  <Option key={month.value} value={month.value}>
-                    {month.label}
-                  </Option>
-                ))}
-              </Select>
-
-              <Select
-                placeholder="Year"
-                style={{ width: 90, height: 44 }}
-                value={selectedYear}
-                onChange={setSelectedYear}
-                className="header-select"
-              >
-                {years.map((year) => (
-                  <Option key={year} value={year}>
-                    {year}
-                  </Option>
-                ))}
-              </Select>
+        {/* Header Section (compact) */}
+        <div style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <Space size={8} align="center">
+            <div style={{
+              background: "#eff6ff",
+              padding: 6,
+              borderRadius: 8,
+              color: "#2563eb",
+              display: "flex"
+            }}>
+              <TrendingUp size={16} />
             </div>
+            <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Performance Management</Title>
+          </Space>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <SearchableDropdown
+              placeholder="Select Employee"
+              searchPlaceholder="Search employees"
+              itemNoun="employees"
+              value={selectedMember}
+              onChange={(v) => setSelectedMember(v)}
+              options={members}
+              loading={loading}
+              width={260}
+              style={{ width: 230, minWidth: 230 }}
+            />
+            <SearchableDropdown
+              placeholder="Month"
+              searchPlaceholder="Search months"
+              itemNoun="months"
+              value={selectedMonth}
+              onChange={(v) => v && setSelectedMonth(v)}
+              options={months}
+              allowClear={false}
+              hideAvatar
+              width={180}
+              style={{ width: 150, minWidth: 150 }}
+            />
+            <SearchableDropdown
+              placeholder="Year"
+              searchPlaceholder="Search years"
+              itemNoun="years"
+              value={selectedYear.toString()}
+              onChange={(v) => v && setSelectedYear(Number(v))}
+              options={years.map((y) => ({ value: y, label: y }))}
+              allowClear={false}
+              hideAvatar
+              width={150}
+              style={{ width: 120, minWidth: 120 }}
+            />
 
             <Button
               type="primary"
-              size="large"
-              icon={<Filter size={18} />}
+              icon={<Filter size={16} />}
               onClick={handleApply}
               disabled={!selectedMember || !selectedMonth || !selectedYear}
               loading={performanceLoading || attendanceLoading}
               style={{
-                borderRadius: 10,
-                height: 44,
+                borderRadius: 8,
+                height: 36,
                 fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
@@ -748,9 +722,7 @@ export default function PerformanceManagePage() {
           </div>
         </div>
 
-        <Divider style={{ margin: "0 0 20px 0", borderColor: "var(--border-color)" }} />
-
-
+        <Divider style={{ margin: "0 -24px", width: "calc(100% + 48px)", minWidth: "calc(100% + 48px)", borderColor: "var(--border-color)" }} />
 
         {/* Main Content */}
         {!selectedMember ? (
@@ -919,160 +891,86 @@ export default function PerformanceManagePage() {
             `}} />
           </div>
         ) : (
-          <Row gutter={[16, 16]}>
-            {/* LEFT COLUMN - 25% - ALL CARDS VISIBLE WITHOUT SCROLL */}
-            <Col xs={24} lg={6}>
-              <div
-                style={{
-                  position: "sticky",
-                  top: "0",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                  paddingRight: "4px"
-                }}
-              >
+          <div className="pm-shell">
+            {/* ============================ SIDEBAR ============================ */}
+            <aside className="pm-sidebar">
+              <div className="pm-side-scroll">
+                <div className="pm-side-section-label">Sections</div>
+                {/* Section Navigation (Proposals-style rail) */}
+                <div className="pm-nav">
+                  {[
+                    { key: "overview", label: "Overview", icon: <AreaChartOutlined /> },
+                    { key: "tickets", label: "Tickets", icon: <FileTextOutlined /> },
+                    { key: "daily", label: "Daily Updates", icon: <HistoryOutlined /> },
+                    { key: "escalation", label: "Escalation", icon: <WarningOutlined /> },
+                  ].map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className={`pm-nav-item ${activeSection === s.key ? "is-active" : ""}`}
+                      onClick={() => setActiveSection(s.key)}
+                    >
+                      <span className="pm-nav-icon">{s.icon}</span>
+                      <span className="pm-nav-label">{s.label}</span>
+                      <RightOutlined className="pm-nav-arrow" />
+                    </button>
+                  ))}
+                </div>
+
+                {selectedUserDetails && <div className="pm-side-section-label">Employee</div>}
                 {/* Simplified Profile Section (No Card) */}
                 {selectedUserDetails && (
-                  <div style={{ padding: "8px 0" }}>
-                    <div style={{ textAlign: "center", marginBottom: 16 }}>
-                      <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}>
-                        <Avatar
-                          size={72}
-                          src={selectedUserDetails.avatarUrl}
-                          style={{
-                            backgroundColor: "var(--bg-secondary)",
-                            color: "#3b82f6",
-                            border: "1px solid var(--border-color)",
-                          }}
-                        >
-                          {selectedUserDetails.label?.charAt(0)}
-                        </Avatar>
-                        <div style={{
-                          position: "absolute",
-                          bottom: 5,
-                          right: 5,
-                          width: 14,
-                          height: 14,
-                          borderRadius: "50%",
-                          background: "#22c55e",
-                          border: "2px solid var(--bg-pure-white)"
-                        }} />
-                      </div>
-
-                      <Title level={4} style={{ margin: "0 0 4px 0", color: "var(--text-primary)", fontSize: 18, fontWeight: 800 }}>
-                        {selectedUserDetails.label}
-                      </Title>
-
-                      {(() => {
-                        const samplePos = positions[0] || {};
-                        return (
-                          <div style={{ marginBottom: 20 }}>
-                            {/* <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>
-                              {samplePos.title || "Employee"}
-                            </Text> */}
-
-                            <div style={{ marginTop: 16 }}>
-                              <Row gutter={[6, 6]}>
-                                {[
-                                  { label: "Grade", value: samplePos.gradeName, icon: <StarOutlined />, color: "#3b82f6" },
-                                  { label: "Dept", value: samplePos.departmentName, icon: <BankOutlined />, color: "#8b5cf6" },
-                                  { label: "Sub-Dept", value: samplePos.subDepartmentName, icon: <TeamOutlined />, color: "#f59e0b" },
-                                  { label: "Position", value: samplePos.title, icon: <TagOutlined />, color: "#10b981" },
-                                ].map((item, idx) => (
-                                  <Col span={12} key={idx}>
-                                    <div style={{
-                                      padding: "8px 10px",
-                                      background: "var(--bg-secondary)",
-                                      borderRadius: 10,
-                                      border: "1px solid var(--border-color)",
-                                      textAlign: "left",
-                                      height: "100%",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 8
-                                    }}>
-                                      <div style={{
-                                        width: 20,
-                                        height: 20,
-                                        background: `${item.color}10`,
-                                        borderRadius: 5,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        color: item.color,
-                                        flexShrink: 0
-                                      }}>
-                                        {React.cloneElement(item.icon as any, { style: { fontSize: 11 } })}
-                                      </div>
-                                      <div style={{ overflow: "hidden" }}>
-                                        <Text strong style={{ fontSize: 8, color: "var(--text-secondary)", display: "block", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1 }}>{item.label}</Text>
-                                        <Tooltip title={item.value || "N/A"}>
-                                          <Text strong style={{ fontSize: 10, color: "var(--text-primary)", display: "block", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                            {item.value || "N/A"}
-                                          </Text>
-                                        </Tooltip>
-                                      </div>
-                                    </div>
-                                  </Col>
-                                ))}
-                              </Row>
+                  <div className="pm-emp">
+                    {(() => {
+                      const samplePos = positions[0] || {};
+                      return (
+                        <>
+                          <div className="pm-emp-head">
+                            <div className="pm-emp-avatar-wrap">
+                              <Avatar
+                                size={64}
+                                src={selectedUserDetails.avatarUrl}
+                                className="pm-emp-avatar"
+                              >
+                                {selectedUserDetails.label?.charAt(0)}
+                              </Avatar>
+                              <span className="pm-emp-status" />
                             </div>
+                            <Title level={5} className="pm-emp-name">
+                              {selectedUserDetails.label}
+                            </Title>
+                            {(samplePos.title || samplePos.subDepartmentName) && (
+                              <div className="pm-emp-role">
+                                {[samplePos.title, samplePos.subDepartmentName].filter(Boolean).join(" · ")}
+                              </div>
+                            )}
                           </div>
-                        );
-                      })()}
-                    </div>
 
-                    {/* Performance Gauge Section (Now at top of details) */}
-                    <div style={{ textAlign: "center", paddingTop: 16, borderTop: "1px solid var(--border-color)" }}>
-                      <Text strong style={{ fontSize: "10px", color: "var(--text-secondary)", display: "block", marginBottom: 16, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        Performance Gauge
-                      </Text>
-
-                      <Progress
-                        type="circle"
-                        percent={performanceScore}
-                        size={110}
-                        strokeWidth={8}
-                        strokeColor={{
-                          '0%': '#ef4444',
-                          '100%': '#10b981',
-                        }}
-                        format={(percent) => (
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{percent}%</span>
-                            <span style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 2, fontWeight: 700 }}>OVERALL</span>
+                          <div className="pm-emp-grid">
+                            {[
+                              { label: "Grade", value: samplePos.gradeName, icon: <StarOutlined /> },
+                              { label: "Dept", value: samplePos.departmentName, icon: <BankOutlined /> },
+                            ].map((item, idx) => (
+                              <div className="pm-emp-tile" key={idx}>
+                                <span className="pm-emp-tile-ic">
+                                  {React.cloneElement(item.icon as any, { style: { fontSize: 11 } })}
+                                </span>
+                                <div className="pm-emp-tile-txt">
+                                  <span className="pm-emp-tile-label">{item.label}</span>
+                                  <Tooltip title={item.value || "N/A"}>
+                                    <div className="pm-emp-tile-val">{item.value || "N/A"}</div>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        )}
-                      />
+                        </>
+                      );
+                    })()}
 
-                      <div style={{ marginTop: 20, padding: "10px", background: "var(--bg-secondary)", borderRadius: 12, border: "1px solid var(--border-color)" }}>
-                        <Row gutter={[4, 4]}>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Ticket Score</Text>
-                              <Text strong style={{ color: "#10b981", fontSize: 11 }}>{ticketScore}</Text>
-                            </div>
-                          </Col>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>EOD Penalty</Text>
-                              <Text strong style={{ color: "#f59e0b", fontSize: 11 }}>-{eodPenalty}</Text>
-                            </div>
-                          </Col>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Escalation Penalty</Text>
-                              <Text strong style={{ color: "#ef4444", fontSize: 11 }}>-{escalationPenalty}</Text>
-                            </div>
-                          </Col>
-                        </Row>
-                      </div>
-                    </div>
+                    <Divider style={{ margin: "14px 0", borderColor: "var(--border-color)" }} />
 
-                    <Divider style={{ margin: "20px 0", borderColor: "var(--border-color)" }} />
-
-                    {/* Active Projects Section (Now below gauge) */}
+                    {/* Active Projects Section */}
                     {(() => {
                       const allProjects = [
                         ...assignedProjects.map((p: any) => ({ ...p, isAssigned: true })),
@@ -1144,552 +1042,741 @@ export default function PerformanceManagePage() {
                   </div>
                 )}
               </div>
-            </Col>
+            </aside>
 
-            {/* RIGHT COLUMN - 75% - Scrollable with Hidden Scrollbar */}
-            <Col
-              xs={24}
-              lg={18}
-              style={{
-                height: "calc(100vh - 200px)",
-                overflowY: "scroll",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                paddingLeft: "8px",
-              }}
-            >
-              <style>
-                {`
-                  .right-scrollable::-webkit-scrollbar {
-                    display: none;
-                  }
-                `}
-              </style>
+            {/* ============================ MAIN ============================ */}
+            <main className="pm-main">
+              <div className="pm-main-body">
+                {/* ===================== OVERVIEW DASHBOARD ===================== */}
+                {selectedMember && activeSection === "overview" && (() => {
+                  const score = performanceScore || 0;
+                  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v || 0)));
+                  const grade = score >= 85 ? { label: "Excellent", color: "#10b981" }
+                    : score >= 70 ? { label: "Good", color: "#2563eb" }
+                    : score >= 50 ? { label: "Fair", color: "#f59e0b" }
+                    : { label: "Needs Focus", color: "#ef4444" };
 
-              <div className="right-scrollable">
-                {/* Compact Metrics Row */}
-                {selectedMember && (
-                  <div style={{
-                    display: "flex",
-                    gap: "16px",
-                    marginBottom: 24,
-                    padding: "12px 20px",
-                    background: "var(--bg-secondary)",
-                    borderRadius: 16,
-                    border: "1px solid var(--border-color)",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}>
-                    {[
-                      { label: "Total Tickets", value: ticketSummary.total, icon: Layers, color: "#0ea5e9" },
-                      { label: "Attendance", value: !isFutureMonth && appliedFilters.userId ? attendanceSummary.presentDays : 0, suffix: `/ ${attendanceSummary.totalDays}`, icon: Calendar, color: "#10b981" },
-                      { label: "Daily Updates", value: dailyUpdatesSummary.total, suffix: `/ ${attendanceSummary.totalDays}`, icon: Activity, color: "#f59e0b" },
-                      { label: "Completion", value: completionRate, suffix: "%", icon: TrendingUp, color: "#2563eb" },
-                    ].map((item: any, idx: number) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{
-                          color: item.color,
-                          background: `${item.color}15`,
-                          padding: "8px",
-                          borderRadius: "10px",
-                          display: "flex"
-                        }}>
-                          <item.icon size={16} />
+                  const periodLabel = (() => {
+                    const d = dayjs(`${appliedYear}-${appliedMonth}-01`);
+                    return d.isValid() ? d.format("MMMM YYYY") : `${appliedMonth ?? ""} ${appliedYear ?? ""}`.trim();
+                  })();
+
+                  const subs = [
+                    { label: "Completion", value: clamp(perf.completionScore), color: "#10b981" },
+                    { label: "Timeliness", value: clamp(perf.timelinessScore), color: "#2563eb" },
+                    { label: "Tracking", value: clamp(perf.trackingScore), color: "#0ea5e9" },
+                  ];
+
+                  const kpis = [
+                    { label: "Total Tickets", value: ticketSummary.total, sub: `${ticketSummary.completed} completed`, icon: Layers, color: "#2563eb" },
+                    { label: "Completion", value: clamp(completionRate), suffix: "%", sub: "of tickets done", icon: TrendingUp, color: "#10b981" },
+                    { label: "Daily Updates", value: updateRate, suffix: "%", sub: `${dailyUpdatesSummary.bod + dailyUpdatesSummary.eod} submitted`, icon: Activity, color: "#0ea5e9" },
+                    { label: "Attendance", value: !isFutureMonth ? attendanceRate : 0, suffix: "%", sub: `${attendanceSummary.presentDays}/${attendanceSummary.totalDays} days`, icon: Calendar, color: "#14b8a6" },
+                  ];
+
+                  const completed = ticketSummary.completed || 0;
+                  const inProgress = ticketSummary.inProgress || 0;
+                  const pending = ticketSummary.pending || 0;
+                  const totalT = ticketSummary.total || 0;
+                  const other = Math.max(0, totalT - completed - inProgress - pending);
+                  const statusData = [
+                    { name: "Completed", value: completed, color: "#10b981" },
+                    { name: "In Progress", value: inProgress, color: "#3b82f6" },
+                    { name: "Pending", value: pending, color: "#64748b" },
+                    ...(other > 0 ? [{ name: "Not Started", value: other, color: "#cbd5e1" }] : []),
+                  ].filter((s) => s.value > 0);
+
+                  const escTotal = performanceData?.escalations?.summary?.total ?? (performanceData?.escalations?.details?.length || 0);
+
+                  const allProjects = [
+                    ...assignedProjects.map((p: any) => ({ name: p.name, role: p.role || "Member", count: projectStats[p.name] || 0 })),
+                    ...Object.entries(projectStats)
+                      .filter(([name]) => !assignedProjects.some((p: any) => p.name === name) && name !== "No Project")
+                      .map(([name, count]) => ({ name, role: "Contributor", count })),
+                  ].slice(0, 4);
+                  const projColors = ["#2563eb", "#10b981", "#0ea5e9", "#64748b"];
+
+                  return (
+                    <div className="ov">
+                      {/* HERO */}
+                      <div className="ov-hero">
+                        <div className="ov-hero-gauge">
+                          <Progress
+                            type="circle"
+                            percent={clamp(score)}
+                            size={104}
+                            strokeWidth={9}
+                            strokeColor={grade.color}
+                            trailColor="var(--bg-secondary)"
+                            format={(p) => (
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                <span style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{p}</span>
+                                <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.08em", marginTop: 2 }}>SCORE</span>
+                              </div>
+                            )}
+                          />
+                          <span className="ov-grade" style={{ color: grade.color, background: `${grade.color}14` }}>{grade.label}</span>
                         </div>
-                        <div>
-                          <Text type="secondary" style={{ fontSize: 10, display: "block", marginBottom: 2, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.025em" }}>
-                            {item.label}
-                          </Text>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                            <Text strong style={{ fontSize: 16, color: "var(--text-primary)", lineHeight: 1.1 }}>{item.value}</Text>
-                            {item.suffix && <Text type="secondary" style={{ fontSize: 10, fontWeight: 600 }}>{item.suffix}</Text>}
+
+                        <div className="ov-hero-main">
+                          <div className="ov-hero-head">
+                            <div>
+                              <div className="ov-eyebrow">Overall Performance</div>
+                              <div className="ov-hero-title">{clamp(score)}<span>/100</span></div>
+                              <div className="ov-hero-sub">{selectedUserDetails?.label} · {periodLabel}</div>
+                            </div>
+                          </div>
+
+                          <div className="ov-comp">
+                            <div className="ov-comp-item"><span>Ticket Score</span><b style={{ color: "#10b981" }}>{ticketScore}</b></div>
+                            <span className="ov-comp-op">−</span>
+                            <div className="ov-comp-item"><span>EOD Penalty</span><b style={{ color: "#f59e0b" }}>{eodPenalty}</b></div>
+                            <span className="ov-comp-op">−</span>
+                            <div className="ov-comp-item"><span>Escalation</span><b style={{ color: "#ef4444" }}>{escalationPenalty}</b></div>
+                            <span className="ov-comp-op">=</span>
+                            <div className="ov-comp-item is-final"><span>Final Score</span><b>{clamp(score)}</b></div>
+                          </div>
+
+                          <div className="ov-subs">
+                            {subs.map((s, i) => (
+                              <div key={i}>
+                                <div className="ov-sub-top">
+                                  <span className="ov-sub-lbl">{s.label}</span>
+                                  <span className="ov-sub-val">{s.value}%</span>
+                                </div>
+                                <div className="ov-sub-bar"><div className="ov-sub-fill" style={{ width: `${s.value}%`, background: s.color }} /></div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        {idx < 3 && <Divider type="vertical" style={{ height: 24, margin: "0 12px", borderColor: "var(--border-color)" }} />}
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                {selectedMember && (
-                  /* Unified Ticket Performance Card */
-                  <Card
-                    size="small"
-                    // size="small"
-                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginBottom: 24, background: 'var(--bg-pure-white)' }}
-                    title={
-                      <Space size={8}>
-                        <div style={{ background: "var(--bg-secondary)", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                          <Layers style={{ color: "#0ea5e9", width: 16, height: 16 }} />
-                        </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Ticket Performance Details</span>
-                      </Space>
-                    }
-                    extra={
-                      <Space>
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<AreaChartOutlined />}
-                          style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
-                          onClick={() => setBreakdownVisible(true)}
-                        >
-                          Breakdown
-                        </Button>
-                        <Tag style={{ borderRadius: "4px", border: "none", background: "var(--border-color)", color: "var(--text-secondary)" }}>Total: {ticketSummary.total}</Tag>
-                      </Space>
-                    }
-                  >
-                    <div style={{ padding: "12px 16px" }}>
-                      <Row gutter={[10, 10]}>
-                        {[
-                          { label: "Completed", value: ticketSummary.completed, color: "#10b981", percent: completionRate, icon: <CheckCircleOutlined /> },
-                          { label: "In Progress", value: ticketSummary.inProgress, color: "#f59e0b", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.inProgress / ticketSummary.total) * 100) : 0, icon: <HistoryOutlined /> },
-                          { label: "Pending", value: ticketSummary.pending, color: "#ef4444", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.pending / ticketSummary.total) * 100) : 0, icon: <InfoCircleOutlined /> },
-                          { label: "On Time", value: ticketSummary.onTime || 0, color: "#10b981", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.onTime / ticketSummary.total) * 100) : 0, icon: <SafetyCertificateOutlined /> },
-                          { label: "Delayed", value: ticketSummary.late || 0, color: "#ef4444", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.late / ticketSummary.total) * 100) : 0, icon: <WarningOutlined /> },
-                          { label: "Not Tracked", value: ticketSummary.untracked || 0, color: "var(--text-secondary)", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.untracked / ticketSummary.total) * 100) : 0, icon: <CloseSquareOutlined /> },
-                        ].map((item, idx) => (
-                          <Col key={idx} xs={24} sm={12} lg={8}>
-                            <div style={{
-                              background: "var(--bg-secondary)",
-                              borderRadius: "12px",
-                              padding: "14px",
-                              border: "1px solid var(--border-color)",
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "space-between"
-                            }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                                <Space size={8}>
-                                  <div style={{ color: item.color, display: "flex", fontSize: 16 }}>{item.icon}</div>
-                                  <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.025em" }}>{item.label}</Text>
-                                </Space>
-                                <Text style={{ fontSize: 24, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{item.value}</Text>
-                              </div>
-                              <div>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <Text style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 500 }}>{item.percent}% Ratio</Text>
+                      {/* KPI TILES */}
+                      <div className="ov-kpis">
+                        {kpis.map((k: any, i: number) => (
+                          <div className="ov-kpi" key={i} style={{ ["--ov-accent" as any]: k.color }}>
+                            <div className="ov-kpi-top">
+                              <span className="ov-kpi-ic" style={{ background: `${k.color}14`, color: k.color }}><k.icon size={17} /></span>
+                            </div>
+                            <div className="ov-kpi-val">{k.value}{k.suffix && <small>{k.suffix}</small>}</div>
+                            <div className="ov-kpi-lbl">{k.label}</div>
+                            {k.sub && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{k.sub}</div>}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* LOWER GRID */}
+                      <div className="ov-grid">
+                        <div className="ov-card">
+                          <div className="ov-card-head">
+                            <span className="ov-card-title">Ticket Status</span>
+                            <span className="ov-card-meta">{totalT} total</span>
+                          </div>
+                          {totalT === 0 ? (
+                            <div style={{ padding: "34px 0", textAlign: "center", color: "var(--text-secondary)", fontSize: 12 }}>No tickets in this period</div>
+                          ) : (
+                            <div className="ov-donut-wrap">
+                              <div className="ov-donut">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={58} paddingAngle={2} stroke="none">
+                                      {statusData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                    </Pie>
+                                    <RechartsTooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                                <div className="ov-donut-center">
+                                  <span className="ov-donut-num">{totalT}</span>
+                                  <span className="ov-donut-lbl">Tickets</span>
                                 </div>
-                                <Progress
-                                  percent={item.percent}
-                                  size="small"
-                                  showInfo={false}
-                                  strokeColor={item.color}
-                                  trailColor="var(--border-color)"
-                                  strokeWidth={4}
-                                  style={{ margin: 0 }}
-                                />
+                              </div>
+                              <div className="ov-legend">
+                                {statusData.map((s, i) => (
+                                  <div className="ov-leg" key={i}>
+                                    <span className="ov-leg-dot" style={{ background: s.color }} />
+                                    <span className="ov-leg-name">{s.name}</span>
+                                    <span className="ov-leg-val">{s.value}</span>
+                                    <span className="ov-leg-pct">{totalT > 0 ? Math.round((s.value / totalT) * 100) : 0}%</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          </Col>
-                        ))}
-                      </Row>
+                          )}
+                        </div>
+
+                        <div className="ov-card">
+                          <div className="ov-card-head">
+                            <span className="ov-card-title">Reporting &amp; Escalations</span>
+                            <span className="ov-card-meta">{dailyUpdatesSummary.total} working days</span>
+                          </div>
+                          <div className="ov-report">
+                            {[
+                              { label: "BOD Compliance", value: dailyUpdatesSummary.bod, total: dailyUpdatesSummary.total, color: "#10b981" },
+                              { label: "EOD Compliance", value: dailyUpdatesSummary.eod, total: dailyUpdatesSummary.total, color: "#2563eb" },
+                            ].map((r, i) => {
+                              const p = r.total > 0 ? Math.round((r.value / r.total) * 100) : 0;
+                              return (
+                                <div key={i}>
+                                  <div className="ov-rep-top">
+                                    <span className="ov-rep-lbl">{r.label}</span>
+                                    <span className="ov-rep-val">{r.value}/{r.total} · {p}%</span>
+                                  </div>
+                                  <div className="ov-rep-bar"><div className="ov-rep-fill" style={{ width: `${p}%`, background: r.color }} /></div>
+                                </div>
+                              );
+                            })}
+                            <div className="ov-esc">
+                              <span className="ov-esc-ic" style={{ background: escTotal > 0 ? "#fef2f2" : "rgba(16,185,129,0.10)", color: escTotal > 0 ? "#ef4444" : "#10b981" }}>
+                                {escTotal > 0 ? <AlertTriangle size={18} /> : <CheckCircleOutlined style={{ fontSize: 18 }} />}
+                              </span>
+                              <div style={{ flex: 1 }}>
+                                <div className="ov-esc-val">{escTotal}</div>
+                                <div className="ov-esc-lbl">{escTotal > 0 ? "Escalations need attention" : "No escalations — all clear"}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ACTIVE PROJECTS */}
+                      {allProjects.length > 0 && (
+                        <div className="ov-card">
+                          <div className="ov-card-head">
+                            <span className="ov-card-title">Active Projects</span>
+                            <span className="ov-card-meta">{allProjects.length} projects</span>
+                          </div>
+                          <div className="ov-projects">
+                            {allProjects.map((p: any, i: number) => (
+                              <div className="ov-proj" key={i}>
+                                <span className="ov-proj-badge" style={{ background: `${projColors[i % projColors.length]}14`, color: projColors[i % projColors.length] }}>{String(p.name).charAt(0).toUpperCase()}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div className="ov-proj-name">{p.name}</div>
+                                  <div className="ov-proj-role">{p.role}</div>
+                                </div>
+                                <span className="ov-proj-count">{p.count} tickets</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {selectedMember && activeSection === "tickets" && (
+                  /* Premium Ticket Performance */
+                  <div className="pt-wrap">
+                    {/* Section header */}
+                    <div className="pt-head">
+                      <div className="pt-head-left">
+                        <div className="pt-head-icon"><Layers size={18} /></div>
+                        <div>
+                          <div className="pt-head-title">Ticket Performance</div>
+                          <div className="pt-head-sub">Delivery, timeliness &amp; tracking quality for the selected period</div>
+                        </div>
+                      </div>
+                      <div className="pt-head-actions">
+                        <div className="pt-score">
+                          <span className="pt-score-label">Ticket Score</span>
+                          <span className="pt-score-val">{ticketScore}</span>
+                        </div>
+                        <button type="button" className="pt-breakdown" onClick={() => setBreakdownVisible(true)}>
+                          <AreaChartOutlined /> Score Breakdown
+                        </button>
+                      </div>
                     </div>
 
-                    <Divider style={{ margin: "0" }} />
-                    <Table
-                      columns={[
-                        {
-                          title: "Ticket",
-                          dataIndex: "ticketId",
-                          key: "ticketId",
-                          width: 120,
-                          render: (text: string) => <Tag color="blue" style={{ borderRadius: 4, fontWeight: 600 }}>{text}</Tag>
-                        },
-                        {
-                          title: "Title",
-                          dataIndex: "title",
-                          key: "title",
-                          ellipsis: true,
-                          render: (text: string) => <Text strong style={{ color: "#334155" }}>{text}</Text>
-                        },
-                        {
-                          title: "Estimate",
-                          dataIndex: "estimatedHours",
-                          key: "estimatedHours",
-                          width: 100,
-                          align: "center",
-                          render: (hours: number) => <Text style={{ color: "var(--text-secondary)" }}>{hours || 0}h</Text>
-                        },
-                        {
-                          title: "Tracked",
-                          dataIndex: "timeSpent",
-                          key: "timeSpent",
-                          width: 100,
-                          align: "center",
-                          render: (hours: number, record: any) => {
-                            const over = record.estimatedHours > 0 && hours > record.estimatedHours;
-                            const h = Math.floor(hours);
-                            const m = Math.round((hours - h) * 60);
-                            const timeStr = h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''}` : `${m}m`;
-                            return <Text strong style={{ color: over ? "#ef4444" : "#10b981" }}>{timeStr}</Text>;
-                          }
-                        },
-                        {
-                          title: "Status",
-                          dataIndex: "status",
-                          key: "status",
-                          width: 120,
-                          render: (status: string) => {
-                            const s = status?.toLowerCase();
-                            let color = "default";
-                            if (["completed", "done", "live"].includes(s)) color = "success";
-                            if (["in progress", "in_progress", "in review"].includes(s)) color = "processing";
-                            if (["pending", "todo", "open"].includes(s)) color = "warning";
+                    {/* Distribution — segmented bar + legend */}
+                    {(() => {
+                      const total = ticketSummary.total || 0;
+                      const pct = (v: number) => (total > 0 ? Math.round((v / total) * 100) : 0);
 
-                            // Format status name (e.g., in_progress -> In Progress)
-                            const formattedStatus = status
-                              ? status.split(/[_ ]/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
-                              : status;
+                      const statusStats = [
+                        { label: "Completed", value: ticketSummary.completed || 0, color: "#10b981" },
+                        { label: "In Progress", value: ticketSummary.inProgress || 0, color: "#3b82f6" },
+                        { label: "Pending", value: ticketSummary.pending || 0, color: "#64748b" },
+                      ];
 
-                            return <Tag color={color} style={{ borderRadius: 6 }}>{formattedStatus}</Tag>;
-                          }
-                        },
-                        {
-                          title: "Completion Status",
-                          key: "completionStatus",
-                          width: 150,
-                          render: (_: any, record: any) => {
-                            if (!record.timeSpent || record.timeSpent < 0.001 || !record.estimatedHours || record.estimatedHours < 0.001) {
-                              return <Text type="secondary" style={{ fontSize: 11 }}>NO Tracked Time</Text>;
+                      const segments = [
+                        { label: "On Time", value: ticketSummary.onTime || 0, color: "#10b981" },
+                        { label: "Delayed", value: ticketSummary.late || 0, color: "#ef4444" },
+                        { label: "Not Tracked", value: ticketSummary.untracked || 0, color: "#94a3b8" },
+                      ];
+
+                      return (
+                        <div className="pt-dist">
+                          <div className="pt-dist-top">
+                            <div className="pt-dist-total">
+                              <span className="pt-dist-total-num">{total}</span>
+                              <span className="pt-dist-total-lbl">All Tickets</span>
+                            </div>
+                            <div className="pt-dist-statuses">
+                              {statusStats.map((s, i) => (
+                                <div className="pt-dist-status" key={i}>
+                                  <span className="pt-dist-status-dot" style={{ background: s.color }} />
+                                  <span className="pt-dist-status-val">{s.value}</span>
+                                  <span className="pt-dist-status-lbl">{s.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="pt-dist-bar">
+                            {total === 0 ? (
+                              <div className="pt-dist-seg pt-dist-seg-empty" style={{ width: "100%" }} />
+                            ) : (
+                              segments.map((seg, i) => {
+                                const w = (seg.value / total) * 100;
+                                if (w <= 0) return null;
+                                return (
+                                  <Tooltip key={i} title={`${seg.label}: ${seg.value} (${pct(seg.value)}%)`}>
+                                    <div className="pt-dist-seg" style={{ width: `${w}%`, background: seg.color }} />
+                                  </Tooltip>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          <div className="pt-dist-legend">
+                            {segments.map((seg, i) => (
+                              <div className="pt-dist-leg" key={i}>
+                                <span className="pt-dist-leg-dot" style={{ background: seg.color }} />
+                                <span className="pt-dist-leg-lbl">{seg.label}</span>
+                                <span className="pt-dist-leg-val">{seg.value}</span>
+                                <span className="pt-dist-leg-pct">{pct(seg.value)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Table panel — full detail only on the Tickets section */}
+                    {activeSection === "tickets" && (
+                    <div className="pt-table-panel">
+                      <div className="pt-table-head">
+                        <span className="pt-table-title">Ticket Details</span>
+                        <span className="pt-table-count">{(performanceData?.tickets?.details || []).length} tickets</span>
+                      </div>
+                      <Table
+                        className="pt-table"
+                        columns={[
+                          {
+                            title: "Ticket",
+                            dataIndex: "ticketId",
+                            key: "ticketId",
+                            width: 120,
+                            render: (text: string) => <span className="pt-tid">{text}</span>
+                          },
+                          {
+                            title: "Title",
+                            dataIndex: "title",
+                            key: "title",
+                            ellipsis: true,
+                            render: (text: string) => <span className="pt-ttitle">{text}</span>
+                          },
+                          {
+                            title: "Estimate",
+                            dataIndex: "estimatedHours",
+                            key: "estimatedHours",
+                            width: 92,
+                            align: "center",
+                            render: (hours: number) => <span className="pt-hours" style={{ color: "var(--text-secondary)" }}>{hours || 0}h</span>
+                          },
+                          {
+                            title: "Tracked",
+                            dataIndex: "timeSpent",
+                            key: "timeSpent",
+                            width: 100,
+                            align: "center",
+                            render: (hours: number, record: any) => {
+                              const over = record.estimatedHours > 0 && hours > record.estimatedHours;
+                              const h = Math.floor(hours);
+                              const m = Math.round((hours - h) * 60);
+                              const timeStr = h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''}` : `${m}m`;
+                              return <span className="pt-hours" style={{ color: over ? "#ef4444" : "#10b981" }}>{timeStr}</span>;
                             }
-                            const over = record.timeSpent > record.estimatedHours;
-                            if (!over) {
-                              return <Tag color="success" style={{ borderRadius: 6, fontWeight: 600 }}>No Compliance</Tag>;
-                            } else {
+                          },
+                          {
+                            title: "Status",
+                            dataIndex: "status",
+                            key: "status",
+                            width: 130,
+                            render: (status: string) => {
+                              const s = status?.toLowerCase();
+                              let color = "#94a3b8";
+                              if (["completed", "done", "live"].includes(s)) color = "#10b981";
+                              else if (["in progress", "in_progress", "in review"].includes(s)) color = "#3b82f6";
+                              else if (["pending", "todo", "open"].includes(s)) color = "#64748b";
+                              const formattedStatus = status
+                                ? status.split(/[_ ]/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+                                : status;
+                              return (
+                                <span className="pt-status" style={{ color, background: `${color}14` }}>
+                                  <span className="pt-status-dot" style={{ background: color }} />
+                                  {formattedStatus}
+                                </span>
+                              );
+                            }
+                          },
+                          {
+                            title: "Compliance",
+                            key: "completionStatus",
+                            width: 150,
+                            render: (_: any, record: any) => {
+                              if (!record.timeSpent || record.timeSpent < 0.001 || !record.estimatedHours || record.estimatedHours < 0.001) {
+                                return <span className="pt-pill" style={{ color: "#94a3b8", background: "var(--bg-secondary)" }}>Untracked</span>;
+                              }
+                              const over = record.timeSpent > record.estimatedHours;
+                              if (!over) {
+                                return <span className="pt-pill" style={{ color: "#10b981", background: "rgba(16,185,129,0.10)" }}>On Budget</span>;
+                              }
                               const extraHours = record.timeSpent - record.estimatedHours;
                               const h = Math.floor(extraHours);
                               const m = Math.round((extraHours - h) * 60);
                               const timeStr = h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''}` : `${m}m`;
-                              return <Text type="danger" strong style={{ fontSize: 12 }}>{timeStr} Late</Text>;
+                              return <span className="pt-pill" style={{ color: "#ef4444", background: "rgba(239,68,68,0.10)" }}>{timeStr} over</span>;
                             }
                           }
-                        }
-                      ]}
-                      dataSource={performanceData?.tickets?.details || []}
-                      rowKey="key"
-                      pagination={{ pageSize: 5, size: "small" }}
-                      size="middle"
-                      locale={{ emptyText: "No ticket data available for this member in this period" }}
-                    />
-                  </Card>
+                        ]}
+                        dataSource={performanceData?.tickets?.details || []}
+                        rowKey="key"
+                        pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                        size="small"
+                        locale={{
+                          emptyText: (
+                            <div className="pt-empty">
+                              <div className="pt-empty-orb"><Layers size={22} /></div>
+                              <div className="pt-empty-title">No tickets in this period</div>
+                              <div className="pt-empty-sub">There is no ticket activity for this member in the selected month.</div>
+                            </div>
+                          )
+                        }}
+                      />
+                    </div>
+                    )}
+                  </div>
                 )}
 
-                {selectedMember && (
-                  <Card
-                    size="small"
-                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", background: 'var(--bg-pure-white)' }}
-                    title={
-                      <Space size={8}>
-                        <div style={{ background: "var(--bg-secondary)", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                          <FileTextOutlined style={{ color: "var(--text-secondary)" }} />
-                        </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Daily Updates Log</span>
-                      </Space>
-                    }
-                    extra={
-                      <Button
-                        type="primary"
-                        size="small"
-                        icon={<AreaChartOutlined />}
-                        style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
-                        onClick={() => setDailyBreakdownVisible(true)}
-                      >
-                        Breakdown
-                      </Button>
-                    }
-                  >
-                    <Row gutter={24}>
-                      {/* Left Side: Summary Cards (30%) */}
-                      <Col xs={24} md={8}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <Card
-                            size="small"
-                            style={{
-                              borderRadius: "12px",
-                              border: "1px solid rgba(16, 185, 129, 0.2)",
-                              background: "rgba(16, 185, 129, 0.05)",
-                              boxShadow: "none"
-                            }}
-                          >
-                            <Statistic
-                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#10b981" }}>BOD COMPLIANCE</span>}
-                              value={performanceData?.dailyUpdates?.summary?.bod || 0}
-                              suffix={`/ ${performanceData?.dailyUpdates?.summary?.total || 0}`}
-                              valueStyle={{ color: "#10b981", fontWeight: 800, fontSize: 24 }}
-                            />
-                            <div style={{ fontSize: 11, color: "#10b981", opacity: 0.8, marginTop: 4 }}>Total Beginning of Day updates</div>
-                          </Card>
+                {selectedMember && activeSection === "daily" && (() => {
+                  const du: any = performanceData?.dailyUpdates || {};
+                  const totalDays = du.summary?.total || 0;
+                  const bod = du.summary?.bod || 0;
+                  const eod = du.summary?.eod || 0;
+                  const missedBOD = du.missedBOD || [];
+                  const missedEOD = du.missedEOD || [];
+                  const submitted = bod + eod;
+                  const missed = missedBOD.length + missedEOD.length;
+                  const totalSlots = submitted + missed;
+                  const compliance = totalSlots > 0 ? Math.round((submitted / totalSlots) * 100) : 0;
+                  const pct = (v: number) => (totalSlots > 0 ? Math.round((v / totalSlots) * 100) : 0);
 
-                          <Card
-                            size="small"
-                            style={{
-                              borderRadius: "12px",
-                              border: "1px solid rgba(245, 158, 11, 0.2)",
-                              background: "rgba(245, 158, 11, 0.05)",
-                              boxShadow: "none"
-                            }}
-                          >
-                            <Statistic
-                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#f59e0b" }}>EOD COMPLIANCE</span>}
-                              value={performanceData?.dailyUpdates?.summary?.eod || 0}
-                              suffix={`/ ${performanceData?.dailyUpdates?.summary?.total || 0}`}
-                              valueStyle={{ color: "#f59e0b", fontWeight: 800, fontSize: 24 }}
-                            />
-                            <div style={{ fontSize: 11, color: "#f59e0b", opacity: 0.8, marginTop: 4 }}>Total End of Day updates</div>
-                          </Card>
+                  const missedRows = [
+                    ...missedBOD.map((m: any, i: number) => ({ ...m, _type: "BOD", key: m.key ?? `bod-${i}` })),
+                    ...missedEOD.map((m: any, i: number) => ({ ...m, _type: "EOD", key: m.key ?? `eod-${i}` })),
+                  ];
 
-                          <div style={{ padding: "8px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px dashed var(--border-color)" }}>
-                            <Text type="secondary" style={{ fontSize: 10 }}>
-                              Showing missed updates for working days in the selected period.
-                            </Text>
+                  const segments = [
+                    { label: "Submitted", value: submitted, color: "#10b981" },
+                    { label: "Missed", value: missed, color: "#ef4444" },
+                  ];
+
+                  return (
+                    <div className="pt-wrap">
+                      <div className="pt-head">
+                        <div className="pt-head-left">
+                          <div className="pt-head-icon"><FileTextOutlined /></div>
+                          <div>
+                            <div className="pt-head-title">Daily Updates</div>
+                            <div className="pt-head-sub">Beginning &amp; end of day reporting compliance for the selected period</div>
                           </div>
                         </div>
-                      </Col>
+                        <div className="pt-head-actions">
+                          <div className="pt-score">
+                            <span className="pt-score-label">Compliance</span>
+                            <span className="pt-score-val">{compliance}%</span>
+                          </div>
+                          <button type="button" className="pt-breakdown" onClick={() => setDailyBreakdownVisible(true)}>
+                            <AreaChartOutlined /> Breakdown
+                          </button>
+                        </div>
+                      </div>
 
-                      {/* Right Side: Missed Updates Tabs (70%) */}
-                      <Col xs={24} md={16}>
-                        <Tabs
-                          defaultActiveKey="bod"
-                          size="small"
-                          items={[
+                      <div className="pt-dist">
+                        <div className="pt-dist-top">
+                          <div className="pt-dist-total">
+                            <span className="pt-dist-total-num">{totalDays}</span>
+                            <span className="pt-dist-total-lbl">Working Days</span>
+                          </div>
+                          <div className="pt-dist-statuses">
+                            <div className="pt-dist-status">
+                              <span className="pt-dist-status-dot" style={{ background: "#10b981" }} />
+                              <span className="pt-dist-status-val">{bod}</span>
+                              <span className="pt-dist-status-lbl">BOD / {totalDays}</span>
+                            </div>
+                            <div className="pt-dist-status">
+                              <span className="pt-dist-status-dot" style={{ background: "#f59e0b" }} />
+                              <span className="pt-dist-status-val">{eod}</span>
+                              <span className="pt-dist-status-lbl">EOD / {totalDays}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="pt-dist-bar">
+                          {totalSlots === 0 ? (
+                            <div className="pt-dist-seg pt-dist-seg-empty" style={{ width: "100%" }} />
+                          ) : (
+                            segments.map((seg, i) => {
+                              const w = (seg.value / totalSlots) * 100;
+                              if (w <= 0) return null;
+                              return (
+                                <Tooltip key={i} title={`${seg.label}: ${seg.value} (${pct(seg.value)}%)`}>
+                                  <div className="pt-dist-seg" style={{ width: `${w}%`, background: seg.color }} />
+                                </Tooltip>
+                              );
+                            })
+                          )}
+                        </div>
+                        <div className="pt-dist-legend">
+                          {segments.map((seg, i) => (
+                            <div className="pt-dist-leg" key={i}>
+                              <span className="pt-dist-leg-dot" style={{ background: seg.color }} />
+                              <span className="pt-dist-leg-lbl">{seg.label}</span>
+                              <span className="pt-dist-leg-val">{seg.value}</span>
+                              <span className="pt-dist-leg-pct">{pct(seg.value)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-table-panel">
+                        <div className="pt-table-head">
+                          <span className="pt-table-title">Missed Updates</span>
+                          <span className="pt-table-count">{missedRows.length} missed</span>
+                        </div>
+                        <Table
+                          className="pt-table"
+                          columns={[
                             {
-                              key: "bod",
-                              label: `Missed BOD (${performanceData?.dailyUpdates?.missedBOD?.length || 0})`,
-                              children: (
-                                <Table
-                                  columns={[
-                                    {
-                                      title: "Date",
-                                      dataIndex: "date",
-                                      key: "date",
-                                      render: (d) => <Text strong>{dayjs(d).format("DD MMM (ddd)")}</Text>
-                                    },
-                                    {
-                                      title: "Status",
-                                      key: "status",
-                                      render: () => <Tag color="error" style={{ borderRadius: 4 }}>Missed</Tag>
-                                    }
-                                  ]}
-                                  dataSource={performanceData?.dailyUpdates?.missedBOD || []}
-                                  rowKey="key"
-                                  pagination={{ pageSize: 8, size: "small" }}
-                                  size="small"
-                                  locale={{ emptyText: "Perfect! No BOD updates missed." }}
-                                />
-                              )
+                              title: "Type",
+                              dataIndex: "_type",
+                              key: "_type",
+                              width: 110,
+                              render: (t: string) => <span className="pt-tid">{t}</span>
                             },
                             {
-                              key: "eod",
-                              label: `Missed EOD (${performanceData?.dailyUpdates?.missedEOD?.length || 0})`,
-                              children: (
-                                <Table
-                                  columns={[
-                                    {
-                                      title: "Date",
-                                      dataIndex: "date",
-                                      key: "date",
-                                      render: (d) => <Text strong>{dayjs(d).format("DD MMM (ddd)")}</Text>
-                                    },
-                                    {
-                                      title: "Status",
-                                      key: "status",
-                                      render: () => <Tag color="error" style={{ borderRadius: 4 }}>Missed</Tag>
-                                    }
-                                  ]}
-                                  dataSource={performanceData?.dailyUpdates?.missedEOD || []}
-                                  rowKey="key"
-                                  pagination={{ pageSize: 8, size: "small" }}
-                                  size="small"
-                                  locale={{ emptyText: "Perfect! No EOD updates missed." }}
-                                />
-                              )
+                              title: "Date",
+                              dataIndex: "date",
+                              key: "date",
+                              render: (d: string) => <span className="pt-ttitle">{dayjs(d).format("DD MMM (ddd)")}</span>
+                            },
+                            {
+                              title: "Status",
+                              key: "status",
+                              width: 120,
+                              align: "right",
+                              render: () => <span className="pt-pill" style={{ color: "#ef4444", background: "#fef2f2" }}>Missed</span>
                             }
                           ]}
+                          dataSource={missedRows}
+                          rowKey="key"
+                          pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                          size="small"
+                          locale={{
+                            emptyText: (
+                              <div className="pt-empty">
+                                <div className="pt-empty-orb" style={{ color: "#10b981", background: "rgba(16,185,129,0.08)" }}><CheckCircleOutlined style={{ fontSize: 22 }} /></div>
+                                <div className="pt-empty-title">No missed updates</div>
+                                <div className="pt-empty-sub">All beginning &amp; end of day updates were submitted for this period.</div>
+                              </div>
+                            )
+                          }}
                         />
-                      </Col>
-                    </Row>
-                  </Card>
-                )}
-
-                {selectedMember && (
-                  <Card
-                    size="small"
-                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginTop: 24, background: 'var(--bg-pure-white)' }}
-                    title={
-                      <Space size={8}>
-                        <div style={{ background: "rgba(225, 29, 72, 0.05)", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                          <AlertTriangle style={{ color: "#e11d48", width: 16, height: 16 }} />
-                        </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Escalations Log</span>
-                      </Space>
-                    }
-                    extra={
-                      <Button
-                        type="primary"
-                        size="small"
-                        danger
-                        icon={<AreaChartOutlined />}
-                        style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
-                        onClick={() => setEscalationBreakdownVisible(true)}
-                      >
-                        Breakdown
-                      </Button>
-                    }
-                  >
-                    {!performanceData?.escalations?.details || performanceData?.escalations?.details.length === 0 ? (
-                      <div style={{
-                        padding: "40px 20px",
-                        textAlign: "center",
-                        background: "rgba(16, 185, 129, 0.05)",
-                        borderRadius: "12px",
-                        border: "1px dashed rgba(16, 185, 129, 0.3)",
-                        margin: "12px"
-                      }}>
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          background: "var(--bg-pure-white)",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          margin: "0 auto 16px",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)"
-                        }}>
-                          <CheckCircleOutlined style={{ color: "#10b981", fontSize: 24 }} />
-                        </div>
-                        <Title level={5} style={{ margin: "0 0 10px", color: "#10b981", fontWeight: 700 }}>Excellent Progress!</Title>
-                        <Text style={{ color: "var(--text-secondary)" }}>No escalations have been recorded for <b>{selectedUserDetails?.label}</b> in this period. Keep up the great work.</Text>
                       </div>
-                    ) : (
-                      <Row gutter={24} style={{ padding: "12px" }}>
-                        {/* Left Side: Consolidated Total Metric (30%) */}
-                        <Col xs={24} md={7}>
-                          <Card
-                            size="small"
-                            style={{
-                              borderRadius: "16px",
-                              border: "none",
-                              background: "linear-gradient(135deg, #fff1f2 0%, #fff 100%)",
-                              boxShadow: "0 4px 12px rgba(225, 29, 72, 0.08)",
-                              height: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              padding: "24px 0"
-                            }}
-                            styles={{ body: { width: "100%", textAlign: "center" } }}
-                          >
-                            <div style={{
-                              width: 56,
-                              height: 56,
-                              background: "#e11d48",
-                              borderRadius: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              margin: "0 auto 16px",
-                              boxShadow: "0 8px 16px -4px rgba(225, 29, 72, 0.4)"
-                            }}>
-                              <AlertTriangle style={{ color: "#fff", width: 28, height: 28 }} />
+                    </div>
+                  );
+                })()}
+
+                {selectedMember && activeSection === "escalation" && (() => {
+                  const esc: any = performanceData?.escalations || {};
+                  const details = esc.details || [];
+                  const total = esc.summary?.total ?? details.length;
+
+                  const active = details.filter((d: any) => d.status === "OPEN").length;
+                  const progress = details.filter((d: any) => d.status === "IN_PROGRESS").length;
+                  const resolved = details.filter((d: any) => d.status === "RESOLVED" || d.status === "CLOSED").length;
+
+                  const high = details.filter((d: any) => d.priority === "HIGH" || d.priority === "URGENT").length;
+                  const medium = details.filter((d: any) => d.priority === "MEDIUM").length;
+                  const low = details.filter((d: any) => d.priority === "LOW" || !d.priority).length;
+
+                  const denom = active + progress + resolved;
+                  const pct = (v: number) => (denom > 0 ? Math.round((v / denom) * 100) : 0);
+
+                  const segments = [
+                    { label: "Active", value: active, color: "#ef4444" },
+                    { label: "In Progress", value: progress, color: "#3b82f6" },
+                    { label: "Resolved", value: resolved, color: "#10b981" },
+                  ];
+
+                  return (
+                    <div className="pt-wrap">
+                      <div className="pt-head">
+                        <div className="pt-head-left">
+                          <div className="pt-head-icon" style={{ background: "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)", color: "#e11d48" }}>
+                            <AlertTriangle size={16} />
+                          </div>
+                          <div>
+                            <div className="pt-head-title">Escalations</div>
+                            <div className="pt-head-sub">Issues raised &amp; their resolution status for the selected period</div>
+                          </div>
+                        </div>
+                        <div className="pt-head-actions">
+                          <div className="pt-score">
+                            <span className="pt-score-label">Total</span>
+                            <span className="pt-score-val" style={{ background: "#e11d48" }}>{total}</span>
+                          </div>
+                          <button type="button" className="pt-breakdown" onClick={() => setEscalationBreakdownVisible(true)}>
+                            <AreaChartOutlined /> Breakdown
+                          </button>
+                        </div>
+                      </div>
+
+                      {details.length === 0 ? (
+                        <div className="pt-table-panel">
+                          <div className="pt-empty">
+                            <div className="pt-empty-orb" style={{ color: "#10b981", background: "rgba(16,185,129,0.08)" }}><CheckCircleOutlined style={{ fontSize: 22 }} /></div>
+                            <div className="pt-empty-title">No escalations recorded</div>
+                            <div className="pt-empty-sub">No escalations for {selectedUserDetails?.label} in this period. Keep up the great work.</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="pt-dist">
+                            <div className="pt-dist-top">
+                              <div className="pt-dist-total">
+                                <span className="pt-dist-total-num">{total}</span>
+                                <span className="pt-dist-total-lbl">Total Escalations</span>
+                              </div>
+                              <div className="pt-dist-statuses">
+                                <div className="pt-dist-status">
+                                  <span className="pt-dist-status-dot" style={{ background: "#e11d48" }} />
+                                  <span className="pt-dist-status-val">{high}</span>
+                                  <span className="pt-dist-status-lbl">High</span>
+                                </div>
+                                <div className="pt-dist-status">
+                                  <span className="pt-dist-status-dot" style={{ background: "#f59e0b" }} />
+                                  <span className="pt-dist-status-val">{medium}</span>
+                                  <span className="pt-dist-status-lbl">Medium</span>
+                                </div>
+                                <div className="pt-dist-status">
+                                  <span className="pt-dist-status-dot" style={{ background: "#64748b" }} />
+                                  <span className="pt-dist-status-val">{low}</span>
+                                  <span className="pt-dist-status-lbl">Low</span>
+                                </div>
+                              </div>
                             </div>
-                            <Text strong style={{ fontSize: 12, color: "#9f1239", textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: 4 }}>
-                              Total Escalations
-                            </Text>
-                            <Title level={1} style={{ margin: 0, color: "#e11d48", fontWeight: 900, fontSize: 48, lineHeight: 1 }}>
-                              {performanceData?.escalations?.summary?.total || 0}
-                            </Title>
-
-                          </Card>
-                        </Col>
-
-                        {/* Right Side: Enhanced Escalation Table (70%) */}
-                        <Col xs={24} md={17}>
-                          <Table
-                            className="premium-table"
-                            columns={[
-                              {
-                                title: "ISSUE DETAILS",
-                                dataIndex: "subject",
-                                key: "subject",
-                                ellipsis: true,
-                                render: (text: string, record: any) => (
-                                  <Space direction="vertical" size={0}>
-                                    <Text strong style={{ color: "var(--text-primary)", fontSize: 13 }}>{text}</Text>
-                                    <Text type="secondary" style={{ fontSize: 11 }}>{record.category || 'General Issue'}</Text>
-                                  </Space>
-                                )
-                              },
-                              {
-                                title: "PRIORITY",
-                                dataIndex: "priority",
-                                key: "priority",
-                                width: 110,
-                                align: 'center',
-                                render: (priority) => {
-                                  let color = "var(--text-secondary)";
-                                  let bg = "var(--border-color)";
-                                  if (priority === "HIGH" || priority === "URGENT") { color = "#e11d48"; bg = "#fff1f2"; }
-                                  if (priority === "MEDIUM") { color = "#d97706"; bg = "#fffbeb"; }
+                            <div className="pt-dist-bar">
+                              {denom === 0 ? (
+                                <div className="pt-dist-seg pt-dist-seg-empty" style={{ width: "100%" }} />
+                              ) : (
+                                segments.map((seg, i) => {
+                                  const w = (seg.value / denom) * 100;
+                                  if (w <= 0) return null;
                                   return (
-                                    <div style={{
-                                      color: color,
-                                      background: bg,
-                                      padding: "4px 10px",
-                                      borderRadius: "6px",
-                                      fontSize: 11,
-                                      fontWeight: 800,
-                                      display: "inline-block",
-                                      letterSpacing: "0.02em"
-                                    }}>
-                                      {priority}
+                                    <Tooltip key={i} title={`${seg.label}: ${seg.value} (${pct(seg.value)}%)`}>
+                                      <div className="pt-dist-seg" style={{ width: `${w}%`, background: seg.color }} />
+                                    </Tooltip>
+                                  );
+                                })
+                              )}
+                            </div>
+                            <div className="pt-dist-legend">
+                              {segments.map((seg, i) => (
+                                <div className="pt-dist-leg" key={i}>
+                                  <span className="pt-dist-leg-dot" style={{ background: seg.color }} />
+                                  <span className="pt-dist-leg-lbl">{seg.label}</span>
+                                  <span className="pt-dist-leg-val">{seg.value}</span>
+                                  <span className="pt-dist-leg-pct">{pct(seg.value)}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="pt-table-panel">
+                            <div className="pt-table-head">
+                              <span className="pt-table-title">Escalation Details</span>
+                              <span className="pt-table-count">{details.length} issues</span>
+                            </div>
+                            <Table
+                              className="pt-table"
+                              columns={[
+                                {
+                                  title: "Issue Details",
+                                  dataIndex: "subject",
+                                  key: "subject",
+                                  ellipsis: true,
+                                  render: (text: string, record: any) => (
+                                    <div>
+                                      <div className="pt-ttitle">{text}</div>
+                                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{record.category || "General Issue"}</div>
                                     </div>
-                                  );
+                                  )
+                                },
+                                {
+                                  title: "Priority",
+                                  dataIndex: "priority",
+                                  key: "priority",
+                                  width: 110,
+                                  align: "center",
+                                  render: (priority: string) => {
+                                    let color = "#64748b";
+                                    let bg = "var(--bg-secondary)";
+                                    if (priority === "HIGH" || priority === "URGENT") { color = "#e11d48"; bg = "#fff1f2"; }
+                                    if (priority === "MEDIUM") { color = "#d97706"; bg = "#fffbeb"; }
+                                    return <span className="pt-pill" style={{ color, background: bg }}>{priority || "LOW"}</span>;
+                                  }
+                                },
+                                {
+                                  title: "Status",
+                                  dataIndex: "status",
+                                  key: "status",
+                                  width: 130,
+                                  align: "right",
+                                  render: (status: string) => {
+                                    const config: any = {
+                                      OPEN: { color: "#ef4444", label: "Active" },
+                                      IN_PROGRESS: { color: "#3b82f6", label: "In Progress" },
+                                      RESOLVED: { color: "#10b981", label: "Resolved" },
+                                      CLOSED: { color: "#10b981", label: "Closed" }
+                                    };
+                                    const s = config[status] || { color: "var(--text-secondary)", label: status };
+                                    return (
+                                      <span className="pt-status" style={{ color: s.color, background: `${s.color}14`, justifyContent: "flex-end" }}>
+                                        <span className="pt-status-dot" style={{ background: s.color }} />
+                                        {s.label}
+                                      </span>
+                                    );
+                                  }
                                 }
-                              },
-                              {
-                                title: "STATUS",
-                                dataIndex: "status",
-                                key: "status",
-                                width: 120,
-                                align: 'right',
-                                render: (status) => {
-                                  const config: any = {
-                                    OPEN: { color: "var(--color-error)", label: "ACTIVE", dot: "var(--color-error)" },
-                                    IN_PROGRESS: { color: "var(--color-info)", label: "PROGRESS", dot: "var(--color-info)" },
-                                    RESOLVED: { color: "var(--color-success)", label: "RESOLVED", dot: "var(--color-success)" },
-                                    CLOSED: { color: "var(--color-success)", label: "CLOSED", dot: "var(--color-success)" }
-                                  };
-                                  const s = config[status] || { color: "var(--text-secondary)", label: status, dot: "var(--text-secondary)" };
-                                  return (
-                                    <Space size={6}>
-                                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />
-                                      <Text strong style={{ fontSize: 11, color: s.color }}>{s.label}</Text>
-                                    </Space>
-                                  );
-                                }
-                              }
-                            ]}
-                            dataSource={performanceData?.escalations?.details || []}
-                            rowKey="id"
-                            pagination={{ pageSize: 5, size: "small" }}
-                            size="small"
-                            onRow={(record) => ({
-                              onClick: () => handleRowClick(record),
-                              style: { cursor: 'pointer' }
-                            })}
-                          />
-                        </Col>
-                      </Row>
-                    )}
-                  </Card>
-                )}
+                              ]}
+                              dataSource={details}
+                              rowKey="id"
+                              pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                              size="small"
+                              onRow={(record) => ({
+                                onClick: () => handleRowClick(record),
+                                style: { cursor: "pointer" }
+                              })}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-            </Col>
-          </Row>
+            </main>
+          </div>
         )}
 
         {/* Escalation Detail Drawer */}
@@ -2191,6 +2278,493 @@ export default function PerformanceManagePage() {
           .ant-card {
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
             background: var(--bg-pure-white) !important;
+          }
+          /* ---------------- Proposals-style shell ---------------- */
+          .pm-shell {
+            display: flex;
+            margin: 0 -24px;
+            background: var(--bg-pure-white);
+          }
+          .pm-sidebar {
+            width: 346px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-color);
+            background: var(--bg-pure-white);
+            display: flex;
+            flex-direction: column;
+            padding: 4px 16px 0 28px;
+            position: sticky;
+            top: 0;
+            align-self: flex-start;
+            height: calc(100vh - 130px);
+          }
+          .pm-side-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin: 0 -6px;
+            padding: 0 6px 16px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .pm-side-scroll::-webkit-scrollbar { display: none; }
+          .pm-side-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-secondary);
+            padding: 0 8px;
+            margin: 16px 0 6px;
+          }
+          .pm-side-scroll > .pm-side-section-label:first-child { margin-top: 4px; }
+
+          /* ---------------- Section nav ---------------- */
+          .pm-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+          }
+          .pm-nav-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            width: 100%;
+            padding: 8px 11px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 10px;
+            text-align: left;
+            transition: background 0.15s ease;
+          }
+          .pm-nav-item:hover { background: var(--bg-secondary); }
+          .pm-nav-item.is-active {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(37, 99, 235, 0.03) 100%);
+          }
+          .pm-nav-item.is-active::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 50%;
+            transform: translateY(-50%);
+            width: 3px; height: 18px;
+            border-radius: 0 3px 3px 0;
+            background: #2563eb;
+          }
+          .pm-nav-icon {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.15s ease;
+          }
+          .pm-nav-item:hover .pm-nav-icon { color: var(--text-primary); }
+          .pm-nav-item.is-active .pm-nav-icon {
+            color: #fff;
+            background: #2563eb;
+            border-color: #2563eb;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.30);
+          }
+          .pm-nav-label {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: color 0.15s ease;
+          }
+          .pm-nav-item.is-active .pm-nav-label { color: #2563eb; font-weight: 700; }
+          .pm-nav-item:not(.is-active) .pm-nav-arrow { opacity: 0; }
+          .pm-nav-arrow {
+            font-size: 11px;
+            color: #2563eb;
+            transition: opacity 0.15s ease;
+          }
+
+          /* ---------------- Employee card ---------------- */
+          .pm-emp { padding: 2px 0; }
+          .pm-emp-head {
+            position: relative;
+            text-align: center;
+            padding: 24px 14px 16px;
+            border-radius: 16px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+            overflow: hidden;
+          }
+          .pm-emp-avatar-wrap { position: relative; display: inline-block; margin-bottom: 10px; }
+          .pm-emp-avatar {
+            background: var(--bg-pure-white) !important;
+            color: #2563eb !important;
+            border: 3px solid var(--bg-pure-white) !important;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14) !important;
+            font-weight: 800 !important;
+            font-size: 22px !important;
+          }
+          .pm-emp-status {
+            position: absolute;
+            bottom: 3px; right: 3px;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: #22c55e;
+            border: 2.5px solid var(--bg-pure-white);
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+          }
+          .pm-emp-name {
+            margin: 0 !important;
+            color: var(--text-primary) !important;
+            font-size: 16px !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.01em;
+          }
+          .pm-emp-role {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: 2px;
+          }
+          .pm-emp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
+          }
+          .pm-emp-tile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 9px;
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+          }
+          .pm-emp-tile:hover {
+            border-color: #bfdbfe;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+            transform: translateY(-1px);
+          }
+          .pm-emp-tile-ic {
+            width: 24px; height: 24px;
+            flex-shrink: 0;
+            border-radius: 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(37, 99, 235, 0.09);
+            color: #2563eb;
+            font-size: 11px;
+          }
+          .pm-emp-tile-txt { overflow: hidden; }
+          .pm-emp-tile-label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            line-height: 1;
+          }
+          .pm-emp-tile-val {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.1;
+          }
+
+          /* ---------------- Performance gauge ---------------- */
+          .pm-gauge {
+            text-align: center;
+            padding: 16px 14px;
+            margin-top: 14px;
+            border-radius: 16px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+          }
+          .pm-gauge-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 14px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+          }
+          .pm-gauge-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 16px;
+            padding-top: 13px;
+            border-top: 1px dashed var(--border-color);
+          }
+          .pm-gauge-stat { text-align: center; }
+          .pm-gauge-stat + .pm-gauge-stat { border-left: 1px solid var(--border-color); }
+          .pm-gauge-stat-label {
+            font-size: 8.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+          }
+          .pm-gauge-stat-val { font-size: 14px; font-weight: 800; line-height: 1; }
+
+          /* ---------------- Main ---------------- */
+          .pm-main {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 24px 0;
+            display: flex;
+            flex-direction: column;
+          }
+          .pm-main-body {
+            flex: 1;
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .pm-main-body::-webkit-scrollbar { display: none; }
+
+          @media (max-width: 820px) {
+            .pm-shell { flex-direction: column; margin: 0; }
+            .pm-sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .pm-main-body { height: auto; }
+          }
+
+          /* ---------------- Premium Tickets section ---------------- */
+          .pt-wrap { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+          .pt-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+          .pt-head-left { display: flex; align-items: center; gap: 10px; }
+          .pt-head-icon {
+            width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #2563eb;
+          }
+          .pt-head-icon svg { width: 16px; height: 16px; }
+          .pt-head-title { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.2; }
+          .pt-head-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 1px; }
+          .pt-breakdown {
+            display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px;
+            border-radius: 9px; border: 1px solid var(--border-color); background: var(--bg-pure-white);
+            color: var(--text-primary); font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: border-color .15s ease, color .15s ease, background .15s ease;
+          }
+          .pt-breakdown:hover { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
+          .pt-breakdown .anticon { font-size: 13px; }
+          .pt-head-actions { display: flex; align-items: center; gap: 10px; }
+          .pt-score {
+            display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px 0 12px;
+            border-radius: 9px; border: 1px solid var(--border-color); background: var(--bg-secondary);
+          }
+          .pt-score-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+          .pt-score-val {
+            display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 22px; padding: 0 8px;
+            border-radius: 6px; background: #2563eb; color: #fff; font-size: 13px; font-weight: 800; letter-spacing: -0.01em;
+          }
+
+          /* ---------- Distribution (segmented bar + legend) ---------- */
+          .pt-dist {
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 14px;
+          }
+          .pt-dist-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 11px;
+            flex-wrap: wrap;
+          }
+          .pt-dist-total { display: flex; align-items: baseline; gap: 7px; }
+          .pt-dist-total-num { font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+          .pt-dist-total-lbl { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+          .pt-dist-statuses { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+          .pt-dist-status { display: flex; align-items: center; gap: 6px; }
+          .pt-dist-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+          .pt-dist-status-val { font-size: 13px; font-weight: 800; color: var(--text-primary); line-height: 1; font-variant-numeric: tabular-nums; }
+          .pt-dist-status-lbl { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+
+          .pt-dist-bar {
+            display: flex;
+            gap: 2px;
+            height: 8px;
+            margin-bottom: 10px;
+          }
+          .pt-dist-seg {
+            height: 100%;
+            border-radius: 99px;
+            min-width: 4px;
+            transition: width .55s cubic-bezier(0.4,0,0.2,1), opacity .15s ease;
+          }
+          .pt-dist-seg:hover { opacity: 0.85; }
+          .pt-dist-seg-empty { background: var(--bg-secondary); }
+
+          .pt-dist-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px 18px;
+          }
+          .pt-dist-leg { display: flex; align-items: center; gap: 6px; }
+          .pt-dist-leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+          .pt-dist-leg-lbl { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+          .pt-dist-leg-val { font-size: 12px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+          .pt-dist-leg-pct { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+
+          /* ---------------- Overview dashboard ---------------- */
+          .ov { display: flex; flex-direction: column; gap: 10px; }
+
+          .ov-hero {
+            display: flex; align-items: stretch; gap: 18px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            background:
+              radial-gradient(70% 110% at 0% 0%, rgba(37,99,235,0.06) 0%, transparent 52%),
+              radial-gradient(70% 110% at 100% 0%, rgba(16,185,129,0.06) 0%, transparent 52%),
+              var(--bg-pure-white);
+          }
+          .ov-hero-gauge { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; flex-shrink: 0; padding-right: 18px; border-right: 1px solid var(--border-color); }
+          .ov-hero-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 11px; }
+          .ov-hero-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+          .ov-eyebrow { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); }
+          .ov-hero-title { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; letter-spacing: -0.03em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+          .ov-hero-title span { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-left: 2px; }
+          .ov-hero-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+          .ov-grade { display: inline-flex; align-items: center; height: 22px; padding: 0 11px; border-radius: 99px; font-size: 11px; font-weight: 800; }
+
+          .ov-comp { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); }
+          .ov-comp-item { display: flex; flex-direction: column; gap: 2px; }
+          .ov-comp-item span { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+          .ov-comp-item b { font-size: 14px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1; }
+          .ov-comp-item.is-final b { color: #2563eb; }
+          .ov-comp-op { font-size: 12px; font-weight: 700; color: var(--text-secondary); align-self: flex-end; padding-bottom: 1px; }
+
+          .ov-subs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+          .ov-sub-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+          .ov-sub-lbl { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); }
+          .ov-sub-val { font-size: 12px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+          .ov-sub-bar { height: 5px; border-radius: 99px; background: var(--bg-secondary); overflow: hidden; }
+          .ov-sub-fill { height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(0.4,0,0.2,1); }
+
+          .ov-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+          .ov-kpi {
+            position: relative; overflow: hidden;
+            padding: 12px 13px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-pure-white);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          }
+          .ov-kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15,23,42,0.06); border-color: var(--ov-accent, var(--border-color)); }
+          .ov-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+          .ov-kpi-ic { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+          .ov-kpi-val { font-size: 21px; font-weight: 800; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+          .ov-kpi-val small { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-left: 2px; }
+          .ov-kpi-lbl { font-size: 10px; font-weight: 700; color: var(--text-secondary); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.03em; }
+
+          .ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+          .ov-card { padding: 13px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-pure-white); }
+          .ov-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+          .ov-card-title { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+          .ov-card-meta { font-size: 10px; font-weight: 600; color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 99px; }
+
+          .ov-donut-wrap { display: flex; align-items: center; gap: 16px; }
+          .ov-donut { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+          .ov-donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+          .ov-donut-num { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1; font-variant-numeric: tabular-nums; }
+          .ov-donut-lbl { font-size: 9px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+          .ov-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+          .ov-leg { display: flex; align-items: center; gap: 8px; }
+          .ov-leg-dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+          .ov-leg-name { flex: 1; font-size: 11.5px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .ov-leg-val { font-size: 12px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+          .ov-leg-pct { font-size: 10px; font-weight: 700; color: var(--text-secondary); min-width: 32px; text-align: right; }
+
+          .ov-report { display: flex; flex-direction: column; gap: 12px; }
+          .ov-rep-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+          .ov-rep-lbl { font-size: 11.5px; font-weight: 600; color: var(--text-primary); }
+          .ov-rep-val { font-size: 11px; font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+          .ov-rep-bar { height: 6px; border-radius: 99px; background: var(--bg-secondary); overflow: hidden; }
+          .ov-rep-fill { height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(0.4,0,0.2,1); }
+          .ov-esc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); }
+          .ov-esc-ic { width: 32px; height: 32px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+          .ov-esc-val { font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+          .ov-esc-lbl { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; }
+
+          .ov-projects { display: flex; flex-direction: column; gap: 10px; }
+          .ov-proj { display: flex; align-items: center; gap: 10px; }
+          .ov-proj-badge { width: 27px; height: 27px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+          .ov-proj-name { font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .ov-proj-role { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+          .ov-proj-count { font-size: 11px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+
+          @media (max-width: 1100px) {
+            .ov-kpis { grid-template-columns: repeat(2, 1fr); }
+            .ov-grid { grid-template-columns: 1fr; }
+          }
+          @media (max-width: 760px) {
+            .ov-hero { flex-direction: column; gap: 14px; }
+            .ov-hero-gauge { border-right: none; padding-right: 0; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); }
+            .ov-subs { grid-template-columns: 1fr; }
+          }
+
+          .pt-table-panel { background: var(--bg-pure-white); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; }
+          .pt-table-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-color); }
+          .pt-table-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+          .pt-table-count { font-size: 11px; font-weight: 600; color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 3px 10px; border-radius: 99px; }
+          .pt-table .ant-table { background: transparent; }
+          .pt-table .ant-table-thead > tr > th {
+            background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--text-secondary) !important; padding: 7px 16px !important;
+          }
+          .pt-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-color) !important; padding: 7px 16px !important; }
+          .pt-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+          .pt-table .ant-table-tbody > tr:hover > td { background: var(--bg-secondary) !important; }
+          .pt-table .ant-table-cell { transition: background .12s ease; }
+          .pt-tid {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 700;
+            color: #2563eb; background: #eff6ff; border: 1px solid #dbeafe; padding: 3px 9px; border-radius: 7px; white-space: nowrap;
+          }
+          .pt-ttitle { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+          .pt-hours { font-size: 12.5px; font-weight: 700; }
+          .pt-status {
+            display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+            border-radius: 7px; font-size: 11px; font-weight: 700; white-space: nowrap;
+          }
+          .pt-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+          .pt-pill {
+            display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+            padding: 4px 10px; border-radius: 7px; white-space: nowrap;
+          }
+          .pt-empty { display: flex; flex-direction: column; align-items: center; padding: 36px 20px; }
+          .pt-empty-orb {
+            width: 52px; height: 52px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center;
+            background: var(--bg-secondary); color: #94a3b8; margin-bottom: 14px;
+          }
+          .pt-empty-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+          .pt-empty-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; max-width: 320px; text-align: center; }
+
+          @media (max-width: 820px) {
+            .pt-dist-top { flex-direction: column; align-items: flex-start; gap: 14px; }
+            .pt-dist-statuses { gap: 8px; }
           }
         `}} />
       </div>

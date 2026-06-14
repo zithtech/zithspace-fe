@@ -11,7 +11,7 @@ import {
   ColorPicker,
   Switch,
   Space,
-  message,
+  App,
   Popconfirm,
   Tabs,
   Row,
@@ -61,6 +61,7 @@ interface DropdownManagerProps {
 export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
   const { theme } = useTheme();
   const [form] = Form.useForm();
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -119,7 +120,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       setDropdownOptions(sortedOptions);
     } catch (error) {
       console.error('Error loading dropdown options:', error);
-      message.error('Failed to load dropdown options');
+      messageApi.error('Failed to load dropdown options');
     } finally {
       setDataLoading(false);
     }
@@ -127,7 +128,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
   const handleCreate = () => {
     if (!canCreateTicketSetting) {
-      message.error("You don't have permission to create configurations");
+      messageApi.error("You don't have permission to create configurations");
       return;
     }
     setEditingOption(null);
@@ -138,7 +139,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
   const handleEdit = (option: DropdownOption) => {
     if (!canUpdateTicketSetting) {
-      message.error("You don't have permission to update configurations");
+      messageApi.error("You don't have permission to update configurations");
       return;
     }
     setEditingOption(option);
@@ -153,12 +154,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setLoading(true);
       await SettingsService.deleteDropdownOption(option.id);
-      message.success('Configuration removed');
+      messageApi.success('Configuration removed');
       await loadDropdownOptions();
       onDataChange?.();
     } catch (error) {
       console.error('Error deleting option:', error);
-      message.error('Failed to delete option');
+      messageApi.error('Failed to delete option');
     } finally {
       setLoading(false);
     }
@@ -168,12 +169,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setLoading(true);
       await SettingsService.updateDropdownOption(option.id, { isActive: !option.isActive });
-      message.success(`Value ${option.isActive ? 'deactivated' : 'activated'}`);
+      messageApi.success(`Value ${option.isActive ? 'deactivated' : 'activated'}`);
       await loadDropdownOptions();
       onDataChange?.();
     } catch (error) {
       console.error('Error toggling option status:', error);
-      message.error('Failed to update status');
+      messageApi.error('Failed to update status');
     } finally {
       setLoading(false);
     }
@@ -216,7 +217,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }));
 
         onDataChange?.();
-        message.success('Sequence updated');
+        messageApi.success('Sequence updated');
 
       } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
         const nextOption = currentOptions[currentIndex + 1];
@@ -247,11 +248,11 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }));
 
         onDataChange?.();
-        message.success('Sequence updated');
+        messageApi.success('Sequence updated');
       }
     } catch (error) {
       console.error('Error reordering:', error);
-      message.error('Failed to update sequence');
+      messageApi.error('Failed to update sequence');
       // Reload to original state if error
       await loadDropdownOptions();
     } finally {
@@ -289,10 +290,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
       if (editingOption) {
         await SettingsService.updateDropdownOption(editingOption.id, data);
-        message.success('Configuration updated');
+        messageApi.success('Configuration updated');
       } else {
         await SettingsService.createDropdownOption(data as CreateDropdownOptionData);
-        message.success('New configuration added');
+        messageApi.success('New configuration added');
       }
 
       setModalVisible(false);
@@ -300,7 +301,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       onDataChange?.();
     } catch (error) {
       console.error('Error saving option:', error);
-      message.error('Failed to save configuration');
+      messageApi.error('Failed to save configuration');
     } finally {
       setLoading(false);
     }
@@ -309,7 +310,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const handleStandardizeLifecycles = async () => {
     try {
       setLoading(true);
-      message.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
+      messageApi.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
 
       const currentStatusList = dropdownOptions.status || [];
       const newStatusOrder = [
@@ -355,10 +356,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
       await loadDropdownOptions();
       if (onDataChange) onDataChange();
-      message.success({ content: '9-step workflow standardized successfully', key: 'status-sync' });
+      messageApi.success({ content: '9-step workflow standardized successfully', key: 'status-sync' });
     } catch (error) {
       console.error('Error standardizing lifecycles:', error);
-      message.error({ content: 'Failed to synchronize lifecycles', key: 'status-sync' });
+      messageApi.error({ content: 'Failed to synchronize lifecycles', key: 'status-sync' });
     } finally {
       setLoading(false);
     }
@@ -499,7 +500,6 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
@@ -509,29 +509,27 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         items={dropdownTypes.map(type => ({
           key: type.key,
           label: (
-            <div className="tab-label-container">
-              <Space size={12}>
-                <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
-                  {type.icon}
+            <div className="tab-label-container dm-tab-item">
+              <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                {type.icon}
+              </div>
+              <div className="tab-text-box">
+                <div className="tab-title">{type.label}</div>
+                <div className="tab-subtitle-count">
+                  <Badge
+                    count={dropdownOptions[type.key]?.length || 0}
+                    size="small"
+                    style={{
+                      backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
+                      color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                      fontSize: 10,
+                      boxShadow: 'none',
+                      border: 'none'
+                    }}
+                  />
+                  <span className="tab-subtitle-text" style={{ marginLeft: 6 }}>Definitions</span>
                 </div>
-                <div>
-                  <div className="tab-title">{type.label}</div>
-                  <div className="tab-subtitle-count">
-                    <Badge
-                      count={dropdownOptions[type.key]?.length || 0}
-                      size="small"
-                      style={{
-                        backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
-                        color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
-                        fontSize: 10,
-                        boxShadow: 'none',
-                        border: 'none'
-                      }}
-                    />
-                    <span style={{ marginLeft: 6 }}>Definitions</span>
-                  </div>
-                </div>
-              </Space>
+              </div>
             </div>
           ),
           children: (() => {
@@ -857,136 +855,138 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               }
             }}
           >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            requiredMark="optional"
-          >
-            <DefinitionPreview form={form} dropdownTypes={dropdownTypes} />
-            {/* ── Section: Taxonomy ─────────────────────────────── */}
-            <div className="dm-form-section">
-              <div className="dm-form-section-title">
-                <span className="dm-form-section-num">01</span>
-                Taxonomy
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+              requiredMark="optional"
+            >
+              <DefinitionPreview form={form} dropdownTypes={dropdownTypes} />
+              {/* ── Section: Taxonomy ─────────────────────────────── */}
+              <div className="dm-form-section">
+                <div className="dm-form-section-title">
+                  <span className="dm-form-section-num">01</span>
+                  Taxonomy
+                </div>
+                <Row gutter={20}>
+                  <Col span={14}>
+                    <Form.Item
+                      name="type"
+                      label={<span className="dm-form-label"><AppstoreOutlined /> Classification Type</span>}
+                      rules={[{ required: true }]}
+                    >
+                      <Select disabled={!!editingOption} size="large" className="dm-input">
+                        {dropdownTypes.map(type => (
+                          <Select.Option key={type.key} value={type.key}>
+                            <Space size={8}>
+                              <span className="dm-select-dot" style={{ background: type.color }} />
+                              {type.label}
+                            </Space>
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={10}>
+                    <Form.Item
+                      name="order"
+                      label={<span className="dm-form-label"><HolderOutlined /> Display Priority</span>}
+                      rules={[{ required: true }]}
+                      tooltip="Lower numbers appear first in dropdowns"
+                    >
+                      <InputNumber min={1} style={{ width: '100%' }} size="large" className="dm-input" />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </div>
-              <Row gutter={20}>
-                <Col span={14}>
-                  <Form.Item
-                    name="type"
-                    label={<span className="dm-form-label"><AppstoreOutlined /> Classification Type</span>}
-                    rules={[{ required: true }]}
-                  >
-                    <Select disabled={!!editingOption} size="large" className="dm-input">
-                      {dropdownTypes.map(type => (
-                        <Select.Option key={type.key} value={type.key}>
-                          <Space size={8}>
-                            <span className="dm-select-dot" style={{ background: type.color }} />
-                            {type.label}
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={10}>
-                  <Form.Item
-                    name="order"
-                    label={<span className="dm-form-label"><HolderOutlined /> Display Priority</span>}
-                    rules={[{ required: true }]}
-                    tooltip="Lower numbers appear first in dropdowns"
-                  >
-                    <InputNumber min={1} style={{ width: '100%' }} size="large" className="dm-input" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* ── Section: Identity ─────────────────────────────── */}
-            <div className="dm-form-section">
-              <div className="dm-form-section-title">
-                <span className="dm-form-section-num">02</span>
-                Identity
+              {/* ── Section: Identity ─────────────────────────────── */}
+              <div className="dm-form-section">
+                <div className="dm-form-section-title">
+                  <span className="dm-form-section-num">02</span>
+                  Identity
+                </div>
+                <Row gutter={20}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="label"
+                      label={<span className="dm-form-label"><EditOutlined /> Display Label</span>}
+                      rules={[{ required: true, message: 'Label is required' }]}
+                    >
+                      <Input placeholder="e.g. High Priority" size="large" className="dm-input" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="value"
+                      label={<span className="dm-form-label"><CodeOutlined /> System Key (Value)</span>}
+                      rules={[{ required: true, message: 'Key is required' }]}
+                      tooltip="Internal identifier (usually uppercase/lowercase without spaces)"
+                    >
+                      <Input placeholder="e.g. HIGH" size="large" className="dm-input dm-input-mono" />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </div>
-              <Row gutter={20}>
-                <Col span={12}>
-                  <Form.Item
-                    name="label"
-                    label={<span className="dm-form-label"><EditOutlined /> Display Label</span>}
-                    rules={[{ required: true, message: 'Label is required' }]}
-                  >
-                    <Input placeholder="e.g. High Priority" size="large" className="dm-input" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="value"
-                    label={<span className="dm-form-label"><CodeOutlined /> System Key (Value)</span>}
-                    rules={[{ required: true, message: 'Key is required' }]}
-                    tooltip="Internal identifier (usually uppercase/lowercase without spaces)"
-                  >
-                    <Input placeholder="e.g. HIGH" size="large" className="dm-input dm-input-mono" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* ── Section: Appearance & Visibility ──────────────── */}
-            <div className="dm-form-section">
-              <div className="dm-form-section-title">
-                <span className="dm-form-section-num">03</span>
-                Appearance &amp; Visibility
+              {/* ── Section: Appearance & Visibility ──────────────── */}
+              <div className="dm-form-section">
+                <div className="dm-form-section-title">
+                  <span className="dm-form-section-num">03</span>
+                  Appearance &amp; Visibility
+                </div>
+                <Row gutter={[20, 16]} align="top">
+                  <Col span={24}>
+                    <Form.Item
+                      name="color"
+                      label={<span className="dm-form-label"><StarFilled style={{ color: '#a855f7' }} /> Visual Identity</span>}
+                      style={{ marginBottom: 12 }}
+                    >
+                      <div className="dm-color-picker-row">
+                        <ColorPicker showText />
+                        <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
+                      </div>
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}>
+                    <Form.Item
+                      name="isActive"
+                      label={<span className="dm-form-label"><CheckCircleFilled style={{ color: '#10b981' }} /> Availability</span>}
+                      valuePropName="checked"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <div className="dm-availability-toggle">
+                        <Space size={8}>
+                          <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                          <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
+                        </Space>
+                        <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+                      </div>
+                    </Form.Item>
+                  </Col>
+                </Row>
               </div>
-              <Row gutter={20} align="top">
-                <Col span={12}>
-                  <Form.Item
-                    name="color"
-                    label={<span className="dm-form-label"><StarFilled style={{ color: '#a855f7' }} /> Visual Identity</span>}
-                  >
-                    <div className="dm-color-picker-row">
-                      <ColorPicker showText />
-                      <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
-                    </div>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="isActive"
-                    label={<span className="dm-form-label"><CheckCircleFilled style={{ color: '#10b981' }} /> Availability</span>}
-                    valuePropName="checked"
-                  >
-                    <div className="dm-availability-toggle">
-                      <Space size={8}>
-                        <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-                        <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
-                      </Space>
-                      <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-                    </div>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* ── Section: Context ──────────────────────────────── */}
-            <div className="dm-form-section dm-form-section-last">
-              <div className="dm-form-section-title">
-                <span className="dm-form-section-num">04</span>
-                Context
+              {/* ── Section: Context ──────────────────────────────── */}
+              <div className="dm-form-section dm-form-section-last">
+                <div className="dm-form-section-title">
+                  <span className="dm-form-section-num">04</span>
+                  Context
+                </div>
+                <Form.Item
+                  name="description"
+                  label={<span className="dm-form-label"><InfoCircleOutlined /> Usage Instructions</span>}
+                >
+                  <TextArea
+                    rows={3}
+                    placeholder="Explain when to use this specific classification…"
+                    className="dm-input"
+                    showCount
+                    maxLength={280}
+                  />
+                </Form.Item>
               </div>
-              <Form.Item
-                name="description"
-                label={<span className="dm-form-label"><InfoCircleOutlined /> Usage Instructions</span>}
-              >
-                <TextArea
-                  rows={3}
-                  placeholder="Explain when to use this specific classification…"
-                  className="dm-input"
-                  showCount
-                  maxLength={280}
-                />
-              </Form.Item>
-            </div>
-          </Form>
+            </Form>
           </ConfigProvider>
         </div>
       </Drawer>
@@ -1028,8 +1028,26 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .manager-tabs.ant-tabs-top .tab-label-container {
           width: auto;
         }
-        .manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child {
-          display: none; /* Hide "Definitions" text to save space on mobile */
+        .manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child,
+        .manager-tabs.ant-tabs-top .tab-subtitle-text {
+          display: none !important; /* Hide "Definitions" text to save space on mobile */
+        }
+        .manager-tabs.ant-tabs-top .dm-tab-item {
+          gap: 8px !important;
+        }
+        .manager-tabs.ant-tabs-top .tab-icon-box {
+          display: none !important;
+        }
+        .manager-tabs.ant-tabs-top .tab-text-box {
+          align-items: center;
+          text-align: center;
+        }
+        .manager-tabs.ant-tabs-top .tab-title {
+          font-size: 13px !important;
+        }
+        .manager-tabs.ant-tabs-top .ant-tabs-tab {
+          padding: 8px 10px !important;
+          margin: 0 4px !important;
         }
 
         .manager-tabs .ant-tabs-tab {
@@ -1081,6 +1099,15 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .tab-label-container {
           width: 100%;
           text-align: left;
+        }
+        .dm-tab-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tab-text-box {
+          display: flex;
+          flex-direction: column;
         }
         .tab-icon-box {
           width: 36px;
@@ -2091,6 +2118,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border-radius: 10px;
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          width: fit-content;
         }
         [data-theme='dark'] .dm-preview-chip {
           background: #161b22 !important;
@@ -2128,6 +2156,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: rgba(148, 163, 184, 0.15) !important;
           color: #94a3b8 !important;
         }
+        .dm-drawer textarea.ant-input,
+        .dm-modal textarea.ant-input {
+          height: auto !important;
+          min-height: 80px !important;
+          resize: vertical;
+          padding: 10px 12px !important;
+        }
       `}</style>
     </div>
   );
@@ -2155,13 +2190,13 @@ function DefinitionPreview({
   const typeMeta = dropdownTypes.find((t) => t.key === type);
 
   return (
-    <div className="dm-preview-card">
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="dm-preview-eyebrow">
-          <span style={{ color: typeMeta?.color || '#3b82f6' }}>●</span>
-          LIVE PREVIEW · {typeMeta?.label || 'Definition'}
-        </div>
-        <div className="dm-preview-chip">
+    <div className="dm-preview-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+      <div className="dm-preview-eyebrow" style={{ marginBottom: 0 }}>
+        <span style={{ color: typeMeta?.color || '#3b82f6' }}>●</span>
+        LIVE PREVIEW · {typeMeta?.label || 'Definition'}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div className="dm-preview-chip" style={{ margin: 0 }}>
           <span className="dm-preview-swatch" style={{ background: color }} />
           <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)' }}>
             {label?.trim() || 'Untitled definition'}
@@ -2179,10 +2214,10 @@ function DefinitionPreview({
             {value?.trim() || 'system_key'}
           </span>
         </div>
-      </div>
-      <div className={`dm-preview-status ${isActive ? 'on' : 'off'}`}>
-        {isActive ? <CheckCircleFilled /> : <EyeInvisibleFilled />}
-        {isActive ? 'Visible to users' : 'Hidden / Archived'}
+        <div className={`dm-preview-status ${isActive ? 'on' : 'off'}`} style={{ margin: 0, flexShrink: 0 }}>
+          {isActive ? <CheckCircleFilled /> : <EyeInvisibleFilled />}
+          {isActive ? 'Visible to users' : 'Hidden / Archived'}
+        </div>
       </div>
     </div>
   );

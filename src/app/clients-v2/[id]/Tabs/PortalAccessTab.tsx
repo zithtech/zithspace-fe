@@ -8,10 +8,11 @@ import {
   Input,
   Select,
   Popconfirm,
-  notification,
+  message,
   Tooltip,
   Empty,
   Table,
+  Dropdown,
 } from "antd";
 import {
   KeyRound,
@@ -40,6 +41,7 @@ import {
   Info,
   LayoutList,
   LayoutGrid,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   clientPortalService,
@@ -138,7 +140,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     tempPassword: string;
     emailSent: boolean;
   } | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const contactOptions = useMemo(() => {
     const taken = new Set(users.map((u) => u.contactId).filter(Boolean));
@@ -176,10 +178,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       const data = await clientPortalService.listForClient(clientId);
       setUsers(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load portal users",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load portal users: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -230,10 +229,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       setCredentialDialog(created);
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create portal user",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create portal user: ${err?.message}`);
     } finally {
       setCreating(false);
     }
@@ -245,25 +241,15 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         await clientPortalService.resetPassword(user.id);
       setResetDialog({ user, tempPassword: temporaryPassword, emailSent });
       if (emailSent) {
-        notify.success({
-          message: "Password reset",
-          description: `New temporary password emailed to ${user.email}.`,
-          placement: "top",
-        });
+        messageApi.success(`Password reset: New temporary password emailed to ${user.email}.`);
       } else {
-        notify.warning({
-          message: "Password reset (email not sent)",
-          description:
-            "Could not send the email. Copy and share the temporary password manually.",
-          placement: "top",
-        });
+        messageApi.warning(
+          "Password reset (email not sent): Could not send the email. Copy and share the temporary password manually."
+        );
       }
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Password reset failed",
-        description: err?.message,
-      });
+      messageApi.error(`Password reset failed: ${err?.message}`);
     }
   };
 
@@ -271,36 +257,29 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     const next = user.status === "active" ? "disabled" : "active";
     try {
       await clientPortalService.updateStatus(user.id, next);
-      notify.success({
-        message: next === "active" ? "Access enabled" : "Access disabled",
-        placement: "top",
-      });
+      messageApi.success(next === "active" ? "Access enabled" : "Access disabled");
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message}`);
     }
   };
 
   const handleDelete = async (user: ClientPortalUser) => {
     try {
       await clientPortalService.remove(user.id);
-      notify.success({ message: "Portal user removed", placement: "top" });
+      messageApi.success("Portal user removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      notify.success({
-        message: "Copied",
-        placement: "top",
-        duration: 1.5,
-      });
+      messageApi.success("Copied");
     } catch {
-      notify.error({ message: "Copy failed", placement: "top" });
+      messageApi.error("Copy failed");
     }
   };
 
@@ -308,6 +287,8 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     {
       title: "User",
       key: "user",
+      width: 200,
+      ellipsis: true,
       render: (record: ClientPortalUser) => {
         const initials = (record.displayName || record.username || "?")
           .split(" ")
@@ -317,7 +298,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           .join("")
           .toUpperCase();
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <div
               style={{
                 width: 32,
@@ -336,7 +317,17 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
             >
               {initials}
             </div>
-            <span style={{ fontWeight: 600, color: c.text }}>
+            <span
+              style={{
+                fontWeight: 600,
+                color: c.text,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minWidth: 0,
+              }}
+              title={record.displayName || record.username}
+            >
               {record.displayName || record.username}
             </span>
           </div>
@@ -347,20 +338,30 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       title: "Username",
       dataIndex: "username",
       key: "username",
+      width: 160,
+      ellipsis: true,
       render: (text: string) => (
-        <span
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: 11.5,
-            padding: "2px 6px",
-            background: c.surfaceMuted,
-            border: `1px solid ${c.border}`,
-            borderRadius: 4,
-            color: c.textMuted,
-          }}
-        >
-          {text}
-        </span>
+        <Tooltip title={text}>
+          <span
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 11.5,
+              padding: "2px 6px",
+              background: c.surfaceMuted,
+              border: `1px solid ${c.border}`,
+              borderRadius: 4,
+              color: c.textMuted,
+              display: "inline-block",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              verticalAlign: "middle",
+            }}
+          >
+            {text}
+          </span>
+        </Tooltip>
       ),
     },
     {
@@ -387,8 +388,9 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     {
       title: "Status",
       key: "status",
+      width: 220,
       render: (record: ClientPortalUser) => (
-        <div style={{ display: "flex", gap: 6, flexDirection: "row", flexWrap: "nowrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, flexDirection: "row", flexWrap: "nowrap", alignItems: "center", overflow: "hidden" }}>
           {record.status === "active" ? (
             <StatusBadge variant="success" c={c} icon={ShieldCheck}>
               Active
@@ -426,40 +428,85 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       key: "actions",
       align: "right" as const,
       fixed: "right" as const,
-      width: 280,
-      render: (record: ClientPortalUser) => (
-        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          <Popconfirm
-            title="Reset password?"
-            description={`A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`}
-            okText="Reset & email"
-            okButtonProps={{ type: "primary" }}
-            onConfirm={() => handleReset(record)}
-          >
-            <Button size="small" icon={<RefreshCw size={12} />}>
-              Reset
-            </Button>
-          </Popconfirm>
-          <Tooltip
-            title={record.status === "active" ? "Disable access" : "Re-enable access"}
-          >
-            <Button size="small" icon={<Power size={12} />} onClick={() => handleToggleStatus(record)}>
-              {record.status === "active" ? "Disable" : "Enable"}
-            </Button>
-          </Tooltip>
-          <Popconfirm
-            title="Remove portal access?"
-            description="This permanently deletes the login. The client contact will not be removed."
-            okText="Remove"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleDelete(record)}
-          >
-            <Button size="small" danger icon={<Trash2 size={12} />}>
-              Remove
-            </Button>
-          </Popconfirm>
-        </div>
-      ),
+      width: 60,
+      /* ── Inline background so fixed-column never becomes transparent ──
+         Ant Design v5 applies row-hover background after CSS paint,
+         so CSS overrides alone don't work. onCell injects a bg directly
+         on the <td> which always wins.                                  */
+      onCell: () => ({
+        style: { background: c.surfaceElevated },
+      }),
+      onHeaderCell: () => ({
+        style: { background: c.surfaceMuted },
+      }),
+      render: (record: ClientPortalUser) => {
+        const menuItems = [
+          {
+            key: "reset",
+            label: "Reset Password",
+            icon: <RefreshCw size={13} />,
+          },
+          {
+            key: record.status === "active" ? "disable" : "enable",
+            label: record.status === "active" ? "Disable Access" : "Enable Access",
+            icon: <Power size={13} />,
+          },
+          { type: "divider" as const },
+          {
+            key: "remove",
+            label: "Remove Access",
+            icon: <Trash2 size={13} />,
+            danger: true,
+          },
+        ];
+
+        const handleMenuClick = ({ key }: { key: string }) => {
+          if (key === "reset") {
+            Modal.confirm({
+              title: "Reset password?",
+              content: `A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`,
+              okText: "Reset & email",
+              okButtonProps: { type: "primary" },
+              centered: true,
+              onOk: () => handleReset(record),
+            });
+          } else if (key === "disable" || key === "enable") {
+            handleToggleStatus(record);
+          } else if (key === "remove") {
+            Modal.confirm({
+              title: "Remove portal access?",
+              content: "This permanently deletes the login. The client contact will not be removed.",
+              okText: "Remove",
+              okButtonProps: { danger: true },
+              centered: true,
+              onOk: () => handleDelete(record),
+            });
+          }
+        };
+
+        return (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Dropdown
+              menu={{ items: menuItems, onClick: handleMenuClick }}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreHorizontal size={16} />}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 6,
+                  color: c.textSubtle,
+                }}
+              />
+            </Dropdown>
+          </div>
+        );
+      },
     },
   ];
 
@@ -497,7 +544,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       </div>
 
       {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
-      {/* <BillingCustomersCard clientId={clientId} c={c} notify={notify} /> */}
+      {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
 
       {/* ---------------- Stats strip ---------------- */}
       {users.length > 0 && (
@@ -651,6 +698,20 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           scroll={{ x: "max-content" }}
           className="premium-table"
           locale={{ emptyText: <div style={{ color: c.textSubtle }}>No portal users found</div> }}
+          onRow={() => ({
+            onMouseEnter: (e) => {
+              const tr = e.currentTarget as HTMLTableRowElement;
+              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
+                td.style.setProperty("background", c.surfaceSubtle, "important");
+              });
+            },
+            onMouseLeave: (e) => {
+              const tr = e.currentTarget as HTMLTableRowElement;
+              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
+                td.style.setProperty("background", c.surfaceElevated, "important");
+              });
+            },
+          })}
         />
       ) : (
         <div
@@ -756,31 +817,6 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           }
         }
 
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .portal-access-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
-
         /* Premium Table Styles */
         .premium-table .ant-table {
           background: transparent !important;
@@ -809,6 +845,28 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           background: transparent !important;
         }
 
+        /* ── Fixed-column scroll overlay fix ──────────────────────────────
+           Ant Design fixed columns use position:sticky. Without an explicit
+           background the cell is transparent and scrolled content "bleeds"
+           through it. We match the row background in every state so the
+           fixed columns cleanly mask whatever is behind them.           */
+        .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: #ffffff !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+        }
+        /* Header fixed cells */
+        .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+        }
+        /* Remove Ant's default right-shadow on fixed columns so it doesn't
+           create a visual seam on top of the badges */
+        .premium-table .ant-table-cell-fix-right-first::after,
+        .premium-table .ant-table-cell-fix-right-last::after {
+          box-shadow: inset -6px 0 8px -4px rgba(0,0,0,0.06) !important;
+        }
+
         [data-theme="dark"] .premium-table .ant-table {
           color: var(--text-slate-200) !important;
         }
@@ -822,6 +880,16 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         }
         [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td {
           background: var(--bg-slate-800) !important;
+        }
+        /* Dark mode fixed columns */
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: var(--bg-secondary) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: var(--bg-secondary) !important;
         }
       `}} />
     </div>
@@ -1693,11 +1761,11 @@ function CredField({
 function BillingCustomersCard({
   clientId,
   c,
-  notify,
+  messageApi,
 }: {
   clientId: string;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [linked, setLinked] = useState<LinkedCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1713,10 +1781,7 @@ function BillingCustomersCard({
       const data = await clientPortalService.listLinkedCustomers(clientId);
       setLinked(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load linked customers",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load linked customers: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -1736,7 +1801,7 @@ function BillingCustomersCard({
       );
       setAvailable(data || []);
     } catch (err: any) {
-      notify.error({ message: "Search failed", description: err?.message });
+      messageApi.error(`Search failed: ${err?.message}`);
     } finally {
       setSearching(false);
     }
@@ -1753,11 +1818,11 @@ function BillingCustomersCard({
     setLinkingId(customerId);
     try {
       await clientPortalService.linkCustomer(clientId, customerId);
-      notify.success({ message: "Customer linked", placement: "top" });
+      messageApi.success("Customer linked");
       load();
       loadAvailable(search);
     } catch (err: any) {
-      notify.error({ message: "Link failed", description: err?.message });
+      messageApi.error(`Link failed: ${err?.message}`);
     } finally {
       setLinkingId(null);
     }
@@ -1766,10 +1831,10 @@ function BillingCustomersCard({
   const handleUnlink = async (customerId: string) => {
     try {
       await clientPortalService.unlinkCustomer(clientId, customerId);
-      notify.success({ message: "Customer unlinked", placement: "top" });
+      messageApi.success("Customer unlinked");
       load();
     } catch (err: any) {
-      notify.error({ message: "Unlink failed", description: err?.message });
+      messageApi.error(`Unlink failed: ${err?.message}`);
     }
   };
 

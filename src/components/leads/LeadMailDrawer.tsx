@@ -213,7 +213,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           </div>
         </div>
       }
-      width={820}
+      width={620}
       onClose={onClose}
       open={visible}
       closeIcon={<X size={18} />}

@@ -16,7 +16,7 @@ import {
   Modal,
   Form,
   Input,
-  Alert,
+  App,
   Drawer,
   Checkbox,
   Divider,
@@ -29,7 +29,6 @@ import {
   Select,
   Avatar,
   List,
-  Segmented,
   Skeleton,
 } from "antd";
 import {
@@ -56,11 +55,14 @@ import {
   ApiOutlined,
   EllipsisOutlined,
   CloseOutlined,
+  BarsOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
-import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -75,37 +77,38 @@ const RESOURCE_LABELS: Record<string, string> = {
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
-  invoice:      "Invoices",
-  account:      "Accounts & Finance",
-  client:       "Clients / CRM",
-  settings:     "General Settings",
-  role:         "Roles & RBAC",
-  report:       "Reports / Analytics",
+  invoice: "Invoices",
+  account: "Accounts & Finance",
+  client: "Clients / CRM",
+  settings: "General Settings",
+  role: "Roles & RBAC",
+  report: "Reports / Analytics",
   reimbursement: "Reimbursements",
-  payroll:      "Payroll / Payslips",
-  salary:       "Salary Structures",
-  document:     "Documents / Hub",
-  onboarding:   "Onboarding",
-  timesheet:    "Timesheet",
-  org:          "Org Structure",
+  payroll: "Payroll / Payslips",
+  salary: "Salary Structures",
+  document: "Documents / Hub",
+  onboarding: "Onboarding",
+  timesheet: "Timesheet",
+  org: "Org Structure",
   daily_update: "Daily Updates",
-  squad:        "Squad Management",
-  lead:         "Lead Management",
-  proposal:     "Proposals",
-  vendor:       "Vendors",
-  escalation:   "Escalations",
-  pipeline:     "Sales Pipeline",
-  exit:         "Employee Exit",
-  performance:  "Performance",
-  opening:      "Opening Management",
-  profile:      "User Profile",
-  mail:         "Mail Settings",
-  calendar:     "Calendar Settings",
-  chat:         "Internal Chat",
-  skills:       "Skills Portal",
+  squad: "Squad Management",
+  lead: "Lead Management",
+  proposal: "Proposals",
+  vendor: "Vendors",
+  escalation: "Escalations",
+  pipeline: "Sales Pipeline",
+  exit: "Employee Exit",
+  performance: "Performance",
+  opening: "Opening Management",
+  profile: "User Profile",
+  mail: "Mail Settings",
+  calendar: "Calendar Settings",
+  chat: "Internal Chat",
+  skills: "Skills Portal",
   notification: "Notifications",
-  bookmark:     "Bookmarks",
+  bookmark: "Bookmarks",
   time_tracking: "Time Tracking",
+  activity_log: "Activity Log / Transaction History",
 };
 
 /** Access Control drawer — premium SaaS tab groups */
@@ -123,7 +126,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     label: 'All',
     icon: <AppstoreOutlined />,
     resources: null,
-    accent: '#8b5cf6',
+    accent: '#3b82f6',
   },
   {
     key: 'execution',
@@ -164,7 +167,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'connect',
     label: 'Connect',
     icon: <ApiOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
     accent: '#6366f1',
   },
   {
@@ -258,28 +261,32 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart }) => (
   <div className="rp-stat-card" style={{ ['--rp-accent' as any]: accent }}>
-    <div className="rp-stat-head">
-      <div
-        className="rp-stat-icon"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        {icon}
+    <div className="rp-stat-top">
+      <div className="rp-stat-left">
+        <span
+          className="rp-stat-icon"
+          style={{
+            background: `${accent}14`,
+            color: accent,
+            boxShadow: `inset 0 0 0 1px ${accent}26`,
+          }}
+        >
+          {icon}
+        </span>
+        <span className="rp-stat-label">{label}</span>
       </div>
-      <Text className="rp-stat-label">{label}</Text>
+    </div>
+    <div className="rp-stat-bottom">
       <div className="rp-stat-value-wrap">
         {loading ? (
           <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
         ) : (
           <span className="rp-stat-value">{value}</span>
         )}
+        {subtle && <span className="rp-stat-period">{subtle}</span>}
       </div>
+      {chart && <div className="rp-stat-spark">{chart}</div>}
     </div>
-    {subtle && <Text className="rp-stat-subtle">{subtle}</Text>}
-    {chart && <div className="rp-stat-chart">{chart}</div>}
     <span
       className="rp-stat-accent"
       style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
@@ -404,6 +411,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
           className="rp-rm-textarea"
           maxLength={200}
           showCount
+          style={{ padding: '10px 14px' }}
         />
       </Form.Item>
 
@@ -437,19 +445,23 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
 /* -------------------------------------------------------------------------- */
 
 export default function RolesPage() {
+  useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole } = usePermission();
+  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { message: messageApi } = App.useApp();
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [roleTypeFilter, setRoleTypeFilter] = useState<"all" | "system" | "custom">("all");
+
+  // List / grid view
+  const [view, setView] = useState<"list" | "grid">("list");
 
   // ── Create role modal ──────────────────────────────────────────────────────
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -481,16 +493,7 @@ export default function RolesPage() {
   const [accessTab, setAccessTab] = useState<string>('all');
   const [permSearch, setPermSearch] = useState<string>('');
 
-  // ── Auto-clear messages ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (success || error) {
-      const t = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [success, error]);
+
 
   // Calculate role stats
   const roleStats = React.useMemo(() => {
@@ -525,6 +528,13 @@ export default function RolesPage() {
 
   const hasActiveFilter = !!searchTerm || roleTypeFilter !== "all";
 
+  // Sidebar "Views" — drives the role-type filter (proposal-style left rail)
+  const roleViews: { key: "all" | "system" | "custom"; label: string; icon: React.ReactNode; color: string; count: number }[] = [
+    { key: "all", label: "All roles", icon: <AppstoreOutlined />, color: "#3b82f6", count: roleStats.total },
+    { key: "system", label: "System roles", icon: <LockOutlined />, color: "#3b82f6", count: roleStats.system },
+    { key: "custom", label: "Custom roles", icon: <CrownOutlined />, color: "#10b981", count: roleStats.custom },
+  ];
+
   const handleClearFilters = () => {
     setSearchTerm("");
     setRoleTypeFilter("all");
@@ -544,7 +554,7 @@ export default function RolesPage() {
       const data = await RBACService.listRoles();
       setRoles(data);
     } catch {
-      setError("Failed to load roles");
+      messageApi.error("Failed to load roles");
     } finally {
       setLoading(false);
     }
@@ -553,7 +563,7 @@ export default function RolesPage() {
   const fetchPermissions = useCallback(async () => {
     try {
       const { grouped } = await RBACService.listPermissions();
-      
+
       // Merge 'bug' permissions into 'ticket'
       if (grouped.bug && grouped.ticket) {
         grouped.ticket = [...grouped.ticket, ...grouped.bug];
@@ -571,7 +581,7 @@ export default function RolesPage() {
         grouped.lead = grouped.proposal;
         delete grouped.proposal;
       }
-      
+
       setAllPermissions(grouped);
     } catch {
       /* non-critical */
@@ -601,7 +611,7 @@ export default function RolesPage() {
       setRoleMembers(fullRole.userRoles);
       setAllMembers(selectMembers.map((m) => ({ value: m.value, label: m.label })));
     } catch {
-      setError("Failed to load role members");
+      messageApi.error("Failed to load role members");
     } finally {
       setMembersDrawerLoading(false);
     }
@@ -612,14 +622,14 @@ export default function RolesPage() {
     try {
       setAssignLoading(true);
       await RBACService.assignRoleToUser(assigningMemberId, membersDrawerRole.id);
-      setSuccess(`Role assigned`);
+      messageApi.success("Role assigned");
       setAssigningMemberId(undefined);
       // Refresh member list
       const full = await RBACService.getRoleById(membersDrawerRole.id);
       setRoleMembers(full.userRoles);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to assign role");
+      messageApi.error(err?.message || "Failed to assign role");
     } finally {
       setAssignLoading(false);
     }
@@ -632,7 +642,7 @@ export default function RolesPage() {
       setRoleMembers((prev) => prev.filter((ur) => ur.user.id !== userId));
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to remove member from role");
+      messageApi.error(err?.message || "Failed to remove member from role");
     }
   };
 
@@ -642,12 +652,12 @@ export default function RolesPage() {
     try {
       setCreateLoading(true);
       await RBACService.createRole(values);
-      setSuccess("Role created successfully");
+      messageApi.success("Role created successfully");
       setCreateModalOpen(false);
       createForm.resetFields();
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to create role");
+      messageApi.error(err?.message || "Failed to create role");
     } finally {
       setCreateLoading(false);
     }
@@ -665,11 +675,11 @@ export default function RolesPage() {
     try {
       setEditLoading(true);
       await RBACService.updateRole(editingRole.id, values);
-      setSuccess("Role updated");
+      messageApi.success("Role updated");
       setEditModalOpen(false);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to update role");
+      messageApi.error(err?.message || "Failed to update role");
     } finally {
       setEditLoading(false);
     }
@@ -679,10 +689,10 @@ export default function RolesPage() {
   const handleDeleteRole = async (roleId: string) => {
     try {
       await RBACService.deleteRole(roleId);
-      setSuccess("Role deleted");
+      messageApi.success("Role deleted");
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to delete role");
+      messageApi.error(err?.message || "Failed to delete role");
     }
   };
 
@@ -698,7 +708,7 @@ export default function RolesPage() {
       const full = await RBACService.getRoleById(role.id);
       setSelectedPermIds(full.rolePermissions.map((rp) => rp.permission.id));
     } catch {
-      setError("Failed to load role permissions");
+      messageApi.error("Failed to load role permissions");
     } finally {
       setDrawerLoadingPerms(false);
     }
@@ -709,11 +719,11 @@ export default function RolesPage() {
     try {
       setDrawerSaving(true);
       await RBACService.setRolePermissions(drawerRole.id, selectedPermIds);
-      setSuccess(`Permissions saved for "${drawerRole.name}"`);
+      messageApi.success(`Permissions saved for "${drawerRole.name}"`);
       setDrawerOpen(false);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to save permissions");
+      messageApi.error(err?.message || "Failed to save permissions");
     } finally {
       setDrawerSaving(false);
     }
@@ -813,7 +823,7 @@ export default function RolesPage() {
       ),
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       width: 140,
       align: "right" as const,
@@ -878,30 +888,134 @@ export default function RolesPage() {
   return (
     <MainLayout>
       <div className="rp-shell">
-        <TimeTrackingHeader
-          style={{
-            borderBottom: '1px solid var(--border-slate-200)',
-            padding: '8.5px 32px',
-            marginBottom: 20,
-          }}
-          icon={<SafetyOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
-          title="Roles & Permissions"
-          description="Manage and oversee system-wide access control and role assignments."
-          extra={
-            canCreateRole ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreateModalOpen(true)}
-                className="rp-primary-btn"
-              >
-                Create Role
-              </Button>
-            ) : null
-          }
-        />
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="rp-sidebar">
+          <div className="rp-side-head">
+            <div className="rp-side-logo">
+              <SafetyOutlined />
+            </div>
+            <div className="rp-side-head-text">
+              <div className="rp-side-title">Roles &amp; Permissions</div>
+              <div className="rp-side-subtitle">Access · control</div>
+            </div>
+          </div>
 
-        <div className="rp-content">
+          {canCreateRole && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="rp-side-create"
+              onClick={() => setCreateModalOpen(true)}
+              block
+            >
+              Create Role
+            </Button>
+          )}
+
+          <div className="rp-side-scroll">
+            <div className="rp-side-section-label">Views</div>
+            <div className="rp-side-list">
+              {roleViews.map((v) => {
+                const active = roleTypeFilter === v.key;
+                return (
+                  <button
+                    key={v.key}
+                    type="button"
+                    className={`rp-view-item${active ? ' is-active' : ''}`}
+                    onClick={() => setRoleTypeFilter(v.key)}
+                  >
+                    <span className="rp-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>
+                      {v.icon}
+                    </span>
+                    <span className="rp-view-label">{v.label}</span>
+                    <span className="rp-view-count">{v.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rp-side-tip">
+              <SafetyOutlined className="rp-side-tip__icon" />
+              <div>
+                <div className="rp-side-tip__title">Manage access</div>
+                <div className="rp-side-tip__text">
+                  Open a role to configure its permissions and assign members.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+
+        {/* ============================ MAIN ============================ */}
+        <main className="rp-main">
+          {/* Topbar */}
+          <div className="rp-main-topbar">
+            <Input
+              className="rp-search"
+              prefix={
+                <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+              }
+              placeholder="Search by role name, slug, or description…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+            />
+            {hasActiveFilter && (
+              <Tooltip title="Clear all filters">
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined />}
+                  onClick={handleClearFilters}
+                  className="rp-clear-btn"
+                >
+                  Reset
+                </Button>
+              </Tooltip>
+            )}
+            <div className="rp-main-meta">
+              <span>
+                <strong>{filteredRoles.length}</strong> of {roleStats.total} roles
+              </span>
+              <div className="rp-segmented">
+                <button
+                  type="button"
+                  className={view === "list" ? "is-active" : ""}
+                  onClick={() => setView("list")}
+                  aria-label="List view"
+                >
+                  <BarsOutlined />
+                </button>
+                <button
+                  type="button"
+                  className={view === "grid" ? "is-active" : ""}
+                  onClick={() => setView("grid")}
+                  aria-label="Grid view"
+                >
+                  <AppstoreOutlined />
+                </button>
+              </div>
+              <Tooltip title="Refresh">
+                <Button
+                  className="rp-ghost-btn"
+                  icon={<ReloadOutlined spin={loading} />}
+                  onClick={() => { fetchRoles(); fetchPermissions(); }}
+                />
+              </Tooltip>
+              {canReadActivityLog && (
+                <Tooltip title="View change history">
+                  <Button
+                    className="rp-history-btn"
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                  >
+                    History
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+
           {/* Premium stats grid */}
           <div className="rp-stat-grid">
             <StatCard
@@ -922,7 +1036,7 @@ export default function RolesPage() {
                       },
                       {
                         value: roleStats.custom,
-                        color: '#8b5cf6',
+                        color: '#10b981',
                         label: `${roleStats.custom} custom`,
                       },
                     ]}
@@ -957,7 +1071,7 @@ export default function RolesPage() {
               label="Custom Roles"
               value={roleStats.custom}
               icon={<ApartmentOutlined />}
-              accent="#8b5cf6"
+              accent="#10b981"
               subtle="Created by your team"
               loading={loading && roleStats.total === 0}
               chart={
@@ -976,7 +1090,7 @@ export default function RolesPage() {
               label="Permissions"
               value={roleStats.permissions}
               icon={<KeyOutlined />}
-              accent="#f59e0b"
+              accent="#64748b"
               subtle={
                 roleStats.permissions > 0
                   ? `${roleStats.assignedPerms} assigned across roles`
@@ -995,10 +1109,10 @@ export default function RolesPage() {
                             Math.round(
                               (roleStats.assignedPerms /
                                 Math.max(roleStats.permissions * roleStats.total, 1)) *
-                                100,
+                              100,
                             ),
                           )}%`,
-                          background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                          background: 'linear-gradient(90deg, #64748b, #94a3b8)',
                         }}
                       />
                     </div>
@@ -1011,113 +1125,135 @@ export default function RolesPage() {
             />
           </div>
 
-          {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setError("")}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setSuccess("")}
-            />
-          )}
+
 
           {/* Roles panel */}
-          <div className="rp-panel">
-            {/* Single-row toolbar */}
-            <div className="rp-toolbar">
-              <Input
-                className="rp-search"
-                prefix={
-                  <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
-                }
-                placeholder="Search by role name, slug, or description…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
+          {view === "list" ? (
+            <div className="rp-panel">
+              {/* Table */}
+              <Table
+                className="premium-table rp-table"
+                columns={columns}
+                dataSource={filteredRoles}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                scroll={{ x: 1000 }}
               />
-
-              <Segmented
-                className="rp-segmented"
-                value={roleTypeFilter}
-                onChange={(v) => setRoleTypeFilter(v as any)}
-                options={[
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <AppstoreOutlined />
-                        All
-                        <span className="rp-seg-pill">{roleStats.total}</span>
-                      </span>
-                    ),
-                    value: 'all',
-                  },
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <LockOutlined />
-                        System
-                        <span className="rp-seg-pill">{roleStats.system}</span>
-                      </span>
-                    ),
-                    value: 'system',
-                  },
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <CrownOutlined />
-                        Custom
-                        <span className="rp-seg-pill">{roleStats.custom}</span>
-                      </span>
-                    ),
-                    value: 'custom',
-                  },
-                ]}
-              />
-
-              {hasActiveFilter && (
-                <Tooltip title="Clear all filters">
-                  <Button
-                    type="text"
-                    icon={<ReloadOutlined />}
-                    onClick={handleClearFilters}
-                    className="rp-clear-btn"
-                  >
-                    Reset
-                  </Button>
-                </Tooltip>
-              )}
-
-              <div className="rp-toolbar__divider" />
-
-              <Text className="rp-count-text">
-                <strong>{filteredRoles.length}</strong> of {roleStats.total}
-              </Text>
             </div>
+          ) : (
+            <div className="rp-grid">
+              {loading ? (
+                <div className="rp-grid-loading">Loading…</div>
+              ) : filteredRoles.length === 0 ? (
+                <div className="rp-grid-loading">No roles match your filters.</div>
+              ) : (
+                filteredRoles.map((record) => {
+                  const permCount = record._count?.rolePermissions ?? 0;
+                  const memberCount = record._count?.userRoles ?? 0;
+                  return (
+                    <div key={record.id} className="rp-card">
+                      <div className="rp-card-top">
+                        <div
+                          className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
+                        >
+                          {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
+                        </div>
+                        <div className="rp-card-identity">
+                          <div className="rp-card-title-row">
+                            <span className="rp-card-title">{record.name}</span>
+                            {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+                          </div>
+                          <div className="rp-row-name__slug">{record.slug}</div>
+                        </div>
+                        <span
+                          className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
+                        >
+                          <span className="rp-status-dot" />
+                          {record.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
 
-            {/* Table */}
-            <Table
-              className="premium-table rp-table"
-              columns={columns}
-              dataSource={filteredRoles}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1000 }}
-            />
-          </div>
-        </div>
+                      <div className="rp-card-desc">
+                        {record.description || "No description provided."}
+                      </div>
+
+                      <div className="rp-card-foot">
+                        <div className="rp-card-foot-row">
+                          <span className="rp-card-foot-item">
+                            <span className="rp-card-foot-key">Permissions</span>
+                            <span
+                              className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
+                            >
+                              <KeyOutlined />
+                              {permCount}
+                            </span>
+                          </span>
+                          <span className="rp-card-foot-div" />
+                          <span className="rp-card-foot-item">
+                            <span className="rp-card-foot-key">Members</span>
+                            <span
+                              className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
+                            >
+                              <UserOutlined />
+                              {memberCount}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="rp-card-foot-row rp-card-actions">
+                          {canAssignRole && (
+                            <Tooltip title="Manage members">
+                              <Button
+                                type="text"
+                                icon={<TeamOutlined />}
+                                size="small"
+                                onClick={() => openMembersDrawer(record)}
+                              />
+                            </Tooltip>
+                          )}
+                          {canUpdateRole && (
+                            <Tooltip title="Edit name / description">
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                size="small"
+                                onClick={() => openEditModal(record)}
+                                disabled={record.isSystem}
+                              />
+                            </Tooltip>
+                          )}
+                          {canUpdateRole && (
+                            <Tooltip title="Edit permissions">
+                              <Button
+                                type="text"
+                                icon={<SettingOutlined />}
+                                size="small"
+                                onClick={() => openPermissionsDrawer(record)}
+                              />
+                            </Tooltip>
+                          )}
+                          {canDeleteRole && !record.isSystem && (
+                            <Popconfirm
+                              title="Delete this role?"
+                              description="All members assigned this role will lose its permissions immediately."
+                              onConfirm={() => handleDeleteRole(record.id)}
+                              okText="Delete"
+                              okButtonProps={{ danger: true }}
+                            >
+                              <Tooltip title="Delete role">
+                                <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+                              </Tooltip>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </main>
 
         {/* ── Create Role Modal (premium) ── */}
         <Modal
@@ -1458,13 +1594,11 @@ export default function RolesPage() {
                             className="rp-acc-progress__fill"
                             style={{
                               width: `${(selectedInTabPerms / tabTotalPerms) * 100}%`,
-                              background: `linear-gradient(90deg, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
-                                '#8b5cf6'
-                              }, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
-                                '#8b5cf6'
-                              }aa)`,
+                              background: `linear-gradient(90deg, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                '#3b82f6'
+                                }, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                '#3b82f6'
+                                }aa)`,
                             }}
                           />
                         </div>
@@ -1536,9 +1670,8 @@ export default function RolesPage() {
                                 <div className="rp-acc-card__sub">{resource}</div>
                               </div>
                               <span
-                                className={`rp-acc-card__count${
-                                  allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
-                                }`}
+                                className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
+                                  }`}
                               >
                                 {selectedCount} / {allPermsForRes.length}
                               </span>
@@ -1681,10 +1814,10 @@ export default function RolesPage() {
               const searchQ = memberSearch.trim().toLowerCase();
               const filteredMembers = searchQ
                 ? roleMembers.filter(
-                    (e) =>
-                      (e.user.name || '').toLowerCase().includes(searchQ) ||
-                      (e.user.workEmail || '').toLowerCase().includes(searchQ),
-                  )
+                  (e) =>
+                    (e.user.name || '').toLowerCase().includes(searchQ) ||
+                    (e.user.workEmail || '').toLowerCase().includes(searchQ),
+                )
                 : roleMembers;
 
               return (
@@ -1842,6 +1975,13 @@ export default function RolesPage() {
             })()
           )}
         </Drawer>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="RoleAndPermissions"
+          title="Roles & Permissions History"
+          subtitle="All security policy and assignment changes"
+        />
       </div>
     </MainLayout>
   );

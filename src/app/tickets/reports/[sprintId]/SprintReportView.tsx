@@ -177,8 +177,13 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
-      <div className="mx-auto max-w-7xl px-6 pt-5 pb-10 space-y-5">
-        <Header overview={data.overview} />
+      <div className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full">
+        <div className="mx-auto max-w-7xl px-6 pt-5 pb-5">
+          <Header overview={data.overview} />
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 py-6 space-y-5">
         <KpiStrip overview={data.overview} />
         <AiNarrativeSection sprintId={sprintId} />
         <BottlenecksSection sprintId={sprintId} />
@@ -214,7 +219,7 @@ function Header({ overview }: { overview: SprintReport["overview"] }) {
   };
 
   return (
-    <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+    <div>
       <button
         type="button"
         onClick={handleBack}

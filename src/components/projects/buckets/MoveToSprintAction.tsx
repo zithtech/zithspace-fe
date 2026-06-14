@@ -19,6 +19,8 @@ interface MoveToSprintActionProps {
   onMove: (sprintId: string) => void;
   loading?: boolean;
   disabled?: boolean;
+  showLabel?: boolean;
+  asMenuItem?: boolean;
 }
 
 export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
@@ -26,6 +28,8 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   onMove,
   loading = false,
   disabled = false,
+  showLabel = false,
+  asMenuItem = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(
@@ -283,19 +287,55 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       classNames={{ root: "saas-popover saas-popover-premium" }}
       overlayInnerStyle={{ borderRadius: 16, padding: 10 }}
     >
-      <Tooltip title="Move to sprint">
+      {asMenuItem ? (
+        <div
+          onClick={(e) => {
+            if (disabled) return;
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            width: "100%",
+            color: disabled ? "#94a3b8" : "inherit",
+            cursor: disabled ? "not-allowed" : "pointer",
+          }}
+        >
+          <RocketOutlined style={{ color: disabled ? "#94a3b8" : "#8b5cf6" }} />
+          <span>Move to Sprint</span>
+        </div>
+      ) : showLabel ? (
         <Button
           type="text"
-          icon={<RocketOutlined style={{ fontSize: 14, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
-          className="saas-action-btn"
+          size="small"
+          icon={<RocketOutlined style={{ fontSize: 12, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
+          className="bh2-foot-btn"
           loading={loading}
           disabled={disabled}
           onClick={(e) => {
             if (disabled) return;
             e.stopPropagation();
           }}
-        />
-      </Tooltip>
+        >
+          Move to Sprint
+        </Button>
+      ) : (
+        <Tooltip title="Move to sprint">
+          <Button
+            type="text"
+            icon={<RocketOutlined style={{ fontSize: 14, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
+            className="saas-action-btn"
+            loading={loading}
+            disabled={disabled}
+            onClick={(e) => {
+              if (disabled) return;
+              e.stopPropagation();
+            }}
+          />
+        </Tooltip>
+      )}
     </Popover>
   );
 };

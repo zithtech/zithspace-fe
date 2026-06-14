@@ -15,7 +15,7 @@ import {
   DatePicker,
   Empty,
   Spin,
-  notification,
+  App,
   Segmented,
   Tag,
 } from "antd";
@@ -40,7 +40,8 @@ import {
   Calendar as CalendarIcon,
   ChevronRight,
   Activity,
-  FileText
+  FileText,
+  History
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -52,12 +53,15 @@ import DailyUpdateService from "@/services/dailyUpdateService";
 import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 
 type ViewMode = "card" | "list";
 
 export default function ViewDailyUpdatesPage() {
+  useActivitySource({ section: "WORK", module: "DailyUpdates", page: "DailyUpdatesView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadDailyUpdate } = usePermission();
   const router = useRouter();
@@ -102,9 +106,9 @@ export default function ViewDailyUpdatesPage() {
 
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime } = usePermission();
+  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
 
-  const [api, contextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
   const [selectedUpdateType, setSelectedUpdateType] = useState<
@@ -114,7 +118,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   // 🔹 Delete a daily update and remove it from the UI
   const handleDeleteUpdate = async (updateId: string) => {
     if (!canDeleteDailyUpdate) {
-      api.error({ message: "Forbidden", description: "You don't have permission to delete updates" });
+      messageApi.error("You don't have permission to delete updates");
       return;
     }
     try {
@@ -124,15 +128,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       // Remove the card from the UI
       setUpdates((prev) => prev.filter((u) => u.id !== updateId));
 
-      api.success({
-        message: "Deleted",
-        description: "Daily update deleted successfully",
-      });
+      messageApi.success("Daily update deleted successfully");
     } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to delete update",
-      });
+      messageApi.error(error.message || "Failed to delete update");
     }
   };
 
@@ -156,6 +154,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageTimeOpen, setManageTimeOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const canViewTeam = canManageDailyUpdateTime || user?.position === "Project Manager";
 
@@ -199,12 +198,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       }
     } catch (error) {
       console.error("Failed to fetch updates:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load daily updates",
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error("Failed to load daily updates");
     } finally {
       setLoading(false);
     }
@@ -259,7 +253,6 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         backgroundColor: "var(--bg-pure-white)"
       }}
     >
-      {contextHolder}
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -281,16 +274,38 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 16px;
         }
+        .du-header-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          justify-content: end;
+        }
         @keyframes dudPulseDot {
           0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
           70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
           100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
+        @media (max-width: 768px) {
+          .btn-text-mobile-hide {
+            display: none;
+          }
+        }
+        @media (max-width: 500px) {
+          .du-header-actions {
+            grid-template-columns: 1fr;
+            justify-content: start;
+          }
+          .du-header-actions button:first-child,
+          .du-header-actions button:nth-child(2) {
+            grid-column: 1 / -1;
+          }
+        }
       `}} />
 
       <TimeTrackingHeader
-        style={{ 
-          padding: '3px 32px', 
+        style={{
+          padding: '3px 32px',
           borderBottom: '1px solid var(--border-slate-200)',
           marginBottom: 20
         }}
@@ -305,8 +320,15 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         }
         description="Review team updates and track daily work statuses."
         extra={
-          <Space size="middle" align="center">
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12
+          }}>
+            {/* left side */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4, whiteSpace: "nowrap" }}>
               <div
                 style={{
                   width: 8,
@@ -321,53 +343,67 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 {updates.length} Updates found
               </Text>
             </div>
-            {canViewTeam && (
+
+            <div className="du-header-actions">
+              {canViewTeam && (
+                <Button
+                  icon={<Clock size={16} />}
+                  onClick={() => setManageTimeOpen(true)}
+                  style={{
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    height: 38,
+                    background: "var(--bg-sky-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)"
+                  }}
+                >
+                  <span className="btn-text-mobile-hide">Manage Time</span>
+                </Button>
+              )}
               <Button
-                icon={<Clock size={16} />}
-                onClick={() => setManageTimeOpen(true)}
-                style={{ 
-                  borderRadius: 10, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 8,
-                  height: 38,
-                  background: "var(--bg-sky-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)"
-                }}
+                icon={<RefreshCw size={16} />}
+                onClick={handleRefresh}
+                loading={loading}
+                style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
               >
-                Manage Time
+                <span className="btn-text-mobile-hide">Refresh</span>
               </Button>
-            )}
-            <Button
-              icon={<RefreshCw size={16} />}
-              onClick={handleRefresh}
-              loading={loading}
-              style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Refresh
-            </Button>
-            {canCreateDailyUpdate && (
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                onClick={handleSubmitNew}
-                style={{
-                  height: 38,
-                  padding: "0 20px",
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  background: '#1677ff',
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: 'none'
-                }}
-              >
-                Submit Update
-              </Button>
-            )}
-          </Space>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={16} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  <span className="btn-text-mobile-hide">History</span>
+                </Button>
+              )}
+              {canCreateDailyUpdate && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  onClick={handleSubmitNew}
+                  style={{
+                    height: 38,
+                    padding: "0 20px",
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    background: '#1677ff',
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: 'none'
+                  }}
+                >
+                  Submit Update
+                </Button>
+              )}
+
+            </div>
+
+          </div>
         }
       />
 
@@ -527,6 +563,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 updates={updates}
                 loading={false}
                 onViewDetails={handleViewDetails}
+                onDeleteUpdate={handleDeleteUpdate}
               />
             </div>
           )}
@@ -541,10 +578,15 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         open={detailsModalOpen}
         onClose={handleCloseDetails}
       />
-      <ManageTimeDrawer 
+      <ManageTimeDrawer
         open={manageTimeOpen}
         onClose={() => setManageTimeOpen(false)}
         onSuccess={handleRefresh}
+      />
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        module="DailyUpdates"
       />
     </div>
   );

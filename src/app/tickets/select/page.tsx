@@ -37,6 +37,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { ProjectFormDrawer } from '@/components/projects/ProjectFormDrawer';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -76,6 +77,7 @@ function ProjectSelectContent() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [isRedirecting, setIsRedirecting] = useState(true);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: response, isLoading: projectsLoading } = useQuery({
@@ -248,11 +250,11 @@ function ProjectSelectContent() {
 
           {canCreateProject && (
             <div className="zs-hero-cta">
-              <Button
+            <Button
                 type="primary"
                 size="large"
                 icon={<PlusOutlined />}
-                onClick={() => router.push('/projects/create')}
+                onClick={() => setCreateDrawerOpen(true)}
                 className="zs-cta-btn"
               >
                 New project
@@ -365,7 +367,7 @@ function ProjectSelectContent() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => router.push('/projects/create')}
+                  onClick={() => setCreateDrawerOpen(true)}
                   className="zs-empty-cta"
                 >
                   Create your first project
@@ -512,6 +514,15 @@ function ProjectSelectContent() {
           )}
         </section>
       </div>
+
+      <ProjectFormDrawer
+        visible={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        onSuccess={() => {
+          setCreateDrawerOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['projects'] });
+        }}
+      />
 
       {/* No JS interpolation here — relies on CSS variables set on elements above */}
       <style>{`

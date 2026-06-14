@@ -13,10 +13,10 @@ import { usePermission } from "@/hooks/usePermission";
 const { Text } = Typography;
 
 export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { selectedDate?: dayjs.Dayjs, refreshKey?: number, onTotalChange?: (total: number) => void }) {
-  const { notification } = App.useApp();
+  const { message } = App.useApp();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const { stopAllTimers, pauseAllTimers, resumeAllTimers, activeEntry, refreshTrigger } = useTimeTrackerStore();
+  const { stopAllTimers, pauseAllTimers, resumeAllTimers, pauseTimerById, resumeTimerById, activeEntry, refreshTrigger } = useTimeTrackerStore();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { canCreateTimeTracking, canDeleteTimeTracking, canManageTimeTrackingTime } = usePermission();
 
@@ -31,7 +31,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       const data = await TimeTrackingService.getEntries(filters);
       setEntries(data || []);
     } catch (error: any) {
-      notification.error({ message: "Error fetching time entries", description: error.message });
+      message.error(error.message || "Error fetching time entries");
     } finally {
       setLoading(false);
     }
@@ -54,10 +54,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   const handleDelete = async (id: string) => {
     try {
       await TimeTrackingService.deleteEntry(id);
-      notification.success({ message: "Entry deleted successfully" });
+      message.success("Entry deleted successfully");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error deleting entry", description: error.message });
+      message.error(error.message || "Error deleting entry");
     }
   };
 
@@ -65,10 +65,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await stopAllTimers();
-      notification.success({ message: "All timers stopped successfully" });
+      message.success("All timers stopped successfully");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error stopping timers", description: error.message });
+      message.error(error.message || "Error stopping timers");
     }
   };
 
@@ -76,10 +76,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await pauseAllTimers();
-      notification.success({ message: "All timers paused" });
+      message.success("All timers paused");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error pausing timers", description: error.message });
+      message.error(error.message || "Error pausing timers");
     }
   };
 
@@ -87,10 +87,32 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await resumeAllTimers();
-      notification.success({ message: "All timers resumed" });
+      message.success("All timers resumed");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error resuming timers", description: error.message });
+      message.error(error.message || "Error resuming timers");
+    }
+  };
+
+  const handlePause = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await pauseTimerById(id);
+      message.success("Timer paused");
+      fetchEntries();
+    } catch (error: any) {
+      message.error(error.message || "Error pausing timer");
+    }
+  };
+
+  const handleResume = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await resumeTimerById(id);
+      message.success("Timer resumed");
+      fetchEntries();
+    } catch (error: any) {
+      message.error(error.message || "Error resuming timer");
     }
   };
 
@@ -106,12 +128,18 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       title: "Date",
       dataIndex: "startTime",
       key: "date",
-      render: (text: string) => dayjs(text).format("ddd, MMM D, YYYY"),
+      width: 150,
+      render: (text: string) => (
+        <span className="whitespace-nowrap">
+          {dayjs(text).format("ddd, MMM D, YYYY")}
+        </span>
+      ),
     },
     {
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
+      width: 150,
       render: (text: string, record: TimeTrackingEntry) => {
         if (text) return text;
         if (record.projectId) return `Project ${record.projectId}`;
@@ -122,6 +150,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       title: "Task",
       dataIndex: "description",
       key: "task",
+      width: 250,
       render: (text: string, record: TimeTrackingEntry) => (
         <div>
           <div>
@@ -150,6 +179,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       title: "Time",
       dataIndex: "duration",
       key: "time",
+      width: 140,
       render: (val: number, record: TimeTrackingEntry) => {
         if (record.status === "RUNNING") {
           const tagEl = (
@@ -192,7 +222,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               color="warning"
               icon={<PauseCircleOutlined />}
               style={{ cursor: canCreateTimeTracking ? "pointer" : "default" }}
-              onClick={(e) => canCreateTimeTracking ? handleResumeAll(e) : null}
+              onClick={(e) => canCreateTimeTracking ? handleResume(e, record.id) : null}
             >
               Paused ({formatDuration(val)})
             </Tag>
@@ -205,22 +235,24 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       title: "Action",
       key: "action",
       align: "right" as const,
+      width: 110,
+      fixed: "right" as const,
       render: (_: any, record: TimeTrackingEntry) => (
         <Space>
           {canCreateTimeTracking && record.status === "RUNNING" && (
             <Button
               type="text"
               icon={<PauseCircleOutlined />}
-              onClick={(e) => handlePauseAll(e)}
-              title="Pause All Timers"
+              onClick={(e) => handlePause(e, record.id)}
+              title="Pause Timer"
             />
           )}
           {canCreateTimeTracking && record.status === "PAUSED" && (
             <Button
               type="text"
               icon={<PlayCircleOutlined style={{ color: '#1677ff' }} />}
-              onClick={(e) => handleResumeAll(e)}
-              title="Resume All Timers"
+              onClick={(e) => handleResume(e, record.id)}
+              title="Resume Timer"
             />
           )}
           {canDeleteTimeTracking && (
@@ -344,6 +376,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         loading={loading}
         pagination={{ pageSize: 20, hideOnSinglePage: true, showTotal: (total) => `${total} ${total === 1 ? 'entry' : 'entries'}` }}
         rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
+        scroll={{ x: 800 }}
         locale={{
           emptyText: loading ? <></> : (
             <div className="mtt-tracker-card__empty">
@@ -367,7 +400,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             const isLive = record.status === 'RUNNING';
 
             return (
-              <div style={{ padding: '20px 32px', backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
+              <div className="p-4 sm:p-8" style={{ backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
                 <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
                   <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
@@ -410,9 +443,9 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                           border: '1px solid var(--border-slate-200)',
                           transition: 'all 0.2s ease'
                         }}>
-                          <Row gutter={12} align="middle">
-                            <Col flex="auto">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <Row gutter={[12, 12]} align="middle">
+                            <Col xs={24} sm={16} md={18}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
                                   {dayjs(session.start).format("h:mm:ss A")} - {session.end ? dayjs(session.end).format("h:mm:ss A") : "Running"}
                                 </Text>
@@ -423,7 +456,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
 
                               <div style={{ marginBottom: 0 }}>
                                 {record.ticket?.title ? (
-                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                                     <div
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -450,8 +483,9 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                               </div>
                             </Col>
 
-                            <Col style={{ textAlign: 'right' }}>
+                            <Col xs={24} sm={8} md={6} className="text-left sm:text-right">
                               <div style={{
+                                display: 'inline-block',
                                 padding: '4px 12px',
                                 background: sessionIsLive ? '#f0fdf4' : '#fff',
                                 borderRadius: 8,
@@ -498,6 +532,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
           letter-spacing: 0.05em !important;
           border-bottom: 1px solid var(--border-slate-200) !important;
           padding: 12px 16px !important;
+          white-space: nowrap !important;
         }
         .ant-table-tbody > tr > td {
           padding: 14px 16px !important;

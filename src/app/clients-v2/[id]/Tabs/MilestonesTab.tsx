@@ -7,7 +7,7 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
+  message,
   Popconfirm,
   Tooltip,
 } from "antd";
@@ -138,14 +138,14 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Milestone | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await milestoneService.list(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load milestones", description: err?.message });
+      messageApi.error(`Failed to load milestones: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -158,10 +158,10 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
   const remove = async (m: Milestone) => {
     try {
       await milestoneService.remove(m.id);
-      notify.success({ message: "Milestone removed" });
+      messageApi.success("Milestone removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -287,7 +287,7 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
               }}
               onRemove={() => remove(m)}
               onChanged={load}
-              notify={notify}
+              messageApi={messageApi}
             />
           ))}
         </div>
@@ -308,7 +308,7 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
           load();
         }}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       {/* Premium adaptive header styling */}
@@ -342,31 +342,6 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
-        }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .milestones-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .milestones-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .milestones-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .milestones-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .milestones-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
           }
         }
       `}} />
@@ -510,7 +485,7 @@ function MilestoneCard({
   onEdit,
   onRemove,
   onChanged,
-  notify,
+  messageApi,
 }: {
   milestone: Milestone;
   c: ReturnType<typeof palette>;
@@ -518,7 +493,7 @@ function MilestoneCard({
   onEdit: () => void;
   onRemove: () => void;
   onChanged: () => void;
-  notify: any;
+  messageApi: any;
 }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -537,7 +512,7 @@ function MilestoneCard({
       await milestoneService.updateItem(it.id, { isCompleted: !it.isCompleted });
       onChanged();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message || ""}`);
     }
   };
 
@@ -546,7 +521,7 @@ function MilestoneCard({
       await milestoneService.removeItem(it.id);
       onChanged();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -559,7 +534,7 @@ function MilestoneCard({
       setNewItemName("");
       onChanged();
     } catch (err: any) {
-      notify.error({ message: "Add failed", description: err?.message });
+      messageApi.error(`Add failed: ${err?.message || ""}`);
     } finally {
       setAdding(false);
     }
@@ -983,7 +958,7 @@ function MilestoneModal({
   onClose,
   onSaved,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   editing: Milestone | null;
@@ -992,7 +967,7 @@ function MilestoneModal({
   onClose: () => void;
   onSaved: () => void;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -1043,17 +1018,17 @@ function MilestoneModal({
       };
       if (editing) {
         await milestoneService.update(editing.id, payload);
-        notify.success({ message: "Milestone updated" });
+        messageApi.success("Milestone updated");
       } else {
         await milestoneService.create(clientId, {
           ...payload,
           items: itemDrafts.length > 0 ? itemDrafts : undefined,
         });
-        notify.success({ message: "Milestone created" });
+        messageApi.success("Milestone created");
       }
       onSaved();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -1115,6 +1090,7 @@ function MilestoneModal({
               placeholder="What the client gets when this lands…"
               maxLength={1000}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>

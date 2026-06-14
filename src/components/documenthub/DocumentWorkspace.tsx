@@ -40,6 +40,7 @@ import ShareModal from '@/components/documenthub/ShareModal'
 import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
 import { useAutosaveDocument } from '@/hooks/useAutosaveDocument'
 import { usePermission } from '@/hooks/usePermission'
+import { useActivitySource } from '@/hooks/useActivitySource'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -455,6 +456,7 @@ const SIDEBAR_WIDTH_STORAGE_KEY = 'documenthub:sidebarWidth';
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
     const router = useRouter()
     const { canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
+    useActivitySource({ section: "WORK", module: "DocumentHub", page: "DocumentDetail" });
     const [collapsed, setCollapsed] = useState(false)
     const [selectedDoc, setSelectedDoc] = useState('api-ref')
     const [searchValue, setSearchValue] = useState('')

@@ -9,7 +9,7 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
+  message,
   Popconfirm,
   Empty,
   Tooltip,
@@ -196,14 +196,14 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await environmentsService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load environments", description: err?.message });
+      messageApi.error(`Failed to load environments: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -247,40 +247,40 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
       </div>
 
       <div style={{ marginTop: 20 }}>
-      {loading ? (
-        <div
-          style={{
-            padding: 48,
-            textAlign: "center",
-            border: `1px solid ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceElevated,
-            color: c.textSubtle,
-          }}
-        >
-          Loading…
-        </div>
-      ) : items.length === 0 ? (
-        <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {items.map((env) => (
-            <EnvCard
-              key={env.id}
-              env={env}
-              c={c}
-              tones={tones}
-              onOpen={() => setOpenId(env.id)}
-            />
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div
+            style={{
+              padding: 48,
+              textAlign: "center",
+              border: `1px solid ${c.border}`,
+              borderRadius: 12,
+              background: c.surfaceElevated,
+              color: c.textSubtle,
+            }}
+          >
+            Loading…
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {items.map((env) => (
+              <EnvCard
+                key={env.id}
+                env={env}
+                c={c}
+                tones={tones}
+                onOpen={() => setOpenId(env.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <CreateEnvModal
@@ -293,7 +293,7 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
         clientId={clientId}
         projects={projects}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       <EnvDetailDrawer
@@ -301,7 +301,7 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
         c={c}
         tones={tones}
         projects={projects}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -337,31 +337,6 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
-        }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .env-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .env-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .env-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .env-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .env-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
           }
         }
       `}} />
@@ -744,7 +719,7 @@ function CreateEnvModal({
   clientId,
   projects,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
@@ -752,7 +727,7 @@ function CreateEnvModal({
   clientId: string;
   projects: { id: string; name: string; code?: string | null }[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -788,13 +763,10 @@ function CreateEnvModal({
         notes: values.notes || undefined,
       };
       await environmentsService.create(clientId, payload);
-      notify.success({ message: "Environment added" });
+      messageApi.success("Environment added");
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create environment",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create environment: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -867,7 +839,7 @@ function CreateEnvModal({
             <Form.Item
               name="kind"
               label={<L c={c}>Type</L>}
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Type is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -880,6 +852,7 @@ function CreateEnvModal({
             <Form.Item
               name="status"
               label={<L c={c}>Status</L>}
+              rules={[{ required: true, message: "Status is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -892,6 +865,7 @@ function CreateEnvModal({
             <Form.Item
               name="visibility"
               label={<L c={c}>Visibility</L>}
+              rules={[{ required: true, message: "Visibility is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -906,6 +880,13 @@ function CreateEnvModal({
           <Form.Item
             name="url"
             label={<L c={c}>URL</L>}
+            rules={[
+              { required: true, message: "URL is required" },
+              {
+                type: "url",
+                message: "Please enter a valid URL (e.g., https://example.com)",
+              },
+            ]}
             style={{ marginBottom: 0 }}
           >
             <Input
@@ -931,6 +912,7 @@ function CreateEnvModal({
             <Form.Item
               name="currentVersion"
               label={<L c={c}>Current version</L>}
+              rules={[{ required: true, message: "Current version is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Input placeholder="e.g. v2.4.1" maxLength={60} />
@@ -938,6 +920,7 @@ function CreateEnvModal({
             <Form.Item
               name="sslExpiresAt"
               label={<L c={c}>SSL expires</L>}
+              rules={[{ required: true, message: "SSL expiry date is required" }]}
               style={{ marginBottom: 12 }}
             >
               <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
@@ -945,6 +928,7 @@ function CreateEnvModal({
             <Form.Item
               name="lastBackupAt"
               label={<L c={c}>Last backup</L>}
+              rules={[{ required: true, message: "Last backup date is required" }]}
               style={{ marginBottom: 12 }}
             >
               <DatePicker
@@ -957,7 +941,8 @@ function CreateEnvModal({
 
           <Form.Item
             name="projectId"
-            label={<L c={c} hint="optional">Project</L>}
+            label={<L c={c}>Project</L>}
+            rules={[{ required: true, message: "Project is required" }]}
             style={{ marginBottom: 12 }}
           >
             <Select
@@ -1020,7 +1005,7 @@ function EnvDetailDrawer({
   c,
   tones,
   projects,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
@@ -1028,7 +1013,7 @@ function EnvDetailDrawer({
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof tonesOf>;
   projects: { id: string; name: string; code?: string | null }[];
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
@@ -1058,7 +1043,7 @@ function EnvDetailDrawer({
         projectId: d.projectId,
       });
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -1070,12 +1055,11 @@ function EnvDetailDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const saveSettings = async () => {
+  const saveSettings = async (v: any) => {
     if (!data) return;
-    const v = settingsForm.getFieldsValue();
     try {
       await environmentsService.update(data.id, {
-        name: v.name,
+        name: v.name.trim(),
         kind: v.kind,
         url: v.url || undefined,
         status: v.status,
@@ -1091,12 +1075,12 @@ function EnvDetailDrawer({
         visibility: v.visibility,
         projectId: v.projectId || undefined,
       });
-      notify.success({ message: "Saved" });
+      messageApi.success("Saved");
       setEditing(false);
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     }
   };
 
@@ -1104,21 +1088,21 @@ function EnvDetailDrawer({
     if (!data) return;
     try {
       await environmentsService.remove(data.id);
-      notify.success({ message: "Environment deleted" });
+      messageApi.success("Environment deleted");
       onClose();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
   const removeDeploy = async (deploymentId: string) => {
     try {
       await environmentsService.removeDeployment(deploymentId);
-      notify.success({ message: "Deployment removed" });
+      messageApi.success("Deployment removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -1191,7 +1175,7 @@ function EnvDetailDrawer({
             }}
             envId={data.id}
             c={c}
-            notify={notify}
+            messageApi={messageApi}
           />
         </>
       )}
@@ -1553,7 +1537,7 @@ function SettingsForm({
   form: any;
   c: ReturnType<typeof palette>;
   projects: { id: string; name: string; code?: string | null }[];
-  onSave: () => void;
+  onSave: (values: any) => void;
   onCancel: () => void;
 }) {
   return (
@@ -1565,7 +1549,7 @@ function SettingsForm({
         padding: 16,
       }}
     >
-      <Form form={form} layout="vertical" requiredMark={false}>
+      <Form form={form} layout="vertical" requiredMark={false} onFinish={onSave}>
         <div
           style={{
             display: "grid",
@@ -1573,10 +1557,18 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="name" label={<L c={c}>Name</L>}>
-            <Input />
+          <Form.Item
+            name="name"
+            label={<L c={c}>Name</L>}
+            rules={[{ required: true, message: "Name is required" }]}
+          >
+            <Input maxLength={120} />
           </Form.Item>
-          <Form.Item name="kind" label={<L c={c}>Type</L>}>
+          <Form.Item
+            name="kind"
+            label={<L c={c}>Type</L>}
+            rules={[{ required: true, message: "Type is required" }]}
+          >
             <Select
               options={(Object.keys(KIND_META) as EnvKind[]).map((k) => ({
                 value: k,
@@ -1584,7 +1576,11 @@ function SettingsForm({
               }))}
             />
           </Form.Item>
-          <Form.Item name="status" label={<L c={c}>Status</L>}>
+          <Form.Item
+            name="status"
+            label={<L c={c}>Status</L>}
+            rules={[{ required: true, message: "Status is required" }]}
+          >
             <Select
               options={(Object.keys(STATUS_META) as EnvStatus[]).map((s) => ({
                 value: s,
@@ -1593,7 +1589,17 @@ function SettingsForm({
             />
           </Form.Item>
         </div>
-        <Form.Item name="url" label={<L c={c}>URL</L>}>
+        <Form.Item
+          name="url"
+          label={<L c={c}>URL</L>}
+          rules={[
+            { required: true, message: "URL is required" },
+            {
+              type: "url",
+              message: "Please enter a valid URL (e.g., https://example.com)",
+            },
+          ]}
+        >
           <Input />
         </Form.Item>
         <div
@@ -1603,13 +1609,25 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="currentVersion" label={<L c={c}>Current version</L>}>
-            <Input />
+          <Form.Item
+            name="currentVersion"
+            label={<L c={c}>Current version</L>}
+            rules={[{ required: true, message: "Current version is required" }]}
+          >
+            <Input maxLength={60} />
           </Form.Item>
-          <Form.Item name="sslExpiresAt" label={<L c={c}>SSL expires</L>}>
+          <Form.Item
+            name="sslExpiresAt"
+            label={<L c={c}>SSL expires</L>}
+            rules={[{ required: true, message: "SSL expiry date is required" }]}
+          >
             <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
-          <Form.Item name="lastBackupAt" label={<L c={c}>Last backup</L>}>
+          <Form.Item
+            name="lastBackupAt"
+            label={<L c={c}>Last backup</L>}
+            rules={[{ required: true, message: "Last backup date is required" }]}
+          >
             <DatePicker
               showTime
               style={{ width: "100%" }}
@@ -1624,10 +1642,18 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="uptimePercent" label={<L c={c}>Uptime %</L>}>
+          <Form.Item
+            name="uptimePercent"
+            label={<L c={c}>Uptime %</L>}
+            rules={[{ required: true, message: "Uptime % is required" }]}
+          >
             <Input type="number" step="0.01" min={0} max={100} />
           </Form.Item>
-          <Form.Item name="visibility" label={<L c={c}>Visibility</L>}>
+          <Form.Item
+            name="visibility"
+            label={<L c={c}>Visibility</L>}
+            rules={[{ required: true, message: "Visibility is required" }]}
+          >
             <Select
               options={[
                 { value: "client", label: "Client" },
@@ -1635,7 +1661,11 @@ function SettingsForm({
               ]}
             />
           </Form.Item>
-          <Form.Item name="projectId" label={<L c={c}>Project</L>}>
+          <Form.Item
+            name="projectId"
+            label={<L c={c}>Project</L>}
+            rules={[{ required: true, message: "Project is required" }]}
+          >
             <Select
               allowClear
               options={projects.map((p) => ({
@@ -1660,7 +1690,7 @@ function SettingsForm({
           <Button size="small" onClick={onCancel}>
             Cancel
           </Button>
-          <Button size="small" type="primary" onClick={onSave}>
+          <Button size="small" type="primary" htmlType="submit">
             Save changes
           </Button>
         </div>
@@ -1875,14 +1905,14 @@ function LogDeploymentModal({
   onLogged,
   envId,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
   onLogged: () => void;
   envId: string;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -1898,7 +1928,7 @@ function LogDeploymentModal({
 
   const submit = async (v: any) => {
     if (!v.version?.trim()) {
-      notify.error({ message: "Version is required" });
+      messageApi.error("Version is required");
       return;
     }
     setSubmitting(true);
@@ -1913,13 +1943,10 @@ function LogDeploymentModal({
         deployedBy: v.deployedBy || undefined,
         changelogExcerpt: v.changelogExcerpt || undefined,
       });
-      notify.success({ message: "Deployment logged" });
+      messageApi.success("Deployment logged");
       onLogged();
     } catch (err: any) {
-      notify.error({
-        message: "Could not log deployment",
-        description: err?.message,
-      });
+      messageApi.error(`Could not log deployment: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }

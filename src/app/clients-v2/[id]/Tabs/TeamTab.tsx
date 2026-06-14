@@ -7,7 +7,7 @@ import {
   Form,
   Input,
   Select,
-  notification,
+  message,
   Popconfirm,
   Switch,
   Tooltip,
@@ -145,14 +145,14 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await teamService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load team", description: err?.message });
+      messageApi.error(`Failed to load team: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
       await teamService.update(m.id, { isVisible: !m.isVisible });
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message || ""}`);
     }
   };
   const togglePrimary = async (m: TeamMember) => {
@@ -175,16 +175,16 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
       await teamService.update(m.id, { isPrimaryContact: !m.isPrimaryContact });
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message || ""}`);
     }
   };
   const remove = async (m: TeamMember) => {
     try {
       await teamService.remove(m.id);
-      notify.success({ message: "Team member removed" });
+      messageApi.success("Team member removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -288,7 +288,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
           load();
         }}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       {/* Premium adaptive header styling */}
@@ -322,31 +322,6 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
-        }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .team-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .team-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .team-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .team-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .team-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
           }
         }
       `}} />
@@ -757,7 +732,7 @@ function TeamMemberModal({
   onClose,
   onSaved,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   editing: TeamMember | null;
@@ -766,7 +741,7 @@ function TeamMemberModal({
   onClose: () => void;
   onSaved: () => void;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -853,14 +828,14 @@ function TeamMemberModal({
       };
       if (editing) {
         await teamService.update(editing.id, payload);
-        notify.success({ message: "Saved" });
+        messageApi.success("Saved");
       } else {
         await teamService.create(clientId, payload);
-        notify.success({ message: "Team member added" });
+        messageApi.success("Team member added");
       }
       onSaved();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -999,6 +974,9 @@ function TeamMemberModal({
             <Form.Item
               name="contactEmail"
               label={<L c={c} >Email</L>}
+              rules={[
+                { type: "email", message: "Please enter a valid email address" },
+              ]}
               style={{ marginBottom: 0 }}
             >
               <Input
@@ -1093,6 +1071,7 @@ function TeamMemberModal({
               placeholder="What they specialise in, years at the company, etc."
               maxLength={500}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>

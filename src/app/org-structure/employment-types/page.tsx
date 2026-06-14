@@ -1,13 +1,9 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
-  Typography,
   Button,
   Input,
-  Table,
   Form,
   Switch,
   notification,
@@ -15,12 +11,13 @@ import {
   Tooltip,
   Drawer,
   Popconfirm,
+  App,
+  Dropdown,
 } from "antd";
 import {
   Briefcase,
   Edit,
   Plus,
-  Search,
   Layers,
   ShieldCheck,
   User,
@@ -28,6 +25,7 @@ import {
   Tag as TagIcon,
   Settings,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
@@ -35,11 +33,13 @@ import { EmploymentType } from "@/services/employmentTypeService";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
-import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
-
-const { Text } = Typography;
+import { OrgModuleScaffold, OrgStatDef, OrgView } from "@/components/org-structure/OrgModuleScaffold";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 export default function EmploymentTypesPage() {
+  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureEmploymentTypes" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const {
@@ -47,6 +47,7 @@ export default function EmploymentTypesPage() {
     canCreateOrgEmploymentType,
     canUpdateOrgEmploymentType,
     canDeleteOrgEmploymentType,
+    canReadActivityLog
   } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -55,6 +56,9 @@ export default function EmploymentTypesPage() {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [api, contextHolder] = notification.useNotification();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [view, setView] = useState<OrgView>("grid");
+  const { modal } = App.useApp();
 
   const {
     employmentTypes,
@@ -145,13 +149,9 @@ export default function EmploymentTypesPage() {
 
   if (authLoading) {
     return (
-      <ProtectedRoute>
-        <MainLayout>
-          <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <Spin size="large" tip="Loading Employment Types..." />
-          </div>
-        </MainLayout>
-      </ProtectedRoute>
+      <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" tip="Loading Employment Types..." />
+      </div>
     );
   }
 
@@ -161,7 +161,7 @@ export default function EmploymentTypesPage() {
     {
       title: "Employment Type",
       key: "identity",
-      width: "32%",
+      width: 250,
       render: (_: any, record: EmploymentType) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code?.substring(0, 2) || "ET"}</div>
@@ -176,6 +176,7 @@ export default function EmploymentTypesPage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      width: 300,
       ellipsis: { showTitle: false },
       render: (description: string) => (
         <Tooltip placement="topLeft" title={description}>
@@ -226,127 +227,142 @@ export default function EmploymentTypesPage() {
     },
   ];
 
+  const CARD_ACCENTS: [string, string][] = [
+    ["#3b82f6", "#2563eb"],
+    ["#10b981", "#059669"],
+    ["#64748b", "#475569"],
+  ];
+  const accentFor = (key: string): [string, string] => {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return CARD_ACCENTS[h % CARD_ACCENTS.length];
+  };
+
+  const stats: OrgStatDef[] = [
+    { key: "total", label: "Total Types", value: totalTypes, icon: <Layers size={14} />, color: "#3b82f6", tint: "rgba(59,130,246,0.10)" },
+    { key: "active", label: "Active", value: activeTypes, icon: <ShieldCheck size={14} />, color: "#10b981", tint: "rgba(16,185,129,0.10)" },
+    { key: "inactive", label: "Inactive", value: inactiveTypes, icon: <User size={14} />, color: "#64748b", tint: "rgba(100,116,139,0.10)" },
+    { key: "coverage", label: "Coverage", value: `${totalTypes > 0 ? Math.round((activeTypes / totalTypes) * 100) : 0}%`, icon: <Briefcase size={14} />, color: "#6366f1", tint: "rgba(99,102,241,0.10)" },
+  ];
+
+  const renderEmploymentTypeCard = (record: EmploymentType) => {
+    const [c0, c1] = accentFor(record.code || record.name || "");
+    const canAct = canUpdateOrgEmploymentType || canDeleteOrgEmploymentType;
+    const menu = {
+      items: [
+        ...(canUpdateOrgEmploymentType ? [{ key: "edit", label: "Edit type", icon: <Edit size={14} /> }] : []),
+        ...(canDeleteOrgEmploymentType ? [{ key: "delete", danger: true, label: "Delete", icon: <Trash2 size={14} /> }] : []),
+      ],
+      onClick: ({ key, domEvent }: any) => {
+        domEvent?.stopPropagation?.();
+        if (key === "edit") handleEdit(record);
+        else if (key === "delete") {
+          modal.confirm({
+            title: "Remove employment type?",
+            content: "This will permanently delete this employment type.",
+            okText: "Delete",
+            cancelText: "Cancel",
+            okButtonProps: { danger: true },
+            onOk: () => handleDelete(record.id),
+          });
+        }
+      },
+    };
+    return (
+      <div className="omx-card">
+        <div className="omx-card-top">
+          <div className="omx-card-avatar" style={{ background: `linear-gradient(135deg, ${c0} 0%, ${c1} 100%)` }}>
+            {record.code?.substring(0, 2) || "ET"}
+          </div>
+          <div className="omx-card-id">
+            <div className="omx-card-title">{record.name}</div>
+            <div className="omx-card-sub">{record.code}</div>
+          </div>
+          {canAct && (
+            <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+              <button type="button" className="omx-card-actions" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal size={16} />
+              </button>
+            </Dropdown>
+          )}
+        </div>
+        <div className="omx-card-desc">{record.description || "No description provided"}</div>
+        <div className="omx-card-foot">
+          <span className={`omx-pill ${record.isActive ? "is-active" : "is-inactive"}`}>
+            <span className="omx-pill-dot" />
+            {record.isActive ? "Active" : "Inactive"}
+          </span>
+          <span className="omx-card-foot-key">{record.code}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <ProtectedRoute>
-      <MainLayout>
-        {contextHolder}
-        <div className="orgx-shell">
-          <TimeTrackingHeader
+    <>
+      {contextHolder}
+      <div className="orgx-shell">
+        <TimeTrackingHeader
             icon={<Briefcase size={20} color="#3b82f6" />}
             title="Employment Types"
             description="Define and manage workforce contract types and employment structures."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "8.5px 32px",
-              marginBottom: 20,
+              padding: "9.5px 32px",
+              marginBottom: 8,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
-              canCreateOrgEmploymentType && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Type
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canCreateOrgEmploymentType && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Type
+                  </Button>
+                )}
+              </div>
             }
           />
 
-          <div className="orgx-content">
-            {/* Stats */}
-            <div className="orgx-stat-grid">
-              <OrgStatCard
-                label="Total Types"
-                value={totalTypes}
-                icon={<Layers size={14} />}
-                accent="#3b82f6"
-                subtle="Contract categories"
-                loading={loading && totalTypes === 0}
-                chart={
-                  totalTypes > 0 ? (
-                    <OrgMiniBar
-                      segments={[
-                        { value: activeTypes, color: "#10b981", label: `${activeTypes} active` },
-                        { value: inactiveTypes, color: "#94a3b8", label: `${inactiveTypes} inactive` },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <OrgStatCard
-                label="Active"
-                value={activeTypes}
-                icon={<ShieldCheck size={14} />}
-                accent="#10b981"
-                subtle={totalTypes > 0 ? `${Math.round((activeTypes / totalTypes) * 100)}% of total` : "No types yet"}
-                loading={loading && totalTypes === 0}
-              />
-              <OrgStatCard
-                label="Inactive"
-                value={inactiveTypes}
-                icon={<User size={14} />}
-                accent="#f59e0b"
-                subtle="Currently unavailable"
-                loading={loading && totalTypes === 0}
-              />
-              <OrgStatCard
-                label="Coverage"
-                value={`${totalTypes > 0 ? Math.round((activeTypes / totalTypes) * 100) : 0}%`}
-                icon={<Briefcase size={14} />}
-                accent="#8b5cf6"
-                subtle="Active utilization rate"
-                loading={loading && totalTypes === 0}
-                chart={
-                  totalTypes > 0 ? (
-                    <div className="orgx-progress-row">
-                      <div className="orgx-progress-track">
-                        <span
-                          className="orgx-progress-fill"
-                          style={{
-                            width: `${(activeTypes / totalTypes) * 100}%`,
-                            background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
-                          }}
-                        />
-                      </div>
-                      <span className="orgx-progress-label">
-                        {activeTypes}/{totalTypes}
-                      </span>
-                    </div>
-                  ) : null
-                }
-              />
-            </div>
-
-            {/* Panel */}
-            <div className="orgx-panel">
-              <div className="orgx-toolbar">
-                <Input
-                  className="orgx-search"
-                  prefix={<Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />}
-                  placeholder="Search by name, code, or description…"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
-                <div className="orgx-toolbar__divider" />
-                <Text className="orgx-count-text">
-                  <strong>{filteredData.length}</strong> of {totalTypes}
-                </Text>
-              </div>
-
-              <Table
-                className="orgx-table"
-                rowKey="id"
-                columns={columns}
-                dataSource={filteredData}
-                loading={loading}
-                size="middle"
-                pagination={{ pageSize: 12, position: ["bottomRight"] }}
-              />
-            </div>
-          </div>
+          <OrgModuleScaffold<EmploymentType>
+            search={searchText}
+            onSearchChange={setSearchText}
+            searchPlaceholder="Search by name, code, or description…"
+            meta={<><strong>{filteredData.length}</strong> of {totalTypes} employment types</>}
+            view={view}
+            onViewChange={setView}
+            loading={loading}
+            stats={stats}
+            columns={columns}
+            data={filteredData}
+            rowKey="id"
+            renderCard={renderEmploymentTypeCard}
+            emptyTitle="No employment types found"
+            emptySubtitle="Define your first contract type to onboard members."
+            emptyAction={
+              canCreateOrgEmploymentType ? (
+                <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
+                  New Employment Type
+                </Button>
+              ) : undefined
+            }
+          />
 
           {/* Create / Edit Drawer */}
           <Drawer
@@ -453,7 +469,11 @@ export default function EmploymentTypesPage() {
             </div>
           </Drawer>
         </div>
-      </MainLayout>
-    </ProtectedRoute>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
+    </>
   );
 }

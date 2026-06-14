@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTenant } from '@/context/TenantContext';
 import {
   Card,
   Form,
@@ -18,7 +19,8 @@ import {
   LoginOutlined,
 } from '@ant-design/icons';
 import Image from 'next/image';
-import Logo from '@/assets/logo/CMPLOGO.jpeg';
+// import Logo from '@/assets/logo/CMPLOGO.jpeg';
+import Logo from '@/assets/logo/Zukvologo.png';
 
 
 const { Title, Text } = Typography;
@@ -31,6 +33,7 @@ interface LoginFormData {
 // Separate component that uses useSearchParams
 function LoginFormWithParams() {
   const { login, user } = useAuth();
+  const { resolveTenant } = useTenant();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form] = Form.useForm();
@@ -47,15 +50,21 @@ function LoginFormWithParams() {
     }
   }, [user, router, redirectUrl]);
 
-  // Prefill email and password if passed in the URL parameters
+  // Prefill email/password and resolve tenant subdomain from URL params
   useEffect(() => {
     const emailParam = searchParams.get('email');
     const passwordParam = searchParams.get('password');
+    const subdomainParam = searchParams.get('subdomain');
+
     if (emailParam || passwordParam) {
       form.setFieldsValue({
         email: emailParam || '',
         password: passwordParam || '',
       });
+    }
+
+    if (subdomainParam) {
+      resolveTenant(subdomainParam);
     }
   }, [searchParams, form]);
 
@@ -237,7 +246,7 @@ export default function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-  © {new Date().getFullYear()} Zithtech. All rights reserved.
+  © {new Date().getFullYear()} Zukvo. All rights reserved.
 </Text>
 
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Input, Select, Skeleton, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
+import { Modal, Input, Select, Skeleton, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -54,6 +54,7 @@ interface EditableGroup {
 
 export default function AiReviewModal({ open, onClose, bugs }: Props) {
   const { theme } = useTheme();
+  const { message } = App.useApp();
   const [step, setStep] = useState<Step>("review");
   const [reviewResults, setReviewResults] = useState<AiReviewResult[]>([]);
   const [reviewStarted, setReviewStarted] = useState(false);
@@ -830,19 +831,46 @@ function Field({
   );
 }
 
+/**
+ * Converts plain-text content (which may contain newlines) into an HTML
+ * paragraph block suitable for the Tiptap / dangerouslySetInnerHTML viewer.
+ */
+function plainTextToHtml(text: string): string {
+  if (!text || !text.trim()) return "";
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const paragraphs = escaped.split(/\n{2,}/);
+  return paragraphs
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 function seedGroup(
   g: AiGroupSuggestion,
   bugsById: Map<string, BugListItem>,
   reviewByBugId: Map<string, AiReviewResult>,
 ): EditableGroup {
-  const lines = g.bugIds
+  const bugsWithContent = g.bugIds
     .map((id) => {
       const bug = bugsById.get(id);
       const review = reviewByBugId.get(id);
       if (!bug) return null;
-      return review?.cleanedDescription || bug.description || "";
+      return { bug, text: review?.cleanedDescription || bug.description || "" };
     })
-    .filter((s): s is string => !!s && s.trim().length > 0);
+    .filter((entry): entry is { bug: BugListItem; text: string } => !!entry && entry.text.trim().length > 0);
+
+  // Build structured HTML sections separated by <hr>, with bug label headers
+  // when there are multiple bugs (so context isn't lost in a single wall of text).
+  const sections = bugsWithContent.map(({ bug, text }) => {
+    const label = bug.bugNumber || bug.id.slice(-6).toUpperCase();
+    const titleLine = bug.title ? ` \u2014 ${bug.title}` : "";
+    const headerHtml = bugsWithContent.length > 1
+      ? `<p><strong>${label}${titleLine}</strong></p>`
+      : "";
+    return `${headerHtml}${plainTextToHtml(text)}`;
+  });
 
   const assignees = g.bugIds
     .map((id) => bugsById.get(id)?.assigneeId)
@@ -854,7 +882,7 @@ function seedGroup(
 
   return {
     ...g,
-    description: lines.join("\n\n"),
+    description: sections.join("<hr>"),
     acceptanceCriteria: "",
     assigneeId: sharedAssignee,
   };

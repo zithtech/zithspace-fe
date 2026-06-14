@@ -1,5 +1,60 @@
 import { apiClient } from "@/lib/axios";
 
+function parseDecimal(val: any): number | undefined {
+  if (val === null || val === undefined) return undefined;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? undefined : parsed;
+  }
+  if (typeof val === 'object' && val !== null && 'd' in val && 's' in val && 'e' in val) {
+    try {
+      const { s, e, d } = val;
+      if (Array.isArray(d) && typeof s === 'number' && typeof e === 'number') {
+        const first = d[0].toString();
+        const rest = d.slice(1).map((x: any) => x.toString().padStart(7, '0')).join('');
+        const digits = first + rest;
+        let numStr = '';
+        if (e >= 0) {
+          if (e + 1 >= digits.length) {
+            numStr = digits + '0'.repeat(e + 1 - digits.length);
+          } else {
+            numStr = digits.slice(0, e + 1) + '.' + digits.slice(e + 1);
+          }
+        } else {
+          numStr = '0.' + '0'.repeat(-e - 1) + digits;
+        }
+        const parsed = parseFloat((s < 0 ? '-' : '') + numStr);
+        return isNaN(parsed) ? undefined : parsed;
+      }
+    } catch (err) {
+      console.error("Error parsing Decimal object in parseDecimal:", err);
+    }
+  }
+  return undefined;
+}
+
+export function sanitizeTicket(ticket: any): any {
+  if (!ticket) return ticket;
+  if (typeof ticket !== 'object') return ticket;
+
+  const sanitized = { ...ticket };
+
+  if ('estimateHours' in sanitized) {
+    sanitized.estimateHours = parseDecimal(sanitized.estimateHours);
+  }
+
+  if ('storyPoint' in sanitized) {
+    sanitized.storyPoint = parseDecimal(sanitized.storyPoint);
+  }
+
+  if (Array.isArray(sanitized.subTasks)) {
+    sanitized.subTasks = sanitized.subTasks.map(sanitizeTicket);
+  }
+
+  return sanitized;
+}
+
 export interface TicketFormData {
   title: string;
   description?: string;
@@ -187,6 +242,58 @@ export interface Ticket {
   }>;
 }
 
+export interface RecentCommentRow {
+  id: string;
+  comment: string;
+  timestamp: string;
+  total: number;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  ticket: {
+    id: string;
+    ticketNumber: string;
+    title: string;
+  };
+}
+
+export interface RecentAttachmentRow {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
+  total: number;
+  uploadedBy: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  ticket: {
+    id: string;
+    ticketNumber: string;
+    title: string;
+  };
+}
+
+export interface OverdueTicketRow {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  endDate: string;
+  status: string;
+  priority: string;
+  daysOverdue: number;
+}
+
+export interface RecentActivityResponse {
+  comments: RecentCommentRow[];
+  attachments: RecentAttachmentRow[];
+  overdue: OverdueTicketRow[];
+}
+
 export interface TicketListResponse {
   success: boolean;
   data: Ticket[];
@@ -347,7 +454,7 @@ class TicketService {
   static async createTicket(ticketData: TicketFormData): Promise<Ticket> {
     try {
       const response = await apiClient.post("/api/tickets", ticketData);
-      return response.data.data;
+      return sanitizeTicket(response.data.data);
     } catch (error: any) {
       console.error("Error creating ticket:", error);
       const errorMessage =
@@ -394,7 +501,15 @@ class TicketService {
       const response = await apiClient.get(
         `/api/tickets/kanban?${queryParams.toString()}`,
       );
-      return response.data.data;
+      const data = response.data.data;
+      if (data && data.columns) {
+        Object.keys(data.columns).forEach(key => {
+          if (Array.isArray(data.columns[key]?.tickets)) {
+            data.columns[key].tickets = data.columns[key].tickets.map(sanitizeTicket);
+          }
+        });
+      }
+      return data;
     } catch (error) {
       console.error("Error fetching Kanban tickets:", error);
       throw new Error("Failed to fetch Kanban tickets");
@@ -420,6 +535,7 @@ class TicketService {
     endDate?: string;
     includeArchived?: boolean;
     archivedOnly?: boolean;
+    ticketIds?: string;
   } = {}): Promise<TicketListResponse> {
     try {
       const queryParams = new URLSearchParams();
@@ -432,7 +548,11 @@ class TicketService {
       const response = await apiClient.get(
         `/api/tickets?${queryParams.toString()}`,
       );
-      return response.data;
+      const resData = response.data;
+      if (resData && Array.isArray(resData.data)) {
+        resData.data = resData.data.map(sanitizeTicket);
+      }
+      return resData;
     } catch (error) {
       console.error("Error fetching tickets:", error);
       throw new Error("Failed to fetch tickets");
@@ -445,7 +565,7 @@ class TicketService {
   static async getPublicTicketById(id: string): Promise<Ticket> {
     try {
       const response = await apiClient.get(`/api/public/tickets/${id}`);
-      return response.data.data;
+      return sanitizeTicket(response.data.data);
     } catch (error) {
       console.error("Error fetching public ticket:", error);
       throw new Error("Failed to fetch public ticket");
@@ -458,7 +578,7 @@ class TicketService {
   static async getTicketById(id: string): Promise<Ticket> {
     try {
       const response = await apiClient.get(`/api/tickets/${id}`);
-      return response.data.data;
+      return sanitizeTicket(response.data.data);
     } catch (error) {
       console.error("Error fetching ticket:", error);
       throw new Error("Failed to fetch ticket");
@@ -487,7 +607,11 @@ class TicketService {
       const response = await apiClient.get(
         `/api/tickets/my?${queryParams.toString()}`,
       );
-      return response.data;
+      const resData = response.data;
+      if (resData && Array.isArray(resData.data)) {
+        resData.data = resData.data.map(sanitizeTicket);
+      }
+      return resData;
     } catch (error) {
       console.error("Error fetching my tickets:", error);
       throw new Error("Failed to fetch your tickets");
@@ -551,7 +675,7 @@ class TicketService {
   ): Promise<Ticket> {
     try {
       const response = await apiClient.put(`/api/tickets/${id}`, updates);
-      return response.data.data;
+      return sanitizeTicket(response.data.data);
     } catch (error: any) {
       console.error("Error updating ticket:", error);
       const errorMessage =
@@ -570,6 +694,34 @@ class TicketService {
     } catch (error: any) {
       console.error("Error fetching ticket tags:", error);
       return [];
+    }
+  }
+
+  /**
+   * Recent comments + attachments for a project — powers the Ticket page sidebar.
+   * When `userId` is provided, results are scoped to activity the user cares
+   * about (their own comments/uploads, or others' activity on tickets they own).
+   * Returns the latest activity per ticket (deduped).
+   */
+  static async getRecentActivity(params: {
+    projectId?: string;
+    userId?: string;
+    limit?: number;
+  } = {}): Promise<RecentActivityResponse> {
+    try {
+      const query = new URLSearchParams();
+      if (params.projectId) query.append("projectId", params.projectId);
+      if (params.userId) query.append("userId", params.userId);
+      if (params.limit) query.append("limit", String(params.limit));
+      const response = await apiClient.get(
+        `/api/tickets/recent-activity${query.toString() ? `?${query.toString()}` : ""}`,
+      );
+      return (
+        response.data?.data || { comments: [], attachments: [], overdue: [] }
+      );
+    } catch (error: any) {
+      console.error("Error fetching recent ticket activity:", error);
+      return { comments: [], attachments: [], overdue: [] };
     }
   }
 
@@ -600,7 +752,7 @@ class TicketService {
         stepName,
         updates,
       });
-      return response.data.data;
+      return sanitizeTicket(response.data.data);
     } catch (error: any) {
       console.error("Error updating workflow step:", error);
       const errorMessage =

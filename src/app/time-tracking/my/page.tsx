@@ -15,19 +15,25 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { Result } from "antd";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 export default function MyTimePage() {
+  useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingMy" });
   const { setPopoverOpen } = useTimeTrackerStore();
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [, setTotalSeconds] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const {
     canReadTimeTracking,
     canCreateTimeTracking,
     canDeleteTimeTracking,
-    canManageTimeTrackingTime
+    canManageTimeTrackingTime,
+    canReadActivityLog
   } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
@@ -109,6 +115,25 @@ export default function MyTimePage() {
                   Today
                 </Button>
               )}
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{
+                    height: 38,
+                    borderRadius: 10,
+                    fontWeight: 500,
+                    border: "1px solid var(--border-slate-200)",
+                    background: "var(--bg-pure-white)",
+                    color: "var(--text-secondary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  History
+                </Button>
+              )}
               {canCreateTimeTracking && (
                 <Button
                   type="primary"
@@ -146,6 +171,11 @@ export default function MyTimePage() {
             onClose={() => setManageModalOpen(false)}
             onSuccess={() => setRefreshKey((prev) => prev + 1)}
             selectedDate={selectedDate}
+          />
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            module="TimeTracking"
           />
         </div>
       </div>

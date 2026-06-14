@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, Select, TimePicker, Button, notification, Space, Typography, Tag, DatePicker, Row, Col } from 'antd';
+import { Modal, Form, Select, TimePicker, Button, App, Space, Typography, Tag, DatePicker, Row, Col } from 'antd';
 import {
   ClockCircleOutlined,
   UserOutlined,
@@ -33,6 +33,7 @@ interface ManageTimeModalProps {
 }
 
 export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose, onSuccess, selectedDate }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -102,12 +103,12 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     const { userId, ticketIds, startTime, endTime } = values;
 
     if (!startTime || !endTime) {
-      notification.error({ message: "Start and End times are required" });
+      message.error("Start and End times are required");
       return;
     }
 
     if (startTime.isAfter(endTime)) {
-      notification.error({ message: "Start time must be before end time" });
+      message.error("Start time must be before end time");
       return;
     }
 
@@ -147,19 +148,15 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
       }
 
       if (successCount > 0) {
-        notification.success({
-          message: "Time Logged Successfully",
-          icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-          description: `Created ${successCount} ${successCount === 1 ? 'entry' : 'entries'} for ${totalDuration?.hours}h ${totalDuration?.minutes}m total.`
-        });
+        message.success(`Time Logged Successfully: Created ${successCount} ${successCount === 1 ? 'entry' : 'entries'} for ${totalDuration?.hours}h ${totalDuration?.minutes}m total.`);
         useTimeTrackerStore.getState().fetchActiveTimer();
         onSuccess();
         onClose();
       } else {
-        notification.error({ message: "Error", description: "Failed to create entries." });
+        message.error("Failed to create entries.");
       }
     } catch (error: any) {
-      notification.error({ message: "Error", description: error.message });
+      message.error(error.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

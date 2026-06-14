@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Typography, Tag, Row, Col, Spin, Tree, Tooltip, Skeleton, Input } from "antd";
+import { Typography, Tag, Row, Col, Spin, Tooltip, Skeleton, Input, Space, Button } from "antd";
 import {
   Layout,
   Building2,
@@ -8,111 +8,185 @@ import {
   User,
   ShieldCheck,
   Search,
+  ChevronRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
-import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useGrades } from "@/hooks/useGrades";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
 /* -------------------------------------------------------------------------- */
-/*                              Premium StatCard                              */
+/*                  Document-Hub style StatCard + Sparkline                    */
 /* -------------------------------------------------------------------------- */
+
+const OvSparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const width = 72;
+  const height = 26;
+  const pad = 4;
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min || 1;
+  const pts = data.map((d, i) => {
+    const x = (i / Math.max(1, data.length - 1)) * width;
+    const y = height - pad - ((d - min) / range) * (height - pad - 2);
+    return { x, y };
+  });
+  let path = `M ${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) path += ` L ${pts[i].x},${pts[i].y}`;
+  const fill = `${path} L ${width},${height} L 0,${height} Z`;
+  const gid = `ovspark-${color.replace("#", "")}`;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.04} />
+        </linearGradient>
+      </defs>
+      <path d={fill} fill={`url(#${gid})`} />
+      <path d={path} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+// Stylized 7-pt trend scaled to the value, so the sparkline reads well without
+// per-day backend data (mirrors the Document Hub dashboard).
+const stylizedTrend = (shape: number[], total: number) =>
+  total <= 0 ? [0, 0, 0, 0, 0, 0, 0] : shape.map((r) => r * total);
 
 interface StatCardProps {
   label: string;
   value: React.ReactNode;
   icon: React.ReactNode;
-  accent: string;
-  subtle?: string;
+  trend: number[];
+  highlight?: boolean;
   loading?: boolean;
-  chart?: React.ReactNode;
 }
 
-const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  icon,
-  accent,
-  subtle,
-  loading,
-  chart,
-}) => (
-  <div className="org-ov-stat-card" style={{ ['--ov-accent' as any]: accent }}>
-    <div className="org-ov-stat-head">
-      <div
-        className="org-ov-stat-icon"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        {icon}
-      </div>
-      <Text className="org-ov-stat-label">{label}</Text>
-      <div className="org-ov-stat-value-wrap">
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, highlight, loading }) => (
+  <div className="org-ov-dh-card">
+    <div className="org-ov-dh-top">
+      <span className={`org-ov-dh-icon${highlight ? " is-accent" : ""}`}>{icon}</span>
+      <span className="org-ov-dh-label">{label}</span>
+    </div>
+    <div className="org-ov-dh-bottom">
+      <div className="org-ov-dh-value-wrap">
         {loading ? (
-          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
+          <Skeleton.Input active size="small" style={{ width: 48, height: 22 }} />
         ) : (
-          <span className="org-ov-stat-value">{value}</span>
+          <>
+            <span className="org-ov-dh-value">{value}</span>
+            <span className="org-ov-dh-period">total</span>
+          </>
         )}
       </div>
+      <div className="org-ov-dh-spark">
+        <OvSparkline data={trend} color={highlight ? "#10b981" : "#cbd5e1"} />
+      </div>
     </div>
-    {subtle && <Text className="org-ov-stat-subtle">{subtle}</Text>}
-    {chart && <div className="org-ov-stat-chart">{chart}</div>}
-    <span
-      className="org-ov-stat-accent"
-      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-    />
   </div>
 );
 
-interface MiniBarProps {
-  segments: { value: number; color: string; label: string }[];
+/* -------------------------------------------------------------------------- */
+/*                       Premium Hierarchy Visualization                      */
+/* -------------------------------------------------------------------------- */
+
+type HxType = "grade" | "dept" | "sub" | "pos";
+
+interface HxNodeData {
+  key: string;
+  type: HxType;
+  name: string;
+  code?: string;
+  count?: number;
+  leaf?: boolean;
+  children?: HxNodeData[];
 }
-const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+
+const HX_META: Record<
+  HxType,
+  { color: string; tint: string; label: string; icon: (s: number) => React.ReactNode }
+> = {
+  grade: { color: "#3b82f6", tint: "rgba(59,130,246,0.12)", label: "Grade level", icon: (s) => <ShieldCheck size={s} /> },
+  dept: { color: "#06b6d4", tint: "rgba(6,182,212,0.12)", label: "Department", icon: (s) => <Building2 size={s} /> },
+  sub: { color: "#f97316", tint: "rgba(249,115,22,0.12)", label: "Sub-department", icon: (s) => <Layers size={s} /> },
+  pos: { color: "#8b5cf6", tint: "rgba(139,92,246,0.12)", label: "Position", icon: (s) => <User size={s} /> },
+};
+
+const HxNode: React.FC<{
+  node: HxNodeData;
+  expanded: React.Key[];
+  onToggle: (key: string) => void;
+}> = ({ node, expanded, onToggle }) => {
+  const meta = HX_META[node.type];
+  const hasChildren = !!node.children?.length;
+  const isOpen = expanded.includes(node.key);
   return (
-    <div className="org-ov-minibar">
-      <div className="org-ov-minibar-track">
-        {segments.map((s, i) => (
-          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
-            <span
-              className="org-ov-minibar-seg"
-              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
-            />
-          </Tooltip>
-        ))}
+    <div className="hx-node">
+      <div
+        className={`hx-row is-${node.type}${hasChildren ? " is-clickable" : ""}`}
+        onClick={hasChildren ? () => onToggle(node.key) : undefined}
+      >
+        <span className={`hx-twist${hasChildren ? "" : " is-empty"}`}>
+          {hasChildren && <ChevronRight size={14} className={isOpen ? "is-open" : ""} />}
+        </span>
+        <span className="hx-ico" style={{ color: meta.color, background: meta.tint }}>
+          {meta.icon(node.type === "pos" ? 13 : 15)}
+        </span>
+        <span className="hx-body">
+          <span className="hx-name">{node.name}</span>
+          {node.type !== "pos" && (
+            <span className="hx-type" style={{ color: meta.color, background: meta.tint }}>
+              {meta.label}
+            </span>
+          )}
+        </span>
+        {node.code && <span className="hx-code">{node.code}</span>}
+        {node.count != null && <span className={`hx-count is-${node.type}`}>{node.count}</span>}
       </div>
-      <div className="org-ov-minibar-legend">
-        {segments.map((s, i) => (
-          <span key={i} className="org-ov-minibar-legend-item">
-            <span className="org-ov-minibar-dot" style={{ background: s.color }} />
-            {s.label}
-          </span>
-        ))}
-      </div>
+      {hasChildren && isOpen && (
+        <div className="hx-children">
+          {node.children!.map((c) => (
+            <HxNode key={c.key} node={c} expanded={expanded} onToggle={onToggle} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
+const HierarchyTree: React.FC<{
+  nodes: HxNodeData[];
+  expanded: React.Key[];
+  onToggle: (key: string) => void;
+}> = ({ nodes, expanded, onToggle }) => (
+  <div className="hx">
+    {nodes.map((n) => (
+      <HxNode key={n.key} node={n} expanded={expanded} onToggle={onToggle} />
+    ))}
+  </div>
+);
 
 /* -------------------------------------------------------------------------- */
 /*                                 Page                                       */
 /* -------------------------------------------------------------------------- */
 
 export default function OverviewPage() {
+  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureOverview" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrgDashboard } = usePermission();
+  const { canReadOrgDashboard, canReadActivityLog } = usePermission();
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [treeSearch, setTreeSearch] = useState<string>('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { dataSource: grades, loading: gradesLoading } = useGrades();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
@@ -177,11 +251,11 @@ export default function OverviewPage() {
     const q = treeSearch.trim().toLowerCase();
     const filteredPositions = q
       ? gradePositions.filter(
-          (p) =>
-            (p.title || '').toLowerCase().includes(q) ||
-            (p.departmentName || '').toLowerCase().includes(q) ||
-            (p.subDepartmentName || '').toLowerCase().includes(q),
-        )
+        (p) =>
+          (p.title || '').toLowerCase().includes(q) ||
+          (p.departmentName || '').toLowerCase().includes(q) ||
+          (p.subDepartmentName || '').toLowerCase().includes(q),
+      )
       : gradePositions;
 
     const deptMap = new Map<
@@ -221,93 +295,48 @@ export default function OverviewPage() {
       }
     });
 
-    const deptNodes = Array.from(deptMap.values()).map((d) => {
-      const subDeptNodes = Array.from(d.subDepts.entries()).map(([sdId, sdData]) => ({
-        title: (
-          <div className="org-ov-node is-sub">
-            <div className="org-ov-node__icon is-orange">
-              <Layers size={14} />
-            </div>
-            <div className="org-ov-node__text">
-              <span className="org-ov-node__title">{sdData.name}</span>
-              <span className="org-ov-node__tag is-orange">Sub-Department</span>
-            </div>
-            <span className="org-ov-node__count">{sdData.positions.length}</span>
-          </div>
-        ),
+    const deptNodes: HxNodeData[] = Array.from(deptMap.values()).map((d) => {
+      const subDeptNodes: HxNodeData[] = Array.from(d.subDepts.entries()).map(([sdId, sdData]) => ({
         key: `sd-${sdId}-${d.id}`,
+        type: "sub",
+        name: sdData.name,
+        count: sdData.positions.length,
         children: sdData.positions.map((p) => ({
-          title: (
-            <div className="org-ov-node is-pos">
-              <div className="org-ov-node__icon is-purple">
-                <User size={12} />
-              </div>
-              <div className="org-ov-node__text">
-                <span className="org-ov-node__title is-small">{p.title}</span>
-              </div>
-            </div>
-          ),
           key: `pos-${p.id}`,
-          isLeaf: true,
+          type: "pos" as const,
+          name: p.title,
+          leaf: true,
         })),
       }));
 
-      const directPosNodes = d.positions.map((p) => ({
-        title: (
-          <div className="org-ov-node is-pos">
-            <div className="org-ov-node__icon is-purple">
-              <User size={12} />
-            </div>
-            <div className="org-ov-node__text">
-              <span className="org-ov-node__title is-small">{p.title}</span>
-            </div>
-          </div>
-        ),
+      const directPosNodes: HxNodeData[] = d.positions.map((p) => ({
         key: `pos-${p.id}`,
-        isLeaf: true,
+        type: "pos",
+        name: p.title,
+        leaf: true,
       }));
 
       const childCount = d.positions.length + Array.from(d.subDepts.values()).reduce((s, sd) => s + sd.positions.length, 0);
 
       return {
-        title: (
-          <div className="org-ov-node is-dept">
-            <div className="org-ov-node__icon is-cyan">
-              <Building2 size={16} />
-            </div>
-            <div className="org-ov-node__text">
-              <span className="org-ov-node__title">{d.name}</span>
-              <span className="org-ov-node__tag is-cyan">Department</span>
-            </div>
-            <span className="org-ov-node__count">{childCount}</span>
-          </div>
-        ),
         key: `dept-${d.id}`,
+        type: "dept",
+        name: d.name,
+        count: childCount,
         children: [...subDeptNodes, ...directPosNodes],
       };
     });
 
     return [
       {
-        title: (
-          <div className="org-ov-node is-grade-root">
-            <div className="org-ov-node__icon is-blue">
-              <ShieldCheck size={18} />
-            </div>
-            <div className="org-ov-node__text">
-              <span className="org-ov-node__title is-main">
-                <span>{selectedGrade.name}</span>
-                <span className="org-ov-node__code">{selectedGrade.code}</span>
-              </span>
-              <span className="org-ov-node__tag is-blue is-premium">Grade Level</span>
-            </div>
-            <span className="org-ov-node__count is-strong">{filteredPositions.length}</span>
-          </div>
-        ),
         key: `grade-${selectedGrade.key}`,
+        type: "grade",
+        name: selectedGrade.name,
+        code: selectedGrade.code,
+        count: filteredPositions.length,
         children: deptNodes,
       },
-    ];
+    ] as HxNodeData[];
   }, [selectedGrade, positions, treeSearch]);
 
   // Auto-expand tree when data changes
@@ -329,48 +358,49 @@ export default function OverviewPage() {
 
   if (authLoading) {
     return (
-      <ProtectedRoute>
-        <MainLayout>
-          <div className="org-ov-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <Spin size="large" tip="Loading Organization View..." />
-          </div>
-        </MainLayout>
-      </ProtectedRoute>
+      <div className="org-ov-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Spin size="large" tip="Loading Organization View..." />
+      </div>
     );
   }
 
   if (!canReadOrgDashboard) return null;
 
-  const filteredCount = treeData[0]?.children
-    ? treeData[0].children.reduce((acc: number, dept: any) => {
-        const subPositions = dept.children
-          ? dept.children.reduce(
-              (s: number, c: any) => s + (c.isLeaf ? 1 : c.children?.length || 0),
-              0,
-            )
-          : 0;
-        return acc + subPositions;
-      }, 0)
-    : 0;
+  const countPositions = (nodes: HxNodeData[]): number =>
+    nodes.reduce((acc, n) => acc + (n.type === "pos" ? 1 : countPositions(n.children || [])), 0);
+  const filteredCount = treeData[0] ? countPositions(treeData[0].children || []) : 0;
 
   return (
-    <ProtectedRoute>
-      <MainLayout>
-        <div className="org-ov-shell">
-          <TimeTrackingHeader
+    <>
+      <div className="org-ov-shell">
+        <TimeTrackingHeader
             icon={<Layout size={20} color="#3b82f6" />}
             title="Organization Overview"
             description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
             style={{
               borderBottom: '1px solid var(--border-slate-200)',
-              padding: '8.5px 32px',
-              marginBottom: 20,
+              padding: '9px 32px',
+              marginBottom: 14,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
-              <Tag className="org-ov-header-chip">
-                <ShieldCheck size={12} />
-                {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
-              </Tag>
+              <Space size={12} align="center">
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)" }}
+                  >
+                    History
+                  </Button>
+                )}
+                <Tag className="org-ov-header-chip" style={{ margin: 0 }}>
+                  <ShieldCheck size={12} />
+                  {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
+                </Tag>
+              </Space>
             }
           />
 
@@ -380,63 +410,31 @@ export default function OverviewPage() {
               <StatCard
                 label="Grades"
                 value={orgStats.grades}
-                icon={<ShieldCheck size={14} />}
-                accent="#3b82f6"
-                subtle={
-                  orgStats.topGrade
-                    ? `Top: ${orgStats.topGrade.name} (${orgStats.topGrade.count} pos)`
-                    : 'No grades yet'
-                }
+                icon={<ShieldCheck size={15} />}
+                trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.grades)}
                 loading={loading && orgStats.grades === 0}
               />
-
               <StatCard
                 label="Departments"
                 value={orgStats.departments}
-                icon={<Building2 size={14} />}
-                accent="#0891b2"
-                subtle="Top-level org units"
+                icon={<Building2 size={15} />}
+                trend={stylizedTrend([0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0], orgStats.departments)}
                 loading={loading && orgStats.departments === 0}
               />
-
               <StatCard
                 label="Sub-Departments"
                 value={orgStats.subDepartments}
-                icon={<Layers size={14} />}
-                accent="#f97316"
-                subtle="Nested business units"
+                icon={<Layers size={15} />}
+                trend={stylizedTrend([0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0], orgStats.subDepartments)}
                 loading={loading && orgStats.subDepartments === 0}
               />
-
               <StatCard
                 label="Positions"
                 value={orgStats.positions}
-                icon={<User size={14} />}
-                accent="#8b5cf6"
-                subtle={
-                  orgStats.positions > 0
-                    ? `${orgStats.positionsWithSubDept} in sub-depts, ${orgStats.positionsDirect} direct`
-                    : 'No positions yet'
-                }
+                icon={<User size={15} />}
+                trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.positions)}
+                highlight
                 loading={loading && orgStats.positions === 0}
-                chart={
-                  orgStats.positions > 0 ? (
-                    <MiniBar
-                      segments={[
-                        {
-                          value: orgStats.positionsWithSubDept,
-                          color: '#f97316',
-                          label: `${orgStats.positionsWithSubDept} in sub-depts`,
-                        },
-                        {
-                          value: orgStats.positionsDirect,
-                          color: '#8b5cf6',
-                          label: `${orgStats.positionsDirect} direct`,
-                        },
-                      ]}
-                    />
-                  ) : null
-                }
               />
             </div>
 
@@ -572,13 +570,14 @@ export default function OverviewPage() {
                           </div>
                         </div>
                       ) : (
-                        <Tree
-                          className="org-ov-tree"
-                          showLine={{ showLeafIcon: false }}
-                          expandedKeys={expandedKeys}
-                          onExpand={(keys) => setExpandedKeys(keys)}
-                          treeData={treeData}
-                          switcherIcon={<span className="org-ov-tree__switcher">▾</span>}
+                        <HierarchyTree
+                          nodes={treeData}
+                          expanded={expandedKeys}
+                          onToggle={(key) =>
+                            setExpandedKeys((prev) =>
+                              prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+                            )
+                          }
                         />
                       )}
                     </div>
@@ -598,7 +597,130 @@ export default function OverviewPage() {
             </Row>
           </div>
         </div>
-      </MainLayout>
-    </ProtectedRoute>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
+      <style jsx global>{`
+        /* Document-Hub style stat cards (minimal, mostly grey, one accent) */
+        .org-ov-dh-card {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          padding: 12px 14px;
+          height: 80px;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .org-ov-dh-card:hover {
+          border-color: var(--border-slate-300, #cbd5e1);
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+        }
+        .org-ov-dh-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .org-ov-dh-icon {
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--text-slate-400); flex-shrink: 0; font-size: 15px;
+        }
+        .org-ov-dh-icon.is-accent {
+          width: 26px; height: 26px; border-radius: 6px;
+          color: #10b981; background: rgba(16, 185, 129, 0.11);
+        }
+        .org-ov-dh-label {
+          font-size: 12.5px; font-weight: 500; color: var(--text-slate-500);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .org-ov-dh-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .org-ov-dh-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .org-ov-dh-value {
+          font-size: 24px; font-weight: 700; color: var(--text-slate-800);
+          letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
+        }
+        .org-ov-dh-period { font-size: 11px; font-weight: 500; color: var(--text-slate-400); }
+        .org-ov-dh-spark { flex-shrink: 0; margin-bottom: 2px; }
+
+        /* ---------- Premium Hierarchy Visualization ---------- */
+        .hx { display: flex; flex-direction: column; gap: 1px; padding: 2px; }
+        .hx-node { display: flex; flex-direction: column; }
+        .hx-row {
+          display: flex; align-items: center; gap: 9px;
+          min-height: 38px; padding: 4px 12px 4px 6px;
+          border-radius: 9px; position: relative;
+          transition: background 0.15s ease, box-shadow 0.15s ease;
+        }
+        .hx-row.is-clickable { cursor: pointer; }
+        .hx-row:hover { background: var(--bg-slate-50); }
+
+        /* Grade root — premium accent card */
+        .hx-row.is-grade {
+          min-height: 50px;
+          margin-bottom: 4px;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.07), rgba(99, 102, 241, 0.04));
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          box-shadow: 0 6px 16px -12px rgba(37, 99, 235, 0.4);
+        }
+        .hx-row.is-grade:hover {
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.06));
+        }
+
+        /* Expand chevron */
+        .hx-twist {
+          width: 18px; height: 18px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--text-slate-400); border-radius: 5px;
+        }
+        .hx-twist svg { transition: transform 0.18s ease; }
+        .hx-twist svg.is-open { transform: rotate(90deg); }
+        .hx-row.is-clickable:hover .hx-twist { color: var(--text-slate-600); }
+
+        /* Typed icon chip */
+        .hx-ico {
+          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+        }
+        .hx-row.is-grade .hx-ico { width: 34px; height: 34px; border-radius: 10px; }
+        .hx-row.is-pos .hx-ico { width: 26px; height: 26px; border-radius: 7px; }
+
+        /* Label block */
+        .hx-body { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+        .hx-name {
+          font-size: 13px; font-weight: 600; color: var(--text-slate-800);
+          letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .hx-row.is-grade .hx-name { font-size: 15px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .hx-row.is-pos .hx-name { font-weight: 500; color: var(--text-slate-600); }
+        .hx-type {
+          flex-shrink: 0; font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+          text-transform: uppercase; padding: 2px 7px; border-radius: 5px; line-height: 1.3;
+        }
+
+        /* Grade code chip */
+        .hx-code {
+          flex-shrink: 0; font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 7px;
+          border-radius: 5px; background: rgba(59, 130, 246, 0.12); color: #1d4ed8;
+        }
+
+        /* Count chip */
+        .hx-count {
+          flex-shrink: 0; margin-left: 4px; min-width: 26px; height: 22px; padding: 0 8px;
+          display: inline-flex; align-items: center; justify-content: center;
+          border-radius: 7px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-100); color: var(--text-slate-600);
+        }
+        .hx-count.is-grade { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
+
+        /* Nesting + indent guide rail */
+        .hx-children { position: relative; margin-left: 21px; padding-left: 16px; }
+        .hx-children::before {
+          content: ""; position: absolute; left: 0; top: 3px; bottom: 6px; width: 1.5px;
+          background: var(--border-slate-200); border-radius: 2px;
+        }
+      `}</style>
+    </>
   );
 }

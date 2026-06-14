@@ -26,7 +26,7 @@ export default function LegacyTicketsRedirect() {
         router.replace('/dashboard');
       } else {
         // Redirect to the new project selection page
-        router.replace('/projects/select');
+        router.replace('/tickets/select');
       }
     }
   }, [authLoading, canReadTicket, router]);

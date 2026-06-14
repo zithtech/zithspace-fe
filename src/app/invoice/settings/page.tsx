@@ -63,6 +63,7 @@ import {
   useCreateSettingsProfile,
   useUpdateSettingsProfile,
 } from "@/hooks/useInvoiceSettings";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title } = Typography;
 
@@ -114,6 +115,9 @@ export default function InvoiceSettingPage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceSetting, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceSettingsView" });
 
   const [mode, setMode] = useState<"view" | "create">("view");
   const { data: savedSettingsData, isLoading, isError, error, refetch } =
@@ -454,46 +458,48 @@ export default function InvoiceSettingPage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (mode === "create") {
-                    resetDraft();
-                    setMode("view");
-                  } else {
-                    router.push("/invoice/invoices");
-                  }
-                }}
-                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-                aria-label="Back"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "var(--bg-blue-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
-              >
-                <SettingsIcon size={14} strokeWidth={2.25} />
+          <div className="px-8 py-3 md:py-0 min-h-[56px] md:h-14 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (mode === "create") {
+                      resetDraft();
+                      setMode("view");
+                    } else {
+                      router.push("/invoice/invoices");
+                    }
+                  }}
+                  className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                  aria-label="Back"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--bg-blue-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)",
+                  }}
+                >
+                  <SettingsIcon size={14} strokeWidth={2.25} />
+                </div>
+                <span
+                  className="text-[14px] font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {mode === "create"
+                    ? editingId
+                      ? "Edit settings profile"
+                      : "New settings profile"
+                    : "Settings profiles"}
+                </span>
               </div>
               <span
-                className="text-[14px] font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {mode === "create"
-                  ? editingId
-                    ? "Edit settings profile"
-                    : "New settings profile"
-                  : "Settings profiles"}
-              </span>
-              <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
@@ -506,7 +512,7 @@ export default function InvoiceSettingPage() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
               {mode === "view" ? (
                 canCreateInvoiceSetting && (
                   <Button
@@ -517,6 +523,7 @@ export default function InvoiceSettingPage() {
                       setMode("create");
                       setCurrentStep(0);
                     }}
+                    className="flex-1 md:flex-initial flex items-center justify-center"
                     style={{
                       borderRadius: 8,
                       height: 36,
@@ -524,7 +531,7 @@ export default function InvoiceSettingPage() {
                       background: "#2563eb",
                     }}
                   >
-                    New profile
+                    <span>New profile</span>
                   </Button>
                 )
               ) : (
@@ -534,9 +541,10 @@ export default function InvoiceSettingPage() {
                     resetDraft();
                     setMode("view");
                   }}
+                  className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
                 >
-                  Back to profiles
+                  <span>Back to profiles</span>
                 </Button>
               )}
             </div>

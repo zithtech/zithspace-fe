@@ -17,10 +17,13 @@ import {
   Clock,
   Link as LinkIcon,
   Calendar,
+  Globe,
+  Linkedin,
   Layers,
   FileText,
   DollarSign,
   User,
+  Users,
   PlusCircle,
   X,
   ExternalLink,
@@ -54,7 +57,17 @@ import {
   UserPlus,
   FolderPlus,
   FileEdit,
-  Send
+  Send,
+  Handshake,
+  Trophy,
+  XCircle,
+  UserCheck,
+  Flag,
+  Compass,
+  Megaphone,
+  Rocket,
+  Award,
+  Star
 } from "lucide-react";
 import {
   Card,
@@ -85,17 +98,20 @@ import {
   Skeleton,
   Popover,
   Segmented,
+  Pagination,
   Switch,
   Upload,
   Timeline,
   type MenuProps
 } from "antd";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
 import { Lead } from "@/services/leadService";
+import { ProposalService } from "@/services/proposalService";
 import {
   ClockCircleOutlined,
   PhoneOutlined,
@@ -110,14 +126,18 @@ import {
   TeamOutlined,
   SendOutlined,
   LinkOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  EllipsisOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
 import { api, apiClient } from "@/lib/axios";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
-  
+
   // Use useWatch to make the rows reactive to form changes
   const docType = Form.useWatch(['documents', name, 'type']) || 'link';
   const url = Form.useWatch(['documents', name, 'url']);
@@ -141,17 +161,17 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
 
         <Col span={21}>
           <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} style={{ marginBottom: 8 }}>
-            <Input 
-              placeholder="Document Title (e.g. Project Brief)" 
+            <Input
+              placeholder="Document Title (e.g. Project Brief)"
               className="premium-input"
             />
           </Form.Item>
 
           {docType === 'link' ? (
             <Form.Item {...restField} name={[name, 'url']} rules={[{ required: true, message: 'Missing URL' }]} style={{ marginBottom: 0 }}>
-              <Input 
+              <Input
                 prefix={<Link2 size={14} style={{ color: '#94a3b8' }} />}
-                placeholder="https://example.com/document" 
+                placeholder="https://example.com/document"
                 className="premium-input"
               />
             </Form.Item>
@@ -167,9 +187,9 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                     <Tooltip title="View">
-                      <Button 
-                        size="small" 
-                        icon={<Eye size={14} />} 
+                      <Button
+                        size="small"
+                        icon={<Eye size={14} />}
                         onClick={async () => {
                           if (!url) return messageApi.warning('No file to view');
                           if (url.startsWith('data:')) {
@@ -206,7 +226,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                         className="doc-action-btn"
                       />
                     </Tooltip>
-                    
+
                     <Upload
                       beforeUpload={(file) => {
                         const isLt10M = file.size / 1024 / 1024 < 10;
@@ -220,9 +240,9 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                       showUploadList={false}
                     >
                       <Tooltip title="Change File">
-                        <Button 
-                          size="small" 
-                          icon={<RefreshCw size={14} />} 
+                        <Button
+                          size="small"
+                          icon={<RefreshCw size={14} />}
                           className="doc-action-btn"
                         />
                       </Tooltip>
@@ -259,13 +279,13 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
             </div>
           )}
         </Col>
-        
+
         <Col span={3} style={{ display: 'flex', justifyContent: 'center' }}>
           <Tooltip title="Remove Document">
-            <Button 
-              type="text" 
-              danger 
-              icon={<Trash2 size={18} />} 
+            <Button
+              type="text"
+              danger
+              icon={<Trash2 size={18} />}
               onClick={() => remove(name)}
               className="doc-remove-btn"
             />
@@ -276,6 +296,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   );
 };
 import { LeadMailDrawer } from "@/components/leads/LeadMailDrawer";
+import { WebsiteLeadDrawer } from "@/components/leads/WebsiteLeadDrawer";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -284,39 +305,284 @@ const { Text, Title } = Typography;
 type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
-  { key: "title",        label: "Lead Title" },
-  { key: "platform",     label: "Platform" },
-  { key: "status",       label: "Status" },
+  { key: "title", label: "Lead" },
+  { key: "status", label: "Pipeline" },
+  { key: "platform", label: "Source" },
+  { key: "budget", label: "Value" },
+  { key: "bidiq", label: "BidIq" },
+  { key: "proposal", label: "Proposal" },
+  { key: "mail", label: "Mail" },
+  { key: "company", label: "Company" },
+  { key: "created_by", label: "Owner" },
+  { key: "priority", label: "Priority" },
+  { key: "last_activity", label: "Last Activity" },
   { key: "actions_item", label: "Workflow Action" },
-  { key: "budget",       label: "Budget" },
-  { key: "ai_score",     label: "AI Score" },
-  { key: "bidiq",        label: "BidIq" },
-  { key: "proposal",     label: "Proposal" },
-  { key: "mail",         label: "Mail" },
-  { key: "created_by",   label: "Created by" },
-  { key: "created_at",   label: "Created" },
+  { key: "ai_score", label: "AI Score" },
+  { key: "created_at", label: "Created" },
   { key: "table-actions", label: "Actions" },
 ];
 
 const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
-  status: true,
   actions_item: true,
-  budget: true,
   ai_score: true,
-  created_by: true,
+  bidiq: true,
+  proposal: true,
+  mail: true,
   created_at: true,
 };
 
+// Brand glyphs (simple-icons paths, CC0). Use currentColor so the parent tints them.
+const UpworkGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.139c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z" />
+  </svg>
+);
+
+const FreelancerGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="m11.103 14.045 4.751-.866-3.04 2.696Zm2.707-4.545.65 1.802 2.745.305-2.746 2.066L20.13 9.55l1.327-3.176-2.927-.077ZM2.543 11.39l4.598 1.793-.41 1.553Zm15.214 6.853-3.353-1.474-2.057 2.318-1.43-1.474-7.165-1.318 9.06 6.722ZM0 .063l4.84 6.296 9.227 1.518L18.93.064l-3.483 3.04L11.103 0 7.06 3.04Z" />
+  </svg>
+);
+
+const FiverrGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M23.004 15.588a.995.995 0 1 0 0 1.99.995.995 0 0 0 0-1.99zm-6.465-6.46h-2.973v-.348c0-.85.589-1.337 1.621-1.337h1.071V5.114h-1.404c-2.451 0-3.916 1.348-3.916 3.621v.391h-2.682v-.348c0-.85.589-1.337 1.621-1.337h.428V5.114h-.762c-2.451 0-3.916 1.348-3.916 3.621v.391H4.553v2.331h1.074v6.535h2.973v-6.535h2.682v6.535h2.973v-6.535h2.973v4.176c0 1.561.999 2.359 2.987 2.359h1.391v-2.337h-.832c-.581 0-.762-.165-.762-.671v-2.992h1.594V9.128h-1.594z" />
+  </svg>
+);
+
+// Slim form for own-website inquiries (Zukvo, Zithtech). Skips gig-platform
+// fields (skills, budget, AI score) and leads with the company-side block.
+const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
+  const sectionCard: React.CSSProperties = {
+    marginBottom: 20,
+    padding: '20px',
+    borderRadius: '16px',
+    border: '1px solid var(--border-slate-100)',
+  };
+  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
+  const stepBadge = (color: string, n: string): React.CSSProperties => ({
+    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: `${color}14`, color, border: `1px solid ${color}33`,
+  });
+  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
+
+  return (
+    <>
+      {/* 01 — Source */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#6366f1', '01')}>01</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Globe size={15} color="#6366f1" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry Source</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Which website did this come from</Text>
+          </div>
+        </div>
+        <Form.Item name="websiteSource" label={<Text strong style={labelStyle}>Website</Text>} initialValue="zukvo">
+          <Select style={{ borderRadius: 8 }}>
+            <Select.Option value="zukvo">Zukvo</Select.Option>
+            <Select.Option value="zithtech">Zithtech</Select.Option>
+            <Select.Option value="other">Other</Select.Option>
+          </Select>
+        </Form.Item>
+      </div>
+
+      {/* 02 — Contact */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#0ea5e9', '02')}>02</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <User size={15} color="#0ea5e9" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Who reached out — name, email, phone, location</Text>
+          </div>
+        </div>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
+              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
+              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="clientPhone"
+              label={<Text strong style={labelStyle}>Phone</Text>}
+              getValueFromEvent={(e) => {
+                const value = e.target.value;
+                let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                if (sanitized.includes('+')) {
+                  const hasPlusAtStart = sanitized.startsWith('+');
+                  sanitized = sanitized.replace(/\+/g, '');
+                  if (hasPlusAtStart) {
+                    sanitized = '+' + sanitized;
+                  }
+                }
+                let digitsCount = 0;
+                let limited = '';
+                for (let i = 0; i < sanitized.length; i++) {
+                  const char = sanitized[i];
+                  if (/\d/.test(char)) {
+                    if (digitsCount < 15) {
+                      digitsCount++;
+                      limited += char;
+                    }
+                  } else {
+                    limited += char;
+                  }
+                }
+                return limited;
+              }}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value || value.trim() === '') {
+                      return Promise.resolve();
+                    }
+                    const digits = value.replace(/\D/g, '');
+                    if (digits.length < 7) {
+                      return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
+              <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
+              <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 03 — Company */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#f59e0b', '03')}>03</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Briefcase size={15} color="#f59e0b" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Where they work and how big the team is</Text>
+          </div>
+        </div>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
+              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
+              <Input placeholder="acme.com" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item name="companySize" label={<Text strong style={labelStyle}>Team Size</Text>}>
+          <Select placeholder="Select range" style={{ borderRadius: 8 }} allowClear>
+            <Select.Option value="1-10">1 – 10</Select.Option>
+            <Select.Option value="11-50">11 – 50</Select.Option>
+            <Select.Option value="51-200">51 – 200</Select.Option>
+            <Select.Option value="201-500">201 – 500</Select.Option>
+            <Select.Option value="501-1000">501 – 1,000</Select.Option>
+            <Select.Option value="1000+">1,000+</Select.Option>
+          </Select>
+        </Form.Item>
+      </div>
+
+      {/* 04 — Inquiry */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#10b981', '04')}>04</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Mail size={15} color="#10b981" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>What they said and where it sits in your pipeline</Text>
+          </div>
+        </div>
+        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
+          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} />
+        </Form.Item>
+        <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
+          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} />
+        </Form.Item>
+        <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 8 }}>
+            {configStatuses.map((s: any) => (
+              <Select.Option key={s.id} value={s.name}>
+                <Space>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                  {s.name}
+                </Space>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item name="platform" hidden initialValue="Website">
+          <Input />
+        </Form.Item>
+      </div>
+    </>
+  );
+};
+
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+  const w = 96;
+  const h = 26;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const stepX = n > 1 ? w / (n - 1) : w;
+  const pts = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - 3 - (v / max) * (h - 8);
+    return [x, y] as const;
+  });
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 export default function LeadsPage() {
+  useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { 
-    canReadLead, 
-    canCreateLead, 
-    canUpdateLead, 
-    canDeleteLead, 
+  const {
+    canReadLead,
+    canCreateLead,
+    canUpdateLead,
+    canDeleteLead,
     canManageLeads,
-    canCreateProposal 
+    canCreateProposal
   } = usePermission();
 
   const [form] = Form.useForm();
@@ -324,22 +590,32 @@ export default function LeadsPage() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [gridPage, setGridPage] = useState(1);
+  const [gridPageSize, setGridPageSize] = useState(12);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterAction, setFilterAction] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
+  const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
   const [actionEditId, setActionEditId] = useState<string | null>(null);
   const [bidiqPreviewLead, setBidiqPreviewLead] = useState<Lead | null>(null);
-  const [tableDensity, setTableDensity] = useState<LmDensity>("comfortable");
+  const [tableDensity, setTableDensity] = useState<LmDensity>("compact");
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(DEFAULT_HIDDEN_COLS);
   const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
   const [selectedLeadForMail, setSelectedLeadForMail] = useState<Lead | null>(null);
   const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+
+  // Website-lead detail drawer (compact CRM-style)
+  const [websiteDrawerOpen, setWebsiteDrawerOpen] = useState(false);
+  const [websiteDrawerLead, setWebsiteDrawerLead] = useState<Lead | null>(null);
 
   // Timeline state
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -381,7 +657,7 @@ export default function LeadsPage() {
         ]);
 
         if (cancelled) return;
-        
+
         if (saved?.density && ["compact", "comfortable", "spacious"].includes(saved.density)) {
           setTableDensity(saved.density);
         }
@@ -434,6 +710,109 @@ export default function LeadsPage() {
     router.push(`/leads/bidiq/${id}`);
   };
 
+  // Proposal flow state & handlers
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [proposalStep, setProposalStep] = useState<0 | 1>(0);
+  const [selectedOption, setSelectedOption] = useState<"client" | "custom" | null>(null);
+  const [customDates, setCustomDates] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [customCost, setCustomCost] = useState<number | null>(null);
+  const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [selectedProposalLead, setSelectedProposalLead] = useState<Lead | null>(null);
+
+  const openProposalFlow = (lead: Lead) => {
+    setSelectedProposalLead(lead);
+    setProposalStep(0);
+    setSelectedOption(null);
+    setCustomDates(null);
+    setCustomCost(null);
+    setProposalModalOpen(true);
+  };
+
+  const closeProposalFlow = () => {
+    if (generatingProposal) return;
+    setProposalModalOpen(false);
+    setTimeout(() => {
+      setProposalStep(0);
+      setSelectedOption(null);
+      setCustomDates(null);
+      setCustomCost(null);
+      setSelectedProposalLead(null);
+    }, 200);
+  };
+
+  const goToOptionStep = () => {
+    setSelectedOption("client");
+    setCustomDates(null);
+    setCustomCost(null);
+    setProposalStep(1);
+  };
+
+  const handleConfirmGenerate = async () => {
+    if (!selectedProposalLead || !selectedOption) return;
+    const lead = selectedProposalLead;
+    const id = lead.id;
+    let payload: { selection: "client" | "custom"; duration?: string; cost?: string | number; startDate?: string; endDate?: string };
+
+    const clientBudgetNum = parseFloat(lead.budget?.replace(/[^0-9.]/g, "") || "0") || 50;
+
+    if (selectedOption === "client") {
+      payload = { selection: "client", duration: lead.duration, cost: lead.budget };
+    } else {
+      if (!customDates || customCost === null) return;
+      const [start, end] = customDates;
+      const days = end.diff(start, "day");
+      const weeks = Math.round(days / 7);
+      payload = {
+        selection: "custom",
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        duration: weeks > 0 ? `${weeks} week${weeks > 1 ? "s" : ""}` : `${days} day${days > 1 ? "s" : ""}`,
+        cost: customCost,
+      };
+    }
+    try {
+      setGeneratingProposal(true);
+      const res = await ProposalService.generateContentOnly(id, payload);
+      if (res && res.blocks) {
+        sessionStorage.setItem("pending_proposal_data", JSON.stringify({ ...res, selection: payload }));
+        setProposalModalOpen(false);
+        router.push(`/proposals/builder`);
+      }
+    } catch (error) {
+      console.error("Proposal generation failed:", error);
+      messageApi.error("Proposal generation failed");
+    } finally {
+      setGeneratingProposal(false);
+    }
+  };
+
+  const clientBudgetNum = selectedProposalLead ? (parseFloat(selectedProposalLead.budget?.replace(/[^0-9.]/g, "") || "0") || 50) : 50;
+
+  const suggestedBudgetVal = selectedProposalLead
+    ? Math.round(clientBudgetNum * 0.9)
+    : 0;
+
+  const calculateLeadIntelligence = (lead: Lead) => {
+    let durationHours = 40;
+    if (lead.duration) {
+      const dur = lead.duration.toLowerCase();
+      if (dur.includes("month")) durationHours = (parseFloat(dur) || 1) * 160;
+      else if (dur.includes("week")) durationHours = (parseFloat(dur) || 1) * 40;
+    }
+    const budgetNum = lead.budget ? parseFloat(lead.budget.replace(/[^0-9.]/g, "")) : 0;
+    const budgetEffortFactor = budgetNum > 0 ? budgetNum / 55 : durationHours;
+    const skillsCount = (lead.skills || []).length;
+    const skillMultiplier = 1 + skillsCount * 0.12;
+    const combinedBase = durationHours * 0.6 + budgetEffortFactor * 0.4;
+    const hash = Array.from(lead.id as string).reduce((a, b) => a + b.charCodeAt(0), 0);
+    const variance = 0.9 + (hash % 20) / 100;
+    return Math.round(combinedBase * skillMultiplier * variance);
+  };
+
+  const baselineHours = selectedProposalLead ? calculateLeadIntelligence(selectedProposalLead) : 0;
+  const customDays = customDates ? customDates[1].diff(customDates[0], "day") : 0;
+  const customValid = !!customDates && customCost !== null && customCost > 0 && customDays > 0;
+
   // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoading && user && !canReadLead) {
@@ -443,11 +822,16 @@ export default function LeadsPage() {
 
   // Use the custom hook for backend connectivity
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
-  const { statuses: configStatuses, actions: configActions, fetchStatuses, fetchActions, loading: settingsLoading } = useLeadSettings();
+  const { statuses: configStatuses, actions: configActions, platforms: configPlatforms, fetchStatuses, fetchActions, fetchPlatforms, loading: settingsLoading } = useLeadSettings();
 
   const loading = leadsLoading || settingsLoading;
 
   const handleView = (record: Lead) => {
+    if (record.lead_source_kind === 'website') {
+      setWebsiteDrawerLead(record);
+      setWebsiteDrawerOpen(true);
+      return;
+    }
     router.push(`/leads/view/${record.id}`);
   };
 
@@ -456,7 +840,8 @@ export default function LeadsPage() {
     fetchLeads();
     fetchStatuses();
     fetchActions();
-  }, [fetchLeads, fetchStatuses, fetchActions]);
+    fetchPlatforms();
+  }, [fetchLeads, fetchStatuses, fetchActions, fetchPlatforms]);
 
   // Handle errors from the hook
   useEffect(() => {
@@ -504,34 +889,24 @@ export default function LeadsPage() {
 
   const getInitials = (name: string) => {
     if (!name) return "?";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.trim().charAt(0).toUpperCase();
   };
 
   const AVATAR_PALETTE = [
-    { bg: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", ring: "rgba(99, 102, 241, 0.18)" },
-    { bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", ring: "rgba(16, 185, 129, 0.18)" },
-    { bg: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)", ring: "rgba(245, 158, 11, 0.18)" },
-    { bg: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", ring: "rgba(236, 72, 153, 0.18)" },
-    { bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", ring: "rgba(6, 182, 212, 0.18)" },
-    { bg: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", ring: "rgba(139, 92, 246, 0.18)" },
-    { bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", ring: "rgba(239, 68, 68, 0.18)" },
+    { bg: "#eff6ff", color: "#3b82f6" },
   ];
 
   const getAvatarStyle = (key: string) => {
-    if (!key) return AVATAR_PALETTE[0];
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-    return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+    return AVATAR_PALETTE[0];
   };
 
   const getAIScoreLevel = (score?: number) => {
     if (score === undefined || score === null) return null;
-    if (score >= 80) return { label: "Hot", color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", icon: <Flame size={11} /> };
-    if (score >= 60) return { label: "Warm", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", icon: <TrendingUp size={11} /> };
-    if (score >= 40) return { label: "Mild", color: "#6366f1", bg: "rgba(99, 102, 241, 0.08)", icon: <Activity size={11} /> };
-    return { label: "Cold", color: "#64748b", bg: "rgba(100, 116, 139, 0.08)", icon: <Activity size={11} /> };
+    const minimal = { color: "var(--text-slate-600)", bg: "var(--bg-slate-50)" };
+    if (score >= 80) return { label: "Hot", ...minimal, icon: <Flame size={11} /> };
+    if (score >= 60) return { label: "Warm", ...minimal, icon: <TrendingUp size={11} /> };
+    if (score >= 40) return { label: "Mild", ...minimal, icon: <Activity size={11} /> };
+    return { label: "Cold", ...minimal, icon: <Activity size={11} /> };
   };
 
   const formatRelativeTime = (date?: string) => {
@@ -546,11 +921,76 @@ export default function LeadsPage() {
     return dayjs(date).format("MMM D");
   };
 
-  // Resolve the creator name from any of the possible backend fields, falling
-  // back to the currently-signed-in user when no creator data exists yet.
+  const getLeadActionMenu = (record: Lead) => {
+    const menuItems: MenuProps['items'] = [
+      { key: 'view', label: 'View Details', icon: <Eye size={16} /> },
+      canUpdateLead && { key: 'edit', label: 'Edit Lead', icon: <Settings size={16} /> },
+      { key: 'timeline', label: 'View Timeline', icon: <History size={16} /> },
+      (canUpdateLead || canDeleteLead) && { type: 'divider' },
+      canDeleteLead && { key: 'delete', label: 'Delete Lead', danger: true, icon: <Trash2 size={16} /> }
+    ].filter(Boolean) as MenuProps['items'];
+
+    return (
+      <Dropdown
+        menu={{
+          items: menuItems,
+          onClick: ({ key, domEvent }) => {
+            domEvent.stopPropagation();
+            if (key === 'view') handleView(record);
+            if (key === 'edit') handleEdit(record);
+            if (key === 'timeline') openTimeline(record);
+            if (key === 'delete') {
+              modal.confirm({
+                title: "Are you sure you want to delete this lead?",
+                content: "This action cannot be undone.",
+                okText: "Delete",
+                cancelText: "Cancel",
+                okButtonProps: { danger: true },
+                onOk: () => handleDelete(record.id)
+              });
+            }
+          }
+        }}
+        trigger={['click']}
+        placement="bottomRight"
+      >
+        <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
+          <EllipsisOutlined style={{ fontSize: 16 }} />
+        </button>
+      </Dropdown>
+    );
+  };
+
+  const getLeadStatusPill = (record: Lead) => {
+    const status = record.status;
+    const cfg = configStatuses.find(s => s.name === status);
+    const color = cfg?.color || '#6366f1';
+    return (
+      <span
+        className="lm-status-pill"
+        style={{
+          backgroundColor: `${color}12`,
+          color: color,
+          border: `1px solid ${color}25`,
+          padding: '2px 8px',
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center'
+        }}
+      >
+        <span className="lm-status-pill-text">{status}</span>
+      </span>
+    );
+  };
+
+  // Resolve the creator name from whatever the backend returned. Do NOT fall
+  // back to the currently-signed-in user — that's misleading for leads we
+  // didn't create. Legacy rows with no creator on record return an empty string.
   const getLeadCreator = (lead: Lead): string => {
     const r = lead as any;
-    return r.created_by_name || r.created_by || r.creator_name || r.owner_name || user?.name || "";
+    return r.created_by_name || r.creator_name || r.owner_name || "";
   };
 
   const columns = [
@@ -562,22 +1002,20 @@ export default function LeadsPage() {
         const avatar = getAvatarStyle(record.client_name || record.id);
         const scoreLevel = getAIScoreLevel(record.ai_score);
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <div
               className="lead-avatar"
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
+                width: 24,
+                height: 24,
+                borderRadius: 6,
                 background: avatar.bg,
-                boxShadow: `0 0 0 4px ${avatar.ring}`,
-                color: "#fff",
+                color: avatar.color || "var(--text-slate-700)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
-                fontSize: 13,
-                letterSpacing: "0.02em",
+                fontWeight: 700,
+                fontSize: 11,
                 flexShrink: 0,
                 position: "relative",
               }}
@@ -586,19 +1024,19 @@ export default function LeadsPage() {
               {scoreLevel?.label === "Hot" && (
                 <div style={{
                   position: "absolute",
-                  top: -4,
-                  right: -4,
-                  width: 16,
-                  height: 16,
+                  top: -3,
+                  right: -3,
+                  width: 13,
+                  height: 13,
                   borderRadius: "50%",
                   background: "#ef4444",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   border: "2px solid #fff",
-                  color: "#fff"
+                  color: "var(--text-slate-600)"
                 }}>
-                  <Flame size={9} />
+                  <Flame size={7} />
                 </div>
               )}
             </div>
@@ -613,8 +1051,10 @@ export default function LeadsPage() {
                       strong
                       style={{
                         color: "var(--text-slate-900)",
-                        fontSize: 14,
-                        fontWeight: 700,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        letterSpacing: "-0.01em",
                         cursor: isLong ? "help" : "default",
                       }}
                     >
@@ -651,7 +1091,7 @@ export default function LeadsPage() {
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-slate-500)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--text-slate-400)", lineHeight: 1.2, marginTop: 1 }}>
                 <span style={{ fontWeight: 500 }}>{record.client_name}</span>
                 {record.posted_on && (
                   <>
@@ -666,23 +1106,45 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Platform",
+      title: "Source",
       dataIndex: "platform",
       key: "platform",
-      width: 120,
-      render: (platform: string) => (
-        <Tag color={
-          platform === 'Upwork' ? 'green' :
-            platform === 'LinkedIn' ? 'blue' :
-              platform === 'Freelancer' ? 'cyan' :
-                platform === 'Fiverr' ? 'orange' : 'default'
-        } style={{ borderRadius: 6 }}>
-          {platform || 'Upwork'}
-        </Tag>
-      ),
+      width: 130,
+      render: (platform: string) => {
+        const p = platform || "Upwork";
+        const palette: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
+          Upwork: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <UpworkGlyph size={11} /> },
+          LinkedIn: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
+          Freelancer: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <FreelancerGlyph size={11} /> },
+          Fiverr: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <FiverrGlyph size={11} /> },
+          Zukvo: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
+          Zithtech: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Layers size={11} strokeWidth={2.2} /> },
+          Website: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Globe size={11} strokeWidth={2.2} /> },
+        };
+        const meta = palette[p] || { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Briefcase size={11} strokeWidth={2.2} /> };
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "2px 7px",
+              borderRadius: 5,
+              fontSize: 11,
+              fontWeight: 600,
+              background: meta.bg,
+              color: meta.color,
+              border: `1px solid ${meta.border}`,
+            }}
+          >
+            {meta.icon}
+            {p}
+          </span>
+        );
+      },
     },
     {
-      title: "Status",
+      title: "Pipeline",
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -755,10 +1217,10 @@ export default function LeadsPage() {
             }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
-              ["--pill-color" as any]: color,
-              backgroundColor: `${color}12`,
-              color,
-              border: `1px solid ${color}25`,
+              ["--pill-color" as any]: "var(--text-slate-500)",
+              backgroundColor: "var(--bg-slate-50)",
+              color: "var(--text-slate-500)",
+              border: `1px solid var(--border-slate-200)`,
             }}
             title="Click to change status"
           >
@@ -861,10 +1323,10 @@ export default function LeadsPage() {
             onClick={(e) => { e.stopPropagation(); setActionEditId(record.id); }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
-              ["--pill-color" as any]: color,
-              backgroundColor: `${color}12`,
-              color,
-              border: `1px solid ${color}25`,
+              ["--pill-color" as any]: "var(--text-slate-500)",
+              backgroundColor: "var(--bg-slate-50)",
+              color: "var(--text-slate-500)",
+              border: `1px solid var(--border-slate-200)`,
             }}
             title="Click to change action"
           >
@@ -881,16 +1343,16 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Budget",
+      title: "Value",
       key: "budget",
-      width: 130,
+      width: 110,
       render: (_: unknown, record: Lead) => {
         const value = record.budget || (record.hour_based_amount ? `${record.hour_based_amount}/hr` : null);
         if (!value) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
         const isHourly = String(value).includes("/hr");
         return (
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <DollarSign size={13} style={{ color: "#10b981", alignSelf: "center" }} />
+            <DollarSign size={13} style={{ color: "var(--text-slate-400)", alignSelf: "center" }} />
             <Text strong style={{ color: "var(--text-slate-900)", fontSize: 14, fontWeight: 700, lineHeight: 1 }}>
               {String(value).replace(/^\$/, "").replace("/hr", "")}
             </Text>
@@ -938,6 +1400,12 @@ export default function LeadsPage() {
       width: 120,
       align: "center" as const,
       render: (_: unknown, record: Lead) => {
+        // Website-sourced leads (Zukvo / Zithtech inquiries) don't go through
+        // the gig-platform proposal flow, so BidIQ doesn't apply.
+        if (record.lead_source_kind === "website") {
+          return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        }
+
         const hasBidiq =
           (record.ai_score && record.ai_score > 0) ||
           !!record.skill_analysis ||
@@ -947,7 +1415,7 @@ export default function LeadsPage() {
           canManageLeads && (
             <Button
               type="link"
-              icon={hasBidiq ? <Eye size={15} /> : <Zap size={16} />}
+              icon={hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
               onClick={(e) => {
                 e.stopPropagation();
                 if (hasBidiq) {
@@ -960,10 +1428,10 @@ export default function LeadsPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 4,
                 color: hasBidiq ? "#10b981" : "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0,
               }}
             >
@@ -982,8 +1450,8 @@ export default function LeadsPage() {
           record.proposal_id ? (
             <Button
               type="link"
-              icon={<FileText size={16} />}
-              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
+              icon={<FileText size={13} />}
+              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/builder?id=${record.proposal_id}`); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 display: "flex",
@@ -991,7 +1459,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: "#10b981",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0
               }}
             >
@@ -1000,8 +1468,8 @@ export default function LeadsPage() {
           ) : (
             <Button
               type="link"
-              icon={<Sparkles size={16} />}
-              onClick={(e) => { e.stopPropagation(); openBidiqPreview(record); }}
+              icon={<Sparkles size={13} />}
+              onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 display: "flex",
@@ -1009,7 +1477,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0
               }}
             >
@@ -1030,9 +1498,9 @@ export default function LeadsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Button
               type="link"
-              icon={isSent ? <CheckCircle size={16} /> : <Mail size={16} />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
+              icon={isSent ? <CheckCircle size={13} /> : <Mail size={13} />}
+              onClick={(e) => {
+                e.stopPropagation();
                 setSelectedLeadForMail(record);
                 setIsMailDrawerVisible(true);
               }}
@@ -1043,7 +1511,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: isSent ? "#10b981" : "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0,
                 height: "auto"
               }}
@@ -1060,27 +1528,34 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Created by",
+      title: "Company",
+      dataIndex: "client_name",
+      key: "company",
+      width: 180,
+      render: (clientName: string) => (
+        <Text style={{ color: "var(--text-slate-700)", fontSize: 11.5, fontWeight: 600 }} ellipsis>
+          {clientName || "—"}
+        </Text>
+      ),
+    },
+    {
+      title: "Owner",
       key: "created_by",
-      width: 170,
+      width: 160,
       render: (_: unknown, record: Lead) => {
         const r = record as any;
         const rawName: string | undefined =
-          r.created_by_name || r.created_by || r.creator_name || r.owner_name;
-        const name = rawName || user?.name || "—";
-        const isYou = !rawName && !!user?.name;
-        const initials = (name || "—")
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((w: string) => w[0]?.toUpperCase() || "")
-          .join("") || "—";
+          r.created_by_name || r.creator_name || r.owner_name;
+        const name = rawName || "Unknown";
+        // "you" annotation only when the signed-in user truly created this row.
+        const isYou = !!user?.name && rawName === user.name;
+        const initials = name.trim().charAt(0).toUpperCase() || "—";
         const palette = getAvatarStyle(name);
         return (
           <div className="lm-creator-cell">
             <span
               className="lm-creator-avatar"
-              style={{ background: palette.bg }}
+              style={{ background: palette.bg, color: palette.color || "var(--text-slate-600)", border: "none" }}
             >
               {initials}
             </span>
@@ -1094,6 +1569,41 @@ export default function LeadsPage() {
               )}
             </div>
           </div>
+        );
+      },
+    },
+    {
+      title: "Priority",
+      key: "priority",
+      width: 120,
+      render: (_: unknown, record: Lead) => {
+        const score = record.ai_score;
+        let label = "Low";
+        let color = "#94a3b8";
+        if (score == null) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        if (score >= 80) { label = "High"; color = "var(--text-slate-500)"; }
+        else if (score >= 60) { label = "Medium"; color = "var(--text-slate-400)"; }
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+            {label}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Last Activity",
+      key: "last_activity",
+      width: 120,
+      render: (_: unknown, record: Lead) => {
+        const ts = record.last_mail_at || record.updated_at || record.created_at;
+        if (!ts) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        return (
+          <Tooltip title={dayjs(ts).format("MMM D, YYYY · h:mm A")} placement="topLeft">
+            <span style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+              {formatRelativeTime(ts)}
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -1120,6 +1630,7 @@ export default function LeadsPage() {
       key: "table-actions",
       align: "right" as const,
       width: 80,
+      fixed: "right" as const,
       render: (_: unknown, record: Lead) => {
         const menuItems: MenuProps['items'] = [
           {
@@ -1211,8 +1722,8 @@ export default function LeadsPage() {
           typeof doc === 'string' ? { name: doc, url: doc } : doc
         )
         : record.documents,
-      platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : 'Other',
-      customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : '',
+      platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr', 'Website'].includes(record.platform || '') ? record.platform : 'Other',
+      customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr', 'Website'].includes(record.platform || '') ? record.platform : '',
       experienceLevel: record.experience_level,
       jobType: record.job_type,
       budget: record.budget,
@@ -1221,6 +1732,14 @@ export default function LeadsPage() {
       clientPaymentVerified: record.client_payment_verified,
       clientPhoneVerified: record.client_phone_verified,
       ai_summary: record.ai_summary,
+
+      // Lead source kind + shared company block
+      leadSourceKind: record.lead_source_kind || 'platform',
+      company: record.company,
+      companyDomain: record.company_domain,
+      companySize: record.company_size,
+      inquiryMessage: record.inquiry_message,
+      websiteSource: record.website_source,
     });
     setIsDrawerVisible(true);
   };
@@ -1263,6 +1782,13 @@ export default function LeadsPage() {
       }
       delete finalValues.customPlatform;
 
+      // Website leads: derive a recognizable source label from the picked site,
+      // so the table / sidebar Source column reflects Zukvo / Zithtech directly.
+      if (finalValues.leadSourceKind === 'website') {
+        const map: Record<string, string> = { zukvo: 'Zukvo', zithtech: 'Zithtech' };
+        finalValues.platform = map[finalValues.websiteSource] || 'Website';
+      }
+
       if (editingKey) {
         await updateLead(editingKey, finalValues);
         messageApi.success("Lead Updated");
@@ -1292,16 +1818,26 @@ export default function LeadsPage() {
     reader.readAsDataURL(file);
   };
 
+  const parseBudgetValue = (lead: Lead): number => {
+    const raw = lead.budget || lead.hourly_rate || "";
+    const num = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+    return Number.isFinite(num) ? num : 0;
+  };
+
   const filteredLeads = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
-    return leads.filter(item => {
+    const filtered = leads.filter(item => {
       // Search matching
       const matchesSearch = !searchText ||
         item.title.toLowerCase().includes(searchText.toLowerCase()) ||
         item.client_name.toLowerCase().includes(searchText.toLowerCase());
 
-      // Status matching
-      const matchesStatus = !filterStatus || item.status === filterStatus;
+      // Status matching — "Converted Clients" also catches anything with a proposal,
+      // so the table reflects the same count shown in the sidebar.
+      const matchesStatus =
+        !filterStatus ||
+        item.status === filterStatus ||
+        (filterStatus === "Converted Clients" && !!item.proposal_id);
 
       // Action matching
       const matchesAction = !filterAction || item.actions_item === filterAction;
@@ -1321,7 +1857,7 @@ export default function LeadsPage() {
       const matchesCreatedBy =
         !filterCreatedBy ||
         getLeadCreator(item) === filterCreatedBy;
-      
+
       // Mail status matching
       let matchesMailStatus = true;
       if (filterMailStatus === 'sent') {
@@ -1334,16 +1870,44 @@ export default function LeadsPage() {
       let matchesSegment = true;
       if (activeSegment === "hot") {
         matchesSegment = (item.ai_score || 0) >= 80;
-      } else if (activeSegment === "week") {
-        matchesSegment = dayjs(item.created_at || item.posted_on).isAfter(weekAgo);
-      } else if (activeSegment === "won") {
-        const status = (item.status || "").toLowerCase();
-        matchesSegment = status.includes("won") || status.includes("accept") || status.includes("close") || !!item.proposal_id;
+      } else if (activeSegment === "today") {
+        const startOfDay = dayjs().startOf('day');
+        const endOfDay = dayjs().endOf('day');
+        const dt = dayjs(item.created_at || item.posted_on);
+        matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
+      } else if (activeSegment === "with_proposal") {
+        matchesSegment = !!item.proposal_id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
     });
-  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus]);
+
+    const sorted = [...filtered];
+    const tsOf = (l: Lead, field: "created_at" | "updated_at"): number =>
+      dayjs(l[field] || l.posted_on || 0).valueOf();
+    switch (sortKey) {
+      case "oldest":
+        sorted.sort((a, b) => tsOf(a, "created_at") - tsOf(b, "created_at"));
+        break;
+      case "value_high":
+        sorted.sort((a, b) => parseBudgetValue(b) - parseBudgetValue(a));
+        break;
+      case "value_low":
+        sorted.sort((a, b) => parseBudgetValue(a) - parseBudgetValue(b));
+        break;
+      case "score":
+        sorted.sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
+        break;
+      case "activity":
+        sorted.sort((a, b) => tsOf(b, "updated_at") - tsOf(a, "updated_at"));
+        break;
+      case "newest":
+      default:
+        sorted.sort((a, b) => tsOf(b, "created_at") - tsOf(a, "created_at"));
+        break;
+    }
+    return sorted;
+  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus, sortKey]);
 
   const creatorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -1354,6 +1918,204 @@ export default function LeadsPage() {
     return Array.from(set).sort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, user]);
+
+  const stageDropdownOptions = useMemo(() => {
+    return (configStatuses || [])
+      .filter((s: any) => s.is_active)
+      .map((s: any) => {
+        const c = s.color || "#6366f1";
+        return {
+          value: s.name,
+          label: s.name,
+          badge: (
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: c,
+              }}
+            />
+          ),
+        };
+      });
+  }, [configStatuses]);
+
+  const actionDropdownOptions = useMemo(() => {
+    return (configActions || [])
+      .filter((a: any) => a.is_active)
+      .map((a: any) => {
+        return {
+          value: a.name,
+          label: a.name,
+          badge: renderActionIcon(a.icon),
+        };
+      });
+  }, [configActions]);
+
+  const creatorDropdownOptions = useMemo(() => {
+    return creatorOptions.map(name => {
+      const palette = getAvatarStyle(name);
+      return {
+        value: name,
+        label: name,
+        badge: (
+          <span
+            className="lm-creator-avatar"
+            style={{
+              background: palette.bg,
+              width: 20,
+              height: 20,
+              fontSize: 9,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              borderRadius: '50%',
+              fontWeight: 700
+            }}
+          >
+            {getInitials(name)}
+          </span>
+        )
+      };
+    });
+  }, [creatorOptions]);
+
+  const sortDropdownOptions = useMemo(() => [
+    { value: "newest", label: "Newest first" },
+    { value: "oldest", label: "Oldest first" },
+    { value: "value_high", label: "Value: high → low" },
+    { value: "value_low", label: "Value: low → high" },
+    { value: "score", label: "AI score: highest" },
+    { value: "activity", label: "Recently active" },
+  ], []);
+
+  const mailDropdownOptions = useMemo(() => [
+    {
+      value: "sent",
+      label: "Sent",
+      badge: <CheckCircle size={14} style={{ color: '#10b981' }} />
+    },
+    {
+      value: "not_sent",
+      label: "Not Sent",
+      badge: <Mail size={14} style={{ color: '#94a3b8' }} />
+    }
+  ], []);
+
+  // Icon-key → render fn map. Mirrors the catalogue in /leads/settings so we
+  // can resolve whatever the admin saved on a platform's logo_url ("icon:upwork")
+  // or a status's icon column ("trophy").
+  const PLATFORM_ICON_RESOLVERS: Record<string, { brand: string; render: React.ReactNode }> = {
+    upwork: { brand: "#14a800", render: <UpworkGlyph /> },
+    linkedin: { brand: "#0a66c2", render: <Linkedin size={13} strokeWidth={2.4} /> },
+    freelancer: { brand: "#29b2fe", render: <FreelancerGlyph /> },
+    fiverr: { brand: "#1dbf73", render: <FiverrGlyph /> },
+    toptal: { brand: "#204ecf", render: <span style={{ fontSize: 11, fontWeight: 900 }}>T</span> },
+    guru: { brand: "#ff7a18", render: <span style={{ fontSize: 11, fontWeight: 900 }}>G</span> },
+    peopleperhour: { brand: "#ff7c00", render: <span style={{ fontSize: 11, fontWeight: 900 }}>P</span> },
+    hubstaff: { brand: "#3aabea", render: <span style={{ fontSize: 11, fontWeight: 900 }}>H</span> },
+    indeed: { brand: "#003a9b", render: <span style={{ fontSize: 11, fontWeight: 900 }}>I</span> },
+    globe: { brand: "#6366f1", render: <Globe size={13} strokeWidth={2.2} /> },
+    sparkles: { brand: "#8b5cf6", render: <Sparkles size={13} strokeWidth={2.2} /> },
+    briefcase: { brand: "#475569", render: <Briefcase size={13} strokeWidth={2.2} /> },
+    star: { brand: "#f59e0b", render: <Star size={13} strokeWidth={2.2} /> },
+    zap: { brand: "#ec4899", render: <Zap size={13} strokeWidth={2.2} /> },
+  };
+
+  const STATUS_ICON_RESOLVERS: Record<string, React.ReactNode> = {
+    flag: <Flag size={13} strokeWidth={2.2} />,
+    target: <Target size={13} strokeWidth={2.2} />,
+    compass: <Compass size={13} strokeWidth={2.2} />,
+    sparkles: <Sparkles size={13} strokeWidth={2.2} />,
+    megaphone: <Megaphone size={13} strokeWidth={2.2} />,
+    handshake: <Handshake size={13} strokeWidth={2.2} />,
+    rocket: <Rocket size={13} strokeWidth={2.2} />,
+    "shield-check": <ShieldCheck size={13} strokeWidth={2.2} />,
+    trophy: <Trophy size={13} strokeWidth={2.2} />,
+    award: <Award size={13} strokeWidth={2.2} />,
+  };
+
+  const resolvePlatformBadge = (plat: any): { color: string; icon: React.ReactNode } => {
+    const logoUrl: string | undefined = plat?.logo_url;
+    if (logoUrl && logoUrl.startsWith("icon:")) {
+      const key = logoUrl.slice(5);
+      const meta = PLATFORM_ICON_RESOLVERS[key];
+      if (meta) return { color: meta.brand, icon: meta.render };
+    }
+    if (logoUrl) {
+      return {
+        color: "#6366f1",
+        icon: <img src={logoUrl} alt="" style={{ width: 13, height: 13, objectFit: "contain" }} />,
+      };
+    }
+    return { color: "#6366f1", icon: <Briefcase size={13} strokeWidth={2.2} /> };
+  };
+
+  const sourceOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    leads.forEach(l => {
+      const p = (l.platform || "").trim();
+      if (!p) return;
+      counts.set(p, (counts.get(p) || 0) + 1);
+    });
+
+    // Only show platforms the admin has set as active. Unmatched leads bucket
+    // into "Others" so they're still navigable.
+    const activePlatforms = (configPlatforms || []).filter((p: any) => p.is_active);
+    const consumed = new Set<string>();
+    const rows = activePlatforms.map((plat: any) => {
+      const c = counts.get(plat.name) || 0;
+      consumed.add(plat.name);
+      const badge = resolvePlatformBadge(plat);
+      return { name: plat.name, count: c, color: badge.color, icon: badge.icon };
+    });
+    let other = 0;
+    counts.forEach((c, name) => { if (!consumed.has(name)) other += c; });
+    if (other > 0) {
+      rows.push({ name: "Others", count: other, color: "#94a3b8", icon: <Briefcase size={13} strokeWidth={2.2} /> });
+    }
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, configPlatforms]);
+
+  const pipelineOptions = useMemo(() => {
+    const byStatus = new Map<string, number>();
+    let convertedCount = 0;
+    leads.forEach(l => {
+      const s = (l.status || "").trim().toLowerCase();
+      if (s) byStatus.set(s, (byStatus.get(s) || 0) + 1);
+      if (l.proposal_id) convertedCount += 1;
+    });
+    const activeStatuses = (configStatuses || []).filter((s: any) => s.is_active);
+    return activeStatuses.map((stage: any) => {
+      const lowered = stage.name.toLowerCase();
+      let count = byStatus.get(lowered) || 0;
+      // Keep the historical Converted Clients behaviour: any lead with a
+      // proposal counts toward that stage even if its status text differs.
+      if (lowered === "converted clients") {
+        count = Math.max(count, convertedCount);
+      }
+      const icon =
+        STATUS_ICON_RESOLVERS[stage.icon || ""] ||
+        <Activity size={13} strokeWidth={2.2} />;
+      return {
+        id: stage.id || stage.name,
+        name: stage.name,
+        color: stage.color || "#6366f1",
+        icon,
+        count,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, configStatuses]);
+
+  const pipelineTotal = useMemo(
+    () => pipelineOptions.reduce((acc, o) => acc + o.count, 0),
+    [pipelineOptions]
+  );
 
   const segmentCounts = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
@@ -1405,6 +2167,82 @@ export default function LeadsPage() {
     if (!leads.length) return 0;
     const withProposal = leads.filter(l => !!l.proposal_id).length;
     return Math.round((withProposal / leads.length) * 100);
+  }, [leads]);
+
+  const pipelineRateTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      if (leadsUpToDay.length === 0) {
+        trend.push(0);
+      } else {
+        const proposalsUpToDay = leadsUpToDay.filter(l => !!l.proposal_id).length;
+        trend.push(Math.round((proposalsUpToDay / leadsUpToDay.length) * 100));
+      }
+    }
+    if (trend[trend.length - 1] === 0 && pipelineRate > 0) {
+      trend[trend.length - 1] = pipelineRate;
+    }
+    return trend;
+  }, [leads, pipelineRate]);
+
+  const hotLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      const hotLeadsUpToDay = leadsUpToDay.filter(l => (l.ai_score || 0) >= 80).length;
+      trend.push(hotLeadsUpToDay);
+    }
+    if (trend[trend.length - 1] === 0 && hotLeadsCount > 0) {
+      trend[trend.length - 1] = hotLeadsCount;
+    }
+    return trend;
+  }, [leads, hotLeadsCount]);
+
+  const totalLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      trend.push(leadsUpToDay.length);
+    }
+    if (trend[trend.length - 1] === 0 && leads.length > 0) {
+      trend[trend.length - 1] = leads.length;
+    }
+    return trend;
+  }, [leads]);
+
+  const newLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const startOfDay = now.subtract(i, 'day').startOf('day');
+      const endOfDay = now.subtract(i, 'day').endOf('day');
+      const newLeadsThatDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
+      }).length;
+      trend.push(newLeadsThatDay);
+    }
+    return trend;
   }, [leads]);
 
   const totalClients = useMemo(() => {
@@ -1464,10 +2302,6 @@ export default function LeadsPage() {
       </div>
       {subtle && <Text className="lm-stat-subtle">{subtle}</Text>}
       {chart && <div className="lm-stat-chart">{chart}</div>}
-      <span
-        className="lm-stat-accent"
-        style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-      />
     </div>
   );
 
@@ -1504,48 +2338,311 @@ export default function LeadsPage() {
     <ProtectedRoute>
       <MainLayout>
         <div className="lm-page">
-          <TimeTrackingHeader
-            icon={<Layers size={20} color="#6366f1" />}
-            title="Leads Management"
-            description="Track, manage and convert your potential business opportunities."
-            extra={
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="lm-ambient" />
+
+          <div className="lm-shell">
+            <aside className="lm-sidebar">
+              <div className="lm-sidebar-top">
+                <div className="lm-side-head">
+                  <div className="lm-side-logo"><Layers size={20} /></div>
+                  <div className="lm-side-head-text">
+                    <div className="lm-side-title">Leads</div>
+                    <div className="lm-side-subtitle">Management · Pipeline</div>
+                  </div>
+                </div>
+
+                {canCreateLead && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    className="lm-create-btn"
+                    onClick={() => {
+                      setEditingKey(null);
+                      form.resetFields();
+                      form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                      const defaultStatus = configStatuses.find(s => s.is_default);
+                      if (defaultStatus) {
+                        form.setFieldsValue({ status: defaultStatus.name });
+                      }
+                      setIsDrawerVisible(true);
+                    }}
+                    block
+                  >
+                    New Lead
+                  </Button>
+                )}
+              </div>
+
+              <div className="lm-side-scroll">
+                <div className="lm-side-section-label">Views</div>
+                <div className="lm-side-list">
+                  {[
+                    { key: 'all', label: 'All Leads', icon: <Layers size={14} />, count: leads.length, color: '#3b82f6' },
+                    { key: 'hot', label: 'Hot Leads', icon: <Flame size={14} />, count: hotLeadsCount, color: '#ef4444' },
+                    { key: 'today', label: 'Added Today', icon: <Zap size={14} />, count: leadsToday, color: '#f59e0b' },
+                    { key: 'with_proposal', label: 'With Proposal', icon: <FileText size={14} />, count: leads.filter(l => !!l.proposal_id).length, color: '#10b981' },
+                  ].map((v) => {
+                    const active = activeSegment === v.key || (!activeSegment && v.key === 'all') || (activeSegment === 'all' && v.key === 'all');
+                    const isActive = v.key === 'all'
+                      ? (!filterPlatform && !filterStatus && activeSegment === 'all')
+                      : v.key === 'hot'
+                        ? activeSegment === 'hot'
+                        : v.key === 'today'
+                          ? activeSegment === 'today'
+                          : v.key === 'with_proposal'
+                            ? activeSegment === 'with_proposal'
+                            : false;
+                    return (
+                      <button
+                        key={v.key}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => {
+                          setFilterPlatform(null);
+                          setFilterStatus(null);
+                          if (v.key === 'all') {
+                            setActiveSegment('all');
+                          } else if (v.key === 'hot') {
+                            setActiveSegment('hot');
+                          } else if (v.key === 'today') {
+                            setActiveSegment('today');
+                          } else if (v.key === 'with_proposal') {
+                            setActiveSegment('with_proposal');
+                          }
+                        }}
+                      >
+                        <span className="lm-view-icon" style={{ color: isActive ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                        <span className="lm-view-label">{v.label}</span>
+                        <span className="lm-view-count">{v.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="lm-side-section-label">Sources</div>
+                <div className="lm-side-list">
+                  {sourceOptions.map(opt => {
+                    const isActive = filterPlatform === opt.name;
+                    return (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => { setFilterPlatform(prev => (prev === opt.name ? null : opt.name)); setActiveSegment('all'); }}
+                      >
+                        <span className="lm-view-icon" style={{ color: isActive ? 'var(--text-slate-600)' : 'var(--text-slate-400)' }}>{opt.icon}</span>
+                        <span className="lm-view-label">{opt.name}</span>
+                        <span className="lm-view-count">{opt.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="lm-side-section-label">Pipeline</div>
+                <div className="lm-side-list">
+                  {pipelineOptions.map(opt => {
+                    const isActive = filterStatus === opt.name;
+                    return (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => { setFilterStatus(prev => (prev === opt.name ? null : opt.name)); setActiveSegment('all'); }}
+                      >
+                        <span className="lm-view-icon" style={{ color: isActive ? 'var(--text-slate-600)' : 'var(--text-slate-400)' }}>{opt.icon}</span>
+                        <span className="lm-view-label">{opt.name}</span>
+                        <span className="lm-view-count">{opt.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </aside>
+
+            <div className="lm-main">
+              <div className="lm-topbar">
                 <Input
-                  placeholder="Search leads…"
+                  placeholder="Search subject, target…"
                   prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                  suffix={<span className="lm-kbd">⌘K</span>}
                   className="lm-search-input"
+                  style={{ width: 600, borderRadius: 8, height: 34 }}
                   onChange={(e) => setSearchText(e.target.value)}
                   value={searchText}
                   allowClear
                 />
-                
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  className="lm-primary-btn"
-                  onClick={() => {
-                    setEditingKey(null);
-                    form.resetFields();
-                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
-                    const defaultStatus = configStatuses.find(s => s.is_default);
-                    if (defaultStatus) {
-                      form.setFieldsValue({ status: defaultStatus.name });
+                <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Popover
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    classNames={{ root: "lm-toolbar-popover" }}
+                    content={
+                      <div className="lm-filters-popover-body">
+                        <div className="lm-popover-section-label">
+                          <Filter size={11} />
+                          <span>Workflow</span>
+                        </div>
+                        <Select
+                          placeholder="Any workflow"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterAction}
+                          onChange={setFilterAction}
+                        >
+                          {configActions.map(a => (
+                            <Select.Option key={a.id} value={a.name}>
+                              <Space size={6}>
+                                {renderActionIcon(a.icon)}
+                                {a.name}
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <User size={11} />
+                          <span>Created by</span>
+                        </div>
+                        <Select
+                          placeholder="Anyone"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterCreatedBy}
+                          onChange={setFilterCreatedBy}
+                          showSearch
+                          filterOption={(input, option) =>
+                            String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                          }
+                        >
+                          {creatorOptions.map((name) => {
+                            const palette = getAvatarStyle(name);
+                            return (
+                              <Select.Option key={name} value={name}>
+                                <Space size={8}>
+                                  <span
+                                    className="lm-creator-avatar"
+                                    style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                                  >
+                                    {getInitials(name)}
+                                  </span>
+                                  <span style={{ fontSize: 12.5 }}>{name}</span>
+                                </Space>
+                              </Select.Option>
+                            );
+                          })}
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Mail size={11} />
+                          <span>Mail status</span>
+                        </div>
+                        <Select
+                          placeholder="Any"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterMailStatus}
+                          onChange={setFilterMailStatus}
+                        >
+                          <Select.Option value="sent">
+                            <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                          </Select.Option>
+                          <Select.Option value="not_sent">
+                            <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                          </Select.Option>
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Clock size={11} />
+                          <span>Posted on</span>
+                        </div>
+                        <DatePicker.RangePicker
+                          className="lm-filter-date"
+                          style={{ width: "100%" }}
+                          value={filterDateRange}
+                          onChange={(dates) => setFilterDateRange(dates as any)}
+                        />
+
+                        <div className="lm-popover-footer">
+                          <button
+                            type="button"
+                            className="lm-popover-reset"
+                            onClick={() => {
+                              setFilterStatus(null);
+                              setFilterPlatform(null);
+                              setFilterAction(null);
+                              setFilterDateRange(null);
+                              setFilterCreatedBy(null);
+                              setFilterMailStatus(null);
+                            }}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
                     }
-                    setIsDrawerVisible(true);
-                  }}
-                >
-                  New Lead
-                </Button>
+                  >
+                    <Button
+                      icon={<Filter size={13} />}
+                      className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                    >
+                      Filters
+                      {(() => {
+                        const n =
+                          (filterAction ? 1 : 0) +
+                          (filterCreatedBy ? 1 : 0) +
+                          (filterMailStatus ? 1 : 0) +
+                          (filterDateRange ? 1 : 0);
+                        return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                      })()}
+                    </Button>
+                  </Popover>
+
+                  <Button
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                    onClick={() => {
+                      const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                      const rows = filteredLeads.map(l => {
+                        const score = l.ai_score;
+                        const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                        return [
+                          l.title || "",
+                          l.client_name || "",
+                          l.status || "",
+                          l.platform || "",
+                          l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                          getLeadCreator(l) || "",
+                          priority,
+                          l.last_mail_at || l.updated_at || l.created_at || "",
+                          l.created_at || "",
+                        ];
+                      });
+                      const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                      const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download size={13} />
+                    Export
+                  </Button>
+
+                  <div className="lm-segmented">
+                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                </div>
               </div>
-            }
-          />
 
-          <div className="lm-ambient" />
-
-          <div className="lm-body">
-
-          {/* Saved-View Segments */}
-          {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+              {/* Saved-View Segments */}
+              {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
             {([
               { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
               { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
@@ -1600,509 +2697,722 @@ export default function LeadsPage() {
             })}
           </div> */}
 
-          <div className="lm-stat-grid">
-            <StatCard
-              label="Total Leads"
-              value={leads.length}
-              icon={Layers}
-              accent="#6366f1"
-              subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: hotLeadsCount, color: "#ef4444", label: `${hotLeadsCount} hot` },
-                      { value: Math.max(0, leads.length - hotLeadsCount), color: "#94a3b8", label: `${Math.max(0, leads.length - hotLeadsCount)} warm` },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-            <StatCard
-              label="New Today"
-              value={leadsToday}
-              icon={Zap}
-              accent="#f59e0b"
-              subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leadsThisWeek > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: leadsToday, color: "#f59e0b", label: `${leadsToday} today` },
-                      { value: Math.max(0, leadsThisWeek - leadsToday), color: "#94a3b8", label: `${Math.max(0, leadsThisWeek - leadsToday)} earlier this week` },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-            <StatCard
-              label="Hot Leads"
-              value={hotLeadsCount}
-              icon={Flame}
-              accent="#ef4444"
-              subtle={
-                leads.length > 0
-                  ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
-                  : "AI score ≥ 80"
-              }
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <div className="lm-progress-row">
-                    <div className="lm-progress-track">
-                      <span
-                        className="lm-progress-fill"
-                        style={{
-                          width: `${Math.round((hotLeadsCount / leads.length) * 100)}%`,
-                          background: "linear-gradient(90deg, #ef4444, #f97316)",
-                        }}
-                      />
-                    </div>
-                    <span className="lm-progress-label">
-                      {Math.round((hotLeadsCount / leads.length) * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="Pipeline Rate"
-              value={`${pipelineRate}%`}
-              icon={Target}
-              accent="#10b981"
-              subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <div className="lm-progress-row">
-                    <div className="lm-progress-track">
-                      <span
-                        className="lm-progress-fill"
-                        style={{
-                          width: `${pipelineRate}%`,
-                          background: "linear-gradient(90deg, #10b981, #34d399)",
-                        }}
-                      />
-                    </div>
-                    <span className="lm-progress-label">{pipelineRate}%</span>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-
-          
-
-          {/* Filter bar — flat, compact, with inline Table Settings */}
-          <div className="lm-filter-bar">
-            <span className="lm-filter-bar-label">
-              <Filter size={13} />
-              Filters
-            </span>
-
-            <Select
-              placeholder="Status"
-              className="lm-filter-select"
-              style={{ width: 140 }}
-              allowClear
-              value={filterStatus}
-              onChange={setFilterStatus}
-            >
-              {configStatuses.map(s => (
-                <Select.Option key={s.id} value={s.name}>
-                  <span
-                    className="lm-filter-status-chip"
-                    style={{
-                      backgroundColor: `${s.color}15`,
-                      color: s.color,
-                      border: `1px solid ${s.color}30`,
-                    }}
-                  >
-                    {s.name}
-                  </span>
-                </Select.Option>
-              ))}
-            </Select>
-
-            <Select
-              placeholder="Platform"
-              className="lm-filter-select"
-              style={{ width: 130 }}
-              allowClear
-              value={filterPlatform}
-              onChange={setFilterPlatform}
-            >
-              <Select.Option value="Upwork">Upwork</Select.Option>
-              <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-              <Select.Option value="Freelancer">Freelancer</Select.Option>
-              <Select.Option value="Fiverr">Fiverr</Select.Option>
-            </Select>
-
-            <Select
-              placeholder="Workflow"
-              className="lm-filter-select"
-              style={{ width: 160 }}
-              allowClear
-              value={filterAction}
-              onChange={setFilterAction}
-            >
-              {configActions.map(a => (
-                <Select.Option key={a.id} value={a.name}>
-                  <Space size={6}>
-                    {renderActionIcon(a.icon)}
-                    {a.name}
-                  </Space>
-                </Select.Option>
-              ))}
-            </Select>
-
-            <Select
-              placeholder="Created by"
-              className="lm-filter-select"
-              style={{ width: 160 }}
-              allowClear
-              value={filterCreatedBy}
-              onChange={setFilterCreatedBy}
-              showSearch
-              filterOption={(input, option) =>
-                String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {creatorOptions.map((name) => {
-                const palette = getAvatarStyle(name);
-                return (
-                  <Select.Option key={name} value={name}>
-                    <Space size={8}>
-                      <span
-                        className="lm-creator-avatar"
-                        style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                      >
-                        {getInitials(name)}
-                      </span>
-                      <span style={{ fontSize: 12.5 }}>{name}</span>
-                    </Space>
-                  </Select.Option>
-                );
-              })}
-            </Select>
-            
-            <Select
-              placeholder="Mail Status"
-              className="lm-filter-select"
-              style={{ width: 130 }}
-              allowClear
-              value={filterMailStatus}
-              onChange={setFilterMailStatus}
-            >
-              <Select.Option value="sent">
-                <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-              </Select.Option>
-              <Select.Option value="not_sent">
-                <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-              </Select.Option>
-            </Select>
-
-            <DatePicker.RangePicker
-              className="lm-filter-date"
-              style={{ width: 230 }}
-              value={filterDateRange}
-              onChange={(dates) => setFilterDateRange(dates as any)}
-            />
-
-            <Button
-              icon={<RefreshCw size={13} />}
-              className="lm-filter-clear-btn"
-              onClick={() => {
-                setFilterStatus(null);
-                setFilterAction(null);
-                setFilterPlatform(null);
-                setFilterDateRange(null);
-                setFilterCreatedBy(null);
-                setFilterMailStatus(null);
-                setSearchText("");
-              }}
-            >
-              Clear
-            </Button>
-
-            <span className="lm-filter-bar-spacer" />
-
-            <span className="lm-filter-bar-count">
-              <b>{filteredLeads.length}</b> of <b>{leads.length}</b>
-            </span>
-
-            <Popover
-              trigger={["click"]}
-              placement="bottomRight"
-              classNames={{ root: "lm-table-settings-popover" }}
-              content={
-                <div style={{ width: 240 }}>
-                  <div className="lm-popover-section-label">
-                    <Settings size={11} />
-                    <span>Density</span>
-                  </div>
-                  <Segmented
-                    block
-                    value={tableDensity}
-                    onChange={(v) => setTableDensity(v as LmDensity)}
-                    options={[
-                      { label: "Compact", value: "compact" },
-                      { label: "Cozy", value: "comfortable" },
-                      { label: "Roomy", value: "spacious" },
-                    ]}
-                  />
-                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                    <Layers size={11} />
-                    <span>Columns</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                      {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
-                    </span>
-                  </div>
-                  <div className="lm-col-toggle-list">
-                    {TOGGLEABLE_COLUMNS.map((c) => (
-                      <label key={c.key} className="lm-col-toggle-row">
-                        <span>{c.label}</span>
-                        <Switch
-                          size="small"
-                          checked={!hiddenCols[c.key]}
-                          onChange={(checked) =>
-                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <div className="lm-popover-footer">
-                    <button
-                      type="button"
-                      className="lm-popover-reset"
-                      onClick={() => {
-                        setHiddenCols(DEFAULT_HIDDEN_COLS);
-                        setTableDensity("comfortable");
-                      }}
-                    >
-                      Reset to defaults
-                    </button>
-                    <span className="lm-popover-saved">Saved automatically</span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Table settings">
-                <Button
-                  icon={<Settings size={14} />}
-                  className="lm-filter-settings-btn"
-                  aria-label="Table settings"
-                />
-              </Tooltip>
-            </Popover>
-          </div>
-
-          {/* Active filter chips */}
-          {activeFilterChips.length > 0 && (
-            <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, alignItems: "center" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <ListFilter size={12} /> Active
-              </span>
-              {activeFilterChips.map(chip => (
-                <span
-                  key={chip.key}
-                  className="lead-filter-chip"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "4px 6px 4px 10px",
-                    borderRadius: 999,
-                    background: "rgba(99, 102, 241, 0.08)",
-                    color: "#4f46e5",
-                    border: "1px solid rgba(99, 102, 241, 0.18)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                  }}
-                >
-                  {chip.label}
-                  <button
-                    onClick={chip.onClear}
-                    aria-label={`Clear ${chip.key}`}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      background: "rgba(99, 102, 241, 0.15)",
-                      border: "none",
-                      color: "#4f46e5",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: 0,
-                    }}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                      <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {selectedRowKeys.length > 0 && (
-            <div className="lm-bulk-bar">
-              <div className="lm-bulk-bar-left">
-                <span className="lm-bulk-count">
-                  <span className="lm-bulk-count-dot" />
-                  {selectedRowKeys.length} selected
-                </span>
-                <span className="lm-bulk-divider" />
-                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-                  Apply a bulk action or clear the selection.
-                </Text>
-              </div>
-              <div className="lm-bulk-bar-right">
-                <Button
-                  size="small"
-                  className="lm-bulk-btn"
-                  onClick={() => setSelectedRowKeys([])}
-                >
-                  Clear
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  icon={<Trash2 size={13} />}
-                  className="lm-bulk-btn lm-bulk-btn-danger"
-                  onClick={handleBulkDelete}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="lm-table-card" data-density={tableDensity}>
-            {loading && leads.length === 0 ? (
-              <div className="leads-skeleton" style={{ padding: "8px 0" }}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "16px 20px",
-                      borderBottom: "1px solid var(--border-slate-100)",
-                    }}
-                  >
-                    <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
-                    <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
-                    <div style={{ flex: 1 }}>
-                      <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
-                      <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
-                    </div>
-                    <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
-                    <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
-                    <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Table
-                columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                dataSource={filteredLeads}
-                rowKey="id"
-                size="middle"
-                rowSelection={{
-                  selectedRowKeys,
-                  onChange: (keys) => setSelectedRowKeys(keys),
-                  columnWidth: 48,
-                }}
-                pagination={{
-                  pageSize: 10,
-                  position: ["bottomRight"],
-                  showSizeChanger: false,
-                  className: "premium-pagination"
-                }}
-                className="lm-table premium-table"
-                rowClassName={() => "lm-row"}
-                onRow={(record) => ({
-                  onClick: () => handleView(record),
-                  style: { cursor: 'pointer' }
-                })}
-                locale={{
-                  emptyText: (
-                    <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                      <div
-                        style={{
-                          width: 64,
-                          height: 64,
-                          margin: "0 auto 16px",
-                          borderRadius: 18,
-                          background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#6366f1",
-                        }}
-                      >
-                        <Layers size={28} />
+              <div className="lm-stat-grid">
+                <StatCard
+                  label="Total Leads"
+                  value={leads.length}
+                  icon={Layers}
+                  accent="#6366f1"
+                  subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={totalLeadsTrend} color="#6366f1" />
                       </div>
-                      <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                      </Title>
-                      <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                        {leads.length === 0
-                          ? "Add your first opportunity to start tracking your pipeline."
-                          : "Try clearing filters or switching to a different view."}
-                      </Text>
-                      {leads.length === 0 ? (
-                        <Button
-                          type="primary"
-                          icon={<Plus size={14} />}
-                          onClick={() => {
-                            setEditingKey(null);
-                            form.resetFields();
-                            form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
-                            const defaultStatus = configStatuses.find(s => s.is_default);
-                            if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                            setIsDrawerVisible(true);
-                          }}
-                          style={{
-                            borderRadius: 8,
-                            height: 36,
-                            fontWeight: 700,
-                            background: "#6366f1",
-                            border: "none",
-                            boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
-                          }}
-                        >
-                          Add First Lead
-                        </Button>
-                      ) : (
-                        <Button
-                          icon={<RefreshCw size={14} />}
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="New Today"
+                  value={leadsToday}
+                  icon={Zap}
+                  accent="#f59e0b"
+                  subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={newLeadsTrend} color="#f59e0b" />
+                      </div>
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="Hot Leads"
+                  value={hotLeadsCount}
+                  icon={Flame}
+                  accent="#ef4444"
+                  subtle={
+                    leads.length > 0
+                      ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
+                      : "AI score ≥ 80"
+                  }
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={hotLeadsTrend} color="#ef4444" />
+                      </div>
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="Pipeline Rate"
+                  value={`${pipelineRate}%`}
+                  icon={Target}
+                  accent="#10b981"
+                  subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={pipelineRateTrend} color="#10b981" />
+                      </div>
+                    ) : null
+                  }
+                />
+              </div>
+
+
+
+              {/* Compact toolbar — Sort + Filters + Export + Settings */}
+              <div className="lm-table-toolbar">
+                <span className="lm-toolbar-count">
+                  <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
+                </span>
+
+                <span className="lm-toolbar-spacer" />
+
+                <SearchableDropdown
+                  placeholder="Pipeline"
+                  options={stageDropdownOptions}
+                  value={filterStatus || undefined}
+                  onChange={(v) => {
+                    setFilterStatus(v || null);
+                    setFilterPlatform(null);
+                  }}
+                  style={{ height: 32, minWidth: 120, width: 120, borderRadius: 4 }}
+                  width={200}
+                />
+
+                <SearchableDropdown
+                  placeholder="Action"
+                  options={actionDropdownOptions}
+                  value={filterAction || undefined}
+                  onChange={(v) => setFilterAction(v || null)}
+                  style={{ height: 32, minWidth: 140, width: 140, borderRadius: 4 }}
+                  width={220}
+                />
+
+                <SearchableDropdown
+                  placeholder="Created by"
+                  options={creatorDropdownOptions}
+                  value={filterCreatedBy || undefined}
+                  onChange={(v) => setFilterCreatedBy(v || null)}
+                  style={{ height: 32, minWidth: 130, width: 130, borderRadius: 4 }}
+                  width={220}
+                />
+
+                <SearchableDropdown
+                  placeholder="Sort"
+                  options={sortDropdownOptions}
+                  value={sortKey}
+                  onChange={(v) => {
+                    if (v) setSortKey(v as any);
+                  }}
+                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 8 }}
+                  width={200}
+                  allowClear={false}
+                />
+
+                <Popover
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  classNames={{ root: "lm-toolbar-popover" }}
+                  content={
+                    <div className="lm-filters-popover-body">
+                      <div className="lm-popover-section-label">
+                        <Filter size={11} />
+                        <span>Workflow</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Any workflow"
+                        options={actionDropdownOptions}
+                        value={filterAction || undefined}
+                        onChange={(v) => setFilterAction(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <User size={11} />
+                        <span>Created by</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Anyone"
+                        options={creatorDropdownOptions}
+                        value={filterCreatedBy || undefined}
+                        onChange={(v) => setFilterCreatedBy(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Mail size={11} />
+                        <span>Mail status</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Any mail status"
+                        options={mailDropdownOptions}
+                        value={filterMailStatus || undefined}
+                        onChange={(v) => setFilterMailStatus(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Clock size={11} />
+                        <span>Posted on</span>
+                      </div>
+                      <DatePicker.RangePicker
+                        className="lm-filter-date"
+                        style={{ width: "100%" }}
+                        value={filterDateRange}
+                        onChange={(dates) => setFilterDateRange(dates as any)}
+                      />
+
+                      <div className="lm-popover-footer">
+                        <button
+                          type="button"
+                          className="lm-popover-reset"
                           onClick={() => {
                             setFilterStatus(null);
-                            setFilterAction(null);
                             setFilterPlatform(null);
+                            setFilterAction(null);
                             setFilterDateRange(null);
-                            setSearchText("");
-                            setActiveSegment("all");
+                            setFilterCreatedBy(null);
+                            setFilterMailStatus(null);
                           }}
-                          style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
                         >
-                          Clear all filters
-                        </Button>
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Button
+                    icon={<Filter size={13} />}
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                  >
+                    Filters
+                    {(() => {
+                      const n =
+                        (filterAction ? 1 : 0) +
+                        (filterCreatedBy ? 1 : 0) +
+                        (filterMailStatus ? 1 : 0) +
+                        (filterDateRange ? 1 : 0);
+                      return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                    })()}
+                  </Button>
+                </Popover>
+
+                <Button
+                  className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
+                  onClick={() => {
+                    const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                    const rows = filteredLeads.map(l => {
+                      const score = l.ai_score;
+                      const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                      return [
+                        l.title || "",
+                        l.client_name || "",
+                        l.status || "",
+                        l.platform || "",
+                        l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                        getLeadCreator(l) || "",
+                        priority,
+                        l.last_mail_at || l.updated_at || l.created_at || "",
+                        l.created_at || "",
+                      ];
+                    });
+                    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                    const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download size={13} />
+                  Export
+                </Button>
+
+                <Popover
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  classNames={{ root: "lm-table-settings-popover" }}
+                  content={
+                    <div style={{ width: 240 }}>
+                      <div className="lm-popover-section-label">
+                        <Settings size={11} />
+                        <span>Density</span>
+                      </div>
+                      <Segmented
+                        block
+                        value={tableDensity}
+                        onChange={(v) => setTableDensity(v as LmDensity)}
+                        options={[
+                          { label: "Compact", value: "compact" },
+                          { label: "Cozy", value: "comfortable" },
+                          { label: "Roomy", value: "spacious" },
+                        ]}
+                      />
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Layers size={11} />
+                        <span>Columns</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                          {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                        </span>
+                      </div>
+                      <div className="lm-col-toggle-list">
+                        {TOGGLEABLE_COLUMNS.map((c) => (
+                          <label key={c.key} className="lm-col-toggle-row">
+                            <span>{c.label}</span>
+                            <Switch
+                              size="small"
+                              checked={!hiddenCols[c.key]}
+                              onChange={(checked) =>
+                                setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="lm-popover-footer">
+                        <button
+                          type="button"
+                          className="lm-popover-reset"
+                          onClick={() => {
+                            setHiddenCols(DEFAULT_HIDDEN_COLS);
+                            setTableDensity("comfortable");
+                          }}
+                        >
+                          Reset to defaults
+                        </button>
+                        <span className="lm-popover-saved">Saved automatically</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Tooltip title="Table settings">
+                    <Button
+                      icon={<Settings size={14} />}
+                      className="lm-filter-settings-btn"
+                      aria-label="Table settings"
+                    />
+                  </Tooltip>
+                </Popover>
+              </div>
+
+              {/* Active filter chips */}
+              {activeFilterChips.length > 0 && (
+                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, alignItems: "center" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <ListFilter size={12} /> Active
+                  </span>
+                  {activeFilterChips.map(chip => (
+                    <span
+                      key={chip.key}
+                      className="lead-filter-chip"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 6px 4px 10px",
+                        borderRadius: 999,
+                        background: "rgba(99, 102, 241, 0.08)",
+                        color: "#4f46e5",
+                        border: "1px solid rgba(99, 102, 241, 0.18)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {chip.label}
+                      <button
+                        onClick={chip.onClear}
+                        aria-label={`Clear ${chip.key}`}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "rgba(99, 102, 241, 0.15)",
+                          border: "none",
+                          color: "#4f46e5",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
+                        }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                          <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {selectedRowKeys.length > 0 && (
+                <div className="lm-bulk-bar">
+                  <div className="lm-bulk-bar-left">
+                    <span className="lm-bulk-count">
+                      <span className="lm-bulk-count-dot" />
+                      {selectedRowKeys.length} selected
+                    </span>
+                    <span className="lm-bulk-divider" />
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                      Apply a bulk action or clear the selection.
+                    </Text>
+                  </div>
+                  <div className="lm-bulk-bar-right">
+                    <Button
+                      size="small"
+                      className="lm-bulk-btn"
+                      onClick={() => setSelectedRowKeys([])}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      icon={<Trash2 size={13} />}
+                      className="lm-bulk-btn lm-bulk-btn-danger"
+                      onClick={handleBulkDelete}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="lm-body">
+                {view === 'list' ? (
+                <div className="lm-table-card" data-density={tableDensity}>
+                  {loading && leads.length === 0 ? (
+                    <div className="leads-skeleton" style={{ padding: "8px 0" }}>
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "16px 20px",
+                            borderBottom: "1px solid var(--border-slate-100)",
+                          }}
+                        >
+                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                          <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
+                          <div style={{ flex: 1 }}>
+                            <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
+                            <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
+                          </div>
+                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
+                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
+                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Table
+                      columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
+                      dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
+                      rowKey="id"
+                      size="middle"
+                      scroll={{ x: "max-content" }}
+                      rowSelection={{
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys),
+                        columnWidth: 48,
+                      }}
+                      pagination={false}
+                      className="lm-table premium-table"
+                      rowClassName={() => "lm-row"}
+                      onRow={(record) => ({
+                        onClick: () => handleView(record),
+                        style: { cursor: 'pointer' }
+                      })}
+                      locale={{
+                        emptyText: (
+                          <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                            <div
+                              style={{
+                                width: 64,
+                                height: 64,
+                                margin: "0 auto 16px",
+                                borderRadius: 18,
+                                background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#6366f1",
+                              }}
+                            >
+                              <Layers size={28} />
+                            </div>
+                            <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                              {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                            </Title>
+                            <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                              {leads.length === 0
+                                ? "Add your first opportunity to start tracking your pipeline."
+                                : "Try clearing filters or switching to a different view."}
+                            </Text>
+                            {leads.length === 0 ? (
+                              <Button
+                                type="primary"
+                                icon={<Plus size={14} />}
+                                onClick={() => {
+                                  setEditingKey(null);
+                                  form.resetFields();
+                                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                  const defaultStatus = configStatuses.find(s => s.is_default);
+                                  if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                  setIsDrawerVisible(true);
+                                }}
+                                style={{
+                                  borderRadius: 8,
+                                  height: 36,
+                                  fontWeight: 700,
+                                  background: "#6366f1",
+                                  border: "none",
+                                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                                }}
+                              >
+                                Add First Lead
+                              </Button>
+                            ) : (
+                              <Button
+                                icon={<RefreshCw size={14} />}
+                                onClick={() => {
+                                  setFilterStatus(null);
+                                  setFilterAction(null);
+                                  setFilterPlatform(null);
+                                  setFilterDateRange(null);
+                                  setFilterCreatedBy(null);
+                                  setFilterMailStatus(null);
+                                  setSearchText("");
+                                  setActiveSegment("all");
+                                }}
+                                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                              >
+                                Clear all filters
+                              </Button>
+                            )}
+                          </div>
+                        ),
+                      }}
+                    />
+                  )}
+
+                </div>
+              ) : (
+                <div className="lm-grid-view">
+                  {loading && leads.length === 0 ? (
+                    <div className="lm-grid">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                            <div style={{ flex: 1 }}>
+                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
+                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 4 }} />
+                            </div>
+                          </div>
+                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 4, marginTop: 'auto' }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredLeads.length === 0 ? (
+                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-200)" }}>
+                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}>
+                        <Layers size={28} />
+                      </div>
+                      <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                      </Typography.Title>
+                      <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                        {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
+                      </Typography.Text>
+                      {leads.length === 0 && (
+                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 8, height: 36, fontWeight: 700, background: "#6366f1", border: "none" }}>Add First Lead</Button>
                       )}
                     </div>
-                  ),
-                }}
-              />
-            )}
-          </div>
+                  ) : (
+                    <>
+                      <div className="lm-grid">
+                        {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
+                          const r = record as any;
+                          const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
+                          const initials = getInitials(name);
+                          const palette = getAvatarStyle(name);
+                          const statusCfg = configStatuses.find(s => s.name === record.status);
+                          const statusColor = statusCfg?.color || '#6366f1';
+                          const scoreLevel = getAIScoreLevel(record.ai_score);
+                          const ownerName = getLeadCreator(record) || 'Unknown';
+                          const ownerPalette = getAvatarStyle(ownerName);
+                          const isSent = !!record.last_mail_at || !!record.is_mail_sent;
+
+                          const formatDate = (date: any) => {
+                            if (!date) return '—';
+                            const d = dayjs(date);
+                            if (!d.isValid()) return '—';
+                            return d.format('MMM D, YYYY · h:mm A');
+                          };
+
+                          const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
+
+                          return (
+                            <div key={record.id} className="lm-card" style={{ padding: 0, gap: 0 }} onClick={() => handleView(record)}>
+                              {/* LAYER 1: Header (Lead, Company, Owner, Actions) */}
+                              <div className="lm-card-head" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-slate-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color, borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{initials}</div>
+                                <div className="lm-card-title-group" style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+                                  <h4 className="lm-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={name}>{name}</h4>
+                                  <span className="lm-card-subtitle" style={{ fontSize: '12px', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <span>Client: <span style={{ fontWeight: 700, color: 'var(--text-slate-800)' }}>{record.client_name || '—'}</span></span>
+                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      <span style={{
+                                        width: 16, height: 16, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
+                                      }}>
+                                        {ownerInitials}
+                                      </span>
+                                      <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>{ownerName}</span>
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="lm-card-actions" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                                  {getLeadActionMenu(record)}
+                                </div>
+                              </div>
+
+                              {/* LAYER 2: Details & Actions */}
+                              <div className="lm-card-footer" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--border-slate-100)', marginTop: 0, backgroundColor: 'var(--bg-slate-50)' }}>
+                                {/* Source */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Source:</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>{record.platform || 'Upwork'}</span>
+                                </div>
+
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+
+                                {/* Value */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Value:</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>
+                                    {record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}
+                                  </span>
+                                </div>
+
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+
+                                {/* Status */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Status:</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
+                                    <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
+                                    {record.status || '—'}
+                                  </span>
+                                </div>
+
+                                {/* BidIq Action */}
+                                {canManageLeads && record.lead_source_kind !== "website" && (() => {
+                                  const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
+                                  return (
+                                    <>
+                                      <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: hasBidiq ? '#10b981' : 'var(--premium-blue)' }}
+                                      >
+                                        {hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
+                                        {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                      </button>
+                                    </>
+                                  );
+                                })()}
+
+                                {/* Proposal Action */}
+                                {canCreateProposal && (
+                                  <>
+                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: record.proposal_id ? '#10b981' : 'var(--premium-blue)' }}
+                                    >
+                                      {record.proposal_id ? <FileText size={13} /> : <Sparkles size={13} />}
+                                      {record.proposal_id ? 'View Proposal' : 'Generate'}
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Mail Action */}
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: isSent ? '#10b981' : 'var(--premium-blue)' }}
+                                >
+                                  {isSent ? <CheckCircle size={13} style={{ color: '#10b981' }} /> : <Mail size={13} />}
+                                  {isSent ? 'Sent' : 'Send Mail'}
+                                </button>
+
+                                {/* Timeline View Action */}
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: 'var(--text-slate-500)' }}
+                                >
+                                  <History size={13} />
+                                  Timeline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              </div>
+              {filteredLeads.length > 0 && (
+                <div className="lm-bottom-bar lm-bottom-bar--sticky">
+                  <div className="lm-bottom-info">
+                    Showing <strong>{(tablePage - 1) * tablePageSize + 1}–{Math.min(tablePage * tablePageSize, filteredLeads.length)}</strong> of <strong>{filteredLeads.length}</strong>
+                    {selectedRowKeys.length > 0 && <span className="lm-bottom-sel"> · {selectedRowKeys.length} selected</span>}
+                  </div>
+                  <div className="lm-pager">
+                    <button type="button" className="lm-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+                    {Array.from({ length: Math.ceil(filteredLeads.length / tablePageSize) }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                      <button key={p} type="button" className={`lm-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+                    ))}
+                    <button type="button" className="lm-pager-btn" disabled={tablePage >= Math.ceil(filteredLeads.length / tablePageSize)} onClick={() => setTablePage((p) => Math.min(Math.ceil(filteredLeads.length / tablePageSize), p + 1))}>›</button>
+                    <Select
+                      className="lm-pagesize"
+                      value={tablePageSize}
+                      onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                      options={[15, 30, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2264,6 +3574,307 @@ export default function LeadsPage() {
           )}
         </Modal>
 
+        {/* ============== Proposal flow Modal (2 steps in one shell) ============== */}
+        <Modal
+          open={proposalModalOpen}
+          onCancel={closeProposalFlow}
+          footer={null}
+          width={680}
+          centered
+          closable={false}
+          className="biq-pinfo-modal"
+          maskClosable={!generatingProposal}
+        >
+          {selectedProposalLead && (
+            <div className="biq-pinfo-content">
+              {/* Header — stays identical across both steps */}
+              <div className="biq-pinfo-head">
+                <div className="biq-pinfo-icon">
+                  <Sparkles size={20} />
+                </div>
+                <div className="biq-pinfo-head-text">
+                  <div className="biq-pinfo-eyebrow">
+                    <Brain size={11} /> AI Proposal Builder
+                  </div>
+                  <h2 className="biq-pinfo-title">Generate proposal</h2>
+                  <p className="biq-pinfo-sub">
+                    Two quick steps — review what BidIq will produce, then choose how to anchor it.
+                  </p>
+                  <div className="biq-pinfo-steps">
+                    <span className={`biq-pinfo-step ${proposalStep === 0 ? "is-active" : "is-done"}`}>
+                      <span className="biq-pinfo-step-dot">1</span>
+                      <span>Review</span>
+                    </span>
+                    <span className="biq-pinfo-step-sep" />
+                    <span className={`biq-pinfo-step ${proposalStep === 1 ? "is-active" : ""}`}>
+                      <span className="biq-pinfo-step-dot">2</span>
+                      <span>Choose terms</span>
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="biq-pinfo-close"
+                  onClick={closeProposalFlow}
+                  aria-label="Close"
+                  disabled={generatingProposal}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Body — swaps based on step */}
+              {proposalStep === 0 ? (
+                <>
+                  {/* Lead snapshot */}
+                  <div className="biq-pinfo-snapshot">
+                    <div className="biq-pinfo-snapshot-head">
+                      <Layers size={11} /> Lead snapshot
+                    </div>
+                    <div className="biq-pinfo-snapshot-title" title={selectedProposalLead.title}>
+                      {selectedProposalLead.title}
+                    </div>
+                    <div className="biq-pinfo-snapshot-grid">
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <DollarSign size={10} /> Client budget
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "—"}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Clock size={10} /> Duration
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          {selectedProposalLead.duration || "Flexible"}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Sparkles size={10} /> Suggested bid
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          ${suggestedBudgetVal.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Layers size={10} /> Effort baseline
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">{baselineHours} hrs</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What the proposal will include */}
+                  <div className="biq-pinfo-caps">
+                    <div className="biq-pinfo-caps-head">What the proposal will include</div>
+                    <div className="biq-pinfo-caps-grid">
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <Briefcase size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Scope &amp; deliverables</span>
+                          <span className="biq-pinfo-cap-text">
+                            Clear breakdown of what's being built, written in client-ready language.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <Calendar size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Milestones &amp; timeline</span>
+                          <span className="biq-pinfo-cap-text">
+                            Phased plan with realistic dates derived from the effort baseline.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <DollarSign size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Pricing &amp; payment terms</span>
+                          <span className="biq-pinfo-cap-text">
+                            Quote with payment schedule, anchored to the chosen duration and cost.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <FileText size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Personalized pitch</span>
+                          <span className="biq-pinfo-cap-text">
+                            Tailored intro that speaks to this client's signals and the job context.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Step 2 — Choose terms */}
+                  <div className="biq-pinfo-options">
+                    <div className="biq-pinfo-caps-head">Choose how to anchor the proposal</div>
+                    <div className="biq-opt-grid">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOption("client")}
+                        className={`biq-opt-card ${selectedOption === "client" ? "is-selected" : ""}`}
+                        disabled={generatingProposal}
+                      >
+                        <div className="biq-opt-card-head">
+                          <span className="biq-opt-tag biq-opt-tag-client">
+                            <Users size={10} /> Client&apos;s terms
+                          </span>
+                          {selectedOption === "client" && (
+                            <span className="biq-opt-check">
+                              <CheckCircle2 size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="biq-opt-name">As client posted</div>
+                        <div className="biq-opt-rows">
+                          <div className="biq-opt-row">
+                            <span className="biq-opt-row-l">
+                              <Clock size={11} /> Duration
+                            </span>
+                            <span className="biq-opt-row-v">{selectedProposalLead.duration || "Not specified"}</span>
+                          </div>
+                          <div className="biq-opt-row">
+                            <span className="biq-opt-row-l">
+                              <DollarSign size={11} /> Cost
+                            </span>
+                            <span className="biq-opt-row-v">
+                              {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "Not specified"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="biq-opt-foot">Match the client&apos;s expectations exactly.</div>
+                      </button>
+
+                      <div
+                        className={`biq-opt-card ${selectedOption === "custom" ? "is-selected" : ""}`}
+                        onClick={() => !generatingProposal && setSelectedOption("custom")}
+                      >
+                        <div className="biq-opt-card-head">
+                          <span className="biq-opt-tag biq-opt-tag-custom">
+                            <Sparkles size={10} /> Your plan
+                          </span>
+                          {selectedOption === "custom" && (
+                            <span className="biq-opt-check">
+                              <CheckCircle2 size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="biq-opt-name">Set your own terms</div>
+                        <div className="biq-opt-fields">
+                          <div className="biq-opt-field">
+                            <label>Project window</label>
+                            <DatePicker.RangePicker
+                              style={{ width: "100%", borderRadius: 8 }}
+                              value={customDates as any}
+                              onChange={(dates) => setCustomDates(dates as any)}
+                              disabled={generatingProposal}
+                              onClick={(e) => { e.stopPropagation(); setSelectedOption("custom"); }}
+                            />
+                            {customDays > 0 && (
+                              <div className="biq-opt-hint">
+                                ≈ {customDays} day{customDays !== 1 ? "s" : ""} ({Math.round(customDays / 7)}w)
+                              </div>
+                            )}
+                          </div>
+                          <div className="biq-opt-field">
+                            <label>Your cost (USD)</label>
+                            <InputNumber
+                              style={{ width: "100%", borderRadius: 8 }}
+                              min={0}
+                              value={customCost as any}
+                              onChange={(v) => setCustomCost(v as any)}
+                              placeholder="e.g. 4500"
+                              formatter={(value) => (value ? `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "")}
+                              parser={(value) => Number((value || "").replace(/\$\s?|,/g, "")) as any}
+                              disabled={generatingProposal}
+                              onClick={(e) => { e.stopPropagation(); setSelectedOption("custom"); }}
+                            />
+                          </div>
+                        </div>
+                        <div className="biq-opt-foot">Override with your scope-driven plan.</div>
+                      </div>
+                    </div>
+
+                    {selectedOption && (
+                      <div className="biq-opt-note">
+                        <Info size={12} />
+                        <span>
+                          <b>Note:</b> The proposal will be created based on the {selectedOption === "client" ? "client's posted" : "values you've entered"} duration and cost. AI will use these as constraints when shaping scope, deliverables, and milestones.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Footer — swaps actions per step */}
+              <div className="biq-pinfo-footer">
+                <span className="biq-pinfo-footnote">
+                  <ShieldCheck size={12} />
+                  {proposalStep === 0
+                    ? "Editable end-to-end in the proposal builder."
+                    : "AI will use these as constraints for scope and milestones."}
+                </span>
+                <div className="biq-pinfo-footer-actions">
+                  {proposalStep === 0 ? (
+                    <>
+                      <Button onClick={closeProposalFlow} className="biq-secondary-btn">
+                        Cancel
+                      </Button>
+                      <Button
+                        type="primary"
+                        onClick={goToOptionStep}
+                        className="biq-primary-btn"
+                        icon={<Sparkles size={13} />}
+                      >
+                        Continue
+                        <ArrowUpRight size={13} />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => setProposalStep(0)}
+                        className="biq-secondary-btn"
+                        disabled={generatingProposal}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="primary"
+                        loading={generatingProposal}
+                        disabled={!selectedOption || (selectedOption === "custom" && !customValid)}
+                        onClick={handleConfirmGenerate}
+                        className="biq-primary-btn"
+                        icon={!generatingProposal ? <Sparkles size={13} /> : undefined}
+                      >
+                        {generatingProposal ? "Generating proposal…" : "Create proposal"}
+                        {!generatingProposal && <ArrowUpRight size={13} />}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal>
+
         {/* Lead Form Drawer */}
         <Drawer
           title={
@@ -2329,7 +3940,7 @@ export default function LeadsPage() {
               </div>
             </div>
           }
-          width={680}
+          width={540}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
           className="premium-drawer lead-drawer"
@@ -2344,337 +3955,424 @@ export default function LeadsPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                  {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
-                    <Button
-                      type="primary"
-                      loading={loading}
-                      onClick={() => form.submit()}
-                      className="lead-drawer-submit"
-                      style={{
-                        borderRadius: 10,
-                        height: 40,
-                        padding: "0 22px",
-                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                        border: "none",
-                        fontWeight: 700,
-                        boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      {editingKey ? "Update Lead" : "Create Lead"}
-                      <ArrowUpRight size={15} />
-                    </Button>
-                  )}
+                {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                  <Button
+                    type="primary"
+                    loading={loading}
+                    onClick={() => form.submit()}
+                    className="lead-drawer-submit"
+                    style={{
+                      borderRadius: 10,
+                      height: 40,
+                      padding: "0 22px",
+                      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                      border: "none",
+                      fontWeight: 700,
+                      boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {editingKey ? "Update Lead" : "Create Lead"}
+                    <ArrowUpRight size={15} />
+                  </Button>
+                )}
               </div>
             </div>
           }
         >
           <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form">
-            {/* Client Details Section */}
-            <div className="premium-drawer-section lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(99, 102, 241, 0.08)", color: "#6366f1",
-                  border: "1px solid rgba(99, 102, 241, 0.18)",
-                }}>01</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <User size={15} color="#6366f1" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
-                  </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
-                </div>
-              </div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
-                    <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientPhone" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}>
-                    <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
-                    <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
-                    <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
-                    <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
-                    <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                      <Select.Option value={true}>
-                        <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                      </Select.Option>
-                      <Select.Option value={false}>
-                        <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                      </Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
-                    <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                      <Select.Option value={true}>
-                        <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                      </Select.Option>
-                      <Select.Option value={false}>
-                        <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                      </Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
+            {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
+            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
+              <Segmented
+                block
+                size="large"
+                options={[
+                  {
+                    value: 'platform',
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+                          <Briefcase size={14} />
+                          Online Platform
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                          Upwork · LinkedIn · Freelancer · Fiverr
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: 'website',
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+                          <Globe size={14} />
+                          Website Inquiry
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                          Zukvo · Zithtech contact forms
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </Form.Item>
 
-            {/* Job Details Section */}
-            <div className="premium-drawer-section-alt lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b",
-                  border: "1px solid rgba(245, 158, 11, 0.2)",
-                }}>02</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Briefcase size={15} color="#f59e0b" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
+            {(Form.useWatch('leadSourceKind', form) || 'platform') === 'website' ? (
+              <WebsiteLeadFields configStatuses={configStatuses} />
+            ) : (
+              <>
+                {/* Client Details Section */}
+                <div className="premium-drawer-section lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(99, 102, 241, 0.08)", color: "#6366f1",
+                      border: "1px solid rgba(99, 102, 241, 0.18)",
+                    }}>01</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <User size={15} color="#6366f1" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
+                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="clientPhone"
+                        label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
+                        getValueFromEvent={(e) => {
+                          const value = e.target.value;
+                          let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                          if (sanitized.includes('+')) {
+                            const hasPlusAtStart = sanitized.startsWith('+');
+                            sanitized = sanitized.replace(/\+/g, '');
+                            if (hasPlusAtStart) {
+                              sanitized = '+' + sanitized;
+                            }
+                          }
+                          let digitsCount = 0;
+                          let limited = '';
+                          for (let i = 0; i < sanitized.length; i++) {
+                            const char = sanitized[i];
+                            if (/\d/.test(char)) {
+                              if (digitsCount < 15) {
+                                digitsCount++;
+                                limited += char;
+                              }
+                            } else {
+                              limited += char;
+                            }
+                          }
+                          return limited;
+                        }}
+                        rules={[
+                          {
+                            validator: (_, value) => {
+                              if (!value || value.trim() === '') {
+                                return Promise.resolve();
+                              }
+                              const digits = value.replace(/\D/g, '');
+                              if (digits.length < 7) {
+                                return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                              }
+                              return Promise.resolve();
+                            }
+                          }
+                        ]}
+                      >
+                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
+                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
+                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
+                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                          <Select.Option value={true}>
+                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                          </Select.Option>
+                          <Select.Option value={false}>
+                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                          </Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                          <Select.Option value={true}>
+                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                          </Select.Option>
+                          <Select.Option value={false}>
+                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                          </Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
-                <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
-              </Form.Item>
-              <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
-                <TextArea
-                  rows={4}
-                  placeholder="Enter the full job description or client request..."
-                  style={{ borderRadius: 8 }}
-                />
-              </Form.Item>
-              <Form.Item
-                name="ai_summary"
-                label={
-                  <Space size={6}>
-                    <span className="lead-ai-chip" style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      padding: "2px 8px", borderRadius: 999,
-                      background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
-                      color: "#6366f1", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
-                      textTransform: "uppercase", border: "1px solid rgba(99,102,241,0.25)",
-                    }}>
-                      <Sparkles size={10} /> AI
-                    </span>
-                    <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
-                  </Space>
-                }
-              >
-                <TextArea
-                  rows={4}
-                  placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
-                  className="lead-ai-textarea"
-                  style={{
-                    borderRadius: 12,
-                    background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
-                    border: "1px solid rgba(99, 102, 241, 0.18)",
-                  }}
-                />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
-                    <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
-                    <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                    <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
-                    <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
-                    <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* Timeline & Meta Section */}
-            <div className="premium-drawer-section lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(16, 185, 129, 0.08)", color: "#10b981",
-                  border: "1px solid rgba(16, 185, 129, 0.2)",
-                }}>03</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <LinkIcon size={15} color="#10b981" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
+                {/* Job Details Section */}
+                <div className="premium-drawer-section-alt lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b",
+                      border: "1px solid rgba(245, 158, 11, 0.2)",
+                    }}>02</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Briefcase size={15} color="#f59e0b" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
+                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
+                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
+                    <TextArea
+                      rows={4}
+                      placeholder="Enter the full job description or client request..."
+                      style={{ borderRadius: 8 }}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="ai_summary"
+                    label={
+                      <Space size={6}>
+                        <span className="lead-ai-chip" style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "2px 8px", borderRadius: 999,
+                          background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
+                          color: "#6366f1", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
+                          textTransform: "uppercase", border: "1px solid rgba(99,102,241,0.25)",
+                        }}>
+                          <Sparkles size={10} /> AI
+                        </span>
+                        <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
+                      </Space>
+                    }
+                  >
+                    <TextArea
+                      rows={4}
+                      placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
+                      className="lead-ai-textarea"
+                      style={{
+                        borderRadius: 12,
+                        background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
+                        border: "1px solid rgba(99, 102, 241, 0.18)",
+                      }}
+                    />
+                  </Form.Item>
+                  <Row gutter={16}>
+                    <Col span={24}>
+                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
+                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={8}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
+                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
+                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
+                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
+                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                    <Select placeholder="Select Platform" style={{ borderRadius: 8 }}>
-                      <Select.Option value="Upwork">Upwork</Select.Option>
-                      <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-                      <Select.Option value="Freelancer">Freelancer</Select.Option>
-                      <Select.Option value="Fiverr">Fiverr</Select.Option>
-                      <Select.Option value="Other">Other</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                    <Select placeholder="Select Status" style={{ borderRadius: 8 }}>
-                      {configStatuses.map(s => (
-                        <Select.Option key={s.id} value={s.name}>
-                          <Space>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                            {s.name}
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                <Input placeholder="https://..." style={{ borderRadius: 8 }} />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                    <DatePicker style={{ width: '100%', borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                    <Select placeholder="Select Action" allowClear style={{ borderRadius: 8 }}>
-                      {configActions.map(a => (
-                        <Select.Option key={a.id} value={a.name}>
-                          <Space>
-                            {renderActionIcon(a.icon)}
-                            <span style={{ color: a.color }}>{a.name}</span>
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* Documents Section */}
-            <div className="premium-drawer-section-alt lead-section-card" style={{
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(236, 72, 153, 0.08)", color: "#ec4899",
-                  border: "1px solid rgba(236, 72, 153, 0.2)",
-                }}>04</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <FileText size={15} color="#ec4899" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
-                    <span style={{
-                      padding: "1px 7px", borderRadius: 999, background: "#f1f5f9",
-                      color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}>Optional</span>
+                {/* Timeline & Meta Section */}
+                <div className="premium-drawer-section lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(16, 185, 129, 0.08)", color: "#10b981",
+                      border: "1px solid rgba(16, 185, 129, 0.2)",
+                    }}>03</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <LinkIcon size={15} color="#10b981" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
+                        <Select placeholder="Select Platform" style={{ borderRadius: 8 }}>
+                          <Select.Option value="Upwork">Upwork</Select.Option>
+                          <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+                          <Select.Option value="Freelancer">Freelancer</Select.Option>
+                          <Select.Option value="Fiverr">Fiverr</Select.Option>
+                          <Select.Option value="Website">Website</Select.Option>
+                          <Select.Option value="Other">Other</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
+                        <Select placeholder="Select Status" style={{ borderRadius: 8 }}>
+                          {configStatuses.map(s => (
+                            <Select.Option key={s.id} value={s.name}>
+                              <Space>
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                                {s.name}
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
+                    <Input placeholder="https://..." style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
+                        <DatePicker style={{ width: '100%', borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
+                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 8 }}>
+                          {configActions.map(a => (
+                            <Select.Option key={a.id} value={a.name}>
+                              <Space>
+                                {renderActionIcon(a.icon)}
+                                <span style={{ color: a.color }}>{a.name}</span>
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Form.List name="documents">
-                {(fields, { add, remove }) => (
-                  <>
-                    {fields.map((field) => (
-                      <DocumentRow 
-                        key={field.key} 
-                        field={field} 
-                        remove={remove} 
-                        handleFileUpload={handleFileUpload}
-                        messageApi={messageApi}
-                      />
-                    ))}
-                    <Button 
-                      type="dashed" 
-                      onClick={() => add({ type: 'file' })} 
-                      block 
-                      icon={<PlusCircle size={16} />} 
-                      className="doc-add-btn"
-                    >
-                      Add Supporting Document
-                    </Button>
-                  </>
-                )}
-              </Form.List>
-            </div>
+
+                {/* Documents Section */}
+                <div className="premium-drawer-section-alt lead-section-card" style={{
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(236, 72, 153, 0.08)", color: "#ec4899",
+                      border: "1px solid rgba(236, 72, 153, 0.2)",
+                    }}>04</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <FileText size={15} color="#ec4899" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
+                        <span style={{
+                          padding: "1px 7px", borderRadius: 999, background: "#f1f5f9",
+                          color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                        }}>Optional</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
+                    </div>
+                  </div>
+                  <Form.List name="documents">
+                    {(fields, { add, remove }) => (
+                      <>
+                        {fields.map((field) => (
+                          <DocumentRow
+                            key={field.key}
+                            field={field}
+                            remove={remove}
+                            handleFileUpload={handleFileUpload}
+                            messageApi={messageApi}
+                          />
+                        ))}
+                        <Button
+                          type="dashed"
+                          onClick={() => add({ type: 'file' })}
+                          block
+                          icon={<PlusCircle size={16} />}
+                          className="doc-add-btn"
+                        >
+                          Add Supporting Document
+                        </Button>
+                      </>
+                    )}
+                  </Form.List>
+                </div>
+              </>
+            )}
           </Form>
         </Drawer>
 
@@ -2687,6 +4385,16 @@ export default function LeadsPage() {
           lead={selectedLeadForMail}
           fromEmail={invoiceMailSettings?.email}
           onSuccess={fetchLeads}
+        />
+
+        <WebsiteLeadDrawer
+          open={websiteDrawerOpen}
+          onClose={() => {
+            setWebsiteDrawerOpen(false);
+            setWebsiteDrawerLead(null);
+          }}
+          lead={websiteDrawerLead}
+          configStatuses={configStatuses}
         />
 
         {/* ----------------------- Timeline Drawer ----------------------- */}
@@ -2730,7 +4438,7 @@ export default function LeadsPage() {
           }
           open={timelineOpen}
           onClose={() => setTimelineOpen(false)}
-          width={520}
+          width={420}
           styles={{ body: { padding: '24px 20px' } }}
         >
           {timelineLoading ? (
@@ -2744,13 +4452,13 @@ export default function LeadsPage() {
               mode="left"
               items={timelineData.map((item: any) => {
                 const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-                  CREATED_LEAD:    { label: 'Lead Created',      color: '#6366f1', icon: <Layers size={13} /> },
-                  UPDATED_LEAD:    { label: 'Lead Updated',      color: '#f59e0b', icon: <FileEdit size={13} /> },
-                  CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#8b5cf6', icon: <Zap size={13} /> },
-                  CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
-                  CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
-                  PROJECT_CREATED: { label: 'Project Created',   color: '#06b6d4', icon: <FolderPlus size={13} /> },
-                  MAIL_SENT:       { label: 'Email Sent',        color: '#ec4899', icon: <Send size={13} /> },
+                  CREATED_LEAD: { label: 'Lead Created', color: '#6366f1', icon: <Layers size={13} /> },
+                  UPDATED_LEAD: { label: 'Lead Updated', color: '#f59e0b', icon: <FileEdit size={13} /> },
+                  CREATED_BIDIQ: { label: 'BidIQ Analyzed', color: '#8b5cf6', icon: <Zap size={13} /> },
+                  CREATED_PROPOSAL: { label: 'Proposal Created', color: '#10b981', icon: <FileText size={13} /> },
+                  CLIENT_CREATED: { label: 'Client Created', color: '#3b82f6', icon: <UserPlus size={13} /> },
+                  PROJECT_CREATED: { label: 'Project Created', color: '#06b6d4', icon: <FolderPlus size={13} /> },
+                  MAIL_SENT: { label: 'Email Sent', color: '#ec4899', icon: <Send size={13} /> },
                 };
                 const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
                 const user = item.performedByUser;
@@ -2808,37 +4516,247 @@ export default function LeadsPage() {
             /* ====================================================== */
             .lm-page {
               position: relative;
-              margin: 0 -24px;
-              background: var(--bg-primary);
-              min-height: calc(100vh - 64px);
+              background: var(--bg-pure-white);
+              height: calc(100vh - 64px);
+              overflow: hidden;
             }
             .lm-ambient {
-              position: absolute;
-              top: 0; left: 0; right: 0;
-              height: 320px;
-              pointer-events: none;
-              background:
-                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.07), transparent 60%),
-                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.05), transparent 60%);
-              z-index: 0;
+              display: none;
             }
-            [data-theme='dark'] .lm-ambient {
-              background:
-                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
-                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.08), transparent 60%);
+            
+            /* Custom Table Footer */
+            .lm-bottom-bar {
+              display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+              padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
             }
+            .lm-bottom-bar--sticky {
+              position: sticky; bottom: 0; z-index: 30; padding: 12px 14px 12px 32px;
+              margin: 16px 0 0 -18px;
+              background: var(--bg-pure-white);
+              border-top: 1px solid var(--border-slate-200);
+              box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            }
+            .lm-bottom-info { font-size: 12px; color: var(--text-slate-500); }
+            .lm-bottom-info strong { color: var(--text-slate-700); font-weight: 700; }
+            .lm-bottom-sel { color: #3B82F6; font-weight: 600; }
+            .lm-pager { display: flex; align-items: center; gap: 3px; }
+            .lm-pager-btn, .lm-pager-num {
+              min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+            }
+            .lm-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+            .lm-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+            .lm-pagesize { margin-left: 5px; }
+            .lm-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
             .lm-body {
               position: relative;
               z-index: 1;
-              padding: 8px 32px 40px 32px;
+              padding: 10px 0 20px 0;
+            }
+
+            /* ---------- Shell (sidebar + main) ---------- */
+            .lm-shell {
+              display: flex;
+              margin: 0 -16px;
+              height: 100%;
+              background: var(--bg-pure-white);
+            }
+            .lm-main {
+              flex: 1;
+              min-width: 0;
+              padding: 8px 18px 0;
+              display: flex;
+              flex-direction: column;
+              height: 100%;
+            }
+            .lm-body {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
+            }
+
+            .lm-sidebar {
+              width: 240px;
+              flex-shrink: 0;
+              border-right: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white);
+              display: flex;
+              flex-direction: column;
+              position: sticky;
+              top: 0;
+              height: calc(100vh - 64px);
+            }
+            .lm-sidebar-top {
+              padding: 14px 14px 12px 18px;
+              border-bottom: 1px solid var(--border-slate-200);
+            }
+            .lm-side-head {
+              display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+            }
+            .lm-side-logo {
+              flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            }
+            .lm-side-logo .anticon, .lm-side-logo svg { font-size: 24px !important; color: var(--text-slate-900) !important; width: 24px; height: 24px; }
+            .lm-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+            .lm-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+            .lm-side-subtitle {
+              font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+              text-transform: uppercase; letter-spacing: 0.07em;
+            }
+            .lm-create-btn {
+              height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+              background: #3B82F6 !important;
+              border: none !important; box-shadow: none !important;
+              margin-bottom: 4px;
+            }
+            .lm-create-btn:hover { background: #2563EB !important; }
+            .lm-create-btn .anticon, .lm-create-btn svg { font-size: 12px !important; width: 12px; height: 12px; }
+            .lm-side-scroll {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
+              overflow-x: hidden;
+              padding: 10px 10px 6px 16px;
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            .lm-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+            .lm-side-section-label {
+              font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+              color: var(--text-slate-400); padding: 12px 8px 0; margin: 16px 0 6px;
+              border-top: 1px solid var(--border-slate-200);
+            }
+            .lm-side-scroll > .lm-side-section-label:first-child { margin-top: 6px; border-top: none; padding-top: 0; }
+            .lm-side-list { display: flex; flex-direction: column; gap: 1px; }
+            .lm-view-item {
+              display: flex; align-items: center; gap: 10px; width: 100%;
+              padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+              cursor: pointer; transition: background .12s ease; text-align: left;
+            }
+            .lm-view-item:hover { background: var(--bg-slate-50); }
+            .lm-view-item.is-active { background: var(--bg-blue-50); }
+            .lm-view-item.is-active .lm-view-label { color: var(--text-slate-900); font-weight: 600; }
+            .lm-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+            .lm-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+            .lm-view-count {
+              font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+              min-width: 18px; text-align: right;
+            }
+            .lm-view-item.is-active .lm-view-count {
+              color: #3B82F6; font-weight: 700;
+              background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+            }
+            .lm-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+            .lm-side-sd { border-radius: 0 !important; }
+            .lm-clear-filters {
+              display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+              background: none; border: none; cursor: pointer; padding: 3px;
+              font-size: 12px; font-weight: 600; color: #ef4444;
+            }
+
+            .lm-topbar {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding-bottom: 20px;
+            }
+            .lm-kbd {
+              font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+              background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+              border-radius: 5px; padding: 1px 6px;
+            }
+
+            /* ---------- Compact toolbar above the table ---------- */
+            .lm-table-toolbar {
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              padding: 8px 12px;
+              margin-bottom: 14px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 10px;
+            }
+            .lm-toolbar-count {
+              font-size: 12.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+            .lm-toolbar-count b {
+              color: var(--text-slate-900);
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-toolbar-spacer { flex: 1 1 auto; }
+            .lm-table-toolbar .lm-toolbar-filters-btn.ant-btn,
+            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions .lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions button.lm-toolbar-filters-btn.ant-btn {
+              width: auto !important;
+              min-width: 0 !important;
+              padding: 0 12px !important;
+              gap: 6px !important;
+              font-size: 12.5px !important;
+              font-weight: 600 !important;
+              color: var(--text-slate-700) !important;
+              white-space: nowrap !important;
+              flex-shrink: 0 !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn:hover,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn:hover {
+              background: var(--bg-slate-100) !important;
+              border-color: var(--border-slate-200) !important;
+            }
+            .lm-toolbar-sort-current {
+              color: var(--text-slate-900);
+              font-weight: 700;
+            }
+            .lm-table-toolbar {
+              flex-wrap: wrap;
+            }
+            .lm-toolbar-pill {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 18px;
+              height: 18px;
+              padding: 0 5px;
+              margin-left: 4px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.14);
+              color: #4f46e5;
+              font-size: 10px;
+              font-weight: 800;
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-toolbar-popover .ant-popover-inner {
+              border-radius: 0 !important;
+            }
+            .lm-filters-popover-body {
+              width: 260px;
+            }
+
+            /* Dark theme — small refinements (most colors handled by CSS vars) */
+            [data-theme='dark'] .lm-side-row:hover {
+              background: rgba(255, 255, 255, 0.04);
+            }
+            [data-theme='dark'] .lm-side-row.is-active {
+              background: rgba(99, 102, 241, 0.18);
+              color: #a5b4fc;
+            }
+            [data-theme='dark'] .lm-side-row.is-active .lm-side-row-count {
+              color: #a5b4fc;
             }
 
             /* ---------- Header buttons / search ---------- */
             .lm-search-input.ant-input-affix-wrapper {
-              width: 280px !important;
               height: 38px !important;
               border-radius: 10px !important;
-              background: var(--bg-slate-50) !important;
+              background: transparent !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all .2s ease;
             }
@@ -2889,8 +4807,8 @@ export default function LeadsPage() {
             .lm-stat-grid {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 16px;
-              margin-bottom: 22px;
+              gap: 12px;
+              margin-bottom: 14px;
             }
             @media (max-width: 1100px) {
               .lm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2902,17 +4820,12 @@ export default function LeadsPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 14px;
-              padding: 14px 16px 14px;
+              border-radius: 0;
+              padding: 10px 12px 10px;
               overflow: hidden;
-              transition: transform .25s cubic-bezier(.2,.8,.2,1),
-                          box-shadow .25s cubic-bezier(.2,.8,.2,1),
-                          border-color .25s ease;
-              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+              transition: border-color .15s ease;
             }
             .lm-stat-card:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
               border-color: var(--border-slate-200);
             }
             .lm-stat-card:hover .lm-stat-accent { opacity: 1; }
@@ -2927,22 +4840,24 @@ export default function LeadsPage() {
             .lm-stat-head {
               display: flex;
               align-items: center;
-              gap: 10px;
+              gap: 8px;
               min-width: 0;
             }
             .lm-stat-icon {
-              width: 32px; height: 32px;
-              border-radius: 9px;
+              width: 24px; height: 24px;
+              border-radius: 7px;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
             }
+            .lm-stat-icon svg { width: 13px; height: 13px; }
             .lm-stat-label {
               flex: 1;
               min-width: 0;
-              font-size: 13px;
-              font-weight: 600;
-              color: var(--text-slate-700);
-              letter-spacing: -0.005em;
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-500);
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -2950,14 +4865,14 @@ export default function LeadsPage() {
             .lm-stat-value-wrap {
               display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 6px;
               flex-shrink: 0;
             }
             .lm-stat-value {
-              font-size: 22px;
+              font-size: 18px;
               font-weight: 800;
               color: var(--text-slate-900);
-              letter-spacing: -0.025em;
+              letter-spacing: -0.02em;
               line-height: 1;
               font-variant-numeric: tabular-nums;
             }
@@ -2977,17 +4892,20 @@ export default function LeadsPage() {
             .lm-trend-value { letter-spacing: 0.01em; }
             .lm-stat-subtle {
               display: block;
-              font-size: 11.5px;
+              font-size: 10.5px;
               color: var(--text-slate-500);
-              margin-top: 8px;
-              padding-left: 42px;
+              margin-top: 4px;
+              padding-left: 32px;
               font-weight: 500;
-              line-height: 1.4;
+              line-height: 1.35;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .lm-stat-chart {
-              margin-top: 10px;
-              padding-top: 10px;
-              padding-left: 42px;
+              margin-top: 6px;
+              padding-top: 6px;
+              padding-left: 32px;
               border-top: 1px dashed var(--border-slate-100);
             }
 
@@ -3229,27 +5147,38 @@ export default function LeadsPage() {
             .lm-table-card {
               position: relative;
               background: var(--bg-pure-white);
-              border-radius: 16px;
-              border: 1px solid var(--border-slate-100);
+              border-radius: 0;
+              border: 1px solid var(--border-slate-200);
               overflow: hidden;
-              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+            }
+            /* Hide horizontal scrollbar but keep scroll functionality */
+            .lm-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+            .lm-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+              display: none !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-content,
+            .lm-table.ant-table-wrapper .ant-table-body {
+              -ms-overflow-style: none !important;
+              scrollbar-width: none !important;
             }
             .lm-table.ant-table-wrapper .ant-table {
               background: transparent !important;
+              font-size: 12px;
             }
             .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
               background: var(--bg-slate-50) !important;
-              color: var(--text-slate-500) !important;
+              color: var(--text-slate-400) !important;
               font-weight: 700 !important;
               text-transform: uppercase !important;
-              font-size: 10.5px !important;
-              letter-spacing: 0.08em !important;
-              padding: 14px 16px !important;
-              border-bottom: 1px solid var(--border-slate-100) !important;
+              font-size: 10px !important;
+              letter-spacing: 0.04em !important;
+              padding: 6px 10px !important;
+              border-bottom: 1px solid var(--border-slate-200) !important;
+              white-space: nowrap !important;
             }
             .lm-table.ant-table-wrapper .ant-table-thead > tr > th::before { display: none !important; }
             .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 16px 16px !important;
+              padding: 6.5px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
               transition: background .15s ease;
               position: relative;
@@ -3261,7 +5190,7 @@ export default function LeadsPage() {
               top: 0;
               bottom: 0;
               width: 3px;
-              background: linear-gradient(180deg, #6366f1, #8b5cf6);
+              background: linear-gradient(180deg, #3b82f6, #2563eb);
               opacity: 0;
               transition: opacity .2s ease;
               pointer-events: none;
@@ -3280,6 +5209,23 @@ export default function LeadsPage() {
             }
             .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td:nth-child(2)::before {
               opacity: 1;
+            }
+
+            /* Fixed column background overrides (Light Mode) */
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+              background: var(--bg-pure-white) !important;
+            }
+            .lm-table.ant-table-wrapper .lm-row:hover > td.ant-table-cell-fix-right {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.1) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+              background: var(--bg-slate-50) !important;
             }
 
             /* Selection checkbox column */
@@ -3334,6 +5280,23 @@ export default function LeadsPage() {
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
               background: rgba(99, 102, 241, 0.12) !important;
             }
+
+            /* Fixed column background overrides (Dark Mode) */
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .lm-row:hover > td.ant-table-cell-fix-right {
+              background: var(--bg-primary) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.12) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.18) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+              background: var(--bg-primary) !important;
+            }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-checkbox-wrapper .ant-checkbox-inner {
               background: var(--bg-primary) !important;
               border-color: #30363d !important;
@@ -3376,13 +5339,14 @@ export default function LeadsPage() {
 
             /* Filter selects */
             .lm-filter-select.ant-select .ant-select-selector {
-              height: 32px !important;
-              border-radius: 8px !important;
+              height: 38px !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
-              background: var(--bg-slate-50) !important;
-              padding: 0 10px !important;
+              background: transparent !important;
+              padding: 0 12px !important;
               display: flex; align-items: center;
-              font-size: 12.5px;
+              font-size: 13px;
+              font-weight: 600;
             }
             .lm-filter-select.ant-select:hover .ant-select-selector {
               border-color: rgba(99, 102, 241, 0.35) !important;
@@ -3390,13 +5354,13 @@ export default function LeadsPage() {
             .lm-filter-select.ant-select-focused .ant-select-selector {
               border-color: #6366f1 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
             }
             .lm-filter-select .ant-select-selection-placeholder,
             .lm-filter-select .ant-select-selection-item {
-              line-height: 30px !important;
-              font-size: 12.5px;
-              font-weight: 500;
+              line-height: 36px !important;
+              font-size: 13px;
+              font-weight: 600;
             }
             .lm-filter-status-chip {
               display: inline-block;
@@ -3410,10 +5374,15 @@ export default function LeadsPage() {
 
             /* Date range picker */
             .lm-filter-date.ant-picker {
-              height: 32px !important;
-              border-radius: 8px !important;
+              height: 38px !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
-              background: var(--bg-slate-50) !important;
+              background: transparent !important;
+              padding: 0 12px !important;
+            }
+            .lm-filter-date.ant-picker .ant-picker-input > input {
+              font-weight: 600;
+              font-size: 13px;
             }
             .lm-filter-date.ant-picker:hover {
               border-color: rgba(99, 102, 241, 0.35) !important;
@@ -3449,7 +5418,7 @@ export default function LeadsPage() {
               height: 32px !important;
               width: 32px !important;
               padding: 0 !important;
-              border-radius: 8px !important;
+              border-radius: 4px !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-500) !important;
@@ -3535,18 +5504,18 @@ export default function LeadsPage() {
             .lm-creator-cell {
               display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 6px;
               min-width: 0;
             }
             .lm-creator-avatar {
-              width: 26px; height: 26px;
-              border-radius: 8px;
+              width: 20px; height: 20px;
+              border-radius: 6px;
               color: #fff;
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              font-size: 10.5px;
-              font-weight: 800;
+              font-size: 9px;
+              font-weight: 700;
               letter-spacing: 0.02em;
               flex-shrink: 0;
             }
@@ -3555,9 +5524,9 @@ export default function LeadsPage() {
               min-width: 0;
             }
             .lm-creator-name {
-              font-size: 12.5px;
-              font-weight: 600;
-              color: var(--text-slate-900);
+              font-size: 11.5px;
+              font-weight: 500;
+              color: var(--text-slate-700);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -3690,7 +5659,7 @@ export default function LeadsPage() {
               padding: 0;
               cursor: pointer;
               color: #4f46e5;
-              font-size: 11.5px;
+              font-size: 14px;
               font-weight: 700;
               font-family: inherit;
             }
@@ -3703,17 +5672,13 @@ export default function LeadsPage() {
 
             /* Density — vertical row padding inside the table card */
             .lm-table-card[data-density='compact'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 8px 14px !important;
+              padding: 6px 12px !important;
             }
             .lm-table-card[data-density='comfortable'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 14px 16px !important;
+              padding: 12px 14px !important;
             }
             .lm-table-card[data-density='spacious'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 20px 18px !important;
-            }
-            /* Avatar / row visual scales down a bit on compact */
-            .lm-table-card[data-density='compact'] .lead-avatar {
-              transform: scale(0.92);
+              padding: 18px 16px !important;
             }
 
             [data-theme='dark'] .lm-table-settings-btn.ant-btn {
@@ -4680,10 +6645,680 @@ export default function LeadsPage() {
               background: rgba(99, 102, 241, 0.1) !important;
               border-color: rgba(99, 102, 241, 0.3) !important;
             }
-            [data-theme='dark'] .premium-input {
+             [data-theme='dark'] .premium-input {
               background: #0d1117 !important;
               border-color: #30363d !important;
               color: #c9d1d9 !important;
+            }
+
+            @media (max-width: 820px) {
+              .lm-shell {
+                flex-direction: column;
+              }
+              .lm-sidebar {
+                position: sticky;
+                top: 0;
+                z-index: 90;
+                height: auto;
+                max-height: none;
+                border-right: 0;
+                border-bottom: 1px solid var(--border-slate-200);
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px 16px;
+                background: var(--bg-pure-white);
+                overflow: hidden;
+                width: 100%;
+                box-sizing: border-box;
+              }
+              .lm-sidebar-top {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0;
+                border-bottom: 0;
+              }
+              .lm-side-head {
+                margin-bottom: 0;
+              }
+              .lm-create-btn {
+                margin-bottom: 0;
+              }
+              .lm-side-scroll {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 0 0 0;
+                margin-top: 10px;
+                border-top: 1px solid var(--border-slate-100);
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                width: 100%;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+              .lm-side-scroll::-webkit-scrollbar {
+                display: none;
+              }
+              .lm-side-section + .lm-side-section {
+                border-top: 1px solid var(--border-slate-100) !important;
+                padding-top: 10px !important;
+                margin-top: 4px !important;
+                width: 100%;
+              }
+              .lm-side-section::-webkit-scrollbar {
+                display: none;
+              }
+              .lm-side-section-label {
+                display: none;
+              }
+              .lm-side-list {
+                display: flex;
+                flex-direction: row;
+                gap: 6px;
+              }
+              .lm-view-item {
+                width: auto !important;
+                flex-shrink: 0;
+                margin: 0 !important;
+                height: 32px;
+                padding: 0 10px;
+                border-radius: 6px;
+              }
+              .lm-main {
+                padding: 10px 16px 16px 16px;
+              }
+              .lm-topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+              }
+              .lm-topbar-actions {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+              }
+              .lm-search-input.ant-input-affix-wrapper {
+                width: 100% !important;
+              }
+            }
+
+            @media (max-width: 640px) {
+              .lm-grid {
+                grid-template-columns: 1fr;
+              }
+            }
+
+            .lm-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+              margin-bottom: 24px;
+            }
+            .lm-card {
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-200);
+              border-radius: 0px;
+              padding: 12px 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              cursor: pointer;
+              transition: all 0.2s ease;
+            }
+            .lm-card:hover {
+              box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+              border-color: #cbd5e1;
+            }
+            .lm-card-head {
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+            }
+            .lm-card-avatar {
+              width: 36px;
+              height: 36px;
+              border-radius: 10px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+              font-size: 14px;
+              flex-shrink: 0;
+            }
+            .lm-card-title-group {
+              flex: 1;
+              min-width: 0;
+              display: flex;
+              flex-direction: column;
+            }
+            .lm-card-title {
+              margin: 0;
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--text-slate-900);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .lm-card-subtitle {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+            }
+            .lm-card-actions {
+              margin-left: auto;
+              margin-top: -4px;
+              margin-right: -4px;
+            }
+            .lm-card-body {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .lm-card-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 12.5px;
+              color: var(--text-slate-600);
+            }
+            .lm-card-text {
+              flex: 1;
+              min-width: 0;
+            }
+            .lm-card-details {
+              display: flex;
+              flex-direction: column;
+              gap: 0;
+            }
+            .lm-card-detail-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 7px 0;
+              border-bottom: 1px solid var(--border-slate-50);
+            }
+            .lm-card-detail-row:last-child {
+              border-bottom: none;
+            }
+            .lm-card-detail-label {
+              font-size: 11.5px;
+              font-weight: 600;
+              color: var(--text-slate-400);
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              flex-shrink: 0;
+              min-width: 60px;
+            }
+            .lm-card-footer {
+              margin-top: auto;
+              padding-top: 12px;
+              border-top: 1px solid var(--border-slate-100);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+            }
+            .lm-card-action-btns {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              flex-wrap: wrap;
+            }
+            .lm-card-action-btn {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 4px 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white);
+              font-size: 11.5px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.15s ease;
+              white-space: nowrap;
+            }
+            .lm-card-action-btn:hover {
+              background: var(--bg-slate-50);
+              border-color: currentColor;
+            }
+            .lm-card-tags {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              flex-wrap: wrap;
+            }
+            .lm-card-date {
+              font-size: 11px;
+              color: var(--text-slate-400);
+              font-weight: 500;
+              white-space: nowrap;
+            }
+            .lm-grid-pagination {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 24px;
+            }
+            .lm-segmented {
+              display: flex;
+              align-items: center;
+              background: var(--bg-slate-50);
+              padding: 4px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-200);
+              gap: 4px;
+            }
+            .lm-segmented button {
+              background: transparent;
+              border: none;
+              border-radius: 6px;
+              padding: 4px 10px;
+              color: var(--text-slate-500);
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s;
+            }
+            .lm-segmented button:hover {
+              color: var(--text-slate-800);
+            }
+            .lm-segmented button.is-active {
+              background: var(--bg-pure-white);
+              color: #6366f1;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              font-weight: 600;
+            }
+
+            /* ===================== Pre-flight Proposal Info Modal ===================== */
+            .biq-pinfo-modal .ant-modal-content {
+              padding: 0 !important;
+              border-radius: 16px !important;
+              border: 1px solid var(--border-slate-100);
+              overflow: hidden;
+              background: var(--bg-pure-white);
+              box-shadow: none !important;
+            }
+            .biq-pinfo-modal .ant-modal-body { padding: 0 !important; }
+
+            .biq-pinfo-content { display: flex; flex-direction: column; }
+
+            .biq-pinfo-head {
+              display: flex; align-items: flex-start;
+              gap: 14px;
+              padding: 22px 24px 18px;
+              position: relative;
+              border-bottom: 1px solid var(--border-slate-100);
+            }
+            .biq-pinfo-icon {
+              width: 44px; height: 44px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              color: #fff;
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .biq-pinfo-head-text { flex: 1; min-width: 0; padding-right: 40px; }
+            .biq-pinfo-eyebrow {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 3px 8px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.08);
+              color: #4f46e5;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              margin-bottom: 8px;
+            }
+            .biq-pinfo-title {
+              margin: 0 0 4px;
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.015em;
+            }
+            .biq-pinfo-sub {
+              margin: 0;
+              font-size: 12.5px;
+              color: var(--text-slate-500);
+              line-height: 1.5;
+            }
+            .biq-pinfo-close {
+              position: absolute;
+              top: 16px; right: 16px;
+              width: 30px; height: 30px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-100);
+              background: var(--bg-pure-white);
+              color: var(--text-slate-500);
+              cursor: pointer;
+              display: flex; align-items: center; justify-content: center;
+              transition: color .15s ease, border-color .15s ease;
+            }
+            .biq-pinfo-close:hover {
+              color: var(--text-slate-900);
+              border-color: var(--border-slate-200);
+            }
+            .biq-pinfo-close:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+
+            /* Step indicator */
+            .biq-pinfo-steps {
+              display: flex; align-items: center; gap: 8px;
+              margin-top: 10px;
+            }
+            .biq-pinfo-step {
+              display: inline-flex; align-items: center; gap: 6px;
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-400);
+              letter-spacing: 0.02em;
+              transition: color .15s ease;
+            }
+            .biq-pinfo-step-dot {
+              width: 18px; height: 18px;
+              border-radius: 999px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-100);
+              color: var(--text-slate-500);
+              display: inline-flex; align-items: center; justify-content: center;
+              font-size: 10px;
+              font-weight: 800;
+              line-height: 1;
+            }
+            .biq-pinfo-step.is-active { color: var(--text-slate-900); }
+            .biq-pinfo-step.is-active .biq-pinfo-step-dot {
+              background: #4f46e5;
+              border-color: #4f46e5;
+              color: #fff;
+            }
+            .biq-pinfo-step.is-done { color: #047857; }
+            .biq-pinfo-step.is-done .biq-pinfo-step-dot {
+              background: rgba(16, 185, 129, 0.12);
+              border-color: rgba(16, 185, 129, 0.25);
+              color: #047857;
+            }
+            .biq-pinfo-step-sep {
+              width: 28px;
+              height: 1px;
+              background: var(--border-slate-100);
+            }
+
+            /* Options slot inside the shell */
+            .biq-pinfo-options {
+              padding: 18px 24px 0;
+            }
+            .biq-pinfo-options .biq-pinfo-caps-head {
+              margin-bottom: 12px;
+            }
+            .biq-pinfo-options .biq-opt-note {
+              margin-top: 12px;
+            }
+
+            .biq-pinfo-snapshot {
+              margin: 18px 24px 0;
+              padding: 14px 16px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              background: var(--bg-slate-50);
+            }
+            .biq-pinfo-snapshot-head {
+              display: inline-flex; align-items: center; gap: 5px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 8px;
+            }
+            .biq-pinfo-snapshot-title {
+              font-size: 14px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              margin-bottom: 12px;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .biq-pinfo-snapshot-grid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 10px 14px;
+            }
+            @media (max-width: 560px) {
+              .biq-pinfo-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
+            .biq-pinfo-snapshot-item {
+              display: flex; flex-direction: column; gap: 3px;
+              min-width: 0;
+            }
+            .biq-pinfo-snapshot-label {
+              display: inline-flex; align-items: center; gap: 4px;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+            }
+            .biq-pinfo-snapshot-value {
+              font-size: 13px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              font-variant-numeric: tabular-nums;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .biq-pinfo-caps { padding: 18px 24px 0; }
+            .biq-pinfo-caps-head {
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 12px;
+            }
+            .biq-pinfo-caps-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            }
+            @media (max-width: 560px) {
+              .biq-pinfo-caps-grid { grid-template-columns: 1fr; }
+            }
+            .biq-pinfo-cap {
+              display: flex; align-items: flex-start; gap: 10px;
+              padding: 12px 14px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 11px;
+              background: var(--bg-pure-white);
+              transition: border-color .15s ease;
+            }
+            .biq-pinfo-cap:hover {
+              border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
+            }
+            .biq-pinfo-cap-icon {
+              width: 28px; height: 28px;
+              border-radius: 8px;
+              background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
+              color: var(--cap-accent);
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .biq-pinfo-cap-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+            .biq-pinfo-cap-title {
+              font-size: 12.5px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+            }
+            .biq-pinfo-cap-text {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              line-height: 1.45;
+            }
+
+            .biq-pinfo-footer {
+              display: flex; align-items: center; justify-content: space-between;
+              gap: 10px;
+              padding: 18px 24px 22px;
+              margin-top: 18px;
+              border-top: 1px solid var(--border-slate-100);
+              flex-wrap: wrap;
+            }
+            .biq-pinfo-footnote {
+              display: inline-flex; align-items: center; gap: 6px;
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+            .biq-pinfo-footnote svg { color: #10b981; }
+            .biq-pinfo-footer-actions { display: flex; gap: 8px; }
+
+            .biq-opt-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 12px;
+            }
+            @media (max-width: 640px) {
+              .biq-opt-grid { grid-template-columns: 1fr; }
+            }
+            .biq-opt-card {
+              position: relative;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              padding: 14px;
+              text-align: left;
+              cursor: pointer;
+              transition: border-color .15s ease, background .15s ease;
+              font-family: inherit;
+              display: flex; flex-direction: column; gap: 10px;
+            }
+            .biq-opt-card:hover {
+              border-color: rgba(99, 102, 241, 0.35);
+            }
+            .biq-opt-card.is-selected {
+              border-color: #6366f1;
+              background: rgba(99, 102, 241, 0.04);
+            }
+            .biq-opt-card-head {
+              display: flex; align-items: center; justify-content: space-between;
+            }
+            .biq-opt-tag {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 3px 9px;
+              border-radius: 999px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              border: 1px solid;
+            }
+            .biq-opt-tag-client {
+              background: rgba(14, 165, 233, 0.08);
+              color: #0369a1;
+              border-color: rgba(14, 165, 233, 0.22);
+            }
+            .biq-opt-tag-custom {
+              background: rgba(139, 92, 246, 0.08);
+              color: #6d28d9;
+              border-color: rgba(139, 92, 246, 0.22);
+            }
+            .biq-opt-check { color: #4f46e5; }
+            .biq-opt-name {
+              font-size: 14px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+            }
+            .biq-opt-rows {
+              display: flex; flex-direction: column; gap: 6px;
+              padding: 10px 12px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 10px;
+            }
+            .biq-opt-row {
+              display: flex; justify-content: space-between; align-items: center;
+              font-size: 12.5px;
+            }
+            .biq-opt-row-l {
+              display: inline-flex; align-items: center; gap: 4px;
+              color: var(--text-slate-500);
+              font-weight: 600;
+            }
+            .biq-opt-row-v {
+              color: var(--text-slate-900);
+              font-weight: 700;
+            }
+            .biq-opt-fields { display: flex; flex-direction: column; gap: 10px; }
+            .biq-opt-field { display: flex; flex-direction: column; gap: 5px; }
+            .biq-opt-field label {
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-500);
+              letter-spacing: 0.02em;
+            }
+            .biq-opt-hint {
+              font-size: 11px;
+              color: var(--text-slate-500);
+              margin-top: 2px;
+            }
+            .biq-opt-foot {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+            }
+            .biq-opt-note {
+              display: flex; align-items: flex-start; gap: 8px;
+              padding: 11px 13px;
+              margin-top: 14px;
+              background: rgba(99, 102, 241, 0.06);
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              border-radius: 11px;
+              color: var(--text-slate-700);
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            .biq-opt-note svg { color: #4f46e5; margin-top: 3px; flex-shrink: 0; }
+            .biq-opt-note b { color: var(--text-slate-900); font-weight: 700; }
+
+            .biq-modal-footer {
+              display: flex; justify-content: flex-end;
+              gap: 8px;
+              margin-top: 16px;
+              padding-top: 16px;
+              border-top: 1px solid var(--border-slate-100);
+            }
+
+            [data-theme='dark'] .biq-pinfo-modal .ant-modal-content,
+            [data-theme='dark'] .biq-opt-card,
+            [data-theme='dark'] .biq-pinfo-cap,
+            [data-theme='dark'] .biq-pinfo-close {
+              background: var(--bg-secondary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .biq-pinfo-snapshot {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .biq-opt-rows {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-100);
             }
           `}} />
       </MainLayout>

@@ -1,30 +1,25 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
-  Typography,
   Button,
-  Table,
   Input,
   Form,
   InputNumber,
-  message,
   Row,
   Col,
   Switch,
-  notification,
   Tooltip,
   Spin,
   Drawer,
+  App,
   Popconfirm,
+  Dropdown,
 } from "antd";
 import {
   ShieldCheck,
   Edit,
   Plus,
-  Search,
   Layers,
   User,
   X,
@@ -32,20 +27,23 @@ import {
   Hash,
   Settings,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { useGrades, GradeViewData } from "@/hooks/useGrades";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
-import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
-
-const { Text } = Typography;
+import { OrgModuleScaffold, OrgStatDef, OrgView } from "@/components/org-structure/OrgModuleScaffold";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 export default function GradesPage() {
+  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureGrades" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade } = usePermission();
+  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade, canReadActivityLog } = usePermission();
 
   useEffect(() => {
     if (!authLoading && !canReadOrgGrade) {
@@ -58,7 +56,9 @@ export default function GradesPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message, modal } = App.useApp();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [view, setView] = useState<OrgView>("grid");
 
   const { dataSource, loading, addGrade, updateGrade, deleteGrade } = useGrades();
 
@@ -117,12 +117,7 @@ export default function GradesPage() {
   const handleDelete = async (id: string) => {
     const success = await deleteGrade(id);
     if (success) {
-      api.success({
-        message: "Grade Removed",
-        description: "The grade has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Grade removed successfully");
     }
   };
 
@@ -165,12 +160,13 @@ export default function GradesPage() {
 
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: editingKey ? "Grade Updated" : "Grade Added",
-          description: `Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        // api.success({
+        //   message: editingKey ? "Grade Updated" : "Grade Added",
+        //   description: `Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`,
+        //   placement: "topRight",
+        //   duration: 2,
+        // });
+        message.success(`Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`)
       }
     } catch (error) {
       setSubmitting(false);
@@ -179,13 +175,9 @@ export default function GradesPage() {
 
   if (authLoading) {
     return (
-      <ProtectedRoute>
-        <MainLayout>
-          <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <Spin size="large" tip="Loading Grades..." />
-          </div>
-        </MainLayout>
-      </ProtectedRoute>
+      <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" tip="Loading Grades..." />
+      </div>
     );
   }
 
@@ -195,7 +187,7 @@ export default function GradesPage() {
     {
       title: "Grade",
       key: "identity",
-      width: "30%",
+      width: 250,
       render: (_: any, record: GradeViewData) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code}</div>
@@ -225,6 +217,7 @@ export default function GradesPage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      width: 300,
       ellipsis: { showTitle: false },
       render: (description: string) => (
         <Tooltip placement="topLeft" title={description}>
@@ -275,111 +268,142 @@ export default function GradesPage() {
     },
   ];
 
+  const CARD_ACCENTS: [string, string][] = [
+    ["#3b82f6", "#2563eb"],
+    ["#10b981", "#059669"],
+    ["#64748b", "#475569"],
+  ];
+  const accentFor = (key: string): [string, string] => {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return CARD_ACCENTS[h % CARD_ACCENTS.length];
+  };
+
+  const stats: OrgStatDef[] = [
+    { key: "total", label: "Total Grades", value: totalGrades, icon: <Layers size={14} />, color: "#3b82f6", tint: "rgba(59,130,246,0.10)" },
+    { key: "active", label: "Active Grades", value: activeGrades, icon: <ShieldCheck size={14} />, color: "#10b981", tint: "rgba(16,185,129,0.10)" },
+    { key: "inactive", label: "Inactive Grades", value: inactiveGrades, icon: <User size={14} />, color: "#64748b", tint: "rgba(100,116,139,0.10)" },
+    { key: "top", label: "Top Tier", value: maxLevel ? `L${maxLevel}` : "—", icon: <Hash size={14} />, color: "#6366f1", tint: "rgba(99,102,241,0.10)" },
+  ];
+
+  const renderGradeCard = (record: GradeViewData) => {
+    const [c0, c1] = accentFor(record.code || record.name || "");
+    const canAct = canUpdateOrgGrade || canDeleteOrgGrade;
+    const menu = {
+      items: [
+        ...(canUpdateOrgGrade ? [{ key: "edit", label: "Edit grade", icon: <Edit size={14} /> }] : []),
+        ...(canDeleteOrgGrade ? [{ key: "delete", danger: true, label: "Delete", icon: <Trash2 size={14} /> }] : []),
+      ],
+      onClick: ({ key, domEvent }: any) => {
+        domEvent?.stopPropagation?.();
+        if (key === "edit") handleEdit(record);
+        else if (key === "delete") {
+          modal.confirm({
+            title: "Remove grade?",
+            content: "This will permanently delete this grade level.",
+            okText: "Delete",
+            cancelText: "Cancel",
+            okButtonProps: { danger: true },
+            onOk: () => handleDelete(record.key),
+          });
+        }
+      },
+    };
+    return (
+      <div className="omx-card">
+        <div className="omx-card-top">
+          <div className="omx-card-avatar" style={{ background: `linear-gradient(135deg, ${c0} 0%, ${c1} 100%)` }}>
+            {record.code}
+          </div>
+          <div className="omx-card-id">
+            <div className="omx-card-title">{record.name}</div>
+            <div className="omx-card-sub">{record.codes}</div>
+          </div>
+          {canAct && (
+            <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+              <button type="button" className="omx-card-actions" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal size={16} />
+              </button>
+            </Dropdown>
+          )}
+        </div>
+        <div className="omx-card-desc">{record.description || "No description provided"}</div>
+        <div className="omx-card-foot">
+          <span className={`omx-pill ${record.status === "Active" ? "is-active" : "is-inactive"}`}>
+            <span className="omx-pill-dot" />
+            {record.status}
+          </span>
+          <span className="omx-card-foot-key">{record.code}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <ProtectedRoute>
-      <MainLayout>
-        {contextHolder}
-        <div className="orgx-shell">
+    <>
+      {/* {contextHolder} */}
+      <div className="orgx-shell">
           <TimeTrackingHeader
             icon={<ShieldCheck size={20} color="#3b82f6" />}
             title="Grade Hierarchy"
             description="Define and manage organization grade levels and reporting tiers."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "8.5px 32px",
-              marginBottom: 20,
+              padding: "9.5px 32px",
+              marginBottom: 8,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
-              canCreateOrgGrade && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Grade
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canCreateOrgGrade && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Grade
+                  </Button>
+                )}
+              </div>
             }
           />
 
-          <div className="orgx-content">
-            {/* Stats */}
-            <div className="orgx-stat-grid">
-              <OrgStatCard
-                label="Total Grades"
-                value={totalGrades}
-                icon={<Layers size={14} />}
-                accent="#3b82f6"
-                subtle="Defined hierarchy levels"
-                loading={loading && totalGrades === 0}
-                chart={
-                  totalGrades > 0 ? (
-                    <OrgMiniBar
-                      segments={[
-                        { value: activeGrades, color: "#10b981", label: `${activeGrades} active` },
-                        { value: inactiveGrades, color: "#94a3b8", label: `${inactiveGrades} inactive` },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <OrgStatCard
-                label="Active Grades"
-                value={activeGrades}
-                icon={<ShieldCheck size={14} />}
-                accent="#10b981"
-                subtle={totalGrades > 0 ? `${Math.round((activeGrades / totalGrades) * 100)}% of all grades` : "No grades yet"}
-                loading={loading && totalGrades === 0}
-              />
-              <OrgStatCard
-                label="Inactive Grades"
-                value={inactiveGrades}
-                icon={<User size={14} />}
-                accent="#f59e0b"
-                subtle="Retired or paused"
-                loading={loading && totalGrades === 0}
-              />
-              {/*
-              <OrgStatCard
-                label="Top Tier"
-                value={`L${maxLevel}`}
-                icon={<Hash size={14} />}
-                accent="#8b5cf6"
-                subtle="Highest level reached"
-                loading={loading && totalGrades === 0}
-              />
-              */}
-            </div>
-
-            {/* Panel */}
-            <div className="orgx-panel">
-              <div className="orgx-toolbar">
-                <Input
-                  className="orgx-search"
-                  prefix={<Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />}
-                  placeholder="Search by name, code, or level…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  allowClear
-                />
-                <div className="orgx-toolbar__divider" />
-                <Text className="orgx-count-text">
-                  <strong>{filteredData.length}</strong> of {totalGrades}
-                </Text>
-              </div>
-
-              <Table
-                className="orgx-table"
-                rowKey="key"
-                columns={columns}
-                dataSource={filteredData}
-                loading={loading}
-                size="middle"
-                pagination={{ pageSize: 12, position: ["bottomRight"] }}
-              />
-            </div>
-          </div>
+          <OrgModuleScaffold<GradeViewData>
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search by name, code, or slug…"
+            meta={<><strong>{filteredData.length}</strong> of {totalGrades} grades</>}
+            view={view}
+            onViewChange={setView}
+            loading={loading}
+            stats={stats}
+            columns={columns}
+            data={filteredData}
+            rowKey="key"
+            renderCard={renderGradeCard}
+            emptyTitle="No grades found"
+            emptySubtitle="Define your first grade level to build the hierarchy."
+            emptyAction={
+              canCreateOrgGrade ? (
+                <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
+                  New Grade
+                </Button>
+              ) : undefined
+            }
+          />
 
           {/* Create / Edit Drawer */}
           <Drawer
@@ -510,7 +534,11 @@ export default function GradesPage() {
             </div>
           </Drawer>
         </div>
-      </MainLayout>
-    </ProtectedRoute>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
+    </>
   );
 }

@@ -10,7 +10,7 @@ import {
   Select,
   DatePicker,
   InputNumber,
-  notification,
+  message,
   Tooltip,
   Popconfirm,
   Empty,
@@ -193,7 +193,7 @@ export default function MeetingsTab({
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Toolbar state
   const [searchTerm, setSearchTerm] = useState("");
@@ -207,10 +207,7 @@ export default function MeetingsTab({
       const data = await momService.listForClient(clientId);
       setItems(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load meetings",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load meetings: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -243,10 +240,10 @@ export default function MeetingsTab({
   const handleDeleteRow = async (id: string) => {
     try {
       await momService.remove(id);
-      notify.success({ message: "Meeting deleted", placement: "top" });
+      messageApi.success("Meeting deleted");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
@@ -726,7 +723,7 @@ export default function MeetingsTab({
           //   ),
           // },
           {
-            title: "",
+            title: "Actions",
             key: "actions",
             width: 110,
             align: "right" as const,
@@ -826,13 +823,13 @@ export default function MeetingsTab({
         projects={projects}
         contacts={contacts}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
       {/* Detail drawer */}
       <MomDetailDrawer
         id={openId}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -868,31 +865,6 @@ export default function MeetingsTab({
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
-        }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .meetings-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .meetings-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .meetings-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .meetings-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .meetings-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
           }
         }
       `}} />
@@ -1184,7 +1156,7 @@ function CreateMeetingModal({
   projects,
   contacts,
   c,
-  notify,
+  messageApi,
   editingId,
 }: {
   open: boolean;
@@ -1194,7 +1166,7 @@ function CreateMeetingModal({
   projects: { id: string; name: string; code?: string | null }[];
   contacts: ClientContactOption[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
   editingId?: string | null;
 }) {
   const isEdit = !!editingId;
@@ -1253,10 +1225,7 @@ function CreateMeetingModal({
           );
         })
         .catch((err: any) => {
-          notify.error({
-            message: "Could not load meeting",
-            description: err?.message,
-          });
+          messageApi.error(`Could not load meeting: ${err?.message}`);
           onClose();
         })
         .finally(() => setLoadingDetail(false));
@@ -1272,7 +1241,7 @@ function CreateMeetingModal({
 
   const submit = async (values: any) => {
     if (!values.title?.trim()) {
-      notify.error({ message: "Title is required" });
+      messageApi.error("Title is required");
       return;
     }
     setSubmitting(true);
@@ -1300,17 +1269,16 @@ function CreateMeetingModal({
       };
       if (isEdit && editingId) {
         await momService.update(editingId, payload);
-        notify.success({ message: "Meeting updated" });
+        messageApi.success("Meeting updated");
       } else {
         await momService.create(clientId, payload);
-        notify.success({ message: "Meeting logged" });
+        messageApi.success("Meeting logged");
       }
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: isEdit ? "Could not update meeting" : "Could not log meeting",
-        description: err?.message,
-      });
+      messageApi.error(
+        `${isEdit ? "Could not update meeting" : "Could not log meeting"}: ${err?.message}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -1613,7 +1581,7 @@ function CreateMeetingModal({
             c={c}
             value={attachments}
             onChange={setAttachments}
-            notify={notify}
+            messageApi={messageApi}
           />
         </ModalSection>
       </Form>
@@ -1876,12 +1844,12 @@ function AttachmentsEditor({
   c,
   value,
   onChange,
-  notify,
+  messageApi,
 }: {
   c: ReturnType<typeof palette>;
   value: MomAttachmentInput[];
   onChange: (next: MomAttachmentInput[]) => void;
-  notify: any;
+  messageApi: any;
 }) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [adding, setAdding] = useState<null | "link">(null);
@@ -1892,7 +1860,7 @@ function AttachmentsEditor({
     if (!files) return;
     Array.from(files).forEach((f) => {
       if (f.size > 25 * 1024 * 1024) {
-        notify.error({ message: `${f.name} exceeds 25 MB` });
+        messageApi.error(`${f.name} exceeds 25 MB`);
         return;
       }
       const reader = new FileReader();
@@ -1927,26 +1895,18 @@ function AttachmentsEditor({
     try {
       const parsed = new URL(candidate);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        notify.error({
-          message: "Only http(s) links are supported",
-        });
+        messageApi.error("Only http(s) links are supported");
         return;
       }
       // The URL constructor is too lenient — "https://Project Overview"
       // parses successfully because spaces are allowed in the path. Require
       // a hostname with a dot (real TLD) so labels can't masquerade as URLs.
       if (!parsed.hostname.includes(".")) {
-        notify.error({
-          message: "That doesn't look like a valid URL",
-          description: "URL must include a real domain (e.g. example.com)",
-        });
+        messageApi.error("That doesn't look like a valid URL: URL must include a real domain (e.g. example.com)");
         return;
       }
     } catch {
-      notify.error({
-        message: "That doesn't look like a valid URL",
-        description: cleaned,
-      });
+      messageApi.error(`That doesn't look like a valid URL: ${cleaned}`);
       return;
     }
 
@@ -2371,13 +2331,13 @@ function AttachmentViewerCard({ a, c, onView, onDownload }: any) {
 function MomDetailDrawer({
   id,
   c,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
   id: string | null;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
@@ -2407,7 +2367,7 @@ function MomDetailDrawer({
     try {
       setMom(await momService.detail(id));
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -2426,10 +2386,7 @@ function MomDetailDrawer({
       await momService.updateActionItemStatus(itemId, status);
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Update failed",
-        description: err?.message,
-      });
+      messageApi.error(`Update failed: ${err?.message}`);
     }
   };
 
@@ -2441,17 +2398,13 @@ function MomDetailDrawer({
         priority: "medium",
         category: "support",
       });
-      notify.success({
-        message: `Converted to ${r.ticketNumber}`,
-        description: "The action item is now a ticket visible in the client portal.",
-      });
+      messageApi.success(
+        `Converted to ${r.ticketNumber}: The action item is now a ticket visible in the client portal.`
+      );
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({
-        message: "Conversion failed",
-        description: err?.message,
-      });
+      messageApi.error(`Conversion failed: ${err?.message}`);
     } finally {
       setConvertingId(null);
     }
@@ -2461,11 +2414,11 @@ function MomDetailDrawer({
     if (!mom) return;
     try {
       await momService.remove(mom.id);
-      notify.success({ message: "Meeting deleted" });
+      messageApi.success("Meeting deleted");
       onMutated();
       onClose();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 

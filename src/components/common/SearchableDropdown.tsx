@@ -306,7 +306,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   justify-content: space-between;
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 5px 12px;
   height: 42px;
   min-width: 150px;
@@ -324,12 +324,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   background: var(--bg-slate-50, #f8fafc);
 }
 .sd-trigger.is-active {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: #3b82f6;
+  background: #faf9ff;
 }
 .sd-trigger.is-open {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(68, 131, 232, 0.12);
 }
 .sd-trigger.is-disabled {
   opacity: 0.55;

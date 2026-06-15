@@ -145,7 +145,7 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
             deltaText: yesterdaySec > 0 ? `${todaySec > yesterdaySec ? '+' : ''}${Math.round((todaySec - yesterdaySec) / yesterdaySec * 100)}%` : null,
             deltaColor: todaySec >= yesterdaySec ? '#10b981' : '#f43f5e',
             icon: <ClockCircleOutlined />,
-            color: '#8B5CF6',
+            color: '#3B82F6',
             trend: dailyHoursTrend,
             footerText: 'today'
         },
@@ -176,9 +176,9 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
             title: 'Daily Average',
             value: fmt(avgSec),
             deltaText: null,
-            deltaColor: '#f59e0b',
+            deltaColor: '#64748b',
             icon: <RiseOutlined />,
-            color: '#F59E0B',
+            color: '#64748B',
             trend: dailyHoursTrend,
             footerText: `${daysWithWork} active days`
         }
@@ -210,12 +210,12 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
           return (
               <div
                   key={s.key}
-                  className="dh-stats-card flex flex-col justify-between p-4 transition-all"
+                  className="dh-stats-card flex flex-col justify-between p-3.5 transition-all"
                   style={{
                       border: '1px solid var(--border-slate-200)',
                       background: 'var(--bg-pure-white)',
                       boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                      height: 100,
+                      height: 86,
                   }}
               >
                   <div className="flex items-start justify-between w-full">

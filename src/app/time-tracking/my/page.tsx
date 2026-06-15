@@ -20,7 +20,10 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 export default function MyTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingMy" });
   const { setPopoverOpen } = useTimeTrackerStore();
-  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>([
+    dayjs().startOf('day'),
+    dayjs().endOf('day')
+  ]);
   const [, setTotalSeconds] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [manageModalOpen, setManageModalOpen] = useState(false);
@@ -40,8 +43,6 @@ export default function MyTimePage() {
   const handleTotalChange = useCallback((total: number) => {
     setTotalSeconds(total);
   }, []);
-
-  const isToday = selectedDate.isSame(dayjs(), "day");
 
   if (isLoading) return null;
 
@@ -89,11 +90,11 @@ export default function MyTimePage() {
                 className="dh-side-create w-full"
                 style={{
                   height: 38,
-                  borderRadius: 10,
+                  borderRadius: 0,
                   fontWeight: 700,
                   fontSize: 13,
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28)',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  boxShadow: 'none',
+                  background: '#3B82F6',
                   border: 'none',
                   color: '#fff'
                 }}
@@ -103,43 +104,7 @@ export default function MyTimePage() {
             )}
           </div>
           <div className="dh-sidebar-scroll" style={{ paddingTop: 20 }}>
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              <div style={{ display: 'flex', gap: 4, flexDirection: 'column' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Date Selection
-                </div>
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(date) => setSelectedDate(date || dayjs())}
-                  allowClear={false}
-                  format="MMM DD, YYYY"
-                  suffixIcon={<ClockCircleOutlined style={{ color: "var(--text-slate-400)" }} />}
-                  style={{
-                    height: 38,
-                    borderRadius: 6,
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-slate-200)",
-                    width: '100%',
-                    fontWeight: 500,
-                  }}
-                />
-                {!isToday && (
-                  <Button
-                    onClick={() => setSelectedDate(dayjs())}
-                    block
-                    style={{
-                      height: 38,
-                      borderRadius: 6,
-                      fontWeight: 500,
-                      border: "1px solid var(--border-slate-200)",
-                      background: "var(--bg-pure-white)",
-                    }}
-                  >
-                    Today
-                  </Button>
-                )}
-              </div>
-
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
               {canReadActivityLog && (
                 <div style={{ display: 'flex', gap: 4, flexDirection: 'column' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -151,7 +116,7 @@ export default function MyTimePage() {
                     block
                     style={{
                       height: 38,
-                      borderRadius: 6,
+                      borderRadius: 0,
                       fontWeight: 500,
                       border: "1px solid var(--border-slate-200)",
                       background: "var(--bg-pure-white)",
@@ -201,15 +166,14 @@ export default function MyTimePage() {
                 <MyTimeStatsStrip refreshKey={refreshKey} />
               </div>
 
-              <Row gutter={[24, 20]} align="stretch" style={{ marginTop: 20 }}>
-                <Col xs={24} lg={24}>
-                  <MyTimeTracker
-                    selectedDate={selectedDate}
-                    refreshKey={refreshKey}
-                    onTotalChange={handleTotalChange}
-                  />
-                </Col>
-              </Row>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <MyTimeTracker
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  refreshKey={refreshKey}
+                  onTotalChange={handleTotalChange}
+                />
+              </div>
             </div>
           </div>
         </main>
@@ -219,7 +183,7 @@ export default function MyTimePage() {
         open={manageModalOpen}
         onClose={() => setManageModalOpen(false)}
         onSuccess={() => setRefreshKey((prev) => prev + 1)}
-        selectedDate={selectedDate}
+        selectedDate={dateRange?.[0] || dayjs()}
       />
       <TransactionHistoryDrawer
         open={historyOpen}
@@ -243,7 +207,7 @@ export default function MyTimePage() {
           top: 0;
           align-self: flex-start;
           height: calc(100vh - 54px);
-          width: 272px;
+          width: 240px;
           flex-shrink: 0;
           display: flex;
           flex-direction: column;
@@ -276,7 +240,7 @@ export default function MyTimePage() {
         }
         .dh-side-create {
           height: 36px !important;
-          border-radius: 6px !important;
+          border-radius: 0 !important;
           font-weight: 600 !important;
           border: none !important;
         }
@@ -315,6 +279,8 @@ export default function MyTimePage() {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
+          display: flex;
+          flex-direction: column;
         }
         .dh-main-controls {
           margin-left: auto;
@@ -323,7 +289,12 @@ export default function MyTimePage() {
           gap: 8px;
           flex-shrink: 0;
         }
-        .dh-main-body { padding: 12px 20px 14px 20px; }
+        .dh-main-body {
+          padding: 12px 20px 14px 20px;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
 
         /* Hero icon box */
         .dh-hero-icon-box {
@@ -345,10 +316,10 @@ export default function MyTimePage() {
 
         /* ---------- Responsive ---------- */
         @media (max-width: 1280px) {
-          .dh-sidebar { width: 244px; }
+          .dh-sidebar { width: 220px; }
         }
         @media (max-width: 1100px) {
-          .dh-sidebar { width: 228px; }
+          .dh-sidebar { width: 200px; }
         }
         @media (max-width: 860px) {
           .dh-shell {

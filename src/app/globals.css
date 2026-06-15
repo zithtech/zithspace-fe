@@ -11889,7 +11889,7 @@ select:-webkit-autofill:focus {
    ========================================================================== */
 .manage-time-modal .ant-modal-content {
   padding: 0 !important;
-  border-radius: 18px !important;
+  border-radius: 0 !important;
   overflow: hidden;
   box-shadow:
     0 24px 60px -20px rgba(15, 23, 42, 0.25),
@@ -11937,7 +11937,6 @@ select:-webkit-autofill:focus {
     linear-gradient(180deg, rgba(239, 246, 255, 0.85) 0%, rgba(239, 246, 255, 0) 100%);
   border-bottom: 1px solid var(--border-slate-100);
 }
-
 .manage-time-modal .mtm-hero__icon {
   flex-shrink: 0;
   width: 38px;
@@ -11948,7 +11947,7 @@ select:-webkit-autofill:focus {
   justify-content: center;
   color: #fff;
   font-size: 17px;
-  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  background: #3B82F6;
   box-shadow:
     0 6px 14px -6px rgba(59, 130, 246, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -12209,7 +12208,7 @@ select:-webkit-autofill:focus {
   border-radius: 10px !important;
   font-weight: 600 !important;
   border: none !important;
-  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
+  background: #3B82F6 !important;
   box-shadow:
     0 6px 16px -6px rgba(59, 130, 246, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
@@ -12727,7 +12726,7 @@ select:-webkit-autofill:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border-slate-100);
   background:
     linear-gradient(180deg, var(--bg-slate-50) 0%, var(--bg-pure-white) 100%);
@@ -12920,12 +12919,12 @@ select:-webkit-autofill:focus {
 .mtt-activity-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 99px;
+  gap: 5px;
+  padding: 1.5px 8px;
+  border-radius: 6px;
   background: var(--bg-slate-50);
   border: 1px solid var(--border-slate-100);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-slate-700);
   cursor: help;
   transition: all 0.18s ease;
@@ -12938,7 +12937,7 @@ select:-webkit-autofill:focus {
 
 .mtt-activity-pill .anticon {
   color: #6366f1;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .mtt-activity-pill__count {
@@ -12948,7 +12947,7 @@ select:-webkit-autofill:focus {
 }
 
 .mtt-activity-pill__label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-slate-400);
 }
 
@@ -12958,7 +12957,7 @@ select:-webkit-autofill:focus {
   gap: 4px;
   padding: 1px 7px;
   margin-left: 2px;
-  border-radius: 99px;
+  border-radius: 6px;
   background: rgba(16, 185, 129, 0.12);
   color: #059669;
   font-size: 10.5px;
@@ -13081,6 +13080,7 @@ select:-webkit-autofill:focus {
 .mtt-team-card .mtt-team-table .ant-table-tbody>tr>td {
   border-bottom: 1px solid var(--border-slate-100) !important;
   background-color: var(--bg-pure-white) !important;
+  padding: 4px 16px !important;
 }
 
 .mtt-team-card .mtt-team-table .ant-table-row:hover>td {

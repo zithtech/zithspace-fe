@@ -75,30 +75,10 @@ export default function TeamTimePage() {
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">Team Tracking</h1>
-                <p className="dh-sidebar-subtitle">Monitor team productivity, work sessions, and daily capacity.</p>
+                <p className="dh-sidebar-subtitle">Track team productivity, sessions, and capacity</p>
               </div>
             </div>
 
-            {canCreateTimeTracking && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setPopoverOpen(true)}
-                className="dh-side-create w-full"
-                style={{
-                  height: 38,
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28)',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  border: 'none',
-                  color: '#fff'
-                }}
-              >
-                Add Time
-              </Button>
-            )}
 
             {canManageTimeTrackingTime && (
               <Button
@@ -110,11 +90,11 @@ export default function TeamTimePage() {
                 style={{
                   marginTop: 10,
                   height: 38,
-                  borderRadius: 10,
+                  borderRadius: 0,
                   fontWeight: 700,
                   fontSize: 13,
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28)',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  boxShadow: 'none',
+                  background: '#3B82F6',
                   border: 'none',
                   color: '#fff'
                 }}
@@ -137,7 +117,7 @@ export default function TeamTimePage() {
                     block
                     style={{
                       height: 38,
-                      borderRadius: 6,
+                      borderRadius: 0,
                       fontWeight: 500,
                       border: "1px solid var(--border-slate-200)",
                       background: "var(--bg-pure-white)",
@@ -173,7 +153,7 @@ export default function TeamTimePage() {
 
           <div className="dh-main-scroll">
             <div className="dh-main-body">
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <TeamTimeTracker refreshKey={refreshKey} />
               </div>
             </div>
@@ -209,7 +189,7 @@ export default function TeamTimePage() {
           top: 0;
           align-self: flex-start;
           height: calc(100vh - 54px);
-          width: 272px;
+          width: 240px;
           flex-shrink: 0;
           display: flex;
           flex-direction: column;
@@ -242,7 +222,7 @@ export default function TeamTimePage() {
         }
         .dh-side-create {
           height: 36px !important;
-          border-radius: 6px !important;
+          border-radius: 0 !important;
           font-weight: 600 !important;
           border: none !important;
         }
@@ -281,6 +261,8 @@ export default function TeamTimePage() {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
+          display: flex;
+          flex-direction: column;
         }
         .dh-main-controls {
           margin-left: auto;
@@ -289,7 +271,12 @@ export default function TeamTimePage() {
           gap: 8px;
           flex-shrink: 0;
         }
-        .dh-main-body { padding: 12px 20px 14px 20px; }
+        .dh-main-body {
+          padding: 12px 20px 14px 20px;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
 
         /* Hero icon box */
         .dh-hero-icon-box {
@@ -311,10 +298,10 @@ export default function TeamTimePage() {
 
         /* ---------- Responsive ---------- */
         @media (max-width: 1280px) {
-          .dh-sidebar { width: 244px; }
+          .dh-sidebar { width: 220px; }
         }
         @media (max-width: 1100px) {
-          .dh-sidebar { width: 228px; }
+          .dh-sidebar { width: 200px; }
         }
         @media (max-width: 860px) {
           .dh-shell {

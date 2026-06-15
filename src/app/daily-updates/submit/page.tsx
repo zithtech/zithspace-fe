@@ -912,7 +912,7 @@ function SubmitDailyUpdateContent() {
                className="du-side-view"
             >
               <span className="du-side-view-icon"><ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /></span>
-              <span className="du-side-view-label">Back to list</span>
+              <span className="du-side-view-label">Back to view</span>
             </button>
           </div>
           

@@ -83,7 +83,7 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
       className="mtt-week-card flex flex-col"
       style={{
         background: 'var(--bg-pure-white)',
-        borderRadius: 6,
+        borderRadius: 0,
         border: '1px solid var(--border-slate-200)',
         padding: '16px',
       }}

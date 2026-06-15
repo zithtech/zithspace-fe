@@ -714,7 +714,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   height: 32,
                   background: "var(--bg-sky-50)",
                   color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)"
+                  border: "1px solid var(--border-blue-200)",
+                  fontWeight: "normal"
                 }}
               >
                 <span className="btn-text-mobile-hide">Manage Time</span>
@@ -725,7 +726,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               onClick={handleRefresh}
               loading={loading}
               size="small"
-              style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6 }}
+              style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
             >
               <span className="btn-text-mobile-hide">Refresh</span>
             </Button>
@@ -734,7 +735,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 icon={<History size={14} />}
                 onClick={() => setHistoryOpen(true)}
                 size="small"
-                style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6 }}
+                style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
               >
                 <span className="btn-text-mobile-hide">History</span>
               </Button>

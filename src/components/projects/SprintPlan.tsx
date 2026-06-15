@@ -1552,48 +1552,45 @@ export default function SprintPlanComponent() {
                               </div>
 
                               <div className="sp-plist-row-segments">
-                                <span className="sp-plist-seg sp-plist-seg-project">
-                                  <span className="sp-plist-seg-label">Project:</span>
-                                  {project ? (
-                                    <span className="sp-plist-seg-value" title={project.name}>
-                                      <span className="sp-plist-seg-dot" style={{ background: accent }} />
-                                      {project.name}
-                                    </span>
-                                  ) : (
-                                    <span className="sp-plist-seg-value muted">—</span>
-                                  )}
-                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0, marginTop: '10px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="sp-plist-seg-name" title={record.name}>{record.name}</span>
+                                  </div>
+                                  <span className="sp-plist-seg sp-plist-seg-project">
+                                    <span className="sp-plist-seg-label">Project:</span>
+                                    {project ? (
+                                      <span className="sp-plist-seg-value" title={project.name}>
+                                        <span className="sp-plist-seg-dot" style={{ background: accent }} />
+                                        {project.name}
+                                      </span>
+                                    ) : (
+                                      <span className="sp-plist-seg-value muted">—</span>
+                                    )}
+                                  </span>
+                                </div>
 
-                                <span className="sp-plist-row-div" />
-
-                                <span className="sp-plist-seg-name" title={record.name}>{record.name}</span>
-
-                                {record.priority && (
-                                  <>
-                                    <span className="sp-plist-row-div" />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                  {record.priority && (
                                     <span className={`sp-plist-prio sp-plist-prio-${(record.priority || '').toLowerCase()}`}>
                                       <FlagOutlined style={{ fontSize: 9 }} />
                                       {record.priority}
                                     </span>
-                                  </>
-                                )}
-
-                                <span className="sp-plist-row-div" />
-
-                                <span
-                                  className="sp-plist-status"
-                                  style={{
-                                    background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
-                                    borderColor: statusCfg.border,
-                                    color: statusCfg.color,
-                                  }}
-                                >
+                                  )}
                                   <span
-                                    className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
-                                    style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }}
-                                  />
-                                  {statusCfg.label}
-                                </span>
+                                    className="sp-plist-status"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
+                                      borderColor: statusCfg.border,
+                                      color: statusCfg.color,
+                                    }}
+                                  >
+                                    <span
+                                      className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
+                                      style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }}
+                                    />
+                                    {statusCfg.label}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </header>
@@ -4621,12 +4618,20 @@ export default function SprintPlanComponent() {
         }
         .sp-sidebar-item.active {
           background: rgba(59, 130, 246, 0.08);
-          color: #1d4ed8;
+          color: var(--text-slate-900);
           font-weight: 700;
+        }
+        .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
+          color: #3b82f6 !important;
+          border-color: #3b82f6 !important;
         }
         [data-theme='dark'] .sp-sidebar-item.active {
           background: rgba(59, 130, 246, 0.18) !important;
+          color: #f1f5f9 !important;
+        }
+        [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
           color: #60a5fa !important;
+          border-color: #60a5fa !important;
         }
         .sp-sidebar-status-chip {
           width: 22px;
@@ -6216,10 +6221,10 @@ export default function SprintPlanComponent() {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
           border-radius: 0px;
-          padding: 12px 16px 12px 16px;
+          padding: 2px 16px 6px 16px;
           display: flex;
           flex-direction: column;
-          gap: 17px;
+          gap: 6px;
           overflow: hidden;
           transition: border-color 0.2s ease, background 0.2s ease;
         }
@@ -6306,6 +6311,7 @@ export default function SprintPlanComponent() {
           display: inline-flex;
           align-items: center;
           min-width: 0;
+          padding: 0px 2px;
         }
         .sp-plist-seg-project {
           gap: 6px;
@@ -6313,20 +6319,20 @@ export default function SprintPlanComponent() {
         }
         .sp-plist-seg-label {
           font-size: 10px;
-          font-weight: 800;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+          font-weight: 600;
+          color: var(--text-slate-400);
+          text-transform: capitalize;
+          letter-spacing: 0.05em;
         }
         [data-theme='dark'] .sp-plist-seg-label { color: #94a3b8 !important; }
         .sp-plist-seg-value {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-size: 13px;
-          font-weight: 700;
+          font-size: 12px;
+          font-weight: 600;
           color: var(--text-slate-700);
-          letter-spacing: -0.005em;
+          letter-spacing: -0.01em;
           max-width: 200px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -6369,10 +6375,10 @@ export default function SprintPlanComponent() {
         .sp-plist-seg-name {
           flex: 1;
           min-width: 0;
-          font-size: 15.5px;
-          font-weight: 800;
+          font-size: 13px;
+          font-weight: 700;
           color: var(--text-slate-900);
-          letter-spacing: -0.025em;
+          letter-spacing: -0.01em;
           line-height: 1.25;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -6413,14 +6419,14 @@ export default function SprintPlanComponent() {
           border-color: #2d3748 !important;
         }
         .sp-plist-avatar {
-          width: 44px;
-          height: 44px;
+          width: 38px;
+          height: 38px;
           border-radius: 11px;
           border: 1px solid transparent;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 17px;
+          font-size: 15px;
           font-weight: 800;
           letter-spacing: -0.025em;
           flex-shrink: 0;
@@ -6572,7 +6578,7 @@ export default function SprintPlanComponent() {
           gap: 12px;
         }
         .sp-plist-block {
-          padding: 7px 12px 7px;
+          padding: 2px 12px 2px;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-100);
           border-radius: 10px;
@@ -6589,13 +6595,13 @@ export default function SprintPlanComponent() {
           align-items: center;
           justify-content: space-between;
           gap: 8px;
-          margin-bottom: 7px;
+          margin-bottom: 4px;
         }
         .sp-plist-block-label {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          font-size: 9.5px;
+          font-size: 9px;
           font-weight: 800;
           color: var(--text-slate-500);
           text-transform: uppercase;
@@ -6622,9 +6628,9 @@ export default function SprintPlanComponent() {
         }
         .sp-plist-cycle {
           font-size: 10px;
-          font-weight: 800;
+          font-weight: 700;
           color: var(--text-slate-600);
-          letter-spacing: 0.04em;
+          letter-spacing: 0.01em;
           text-transform: uppercase;
         }
         [data-theme='dark'] .sp-plist-cycle { color: #cbd5e1 !important; }
@@ -6636,7 +6642,7 @@ export default function SprintPlanComponent() {
           border-radius: 999px;
           overflow: hidden;
           position: relative;
-          margin-bottom: 7px;
+          margin-bottom: 4px;
           border: 1px solid rgba(15,23,42,0.04);
         }
         [data-theme='dark'] .sp-plist-bar {
@@ -6665,7 +6671,7 @@ export default function SprintPlanComponent() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 6px 10px;
+          padding: 4px 10px;
           font-size: 12px;
           font-weight: 600;
           border-radius: 6px;
@@ -6706,7 +6712,7 @@ export default function SprintPlanComponent() {
         .sp-plist-dates {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 5px;
           margin-bottom: 6px;
         }
         .sp-plist-date-cell {
@@ -6719,7 +6725,7 @@ export default function SprintPlanComponent() {
           align-items: flex-end;
         }
         .sp-plist-date-label {
-          font-size: 9px;
+          font-size: 6px;
           font-weight: 800;
           color: var(--text-slate-500);
           text-transform: uppercase;
@@ -6727,7 +6733,7 @@ export default function SprintPlanComponent() {
         }
         [data-theme='dark'] .sp-plist-date-label { color: #94a3b8 !important; }
         .sp-plist-date-value {
-          font-size: 13px;
+          font-size: 10px;
           font-weight: 800;
           color: var(--text-slate-900);
           font-variant-numeric: tabular-nums;
@@ -6783,7 +6789,7 @@ export default function SprintPlanComponent() {
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding-top: 10px;
+          padding-top: 0px;
           border-top: 1px dashed var(--border-slate-100);
         }
         [data-theme='dark'] .sp-plist-foot {
@@ -6792,7 +6798,7 @@ export default function SprintPlanComponent() {
         .sp-plist-foot-inline {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 6px;
           flex-wrap: wrap;
           flex: 1;
           min-width: 0;
@@ -6816,10 +6822,10 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-plist-foot-item b { color: #f1f5f9 !important; }
         .sp-plist-foot-label {
           font-size: 10px;
-          font-weight: 800;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          text-transform: capitalize;
+          letter-spacing: 0.04em;
         }
         [data-theme='dark'] .sp-plist-foot-label { color: #94a3b8 !important; }
         .sp-plist-foot-div {

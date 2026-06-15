@@ -47,6 +47,7 @@ import {
   RefreshCw,
   LayoutGrid,
   List as ListIcon,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -58,6 +59,7 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 
@@ -541,7 +543,7 @@ export default function ClientsV2ListPage() {
                   </Tooltip>
                 )}
               </div>
-              <div className="cm-client-meta">
+              {/* <div className="cm-client-meta">
                 <span className="cm-code">{record.clientCode}</span>
                 {record.industry && (
                   <>
@@ -556,11 +558,19 @@ export default function ClientsV2ListPage() {
                     <span>{record.country}</span>
                   </>
                 )}
-              </div>
+              </div> */}
             </div>
           </Space>
         );
       },
+    },
+    {
+      title: "Code",
+      key: "clientCode",
+      width: 130,
+      render: (_: any, record: any) => (
+        <span className="cm-tag cm-tag--blue"><span className="cm-tag-dot"></span>{record?.clientCode}</span>
+      ),
     },
     {
       title: "Type",
@@ -602,7 +612,7 @@ export default function ClientsV2ListPage() {
         return (
           <span className={`cm-projects-pill ${count > 0 ? "has" : "empty"}`}>
             <span className="cm-projects-ico">
-              <FolderKanban size={13} />
+              <FolderKanban size={10} />
             </span>
             <span className="cm-projects-count">{count}</span>
             <span className="cm-projects-label">
@@ -975,79 +985,51 @@ export default function ClientsV2ListPage() {
                   <div className="bh2-side-group" style={{ marginTop: 22 }}>
                     <div className="bh2-side-label">Filters</div>
                     <div className="bh2-side-filters flex flex-col gap-2">
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Jump to client…"
+                        searchPlaceholder="Search clients"
+                        itemNoun="clients"
                         className="cm-quick-select cm-quick-select-client"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<Building2 size={13} />}
-                        options={allClientsOpts}
-                        style={{ width: '100%' }}
+                        options={allClientsOpts.map(opt => ({ label: opt.label, value: opt.value, description: opt.code }))}
+                        width="100%"
                         onChange={(id?: string) => {
                           if (id) router.push(`/clients-v2/${id}`);
                         }}
-                        filterOption={(input, option) => {
-                          const q = (input || "").toLowerCase();
-                          const label = ((option?.label as string) || "").toLowerCase();
-                          const code = ((option as any)?.code || "").toLowerCase();
-                          return label.includes(q) || code.includes(q);
-                        }}
-                        optionRender={(opt) => (
-                          <div className="cm-quick-opt">
-                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                            {(opt.data as any)?.code && (
-                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                            )}
-                          </div>
-                        )}
                       />
 
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Jump to project…"
+                        searchPlaceholder="Search projects"
+                        itemNoun="projects"
                         className="cm-quick-select cm-quick-select-project"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<FolderKanban size={13} />}
-                        options={allProjectsOpts}
-                        style={{ width: '100%' }}
+                        options={allProjectsOpts.map(opt => ({ label: opt.label, value: opt.value, description: opt.code }))}
+                        width="100%"
                         onChange={(id?: string) => {
                           if (id) router.push(`/projects/${id}/overview`);
                         }}
-                        filterOption={(input, option) => {
-                          const q = (input || "").toLowerCase();
-                          const label = ((option?.label as string) || "").toLowerCase();
-                          const code = ((option as any)?.code || "").toLowerCase();
-                          return label.includes(q) || code.includes(q);
-                        }}
-                        optionRender={(opt) => (
-                          <div className="cm-quick-opt">
-                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                            {(opt.data as any)?.code && (
-                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                            )}
-                          </div>
-                        )}
                       />
 
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Client type"
+                        searchPlaceholder="Search types"
+                        itemNoun="types"
                         className="cm-quick-select cm-quick-select-type"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<Sparkles size={13} />}
-                        value={typeFilter}
+                        value={typeFilter || undefined}
                         options={typeOptions}
-                        style={{ width: '100%' }}
+                        width="100%"
                         onChange={(v?: string) => handleTypeChange(v)}
-                        filterOption={(input, option) =>
-                          ((option?.label as string) || "")
-                            .toLowerCase()
-                            .includes((input || "").toLowerCase())
-                        }
                       />
+
+                      {typeFilter && (
+                        <button
+                          type="button"
+                          className="bh2-side-clear"
+                          onClick={() => handleTypeChange(undefined)}
+                        >
+                          <X size={12} strokeWidth={2.5} />
+                          Clear filters
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2307,6 +2289,27 @@ export default function ClientsV2ListPage() {
         [data-theme="dark"] .bh2-list-avatar {
           background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
         }
+        .bh2-side-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 10px;
+          padding: 6px 0;
+          width: 100%;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-500);
+          font-size: 11.5px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+        .bh2-side-clear:hover {
+          background: var(--bg-slate-100);
+          color: var(--text-slate-900);
+        }
         .bh2-list-avatar::after {
           content: "";
           position: absolute;
@@ -3461,17 +3464,17 @@ export default function ClientsV2ListPage() {
             /* avatar / cells */
             .cm-avatar-wrap {
               position: relative;
-              width: 42px; height: 42px;
+              width: 24px; height: 24px;
               flex-shrink: 0;
             }
             .cm-avatar {
-              width: 42px; height: 42px;
-              border-radius: 12px;
+              width: 24px; height: 24px;
+              border-radius: 6px;
               display: flex; align-items: center; justify-content: center;
               background: #3b82f6;
               color: #fff;
               font-weight: 700;
-              font-size: 13px;
+              font-size: 10px;
               letter-spacing: 0.02em;
               box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
                           inset 0 1px 0 rgba(255,255,255,0.18);
@@ -3530,6 +3533,13 @@ export default function ClientsV2ListPage() {
               margin-top: 3px;
               flex-wrap: wrap;
             }
+
+            .cm-tag {
+              display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+              border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap;
+            }
+            .cm-tag--blue { background: var(--bg-blue-50); color: #3B82F6; }
+            .cm-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
             .cm-code {
               font-family: ui-monospace, "SF Mono", Menlo, monospace;
               background: var(--bg-slate-50);
@@ -3558,11 +3568,11 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 8px;
-              padding: 5px 11px 5px 6px;
-              border-radius: 999px;
+              padding: 2px 11px 2px 6px;
+              border-radius: 6px;
               border: 1px solid var(--border-slate-100);
               background: var(--bg-pure-white);
-              font-size: 12.5px;
+              font-size: 11px;
               font-weight: 600;
               color: var(--text-slate-700);
               transition: all .2s ease;
@@ -3574,8 +3584,8 @@ export default function ClientsV2ListPage() {
             }
             .cm-projects-pill.empty { color: var(--text-slate-500); }
             .cm-projects-ico {
-              width: 22px; height: 22px;
-              border-radius: 50%;
+              width: 20px; height: 20px;
+              border-radius: 6px;
               display: inline-flex; align-items: center; justify-content: center;
               background: var(--bg-slate-50);
               color: var(--text-slate-500);
@@ -3611,9 +3621,9 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 6px;
-              padding: 4px 10px;
-              border-radius: 999px;
-              font-size: 11.5px;
+              padding: 2px 10px;
+              border-radius: 6px;
+              font-size: 10px;
               font-weight: 700;
               letter-spacing: 0.02em;
             }
@@ -3621,9 +3631,9 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 6px;
-              padding: 4px 10px;
-              border-radius: 999px;
-              font-size: 10.5px;
+              padding: 2px 10px;
+              border-radius: 6px;
+              font-size: 10px;
               font-weight: 700;
               letter-spacing: 0.06em;
             }

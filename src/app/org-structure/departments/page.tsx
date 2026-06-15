@@ -2,10 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Typography,
   Button,
   Input,
-  Table,
   Form,
   Select,
   notification,
@@ -14,12 +12,13 @@ import {
   Switch,
   Drawer,
   Popconfirm,
+  Dropdown,
+  App,
 } from "antd";
 import {
   Building2,
   Edit,
   Plus,
-  Search,
   Layers,
   ShieldCheck,
   User,
@@ -28,23 +27,20 @@ import {
   Settings,
   Users as UsersIcon,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
-import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
 import { MembersService } from "@/services/membersService";
 import { useDepartments } from "@/hooks/useDepartments";
 import { Department } from "@/services/departmentService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
-import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
+import { OrgModuleScaffold, OrgStatDef, OrgView } from "@/components/org-structure/OrgModuleScaffold";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
-
-const { Text } = Typography;
 
 export default function DepartmentsPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureDepartments" });
@@ -64,8 +60,10 @@ export default function DepartmentsPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
+  const { modal } = App.useApp();
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [view, setView] = useState<OrgView>("grid");
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
   const { departments, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
@@ -106,13 +104,9 @@ export default function DepartmentsPage() {
 
   if (authLoading) {
     return (
-      <ProtectedRoute>
-        <MainLayout>
-          <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <Spin size="large" tip="Loading Departments..." />
-          </div>
-        </MainLayout>
-      </ProtectedRoute>
+      <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" tip="Loading Departments..." />
+      </div>
     );
   }
 
@@ -270,19 +264,93 @@ export default function DepartmentsPage() {
     },
   ];
 
+  const CARD_ACCENTS: [string, string][] = [
+    ["#3b82f6", "#2563eb"],
+    ["#10b981", "#059669"],
+    ["#64748b", "#475569"],
+  ];
+  const accentFor = (key: string): [string, string] => {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return CARD_ACCENTS[h % CARD_ACCENTS.length];
+  };
+
+  const stats: OrgStatDef[] = [
+    { key: "total", label: "Total Departments", value: totalDepartments, icon: <Layers size={14} />, color: "#3b82f6", tint: "rgba(59,130,246,0.10)" },
+    { key: "active", label: "Active", value: activeDepartments, icon: <ShieldCheck size={14} />, color: "#10b981", tint: "rgba(16,185,129,0.10)" },
+    { key: "leader", label: "With Leader", value: withLeader, icon: <UsersIcon size={14} />, color: "#6366f1", tint: "rgba(99,102,241,0.10)" },
+    { key: "inactive", label: "Inactive", value: inactiveDepartments, icon: <User size={14} />, color: "#64748b", tint: "rgba(100,116,139,0.10)" },
+  ];
+
+  const renderDepartmentCard = (record: Department) => {
+    const [c0, c1] = accentFor(record.code || record.name || "");
+    const canAct = canUpdateOrgDepartment || canDeleteOrgDepartment;
+    const head = (record as any).head;
+    const menu = {
+      items: [
+        ...(canUpdateOrgDepartment ? [{ key: "edit", label: "Edit department", icon: <Edit size={14} /> }] : []),
+        ...(canDeleteOrgDepartment ? [{ key: "delete", danger: true, label: "Delete", icon: <Trash2 size={14} /> }] : []),
+      ],
+      onClick: ({ key, domEvent }: any) => {
+        domEvent?.stopPropagation?.();
+        if (key === "edit") handleEdit(record);
+        else if (key === "delete") {
+          modal.confirm({
+            title: "Remove department?",
+            content: "This will permanently delete this department.",
+            okText: "Delete",
+            cancelText: "Cancel",
+            okButtonProps: { danger: true },
+            onOk: () => handleDelete(record.id),
+          });
+        }
+      },
+    };
+    return (
+      <div className="omx-card">
+        <div className="omx-card-top">
+          <div className="omx-card-avatar" style={{ background: `linear-gradient(135deg, ${c0} 0%, ${c1} 100%)` }}>
+            {record.code?.substring(0, 2) || "DP"}
+          </div>
+          <div className="omx-card-id">
+            <div className="omx-card-title">{record.name}</div>
+            <div className="omx-card-sub">{record.code}</div>
+          </div>
+          {canAct && (
+            <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+              <button type="button" className="omx-card-actions" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal size={16} />
+              </button>
+            </Dropdown>
+          )}
+        </div>
+        <div className="omx-card-desc">{record.description || "No description provided"}</div>
+        <div className="omx-card-foot">
+          <span className={`omx-pill ${record.isActive ? "is-active" : "is-inactive"}`}>
+            <span className="omx-pill-dot" />
+            {record.isActive ? "Active" : "Inactive"}
+          </span>
+          <span className="omx-chip">
+            <span className="omx-chip-dot" />
+            {head?.name || record.employmentType || "Unassigned"}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <ProtectedRoute>
-      <MainLayout>
-        {contextHolder}
-        <div className="orgx-shell">
-          <TimeTrackingHeader
+    <>
+      {contextHolder}
+      <div className="orgx-shell">
+        <TimeTrackingHeader
             icon={<Building2 size={20} color="#3b82f6" />}
             title="Departments"
             description="Manage organizational units, reporting lines, and strategic divisions."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
-              marginBottom: 20,
+              marginBottom: 8,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -313,106 +381,29 @@ export default function DepartmentsPage() {
             }
           />
 
-          <div className="orgx-content">
-            <div className="orgx-stat-grid">
-              <OrgStatCard
-                label="Total Departments"
-                value={totalDepartments}
-                icon={<Layers size={14} />}
-                accent="#3b82f6"
-                subtle="Top-level org units"
-                loading={loading && totalDepartments === 0}
-                chart={
-                  totalDepartments > 0 ? (
-                    <OrgMiniBar
-                      segments={[
-                        { value: activeDepartments, color: "#10b981", label: `${activeDepartments} active` },
-                        { value: inactiveDepartments, color: "#94a3b8", label: `${inactiveDepartments} inactive` },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <OrgStatCard
-                label="Active"
-                value={activeDepartments}
-                icon={<ShieldCheck size={14} />}
-                accent="#10b981"
-                subtle={
-                  totalDepartments > 0
-                    ? `${Math.round((activeDepartments / totalDepartments) * 100)}% of total`
-                    : "No departments"
-                }
-                loading={loading && totalDepartments === 0}
-              />
-              <OrgStatCard
-                label="With Leader"
-                value={withLeader}
-                icon={<UsersIcon size={14} />}
-                accent="#8b5cf6"
-                subtle={`${withoutLeader} unassigned`}
-                loading={loading && totalDepartments === 0}
-                chart={
-                  totalDepartments > 0 ? (
-                    <OrgMiniBar
-                      segments={[
-                        { value: withLeader, color: "#8b5cf6", label: `${withLeader} led` },
-                        { value: withoutLeader, color: "#94a3b8", label: `${withoutLeader} unled` },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <OrgStatCard
-                label="Inactive"
-                value={inactiveDepartments}
-                icon={<User size={14} />}
-                accent="#f59e0b"
-                subtle="Currently disabled"
-                loading={loading && totalDepartments === 0}
-              />
-            </div>
-
-            <div className="orgx-panel">
-              <div className="orgx-toolbar">
-                <Input
-                  className="orgx-search"
-                  prefix={<Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />}
-                  placeholder="Search by name, code, or employment type…"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
-                <Select
-                  className="orgx-select"
-                  placeholder="All statuses"
-                  allowClear
-                  style={{ minWidth: 160 }}
-                  value={statusFilter || undefined}
-                  onChange={(v) => setStatusFilter(v || null)}
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                  ]}
-                />
-                <div className="orgx-toolbar__divider" />
-                <Text className="orgx-count-text">
-                  <strong>{filteredData.length}</strong> of {totalDepartments}
-                </Text>
-              </div>
-
-              <Table
-                className="orgx-table"
-                rowKey="id"
-                columns={columns}
-                dataSource={filteredData}
-                loading={loading}
-                size="middle"
-                pagination={{ pageSize: 12, position: ["bottomRight"] }}
-                scroll={{ x: "max-content" }}
-              />
-            </div>
-          </div>
+          <OrgModuleScaffold<Department>
+            search={searchText}
+            onSearchChange={setSearchText}
+            searchPlaceholder="Search by name, code, or employment type…"
+            meta={<><strong>{filteredData.length}</strong> of {totalDepartments} departments</>}
+            view={view}
+            onViewChange={setView}
+            loading={loading}
+            stats={stats}
+            columns={columns}
+            data={filteredData}
+            rowKey="id"
+            renderCard={renderDepartmentCard}
+            emptyTitle="No departments found"
+            emptySubtitle="Create your first department to organize your teams and reporting lines."
+            emptyAction={
+              canCreateOrgDepartment ? (
+                <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
+                  New Department
+                </Button>
+              ) : undefined
+            }
+          />
 
           {/* Drawer */}
           <Drawer
@@ -551,7 +542,6 @@ export default function DepartmentsPage() {
           onClose={() => setHistoryOpen(false)}
           module="OrgStructure"
         />
-      </MainLayout>
-    </ProtectedRoute>
+    </>
   );
 }

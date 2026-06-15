@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Typography,
   Button,
@@ -12,14 +12,12 @@ import {
   Card,
   Tooltip,
   Avatar,
-  Tabs,
   Row,
   Col,
   Select,
-  Skeleton,
   Popconfirm,
-  Segmented,
   App,
+  Dropdown
 } from 'antd';
 import {
   PlusOutlined,
@@ -42,6 +40,11 @@ import {
   FireOutlined,
   AppstoreOutlined,
   CloseOutlined,
+  FolderOutlined,
+  EllipsisOutlined,
+  UnorderedListOutlined,
+  CloseCircleOutlined,
+  FilterOutlined
 } from '@ant-design/icons';
 import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
@@ -50,8 +53,8 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
-import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import CreateEscalationDrawer from '@/components/escalations/CreateEscalationDrawer';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
@@ -64,92 +67,55 @@ const { Title, Text } = Typography;
 
 const BLUE_PRIMARY = 'var(--premium-blue)';
 
-/* -------------------------------------------------------------------------- */
-/*                              Premium StatCard                              */
-/* -------------------------------------------------------------------------- */
-
-interface StatCardProps {
-  label: string;
-  value: React.ReactNode;
-  icon: React.ReactNode;
-  accent: string;
-  subtle?: string;
-  loading?: boolean;
-  chart?: React.ReactNode;
-}
-
-const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  icon,
-  accent,
-  subtle,
-  loading,
-  chart,
-}) => (
-  <div className="qe-stat-card" style={{ ['--qe-accent' as any]: accent }}>
-    <div className="qe-stat-head">
-      <div
-        className="qe-stat-icon"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        {icon}
-      </div>
-      <Text className="qe-stat-label">{label}</Text>
-      <div className="qe-stat-value-wrap">
-        {loading ? (
-          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
-        ) : (
-          <span className="qe-stat-value">{value}</span>
-        )}
-      </div>
-    </div>
-    {subtle && <Text className="qe-stat-subtle">{subtle}</Text>}
-    {chart && <div className="qe-stat-chart">{chart}</div>}
-    <span
-      className="qe-stat-accent"
-      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-    />
-  </div>
-);
-
-/* Mini distribution bar */
-interface MiniBarProps {
-  segments: { value: number; color: string; label: string }[];
-}
-const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+  const w = 96;
+  const h = 34;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const stepX = n > 1 ? w / (n - 1) : w;
+  const pts = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - 3 - (v / max) * (h - 8);
+    return [x, y] as const;
+  });
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
   return (
-    <div className="qe-minibar">
-      <div className="qe-minibar-track">
-        {segments.map((s, i) => (
-          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
-            <span
-              className="qe-minibar-seg"
-              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
-            />
-          </Tooltip>
-        ))}
-      </div>
-      <div className="qe-minibar-legend">
-        {segments.map((s, i) => (
-          <span key={i} className="qe-minibar-legend-item">
-            <span className="qe-minibar-dot" style={{ background: s.color }} />
-            {s.label}
-          </span>
-        ))}
-      </div>
-    </div>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/*                                 Page                                       */
-/* -------------------------------------------------------------------------- */
+const initialsOf = (name: string) =>
+  (name || '—')
+    .split(' ')
+    .map((s: string) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+const CARD_ACCENTS: [string, string][] = [
+  ['#3b82f6', '#2563eb'], // blue
+  ['#10b981', '#059669'], // green
+  ['#8b5cf6', '#7c3aed'], // purple
+  ['#f59e0b', '#d97706'], // orange
+  ['#ef4444', '#dc2626'], // red
+];
+
+const accentFor = (key: string): [string, string] => {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return CARD_ACCENTS[h % CARD_ACCENTS.length];
+};
 
 export default function EscalationListPage() {
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
@@ -159,9 +125,12 @@ export default function EscalationListPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [searchText, setSearchText] = useState('');
-  const [activeTab, setActiveTab] = useState('1');
+  const [savedView, setSavedView] = useState('all');
+  const [view, setView] = useState<'list' | 'grid'>('list');
+
   const [escalations, setEscalations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [trashEscalations, setTrashEscalations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedEscalation, setSelectedEscalation] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -174,7 +143,10 @@ export default function EscalationListPage() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [sortOrder, setSortOrder] = useState<'recent' | 'priority'>('recent');
+
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   // Create drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
@@ -183,7 +155,8 @@ export default function EscalationListPage() {
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
-  const { message } = App.useApp();
+  const searchRef = useRef<any>(null);
+  const { message, modal } = App.useApp();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
     if (type === 'success') {
@@ -196,11 +169,13 @@ export default function EscalationListPage() {
   const fetchEscalations = async () => {
     setLoading(true);
     try {
-      const [escData, statusData] = await Promise.all([
+      const [escData, trashData, statusData] = await Promise.all([
         EscalationServiceV2.getAllEscalations(),
+        EscalationServiceV2.getTrashEscalations(),
         EscalationSettingsService.getStatuses(),
       ]);
       setEscalations(escData || []);
+      setTrashEscalations(trashData || []);
       setStatuses(statusData || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -209,7 +184,6 @@ export default function EscalationListPage() {
     }
   };
 
-  // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoading && user && !canReadEscalation) {
       router.push('/dashboard');
@@ -221,6 +195,17 @@ export default function EscalationListPage() {
       fetchEscalations();
     }
   }, [canReadEscalation]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const handleUpdateStatus = async () => {
     if (!selectedEscalation || !tempStatus) return;
@@ -256,13 +241,43 @@ export default function EscalationListPage() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchEscalations();
+  };
+
   const getPriorityTag = (priority: any) => (
     <Tag color={priority?.color || 'blue'} style={{ borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
       {priority?.name?.toUpperCase() || 'MEDIUM'}
     </Tag>
   );
 
-  /* --------------------------- Distinct filter options --------------------- */
+  const getStatusBadge = (record: any) => {
+    const name = record.status_name || record.escalationStatus?.name || record.status;
+    const color = record.status_color || record.escalationStatus?.color || BLUE_PRIMARY;
+    if (!name) return <Badge status="default" text="Unknown" />;
+    return (
+      <span className="es-vis-pill" style={{ color: color, background: `${color}1A`, borderColor: `${color}40` }}>
+        <span className="es-vis-dot" style={{ background: color }} />
+        {name}
+      </span>
+    );
+  };
+
+  const getCategoryTag = (cat: any) => (
+    <Tag
+      color="blue"
+      style={{
+        borderRadius: 4,
+        borderLeft: cat?.color ? `4px solid ${cat.color}` : 'none',
+        background: 'var(--bg-slate-50)',
+        color: 'var(--text-slate-600)',
+        fontWeight: 500,
+      }}
+      bordered={false}
+    >
+      {cat?.name || cat?.category_name || 'General'}
+    </Tag>
+  );
 
   const priorityOptions = useMemo(() => {
     const map = new Map<string, { value: string; label: string; color?: string }>();
@@ -301,12 +316,10 @@ export default function EscalationListPage() {
     [statuses],
   );
 
-  /* ----------------------------- Filtering --------------------------------- */
-
   const filteredEscalations = useMemo(() => {
-    let list = [...escalations];
+    let list = savedView === 'trash' ? [...trashEscalations] : [...escalations];
 
-    if (searchText) {
+    if (searchText.trim()) {
       const q = searchText.toLowerCase();
       list = list.filter((e) => {
         const subject = e.subject || e.short_summary || '';
@@ -340,32 +353,24 @@ export default function EscalationListPage() {
       list = list.filter((e) => set.has(e.category?.name || e.category_name));
     }
 
-    if (activeTab === '2') {
+    if (savedView === 'my-involvement') {
       list = list.filter((e) =>
-        (e.targetMembers || []).some((m: any) => m.user?.id === user?.id),
+        (e.targetMembers || []).some((m: any) => m.user?.id === user?.id)
       );
-    } else if (activeTab === '3') {
+    } else if (savedView === 'raised-by-me') {
       list = list.filter((e) => (e.createdBy?.id || e.created_by_id) === user?.id);
     }
 
-    if (sortOrder === 'priority') {
-      list.sort((a, b) => {
-        const wa = a.priority?.weight || a.priority_weight || 0;
-        const wb = b.priority?.weight || b.priority_weight || 0;
-        return wb - wa;
-      });
-    } else {
-      list.sort((a, b) => {
-        const da = dayjs(a.createdAt || a.created_at);
-        const db = dayjs(b.createdAt || b.created_at);
-        return db.valueOf() - da.valueOf();
-      });
-    }
+    list.sort((a, b) => {
+      const da = dayjs(a.createdAt || a.created_at);
+      const db = dayjs(b.createdAt || b.created_at);
+      return db.valueOf() - da.valueOf();
+    });
 
     return list;
-  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, activeTab, user, sortOrder]);
+  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, savedView, user]);
 
-  /* ------------------------------ Stats ------------------------------------ */
+  useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, priorityFilter, categoryFilter]);
 
   const statsData = useMemo(() => {
     const total = escalations.length;
@@ -376,22 +381,81 @@ export default function EscalationListPage() {
     }).length;
     const pending = escalations.filter((e) => e.escalationStatus?.isDefault).length;
     const resolved = escalations.filter((e) => e.escalationStatus?.isFinal).length;
-    const inProgress = total - pending - resolved;
     const myInvolvement = escalations.filter((e) =>
       (e.targetMembers || []).some((m: any) => m.user?.id === user?.id),
     ).length;
-    return { total, highPriority, pending, resolved, inProgress, myInvolvement };
+    const pendingInvolvingMe = escalations.filter((e) =>
+      e.escalationStatus?.isDefault && (e.targetMembers || []).some((m: any) => m.user?.id === user?.id)
+    ).length;
+    return { total, highPriority, pending, resolved, myInvolvement, pendingInvolvingMe };
   }, [escalations, user]);
 
-  const resolvedPct = statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0;
-  const highPriorityPct =
-    statsData.total > 0 ? Math.round((statsData.highPriority / statsData.total) * 100) : 0;
+  const statCells = useMemo(() => {
+    const now = new Date();
+    const MONTHS = 6;
+    const bucketStarts: Date[] = [];
+    for (let i = MONTHS - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      bucketStarts.push(d);
+    }
 
-  const hasActiveFilter =
-    !!searchText ||
-    statusFilter.length > 0 ||
-    priorityFilter.length > 0 ||
-    categoryFilter.length > 0;
+    const totalTrend = new Array(MONTHS).fill(0);
+    const highPriTrend = new Array(MONTHS).fill(0);
+    const pendingTrend = new Array(MONTHS).fill(0);
+    const resolvedTrend = new Array(MONTHS).fill(0);
+
+    escalations.forEach(e => {
+      const created = new Date(e.createdAt || e.created_at);
+      const weight = e.priority_weight || e.priority?.weight || 0;
+      const name = (e.priority_name || e.priority?.name || '').toLowerCase();
+      const isHighPri = weight >= 80 || name === 'high' || name === 'urgent';
+      const isPending = e.escalationStatus?.isDefault;
+      const isResolved = e.escalationStatus?.isFinal;
+
+      for (let b = 0; b < MONTHS; b++) {
+        const bucketEnd = b < MONTHS - 1 ? bucketStarts[b + 1] : new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        if (created < bucketEnd) {
+          for (let j = b; j < MONTHS; j++) {
+            totalTrend[j] += 1;
+            if (isHighPri) highPriTrend[j] += 1;
+            if (isPending) pendingTrend[j] += 1;
+            if (isResolved) resolvedTrend[j] += 1;
+          }
+          break;
+        }
+      }
+    });
+
+    if (totalTrend[MONTHS - 1] === 0 && escalations.length > 0) {
+      totalTrend[MONTHS - 1] = statsData.total;
+      highPriTrend[MONTHS - 1] = statsData.highPriority;
+      pendingTrend[MONTHS - 1] = statsData.pending;
+      resolvedTrend[MONTHS - 1] = statsData.resolved;
+    }
+
+    return [
+      { key: 'total', title: 'Active Escalations', subtitle: 'Across all categories', value: statsData.total, suffix: '', icon: <ExclamationCircleOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: totalTrend },
+      { key: 'high', title: 'High Priority', value: statsData.highPriority, suffix: '', icon: <FireOutlined />, color: '#ef4444', tint: 'rgba(239,68,68,0.10)', trend: highPriTrend },
+      { key: 'pending', title: 'Pending Reviews', subtitle: `${statsData.pendingInvolvingMe} involve you`, value: statsData.pending, suffix: '', icon: <ClockCircleOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: pendingTrend },
+      { key: 'resolved', title: 'Total Resolved', value: statsData.resolved, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: resolvedTrend },
+    ];
+  }, [escalations, statsData]);
+
+  const viewCounts = useMemo(() => ({
+    all: escalations.length,
+    'my-involvement': escalations.filter((e) => (e.targetMembers || []).some((m: any) => m.user?.id === user?.id)).length,
+    'raised-by-me': escalations.filter((e) => (e.createdBy?.id || e.created_by_id) === user?.id).length,
+    trash: trashEscalations.length,
+  }), [escalations, trashEscalations, user]);
+
+  const viewsList = [
+    { key: 'all', label: 'All Escalations', icon: <FolderOutlined />, color: '#3B82F6' },
+    { key: 'my-involvement', label: 'My Involvement', icon: <UserOutlined />, color: '#64748B' },
+    { key: 'raised-by-me', label: 'Raised by Me', icon: <FileTextOutlined />, color: '#10B981' },
+    { key: 'trash', label: 'Trash', icon: <DeleteOutlined />, color: '#ef4444' },
+  ];
+
+  const hasActiveFilters = searchText.trim().length > 0 || statusFilter.length > 0 || priorityFilter.length > 0 || categoryFilter.length > 0;
 
   const handleClearFilters = () => {
     setSearchText('');
@@ -400,865 +464,704 @@ export default function EscalationListPage() {
     setCategoryFilter([]);
   };
 
-  /* ----------------------------- Helpers ----------------------------------- */
-
-  const getStatusBadge = (record: any) => {
-    const name = record.status_name || record.escalationStatus?.name || record.status;
-    const color = record.status_color || record.escalationStatus?.color || BLUE_PRIMARY;
-    if (!name) return <Badge status="default" text="Unknown" />;
-    return <Badge color={color} text={name} style={{ fontWeight: 500 }} />;
+  const handleRestore = async (id: string) => {
+    try {
+      await EscalationServiceV2.restoreEscalation(id);
+      notifyPremium('success', 'Escalation Restored', 'The escalation has been restored from trash.');
+      fetchEscalations(); // Refresh lists
+    } catch (error) {
+      console.error('Failed to restore escalation:', error);
+      notifyPremium('error', 'Restore Failed', 'Failed to restore escalation. Please try again.');
+    }
   };
 
-  const getCategoryTag = (cat: any) => (
-    <Tag
-      color="blue"
-      style={{
-        borderRadius: 4,
-        borderLeft: cat?.color ? `4px solid ${cat.color}` : 'none',
-        background: 'var(--bg-slate-50)',
-        color: 'var(--text-slate-600)',
-        fontWeight: 500,
-      }}
-      bordered={false}
-    >
-      {cat?.name || cat?.category_name || 'General'}
-    </Tag>
-  );
+  const handlePermanentDelete = async (id: string) => {
+    try {
+      await EscalationServiceV2.permanentDeleteEscalation(id);
+      notifyPremium('success', 'Permanently Deleted', 'The escalation has been permanently removed.');
+      fetchEscalations(); // Refresh lists
+    } catch (error) {
+      console.error('Failed to permanently delete escalation:', error);
+      notifyPremium('error', 'Delete Failed', 'Failed to permanently delete escalation.');
+    }
+  };
 
-  /* ----------------------------- Columns ----------------------------------- */
+  const actionMenu = (record: any) => ({
+    className: 'es-action-pop',
+    items: record.isDeleted || record.is_deleted ? [
+      { key: 'restore', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}><HistoryOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Restore</span><span className="es-menu-desc">Restore from trash</span></span></div> },
+      { type: 'divider' as const },
+      { key: 'permanent_delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete Forever</span><span className="es-menu-desc">Irreversible</span></span></div> },
+    ] : [
+      { key: 'view', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><AlertOutlined /></span><span className="es-menu-text"><span className="es-menu-title">View details</span><span className="es-menu-desc">Open escalation</span></span></div> },
+      { key: 'edit', disabled: !canUpdateEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Edit</span><span className="es-menu-desc">Modify escalation</span></span></div> },
+      { type: 'divider' as const },
+      { key: 'delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete</span><span className="es-menu-desc">Move to trash</span></span></div> },
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent.stopPropagation();
+      if (key === 'restore') {
+        handleRestore(record.id);
+      } else if (key === 'permanent_delete') {
+        modal.confirm({
+          title: 'Delete Forever',
+          content: 'Are you sure you want to permanently delete this escalation? This action cannot be undone.',
+          okText: 'Delete Forever',
+          okType: 'danger',
+          onOk: () => handlePermanentDelete(record.id),
+        });
+      } else if (key === 'view') {
+        setSelectedEscalation(record);
+        setTempStatus(record.statusId || record.status);
+        setIsEditing(false);
+        setDrawerVisible(true);
+      } else if (key === 'edit') {
+        setEditingRecord(record);
+        setEditDrawerOpen(true);
+      } else if (key === 'delete') {
+        modal.confirm({
+          title: 'Delete Escalation',
+          content: 'Are you sure you want to move this escalation to the trash?',
+          okText: 'Delete',
+          okType: 'danger',
+          onOk: () => {
+            handleDelete(record.id);
+            setTrashEscalations(prev => [record, ...prev]);
+          },
+        });
+      }
+    },
+  });
 
   const columns = [
     {
-      title: 'Subject & Category',
+      title: 'SUBJECT & CATEGORY',
       dataIndex: 'subject',
       key: 'subject',
+      fixed: 'left' as const,
       render: (text: string, record: any) => (
-        <Space direction="vertical" size={2}>
-          <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
-            {text || record.short_summary || 'No Subject'}
-          </Text>
-          {getCategoryTag(record.category || { name: record.category_name })}
-        </Space>
-      ),
-    },
-    {
-      title: 'Target Team Members',
-      dataIndex: 'targetMembers',
-      key: 'targetMembers',
-      width: 220,
-      render: (members: any[], record: any) => {
-        const list = members || record.targetMembers || [];
-        if (list.length === 0)
-          return (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              —
-            </Text>
-          );
-
-        if (list.length === 1) {
-          return (
-            <Space>
-              <Avatar size="small" style={{ backgroundColor: BLUE_PRIMARY }}>
-                {list[0].user?.name?.charAt(0)}
-              </Avatar>
-              <Text style={{ fontSize: 13 }}>{list[0].user?.name}</Text>
-            </Space>
-          );
-        }
-        return (
-          <Avatar.Group
-            max={{ count: 3 }}
-            size="small"
-          >
-            {list.map((m: any, idx: number) => (
-              <Tooltip title={m.user?.name} key={idx}>
-                <Avatar style={{ backgroundColor: BLUE_PRIMARY }}>{m.user?.name?.charAt(0)}</Avatar>
-              </Tooltip>
-            ))}
-          </Avatar.Group>
-        );
-      },
-    },
-    {
-      title: 'Tickets',
-      dataIndex: 'tickets',
-      key: 'tickets',
-      width: 160,
-      render: (tickets: any[]) => (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 150 }}>
-          {tickets?.map((t, idx) => (
-            <Tooltip title={t.ticket?.title} key={idx}>
-              <Tag
-                color="cyan"
-                style={{
-                  fontSize: 10,
-                  borderRadius: 4,
-                  margin: 0,
-                  padding: '0 4px',
-                  background: 'var(--bg-sky-50)',
-                  border: '1px solid var(--border-sky-100)',
-                  color: 'var(--text-sky-600)',
-                }}
-              >
-                {t.ticket?.ticketNumber}
-              </Tag>
-            </Tooltip>
-          ))}
-          {(!tickets || tickets.length === 0) && (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              —
-            </Text>
-          )}
+        <div className="es-name-cell">
+          <div className="es-name-icon">
+            <AlertOutlined style={{ fontSize: 12 }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+            <span className="es-name-title">{text || record.short_summary || 'No Subject'}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.category?.name || record.category_name || 'General'}</span>
+          </div>
         </div>
       ),
     },
     {
-      title: 'Priority',
+      title: 'TARGET MEMBERS',
+      dataIndex: 'targetMembers',
+      key: 'targetMembers',
+      width: 200,
+      render: (members: any[], record: any) => {
+        const list = members || record.targetMembers || [];
+        if (list.length === 0) return <Text className="es-muted">—</Text>;
+
+        const firstMember = list[0]?.user;
+        const othersCount = list.length - 1;
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Avatar style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 10, fontWeight: 700, width: 24, height: 24, lineHeight: '24px', flexShrink: 0 }}>
+              {initialsOf(firstMember?.name)}
+            </Avatar>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {firstMember?.name || 'Unknown'}
+            </span>
+            {othersCount > 0 && (
+              <Tooltip title={list.slice(1).map((m: any) => m.user?.name).join(', ')}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-500)', background: 'var(--bg-slate-100)', padding: '2px 6px', borderRadius: 10, flexShrink: 0, cursor: 'default' }}>
+                  +{othersCount}
+                </span>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: 'PRIORITY',
       dataIndex: 'priority',
       key: 'priority',
       width: 120,
       render: (priority: any, record: any) => getPriorityTag(priority || { name: record.priority_name }),
     },
     {
-      title: 'Status',
+      title: 'STATUS',
       key: 'status',
-      width: 130,
+      width: 140,
       render: (_: any, record: any) => getStatusBadge(record),
     },
     {
-      title: 'Raised By',
+      title: 'RAISED BY',
       dataIndex: 'createdBy',
       key: 'createdBy',
       width: 160,
-      render: (user: any) => (
-        <Space>
-          <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}>
-            {user?.name?.charAt(0)}
-          </Avatar>
-          <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>
-            {user?.name || 'System'}
-          </Text>
-        </Space>
-      ),
+      render: (user: any) => {
+        if (!user?.name) return <Text className="es-muted">System</Text>;
+        return (
+          <div className="es-creator">
+            <Avatar size={20} src={user.avatarUrl || user.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
+              {initialsOf(user.name)}
+            </Avatar>
+            <span className="es-creator-name">{user.name}</span>
+          </div>
+        );
+      },
     },
     {
-      title: 'Raised Date',
+      title: 'RAISED DATE',
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 140,
-      render: (date: string, record: any) => (
-        <Tooltip title={dayjs(date || record.created_at).format('YYYY-MM-DD HH:mm:ss')}>
-          <Text style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>
-            {dayjs(date || record.created_at).format('MMM D, YYYY')}
-          </Text>
-        </Tooltip>
-      ),
+      render: (date: string, record: any) => {
+        const d = dayjs(date || record.created_at);
+        return (
+          <div className="es-date">
+            <span className="es-date-main">{d.format('MMM D, YYYY')}</span>
+            <span className="es-date-sub">{d.format('h:mm A')}</span>
+          </div>
+        );
+      },
     },
     {
-      title: 'Action',
-      key: 'action',
+      title: 'ACTIONS',
+      key: 'actions',
+      align: 'center' as const,
+      width: 72,
       fixed: 'right' as const,
-      width: 120,
       render: (_: any, record: any) => (
-        <Space size={4} onClick={(e) => e.stopPropagation()}>
-          {canUpdateEscalation && (
-            <Tooltip title="Edit Escalation">
-              <Button
-                type="text"
-                icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
-                onClick={() => {
-                  setEditingRecord(record);
-                  setEditDrawerOpen(true);
-                }}
-              />
-            </Tooltip>
-          )}
-          {canDeleteEscalation && (
-            <Tooltip title="Delete">
-              <Popconfirm
-                title="Delete Escalation"
-                description="Are you sure you want to delete this escalation? This action cannot be undone."
-                onConfirm={() => handleDelete(record.id)}
-                okText="Yes, Delete"
-                cancelText="No"
-                okButtonProps={{ danger: true, loading: deleting === record.id }}
-              >
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={deleting === record.id}
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
-        </Space>
+        <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
+          <Button type="text" className="es-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
+        </Dropdown>
       ),
     },
   ];
 
+  const total = filteredEscalations.length;
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pagedEscalations = filteredEscalations.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+
+  const emptyState = (
+    <div className="es-empty">
+      <div className="es-empty-orb"><AlertOutlined style={{ fontSize: 26 }} /></div>
+      <div className="es-empty-title">No escalations found</div>
+      <div className="es-empty-sub">Monitor and resolve manual escalations related to quality and regressions.</div>
+      {canCreateEscalation && (
+        <Button type="primary" icon={<PlusOutlined />} className="es-btn-primary" onClick={() => setCreateDrawerOpen(true)} style={{ marginTop: 14 }}>
+          Raise Escalation
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <MainLayout>
-      <div className="qe-shell">
-        <TimeTrackingHeader
-          icon={<AlertOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}
-          title="Quality & Performance Escalations"
-          description="Monitor and resolve manual escalations related to deployment quality and team regressions."
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            borderBottom: '1px solid var(--border-slate-200)',
-            padding: '9.5px 32px',
-            marginBottom: 20,
-          }}
-          extra={
-            <Space>
+      <div className="es-shell">
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="es-sidebar">
+          <div className="es-sidebar-top">
+            <div className="es-side-head">
+              <div className="es-side-logo"><AlertOutlined /></div>
+              <div className="es-side-head-text">
+                <div className="es-side-title">Escalations</div>
+                <div className="es-side-subtitle">Quality & Performance</div>
+              </div>
+            </div>
+
+            {canCreateEscalation && (
               <Button
-                icon={<DeleteOutlined />}
-                onClick={() => router.push('/escalations/trash')}
-                style={{ borderRadius: 8, height: 36 }}
+                type="primary"
+                icon={<PlusOutlined />}
+                className="es-create-btn"
+                onClick={() => setCreateDrawerOpen(true)}
+                block
               >
-                Trash
+                Raise Escalation
               </Button>
-              {canCreateEscalation && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setCreateDrawerOpen(true)}
-                  className="qe-primary-btn"
-                >
-                  Raise Escalation
-                </Button>
-              )}
-            </Space>
-          }
-        />
-
-        <div className="qe-content">
-          {/* Premium stats grid */}
-          <div className="qe-stat-grid">
-            <StatCard
-              label="Active Escalations"
-              value={statsData.total}
-              icon={<ExclamationCircleOutlined />}
-              accent="#3b82f6"
-              subtle="Across all categories"
-              loading={loading && statsData.total === 0}
-              chart={
-                statsData.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: statsData.pending,
-                        color: '#f59e0b',
-                        label: `${statsData.pending} pending`,
-                      },
-                      {
-                        value: Math.max(statsData.inProgress, 0),
-                        color: '#3b82f6',
-                        label: `${Math.max(statsData.inProgress, 0)} in progress`,
-                      },
-                      {
-                        value: statsData.resolved,
-                        color: '#10b981',
-                        label: `${statsData.resolved} resolved`,
-                      },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="High Priority"
-              value={statsData.highPriority}
-              icon={<FireOutlined />}
-              accent="#ef4444"
-              subtle={
-                statsData.total > 0 ? `${highPriorityPct}% of all open` : 'No escalations yet'
-              }
-              loading={loading && statsData.total === 0}
-              chart={
-                statsData.total > 0 ? (
-                  <div className="qe-progress-row">
-                    <div className="qe-progress-track">
-                      <span
-                        className="qe-progress-fill"
-                        style={{
-                          width: `${highPriorityPct}%`,
-                          background: 'linear-gradient(90deg, #ef4444, #f97316)',
-                        }}
-                      />
-                    </div>
-                    <span className="qe-progress-label">{highPriorityPct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Pending Reviews"
-              value={statsData.pending}
-              icon={<ClockCircleOutlined />}
-              accent="#f59e0b"
-              subtle="Awaiting initial triage"
-              loading={loading && statsData.total === 0}
-              chart={
-                statsData.total > 0 ? (
-                  <div className="qe-cv-row">
-                    <UserOutlined style={{ fontSize: 11 }} />
-                    <span>
-                      <strong>{statsData.myInvolvement}</strong> involve you
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Total Resolved"
-              value={statsData.resolved}
-              icon={<CheckCircleOutlined />}
-              accent="#10b981"
-              subtle={
-                statsData.total > 0 ? `${resolvedPct}% completion rate` : 'No escalations yet'
-              }
-              loading={loading && statsData.total === 0}
-              chart={
-                statsData.total > 0 ? (
-                  <div className="qe-progress-row">
-                    <div className="qe-progress-track">
-                      <span
-                        className="qe-progress-fill"
-                        style={{
-                          width: `${resolvedPct}%`,
-                          background: 'linear-gradient(90deg, #10b981, #34d399)',
-                        }}
-                      />
-                    </div>
-                    <span className="qe-progress-label">{resolvedPct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-
-          {/* Tabs */}
-          <Tabs
-            className="qe-tabs"
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={[
-              {
-                key: '1',
-                label: (
-                  <span className="qe-tab-label">
-                    <AppstoreOutlined /> All
-                    <span className="qe-tab-count">{escalations.length}</span>
-                  </span>
-                ),
-              },
-              {
-                key: '2',
-                label: (
-                  <span className="qe-tab-label">
-                    <UserOutlined /> My Involvement
-                    <span className="qe-tab-count">{statsData.myInvolvement}</span>
-                  </span>
-                ),
-              },
-              {
-                key: '3',
-                label: (
-                  <span className="qe-tab-label">
-                    <FileTextOutlined /> Raised by Me
-                    <span className="qe-tab-count">
-                      {escalations.filter((e) => (e.createdBy?.id || e.created_by_id) === user?.id).length}
-                    </span>
-                  </span>
-                ),
-              },
-            ]}
-          />
-
-          {/* Single-row premium filter bar */}
-          <div className="qe-toolbar">
-            <Input
-              className="qe-search"
-              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />}
-              placeholder="Search subject, target, project…"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-            />
-
-            <Select
-              className="qe-filter-select"
-              mode="multiple"
-              allowClear
-              showSearch
-              maxTagCount="responsive"
-              placeholder={
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <ExclamationCircleOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                  Status
-                </span>
-              }
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ flex: '1 1 160px', minWidth: 150, maxWidth: 220 }}
-              options={statusOptions.map((o) => ({
-                value: o.value,
-                label: o.label,
-                rich: (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: o.color || BLUE_PRIMARY,
-                      }}
-                    />
-                    {o.label}
-                  </span>
-                ),
-              }))}
-              optionRender={(option) => (option.data as any).rich}
-              filterOption={(input, option: any) =>
-                (option?.label || '').toLowerCase().includes(input.toLowerCase())
-              }
-            />
-
-            <Select
-              className="qe-filter-select"
-              mode="multiple"
-              allowClear
-              showSearch
-              maxTagCount="responsive"
-              placeholder={
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <FireOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                  Priority
-                </span>
-              }
-              value={priorityFilter}
-              onChange={setPriorityFilter}
-              style={{ flex: '1 1 160px', minWidth: 150, maxWidth: 220 }}
-              options={priorityOptions.map((o) => ({
-                value: o.value,
-                label: o.label,
-                rich: (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 2,
-                        background: o.color || '#94a3b8',
-                      }}
-                    />
-                    {o.label}
-                  </span>
-                ),
-              }))}
-              optionRender={(option) => (option.data as any).rich}
-              filterOption={(input, option: any) =>
-                (option?.label || '').toLowerCase().includes(input.toLowerCase())
-              }
-            />
-
-            <Select
-              className="qe-filter-select"
-              mode="multiple"
-              allowClear
-              showSearch
-              maxTagCount="responsive"
-              placeholder={
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <TagOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                  Category
-                </span>
-              }
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              style={{ flex: '1 1 180px', minWidth: 160, maxWidth: 240 }}
-              options={categoryOptions.map((o) => ({
-                value: o.value,
-                label: o.label,
-                rich: (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <span
-                      style={{
-                        width: 4,
-                        height: 14,
-                        borderRadius: 2,
-                        background: o.color || '#94a3b8',
-                      }}
-                    />
-                    {o.label}
-                  </span>
-                ),
-              }))}
-              optionRender={(option) => (option.data as any).rich}
-              filterOption={(input, option: any) =>
-                (option?.label || '').toLowerCase().includes(input.toLowerCase())
-              }
-            />
-
-            {hasActiveFilter && (
-              <Tooltip title="Clear all filters">
-                <Button
-                  type="text"
-                  icon={<ReloadOutlined />}
-                  onClick={handleClearFilters}
-                  className="qe-clear-btn"
-                >
-                  Reset
-                </Button>
-              </Tooltip>
             )}
-
-            <div className="qe-toolbar__divider" />
-
-            <Segmented
-              className="qe-sort-segmented"
-              value={sortOrder}
-              onChange={(v) => setSortOrder(v as 'recent' | 'priority')}
-              options={[
-                { label: 'Recent', value: 'recent' },
-                { label: 'Priority', value: 'priority' },
-              ]}
-            />
-
-            <Text className="qe-count-text">
-              <strong>{filteredEscalations.length}</strong> of {escalations.length}
-            </Text>
           </div>
 
-          {/* Active filter chips */}
-          {(statusFilter.length > 0 || priorityFilter.length > 0 || categoryFilter.length > 0) && (
-            <div className="qe-chips">
-              {statusFilter.map((id) => {
-                const opt = statusOptions.find((o) => o.value === id);
-                if (!opt) return null;
+          <div className="es-side-scroll">
+            <div className="es-side-section-label">Views</div>
+            <div className="es-side-list">
+              {viewsList.map((v) => {
+                const active = savedView === v.key;
                 return (
-                  <span key={`s-${id}`} className="qe-chip is-status" style={{ ['--chip-color' as any]: opt.color || BLUE_PRIMARY }}>
-                    <span className="qe-chip__dot" />
-                    {opt.label}
-                    <button
-                      className="qe-chip__remove"
-                      onClick={() => setStatusFilter(statusFilter.filter((x) => x !== id))}
-                      aria-label={`Remove ${opt.label}`}
-                    >
-                      <CloseOutlined />
-                    </button>
-                  </span>
-                );
-              })}
-              {priorityFilter.map((id) => {
-                const opt = priorityOptions.find((o) => o.value === id);
-                if (!opt) return null;
-                return (
-                  <span key={`p-${id}`} className="qe-chip is-priority">
-                    <FireOutlined className="qe-chip__icon" />
-                    {opt.label}
-                    <button
-                      className="qe-chip__remove"
-                      onClick={() => setPriorityFilter(priorityFilter.filter((x) => x !== id))}
-                      aria-label={`Remove ${opt.label}`}
-                    >
-                      <CloseOutlined />
-                    </button>
-                  </span>
-                );
-              })}
-              {categoryFilter.map((name) => (
-                <span key={`c-${name}`} className="qe-chip is-category">
-                  <TagOutlined className="qe-chip__icon" />
-                  {name}
                   <button
-                    className="qe-chip__remove"
-                    onClick={() => setCategoryFilter(categoryFilter.filter((x) => x !== name))}
-                    aria-label={`Remove ${name}`}
+                    key={v.key}
+                    type="button"
+                    className={`es-view-item ${active ? 'is-active' : ''}`}
+                    onClick={() => setSavedView(v.key)}
                   >
-                    <CloseOutlined />
+                    <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                    <span className="es-view-label">{v.label}</span>
+                    <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
                   </button>
-                </span>
-              ))}
+                );
+              })}
+            </div>
+            <div className="es-side-section-label">Filters</div>
+            <div className="es-side-filters">
+              <SearchableDropdown
+                mode="multiple"
+                className="es-side-sd"
+                placeholder="Category"
+                searchPlaceholder="Search category"
+                itemNoun="categories"
+                value={categoryFilter}
+                onChange={(v) => setCategoryFilter(v || [])}
+                options={categoryOptions}
+                width="100%"
+              />
+              <SearchableDropdown
+                mode="multiple"
+                className="es-side-sd"
+                placeholder="Priority"
+                searchPlaceholder="Search priority"
+                itemNoun="priorities"
+                value={priorityFilter}
+                onChange={(v) => setPriorityFilter(v || [])}
+                options={priorityOptions}
+                width="100%"
+              />
+              <SearchableDropdown
+                mode="multiple"
+                className="es-side-sd"
+                placeholder="Status"
+                searchPlaceholder="Search status"
+                itemNoun="statuses"
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v || [])}
+                options={statusOptions}
+                width="100%"
+              />
+              {hasActiveFilters && (
+                <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
+                  <CloseCircleOutlined /> Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* ============================ MAIN ============================ */}
+        <main className="es-main">
+          <div className="es-topbar">
+            <div className="es-search-wrap">
+              <SearchOutlined className="es-search-icon" />
+              <input
+                ref={searchRef}
+                className="es-search"
+                placeholder="Search subject, target, project…"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              <span className="es-kbd">⌘K</span>
+            </div>
+
+            <div className="es-topbar-meta">
+              <span className="es-meta-item"><span className="es-pulse" /><strong>{escalations.length}</strong> total</span>
+              <span className="es-meta-dot">·</span>
+              <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
+            </div>
+
+            <div className="es-topbar-actions">
+              <div className="es-segmented">
+                <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+              </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="es-divider" />
+
+          {/* Stat cards */}
+          <div className="es-stats">
+            {statCells.map((s) => (
+              <div key={s.key} className="es-stat-card">
+                <div className="es-stat-top">
+                  <div className="es-stat-left">
+                    <span className="es-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span className="es-stat-label">{s.title}</span>
+                      {(s as any).subtitle && <span style={{ fontSize: 10, color: 'var(--text-slate-400)', marginTop: 1 }}>{(s as any).subtitle}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="es-stat-bottom">
+                  <div className="es-stat-value-wrap">
+                    <span className="es-stat-value">{s.value}{s.suffix}</span>
+                  </div>
+                  <div className="es-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table / grid */}
+          <div className="es-body">
+            {view === 'list' ? (
+              <div className="es-table-wrap">
+                <Table
+                  columns={columns}
+                  dataSource={pagedEscalations}
+                  loading={loading}
+                  rowKey="id"
+                  size="small"
+                  className="es-table"
+                  scroll={{ x: 1000 }}
+                  rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
+                  pagination={false}
+                  locale={{ emptyText: emptyState }}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger')) return;
+                      setSelectedEscalation(record);
+                      setTempStatus(record.statusId || record.status);
+                      setIsEditing(false);
+                      setDrawerVisible(true);
+                    },
+                    className: 'es-row',
+                  })}
+                />
+              </div>
+            ) : (
+              <div className="es-grid">
+                {loading ? (
+                  <div className="es-grid-loading">Loading…</div>
+                ) : filteredEscalations.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                ) : (
+                  filteredEscalations.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((record) => {
+                    const title = record.subject || record.short_summary || 'No Subject';
+                    const accent = accentFor(record.id || title);
+                    const list = record.targetMembers || [];
+                    const statusName = record.status_name || record.escalationStatus?.name || record.status;
+                    const statusColor = record.status_color || record.escalationStatus?.color || BLUE_PRIMARY;
+                    const catName = record.category?.name || record.category_name || 'General';
+                    const isHighProd = catName.toLowerCase() === 'high production issue';
+
+                    return (
+                      <div key={record.id} className="ec-card dh-card group transition-all flex flex-col relative cursor-pointer" style={{ borderRadius: 0, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', overflow: 'hidden', minHeight: 110 }} onClick={() => {
+                        setSelectedEscalation(record);
+                        setTempStatus(record.statusId || record.status);
+                        setIsEditing(false);
+                        setDrawerVisible(true);
+                      }}>
+                        {/* ROW 1: Header */}
+                        <div className="flex-1 flex flex-col p-3 min-w-0" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
+                          <div className="flex items-start gap-2 min-w-0 pr-[68px]">
+                            <div
+                              className="flex items-center justify-center shrink-0"
+                              style={{ width: 28, height: 28, borderRadius: 8, background: isHighProd ? '#fef2f2' : 'var(--bg-blue-50)', color: isHighProd ? '#ef4444' : '#3b82f6' }}
+                            >
+                              <AlertOutlined style={{ fontSize: 14 }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="m-0 font-semibold text-[13px] leading-tight truncate" style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }} title={title}>
+                                {title}
+                              </h4>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 10.5, color: 'var(--text-slate-500)' }}>
+                                <span>ID: {record.id?.split('-')[0].toUpperCase()}</span>
+                                <span>•</span>
+                                <span>Category: {catName}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto pt-2 flex items-center justify-between gap-2" style={{ position: 'absolute', top: 12, right: 12 }}>
+                            <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
+                              <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                <EllipsisOutlined style={{ fontSize: 16 }} />
+                              </button>
+                            </Dropdown>
+                          </div>
+                        </div>
+
+                        {/* ROW 2: Raised By & Raised Date */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderBottom: '1px solid var(--border-slate-100)', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto' }} className="scrollbar-hide">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>Raised by</span>
+                            <Avatar size={16} src={record.createdBy?.avatarUrl || record.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
+                              {initialsOf(record.createdBy?.name || 'System')}
+                            </Avatar>
+                            <span style={{ fontWeight: 500, color: 'var(--text-slate-700)' }}>{record.createdBy?.name || 'System'}</span>
+                          </div>
+                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                          <div>Raised {dayjs(record.created_at || record.createdAt).format('MMM D, YYYY - hh:mm A')}</div>
+                          {record.updated_at && (
+                            <>
+                              <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                              <div>Updated {dayjs(record.updated_at).format('MMM D, YYYY - hh:mm A')}</div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* ROW 3: Footer Stats */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>Status:</span>
+                            <span className="es-vis-pill" style={{ color: statusColor, background: `${statusColor}1A`, borderColor: `${statusColor}40`, height: 20, fontSize: 10.5, padding: '0 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <span className="es-vis-dot" style={{ background: statusColor, width: 6, height: 6, borderRadius: '50%' }} />
+                              {statusName || 'Unknown'}
+                            </span>
+                          </div>
+                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>Priority:</span>
+                            {getPriorityTag(record.priority || { name: record.priority_name })}
+                          </div>
+                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>Target Members:</span>
+                            {list.length > 0 ? (
+                              <Avatar.Group max={{ count: 3, style: { background: '#94a3b8', color: '#fff', fontSize: 10, fontWeight: 600, border: '1px solid #fff' } }} size={22}>
+                                {list.map((m: any, idx: number) => (
+                                  <Tooltip key={idx} title={m.user?.name}>
+                                    <Avatar style={{ background: '#e2e8f0', color: '#475569', fontSize: 9.5, fontWeight: 700, border: '1px solid #fff' }}>
+                                      {initialsOf(m.user?.name)}
+                                    </Avatar>
+                                  </Tooltip>
+                                ))}
+                              </Avatar.Group>
+                            ) : (
+                              <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>0</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {total > 0 && (
+            <div className="es-footer es-footer--sticky">
+              <div className="es-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+                {selectedKeys.length > 0 && <span className="es-footer-sel"> · {selectedKeys.length} selected</span>}
+              </div>
+              <div className="es-pager">
+                <button type="button" className="es-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                  <button key={p} type="button" className={`es-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+                ))}
+                <button type="button" className="es-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="es-pagesize"
+                  value={tablePageSize}
+                  onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                  options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
             </div>
           )}
+        </main>
+      </div>
 
-          {/* Table */}
-          <Card
-            style={{
-              borderRadius: 14,
-              border: '1px solid var(--border-slate-200)',
-              overflow: 'hidden',
-              background: 'var(--bg-pure-white)',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-              marginTop: 16,
-            }}
-            styles={{ body: { padding: 0 } }}
-          >
-            <Table
-              columns={columns}
-              dataSource={filteredEscalations}
-              pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t, r) => `${r[0]}–${r[1]} of ${t}` }}
-              rowKey="id"
-              loading={loading}
-              className="premium-table qe-table"
-              scroll={{ x: 'max-content' }}
-              onRow={(record) => ({
-                onClick: () => {
-                  setSelectedEscalation(record);
-                  setTempStatus(record.statusId || record.status);
-                  setIsEditing(false);
-                  setDrawerVisible(true);
-                },
-                style: { cursor: 'pointer' },
-              })}
-            />
-          </Card>
-        </div>
-
-        {/* Escalation Detail Drawer */}
-        <Drawer
-          title={
-            <Space direction="vertical" size={2}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <AlertOutlined style={{ color: BLUE_PRIMARY }} />
-                <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>
-                  Escalation Details
-                </Title>
-              </div>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-slate-400)' }}>
-                ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on{' '}
-                {dayjs(selectedEscalation?.created_at || selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
-              </Text>
-            </Space>
-          }
-          placement="right"
-          onClose={() => setDrawerVisible(false)}
-          open={drawerVisible}
-          width={600}
-          extra={
-            canReadActivityLog && selectedEscalation && (
-              <Button
-                icon={<History size={14} />}
-                onClick={() => setHistoryOpen(true)}
-                size="small"
-                style={{ borderRadius: 6 }}
-              >
-                History
-              </Button>
-            )
-          }
-          styles={{
-            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
-            body: { padding: 0, background: 'var(--bg-pure-white)' },
-            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '12px 24px', background: 'var(--bg-pure-white)' },
-          }}
-          footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              {isEditing ? (
-                <>
-                  <Button onClick={() => setIsEditing(false)}>Cancel</Button>
-                  <Button type="primary" loading={updating} onClick={handleUpdateStatus} style={{ background: BLUE_PRIMARY }}>
-                    Update Status
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button onClick={() => setDrawerVisible(false)}>Close</Button>
-                  {canUpdateEscalation && (
-                    <Button type="primary" onClick={() => setIsEditing(true)} style={{ background: BLUE_PRIMARY }}>
-                      Edit
-                    </Button>
-                  )}
-                </>
-              )}
+      {/* Escalation Detail Drawer */}
+      <Drawer
+        title={
+          <Space direction="vertical" size={2}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <AlertOutlined style={{ color: BLUE_PRIMARY }} />
+              <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>
+                Escalation Details
+              </Title>
             </div>
-          }
-        >
-          {selectedEscalation && (
-            <div style={{ padding: '24px' }}>
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                {/* Header Info */}
-                <Card
-                  styles={{
-                    body: {
-                      padding: '12px 18px',
-                      background: 'var(--bg-slate-50)',
-                      border: '1px solid var(--border-slate-200)',
-                      borderRadius: 12,
-                    },
-                  }}
-                >
-                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-slate-400)' }}>
+              ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on{' '}
+              {dayjs(selectedEscalation?.created_at || selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
+            </Text>
+          </Space>
+        }
+        placement="right"
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        width={450}
+        extra={
+          canReadActivityLog && selectedEscalation && (
+            <Button
+              icon={<History size={14} />}
+              onClick={() => setHistoryOpen(true)}
+              size="small"
+              style={{ borderRadius: 6 }}
+            >
+              History
+            </Button>
+          )
+        }
+        styles={{
+          header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+          body: { padding: 0, background: 'var(--bg-pure-white)' },
+          footer: { borderTop: '1px solid var(--border-slate-100)', padding: '12px 24px', background: 'var(--bg-pure-white)' },
+        }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            {isEditing ? (
+              <>
+                <Button onClick={() => setIsEditing(false)}>Cancel</Button>
+                <Button type="primary" loading={updating} onClick={handleUpdateStatus} style={{ background: BLUE_PRIMARY }}>
+                  Update Status
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => setDrawerVisible(false)}>Close</Button>
+                {canUpdateEscalation && (
+                  <Button type="primary" onClick={() => setIsEditing(true)} style={{ background: BLUE_PRIMARY }}>
+                    Edit Status
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        }
+      >
+        {selectedEscalation && (
+          <div style={{ padding: '24px' }}>
+            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+              <Card
+                styles={{
+                  body: {
+                    padding: '12px 18px',
+                    background: 'var(--bg-slate-50)',
+                    border: '1px solid var(--border-slate-200)',
+                    borderRadius: 12,
+                  },
+                }}
+              >
+                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                  <div>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: 'var(--text-slate-400)',
+                      }}
+                    >
+                      Subject
+                    </Text>
+                    <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                      {selectedEscalation.subject || selectedEscalation.short_summary}
+                    </Title>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
+                      >
+                        Current Status
+                      </Text>
+                      <div style={{ marginTop: 4 }}>
+                        {isEditing ? (
+                          <Select
+                            value={tempStatus}
+                            onChange={setTempStatus}
+                            style={{ width: '100%' }}
+                            options={statuses.map((s) => ({
+                              label: (
+                                <Space>
+                                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color || BLUE_PRIMARY }} />
+                                  {s.name}
+                                </Space>
+                              ),
+                              value: s.id,
+                            }))}
+                          />
+                        ) : (
+                          getStatusBadge(selectedEscalation)
+                        )}
+                      </div>
+                    </div>
                     <div>
                       <Text
                         type="secondary"
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          color: 'var(--text-slate-400)',
-                        }}
+                        style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
                       >
-                        Subject
+                        Priority
                       </Text>
-                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-slate-900)' }}>
-                        {selectedEscalation.subject || selectedEscalation.short_summary}
-                      </Title>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
-                        >
-                          Current Status
-                        </Text>
-                        <div style={{ marginTop: 4 }}>
-                          {isEditing ? (
-                            <Select
-                              value={tempStatus}
-                              onChange={setTempStatus}
-                              style={{ width: '100%' }}
-                              options={statuses.map((s) => ({
-                                label: (
-                                  <Space>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color || BLUE_PRIMARY }} />
-                                    {s.name}
-                                  </Space>
-                                ),
-                                value: s.id,
-                              }))}
-                            />
-                          ) : (
-                            getStatusBadge(selectedEscalation)
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
-                        >
-                          Priority
-                        </Text>
-                        <div style={{ marginTop: 4 }}>
-                          {getPriorityTag(selectedEscalation.priority || { name: selectedEscalation.priority_name })}
-                        </div>
+                      <div style={{ marginTop: 4 }}>
+                        {getPriorityTag(selectedEscalation.priority || { name: selectedEscalation.priority_name })}
                       </div>
                     </div>
+                  </div>
+                </Space>
+              </Card>
+
+              <Row gutter={[24, 24]}>
+                <Col span={12}>
+                  <Space direction="vertical" size={2}>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
+                    >
+                      <ProjectOutlined /> Category
+                    </Text>
+                    {getCategoryTag(selectedEscalation.category || { name: selectedEscalation.category_name })}
                   </Space>
-                </Card>
-
-                {/* Grid Info */}
-                <Row gutter={[24, 24]}>
-                  <Col span={12}>
-                    <Space direction="vertical" size={2}>
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
-                      >
-                        <ProjectOutlined /> Category
-                      </Text>
-                      {getCategoryTag(selectedEscalation.category || { name: selectedEscalation.category_name })}
-                    </Space>
-                  </Col>
-                  <Col span={12}>
-                    <Space direction="vertical" size={2}>
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
-                      >
-                        <PlusOutlined /> Related Project
-                      </Text>
-                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
-                        {selectedEscalation.project?.name || 'N/A'}
-                      </Text>
-                    </Space>
-                  </Col>
-                </Row>
-
-                <Divider style={{ margin: 0 }} />
-
-                {/* Description */}
-                <div>
-                  <Space align="center" style={{ marginBottom: 8 }}>
-                    <FileTextOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
-                    <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
-                      Detailed Description
+                </Col>
+                <Col span={12}>
+                  <Space direction="vertical" size={2}>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}
+                    >
+                      <PlusOutlined /> Related Project
+                    </Text>
+                    <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+                      {selectedEscalation.project?.name || 'N/A'}
                     </Text>
                   </Space>
-                  <div
-                    style={{
-                      padding: '16px',
-                      background: 'var(--bg-primary)',
-                      border: '1px solid var(--border-slate-200)',
-                      borderRadius: 10,
-                      fontSize: 13,
-                      lineHeight: '1.5',
-                      color: 'var(--text-slate-700)',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {selectedEscalation.description || selectedEscalation.detailed_description}
-                  </div>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: 0 }} />
+
+              <div>
+                <Space align="center" style={{ marginBottom: 8 }}>
+                  <FileTextOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
+                  <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
+                    Detailed Description
+                  </Text>
+                </Space>
+                <div
+                  style={{
+                    padding: '16px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-slate-200)',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    lineHeight: '1.5',
+                    color: 'var(--text-slate-700)',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {selectedEscalation.description || selectedEscalation.detailed_description}
                 </div>
+              </div>
 
-                {/* Linked Tickets */}
-                {selectedEscalation.tickets?.length > 0 && (
-                  <div>
-                    <Space align="center" style={{ marginBottom: 10 }}>
-                      <BugOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
-                      <Text
-                        strong
-                        style={{
-                          fontSize: 13,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          color: 'var(--text-slate-400)',
-                        }}
-                      >
-                        Linked Development Tickets
-                      </Text>
-                    </Space>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {selectedEscalation.tickets.map((t: any, idx: number) => (
-                        <Tag
-                          key={idx}
-                          color="blue"
-                          bordered={false}
-                          style={{
-                            borderRadius: 4,
-                            margin: 0,
-                            padding: '4px 8px',
-                            background: 'var(--bg-blue-50)',
-                            border: '1px solid var(--border-slate-200)',
-                          }}
-                        >
-                          <Space size={4}>
-                            <Text strong style={{ fontSize: 11, color: 'var(--premium-blue)' }}>
-                              {t.ticket?.ticketNumber}
-                            </Text>
-                            <Text style={{ fontSize: 11, color: 'var(--text-slate-600)' }}>{t.ticket?.title}</Text>
-                          </Space>
-                        </Tag>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Target Members */}
+              {selectedEscalation.tickets?.length > 0 && (
                 <div>
                   <Space align="center" style={{ marginBottom: 10 }}>
-                    <UserOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
+                    <BugOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
                     <Text
                       strong
                       style={{
@@ -1268,121 +1171,456 @@ export default function EscalationListPage() {
                         color: 'var(--text-slate-400)',
                       }}
                     >
-                      Target Team Members
+                      Linked Development Tickets
                     </Text>
                   </Space>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {selectedEscalation.targetMembers?.map((m: any, idx: number) => (
-                      <div
+                    {selectedEscalation.tickets.map((t: any, idx: number) => (
+                      <Tag
                         key={idx}
+                        color="blue"
+                        bordered={false}
                         style={{
-                          padding: '4px 10px 4px 4px',
-                          background: 'var(--bg-primary)',
+                          borderRadius: 4,
+                          margin: 0,
+                          padding: '4px 8px',
+                          background: 'var(--bg-blue-50)',
                           border: '1px solid var(--border-slate-200)',
-                          borderRadius: 20,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                         }}
                       >
-                        <Avatar size={24} style={{ backgroundColor: BLUE_PRIMARY, fontSize: 10 }}>
-                          {m.user?.name?.charAt(0)}
-                        </Avatar>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Text strong style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>
-                            {m.user?.name}
+                        <Space size={4}>
+                          <Text strong style={{ fontSize: 11, color: 'var(--premium-blue)' }}>
+                            {t.ticket?.ticketNumber}
                           </Text>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              color: 'var(--text-slate-400)',
-                              background: 'var(--bg-slate-50)',
-                              padding: '2px 6px',
-                              borderRadius: 10,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {m.user?.position?.title || 'Member'}
-                          </Text>
-                        </div>
-                      </div>
+                          <Text style={{ fontSize: 11, color: 'var(--text-slate-600)' }}>{t.ticket?.title}</Text>
+                        </Space>
+                      </Tag>
                     ))}
                   </div>
                 </div>
+              )}
 
-                <Divider style={{ margin: 0 }} />
-
-                {/* Creator Audit */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    background: 'var(--bg-slate-50)',
-                    borderRadius: 10,
-                  }}
-                >
-                  <Space size={10}>
-                    <Avatar
-                      size="small"
-                      src={selectedEscalation.createdBy?.avatar}
-                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}
+              <div>
+                <Space align="center" style={{ marginBottom: 10 }}>
+                  <UserOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
+                  <Text
+                    strong
+                    style={{
+                      fontSize: 13,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: 'var(--text-slate-400)',
+                    }}
+                  >
+                    Target Team Members
+                  </Text>
+                </Space>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {selectedEscalation.targetMembers?.map((m: any, idx: number) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '4px 10px 4px 4px',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-slate-200)',
+                        borderRadius: 20,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      }}
                     >
-                      {selectedEscalation.createdBy?.name?.charAt(0)}
-                    </Avatar>
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>
-                        Raised By
-                      </Text>
-                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
-                        {selectedEscalation.createdBy?.name || 'System / Not found'}
-                      </Text>
+                      <Avatar size={24} style={{ backgroundColor: BLUE_PRIMARY, fontSize: 10 }}>
+                        {m.user?.name?.charAt(0)}
+                      </Avatar>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Text strong style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>
+                          {m.user?.name}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: 'var(--text-slate-400)',
+                            background: 'var(--bg-slate-50)',
+                            padding: '2px 6px',
+                            borderRadius: 10,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {m.user?.position?.title || 'Member'}
+                        </Text>
+                      </div>
                     </div>
-                  </Space>
-                  <Space size={10}>
-                    <HistoryOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>
-                        Last Updated
-                      </Text>
-                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
-                        {dayjs(selectedEscalation.updatedAt || selectedEscalation.updated_at).fromNow()}
-                      </Text>
-                    </div>
-                  </Space>
+                  ))}
                 </div>
-              </Space>
-            </div>
-          )}
-        </Drawer>
+              </div>
 
-        <CreateEscalationDrawer
-          open={createDrawerOpen}
-          onClose={() => setCreateDrawerOpen(false)}
-          onSuccess={fetchEscalations}
-        />
+              <Divider style={{ margin: 0 }} />
 
-        {selectedEscalation && (
-          <TransactionHistoryDrawer
-            open={historyOpen}
-            onClose={() => setHistoryOpen(false)}
-            entityType="escalation"
-            entityId={selectedEscalation.id}
-            subtitle={selectedEscalation.title || selectedEscalation.subject || `Escalation #${selectedEscalation.id.split('-')[0].toUpperCase()}`}
-          />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  background: 'var(--bg-slate-50)',
+                  borderRadius: 10,
+                }}
+              >
+                <Space size={10}>
+                  <Avatar
+                    size="small"
+                    src={selectedEscalation.createdBy?.avatar}
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}
+                  >
+                    {selectedEscalation.createdBy?.name?.charAt(0)}
+                  </Avatar>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>
+                      Raised By
+                    </Text>
+                    <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
+                      {selectedEscalation.createdBy?.name || 'System / Not found'}
+                    </Text>
+                  </div>
+                </Space>
+                <Space size={10}>
+                  <HistoryOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>
+                      Last Updated
+                    </Text>
+                    <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
+                      {dayjs(selectedEscalation.updatedAt || selectedEscalation.updated_at).fromNow()}
+                    </Text>
+                  </div>
+                </Space>
+              </div>
+            </Space>
+          </div>
         )}
-        <CreateEscalationDrawer
-          open={editDrawerOpen}
-          onClose={() => {
-            setEditDrawerOpen(false);
-            setEditingRecord(null);
-          }}
-          onSuccess={fetchEscalations}
-          editingId={editingRecord?.id}
+      </Drawer>
+
+      <CreateEscalationDrawer
+        open={createDrawerOpen}
+        onClose={() => setCreateDrawerOpen(false)}
+        onSuccess={fetchEscalations}
+      />
+
+      {selectedEscalation && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="escalation"
+          entityId={selectedEscalation.id}
+          subtitle={selectedEscalation.title || selectedEscalation.subject || `Escalation #${selectedEscalation.id.split('-')[0].toUpperCase()}`}
         />
-      </div>
+      )}
+
+      <CreateEscalationDrawer
+        open={editDrawerOpen}
+        onClose={() => {
+          setEditDrawerOpen(false);
+          setEditingRecord(null);
+        }}
+        onSuccess={fetchEscalations}
+        editingId={editingRecord?.id}
+      />
+
+      <style jsx global>{`
+        .es-shell {
+          display: flex;
+          margin: 0 -16px;
+          height: calc(100vh - 64px);
+          background: var(--bg-pure-white);
+          overflow: hidden;
+        }
+
+        /* ---------------- Sidebar ---------------- */
+        .es-sidebar {
+          width: 240px;
+          flex-shrink: 0;
+          border-right: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 64px);
+        }
+        .es-sidebar-top {
+          padding: 14px 14px 12px 18px;
+        }
+        .es-side-head {
+          display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .es-side-logo {
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .es-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+        }
+        .es-create-btn {
+          height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+          background: #3B82F6 !important;
+          border: none !important; box-shadow: none !important;
+          margin-bottom: 4px;
+        }
+        .es-create-btn:hover { background: #2563EB !important; }
+        .es-create-btn .anticon { font-size: 12px !important; }
+        .es-side-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .es-side-section-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        }
+        .es-side-scroll > .es-side-section-label:first-child { margin-top: 6px; }
+        .es-side-list { display: flex; flex-direction: column; gap: 1px; }
+        .es-view-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+          cursor: pointer; transition: background .12s ease; text-align: left;
+        }
+        .es-view-item:hover { background: var(--bg-slate-50); }
+        .es-view-item.is-active { background: var(--bg-blue-50); }
+        .es-view-item.is-active .es-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .es-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+        .es-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        .es-view-count {
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+          min-width: 18px; text-align: right;
+        }
+        .es-view-item.is-active .es-view-count {
+          color: #3B82F6; font-weight: 700;
+          background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+        }
+        .es-side-filters { display: flex; flex-direction: column; gap: 8px; }
+        .es-side-sd { border-radius: 6px !important; }
+        .es-side-select .ant-select-selector {
+          border-radius: 6px !important; border-color: var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .es-clear-filters {
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #ef4444;
+        }
+
+        /* ---------------- Main ---------------- */
+        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
+        .es-body { flex: 1; min-height: 0; overflow-y: auto; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-search-wrap {
+          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .es-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .es-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .es-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900);
+        }
+        .es-search::placeholder { color: var(--text-slate-400); }
+        .es-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .es-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .es-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+        .es-meta-dot { color: var(--text-slate-300); }
+        .es-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
+        .es-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .es-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .es-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .es-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .es-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+
+        /* Stat cards */
+        .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .es-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 6px 8px; min-height: 54px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .es-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .es-stat-left { display: flex; align-items: center; gap: 8px; }
+        .es-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .es-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .es-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .es-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .es-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .es-stat-spark { opacity: 0.95; }
+
+        /* Table */
+        .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .es-table .ant-table { background: transparent; font-size: 12px; }
+        .es-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .es-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; background: var(--bg-pure-white) !important; }
+        .es-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .es-table .ant-table-tbody > tr.es-row:hover > td { background: var(--bg-slate-50) !important; }
+        .es-table .ant-table-tbody > tr.es-row { cursor: pointer; }
+        .es-table .ant-table-selection-column { padding-inline: 6px !important; }
+
+        .es-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .es-name-icon {
+          width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; color: #3B82F6;
+          background: var(--bg-blue-50);
+        }
+        .es-name-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .es-muted { color: var(--text-slate-400); }
+
+        .es-creator { display: flex; align-items: center; gap: 6px; }
+        .es-creator-name { font-size: 11.5px; color: var(--text-slate-700); white-space: nowrap; }
+        .es-date { display: flex; flex-direction: column; line-height: 1.25; }
+        .es-date-main { font-size: 11px; font-weight: 500; color: var(--text-slate-700); }
+        .es-date-sub { font-size: 9.5px; color: var(--text-slate-400); }
+
+        .es-vis-pill {
+          display: inline-flex; align-items: center; gap: 5px; height: 23px; padding: 0 8px;
+          border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap;
+        }
+        .es-vis-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .es-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+        .es-icon-btn:hover { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
+
+        /* Footer + pager */
+        .es-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+        }
+        .es-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30; margin: 0 -18px 0; padding: 6px 18px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .es-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .es-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .es-footer-sel { color: #3B82F6; font-weight: 600; }
+        .es-pager { display: flex; align-items: center; gap: 3px; }
+        .es-pager-btn, .es-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        }
+        .es-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .es-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .es-pagesize { margin-left: 5px; }
+        .es-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        /* Empty + grid */
+        .es-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+        .es-empty-orb {
+          width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+          background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
+        }
+        .es-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+        .es-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+        .es-btn-primary {
+          background: #3B82F6 !important; border: none !important;
+          border-radius: 6px !important; font-weight: 600 !important;
+        }
+        .es-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .es-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
+
+        .ec-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .ec-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .ec-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .ec-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 14px;
+        }
+        .ec-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .ec-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .ec-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .ec-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .ec-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .ec-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .ec-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .ec-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .ec-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .ec-foot-row + .ec-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .ec-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .ec-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+
+        /* Premium action dropdown */
+        .es-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 200px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .es-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .es-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .es-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .es-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .es-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .es-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .es-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .es-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .es-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .es-action-pop .ant-dropdown-menu-item-danger .es-menu-title { color: #ef4444; }
+
+        @media (max-width: 700px) {
+          .es-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 1100px) {
+          .es-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 820px) {
+          .es-sidebar { display: none; }
+          .es-topbar-meta { display: none; }
+        }
+      `}</style>
     </MainLayout>
   );
 }

@@ -35,8 +35,9 @@ export interface SearchableDropdownOption {
 }
 
 export interface SearchableDropdownProps {
-  value?: string;
-  onChange?: (value: string | undefined) => void;
+  mode?: "multiple";
+  value?: string | string[];
+  onChange?: (value: any) => void;
   options: SearchableDropdownOption[];
   placeholder?: string;
   /** Small uppercase eyebrow above the value in the trigger (activity-page style). */
@@ -52,6 +53,8 @@ export interface SearchableDropdownProps {
   width?: number | string;
   /** Show a trailing X when a value is set. Default true. */
   allowClear?: boolean;
+  /** Hide the leading avatar/initials chip on each option (e.g. for month/year lists). */
+  hideAvatar?: boolean;
   className?: string;
   /** Forwarded onto the trigger element so consumers can size it themselves. */
   style?: React.CSSProperties;
@@ -95,6 +98,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   itemNoun = "items",
   width = 290,
   allowClear = true,
+  hideAvatar = false,
   className,
   style,
   defaultOpen = false,
@@ -131,7 +135,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     freeText && search.trim().length > 0 && !exactMatch;
 
   const displayLabel = useMemo(() => {
-    if (!value) return placeholder;
+    if (!value || (Array.isArray(value) && value.length === 0)) return placeholder;
+    if (Array.isArray(value)) {
+      if (value.length === 1) {
+        const opt = options.find((o) => o.value === value[0]);
+        return opt ? opt.label : value[0];
+      }
+      return `${value.length} selected`;
+    }
     const opt = options.find((o) => o.value === value);
     return opt ? opt.label : value;
   }, [value, options, placeholder]);
@@ -172,7 +183,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         ) : (
           <>
             {filtered.map((opt) => {
-              const isSelected = value === opt.value;
+              const isSelected = Array.isArray(value) ? value.includes(opt.value) : value === opt.value;
               return (
                 <button
                   type="button"
@@ -181,24 +192,37 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                   disabled={opt.disabled}
                   onClick={() => {
                     if (opt.disabled) return;
-                    commit(isSelected ? undefined : opt.value);
+                    if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+                      // mode === 'multiple'
+                      const valArray = Array.isArray(value) ? value : [];
+                      if (isSelected) {
+                        onChange?.(valArray.filter(v => v !== opt.value));
+                      } else {
+                        onChange?.([...valArray, opt.value]);
+                      }
+                      // DO NOT close dropdown in multiple mode
+                    } else {
+                      commit(isSelected ? undefined : opt.value);
+                    }
                   }}
                 >
-                  <div
-                    className="sd-option-avatar"
-                    style={opt.badge ? undefined : {
-                      backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
-                      color: opt.avatarUrl ? undefined : '#fff',
-                      borderColor: opt.avatarUrl ? undefined : 'transparent',
-                    }}
-                  >
-                    {opt.badge
-                      ? opt.badge
-                      : opt.avatarUrl
-                        ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
-                        : initialsFor(opt.label)
-                    }
-                  </div>
+                  {!hideAvatar && (
+                    <div
+                      className="sd-option-avatar"
+                      style={opt.badge ? undefined : {
+                        backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
+                        color: opt.avatarUrl ? undefined : '#fff',
+                        borderColor: opt.avatarUrl ? undefined : 'transparent',
+                      }}
+                    >
+                      {opt.badge
+                        ? opt.badge
+                        : opt.avatarUrl
+                          ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
+                          : initialsFor(opt.label)
+                      }
+                    </div>
+                  )}
                   <div className="sd-option-content">
                     <span className="sd-option-name">{opt.label}</span>
                     {opt.description && (
@@ -242,7 +266,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const triggerClasses = [
     "sd-trigger",
-    value ? "is-active" : "",
+    (Array.isArray(value) ? value.length > 0 : !!value) ? "is-active" : "",
     open ? "is-open" : "",
     disabled ? "is-disabled" : "",
     triggerLabel ? "" : "is-compact",
@@ -272,13 +296,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           )}
           <span className="sd-trigger-value">{displayLabel}</span>
         </div>
-        {allowClear && value ? (
+        {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
           <XIcon
             className="sd-trigger-clear"
             size={14}
             onClick={(e) => {
               e.stopPropagation();
-              if (!disabled) onChange?.(undefined);
+              if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
             }}
           />
         ) : (
@@ -301,7 +325,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   justify-content: space-between;
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 5px 12px;
   height: 42px;
   min-width: 150px;
@@ -319,12 +343,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   background: var(--bg-slate-50, #f8fafc);
 }
 .sd-trigger.is-active {
-  border-color: #7c3aed;
+  border-color: #3b82f6;
   background: #faf9ff;
 }
 .sd-trigger.is-open {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(68, 131, 232, 0.12);
 }
 .sd-trigger.is-disabled {
   opacity: 0.55;
@@ -371,7 +395,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 }
 .sd-trigger-chevron.is-open {
   transform: rotate(180deg);
-  color: #7c3aed;
+  color: #2563eb;
 }
 .sd-trigger-clear {
   color: var(--text-slate-400, #94a3b8);
@@ -390,12 +414,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   border-color: var(--border-slate-700, #374151);
 }
 [data-theme='dark'] .sd-trigger.is-active {
-  background: rgba(124,58,237,0.06);
-  border-color: rgba(167,139,250,0.3);
+  background: rgba(37, 99, 235,0.06);
+  border-color: rgba(96, 165, 250,0.3);
 }
 [data-theme='dark'] .sd-trigger.is-open {
-  border-color: rgba(167,139,250,0.45);
-  box-shadow: 0 0 0 2px rgba(124,58,237,0.2);
+  border-color: rgba(96, 165, 250,0.45);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235,0.2);
 }
 [data-theme='dark'] .sd-trigger-value { color: #e2e8f0; }
 [data-theme='dark'] .sd-trigger.is-active .sd-trigger-value { color: #f8fafc; }
@@ -441,7 +465,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   transition: border-color .15s ease, background .15s ease;
 }
 .sd-search-input:focus {
-  border-color: #7c3aed;
+  border-color: #2563eb;
   background: var(--bg-pure-white, #ffffff);
 }
 [data-theme='dark'] .sd-search-input {
@@ -450,7 +474,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   color: #e2e8f0;
 }
 [data-theme='dark'] .sd-search-input:focus {
-  border-color: #a78bfa;
+  border-color: #60a5fa;
   background: #181824;
 }
 
@@ -481,10 +505,10 @@ const SEARCHABLE_DROPDOWN_CSS = `
   user-select: none;
 }
 .sd-option:hover { background: var(--bg-slate-50, #f8fafc); }
-.sd-option.is-selected { background: #faf9ff; }
+.sd-option.is-selected { background: #eff6ff; }
 .sd-option:disabled { opacity: 0.5; cursor: not-allowed; }
 [data-theme='dark'] .sd-option:hover { background: rgba(255,255,255,0.04); }
-[data-theme='dark'] .sd-option.is-selected { background: rgba(124,58,237,0.12); }
+[data-theme='dark'] .sd-option.is-selected { background: rgba(37, 99, 235,0.12); }
 
 .sd-option-avatar {
   width: 32px;
@@ -508,14 +532,14 @@ const SEARCHABLE_DROPDOWN_CSS = `
   object-fit: cover;
 }
 .sd-option-avatar-add {
-  background: rgba(124,58,237,0.08);
-  border-color: rgba(124,58,237,0.25);
-  color: #7c3aed;
+  background: rgba(37, 99, 235,0.08);
+  border-color: rgba(37, 99, 235,0.25);
+  color: #2563eb;
 }
 .sd-option.is-selected .sd-option-avatar {
-  background: #ede9fe;
-  color: #7c3aed;
-  border-color: #ddd6fe;
+  background: #dbeafe;
+  color: #2563eb;
+  border-color: #bfdbfe;
 }
 [data-theme='dark'] .sd-option-avatar {
   background: #2e354f;
@@ -523,9 +547,9 @@ const SEARCHABLE_DROPDOWN_CSS = `
   color: #94a3b8;
 }
 [data-theme='dark'] .sd-option.is-selected .sd-option-avatar {
-  background: rgba(124,58,237,0.2);
-  color: #c4b5fd;
-  border-color: rgba(167,139,250,0.3);
+  background: rgba(37, 99, 235,0.2);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250,0.3);
 }
 
 .sd-option-content {
@@ -554,8 +578,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sd-option.is-selected .sd-option-desc { color: #7c3aed; }
-[data-theme='dark'] .sd-option.is-selected .sd-option-desc { color: #a78bfa; }
+.sd-option.is-selected .sd-option-desc { color: #2563eb; }
+[data-theme='dark'] .sd-option.is-selected .sd-option-desc { color: #60a5fa; }
 
 .sd-option-meta {
   font-size: 11px;
@@ -566,12 +590,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
 }
 
 .sd-option-check {
-  color: #7c3aed;
+  color: #2563eb;
   flex-shrink: 0;
   margin-left: auto;
 }
 .sd-option-meta + .sd-option-check { margin-left: 6px; }
-[data-theme='dark'] .sd-option-check { color: #a78bfa; }
+[data-theme='dark'] .sd-option-check { color: #60a5fa; }
 
 .sd-footer {
   display: flex;

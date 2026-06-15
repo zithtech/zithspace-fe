@@ -43,13 +43,15 @@ import {
   EyeInvisibleOutlined,
   AppstoreOutlined,
   BgColorsOutlined,
+  ReloadOutlined,
+  AlertOutlined,
+  RiseOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import { EscalationSettingsService } from '@/services/escalationSettings';
-import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Text } = Typography;
@@ -95,66 +97,129 @@ interface StatCardProps {
   subtle?: string;
   loading?: boolean;
   chart?: React.ReactNode;
+  delta?: number;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart }) => (
-  <div className="es-stat-card" style={{ ['--es-accent' as any]: accent }}>
-    <div className="es-stat-head">
-      <div
-        className="es-stat-icon"
-        style={{
-          background: `${accent}14`,
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart, delta }) => (
+  <div 
+    className="dh-stats-card flex flex-col justify-between rounded-xl p-4 transition-all"
+    style={{
+        border: '1px solid var(--border-slate-200)',
+        background: 'var(--bg-pure-white)',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        height: 100,
+    }}
+  >
+    <div className="flex items-start justify-between w-full">
+      <div className="flex items-center gap-2">
+        <div style={{
           color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        {icon}
+          fontSize: 15,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 26,
+          height: 26,
+          background: `${accent}1c`,
+          borderRadius: 6,
+        }}>
+          {icon}
+        </div>
+        <span
+          className="text-[12.5px] font-medium"
+          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
+        >
+          {label}
+        </span>
       </div>
-      <Text className="es-stat-label">{label}</Text>
-      <div className="es-stat-value-wrap">
+      {delta !== undefined && delta > 0 && (
+        <Tooltip title="New this week">
+          <span
+            className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full"
+            style={{ color: accent, background: `${accent}1c` }}
+          >
+            <RiseOutlined style={{ fontSize: 11 }} />+{delta}
+          </span>
+        </Tooltip>
+      )}
+    </div>
+
+    <div className="flex items-end justify-between w-full mt-auto">
+      <div className="flex items-baseline gap-1.5 pb-1">
         {loading ? (
           <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
         ) : (
-          <span className="es-stat-value">{value}</span>
+          <span
+            className="text-[26px] font-semibold leading-none tracking-tight"
+            style={{ color: 'var(--text-slate-800)' }}
+          >
+            {value}
+          </span>
         )}
+        <span
+          className="text-[11px] font-medium"
+          style={{ color: 'var(--text-slate-400)' }}
+        >
+          {subtle || 'this week'}
+        </span>
       </div>
+      {chart && (
+        <div className="shrink-0 mb-[2px]">
+          {chart}
+        </div>
+      )}
     </div>
-    {subtle && <Text className="es-stat-subtle">{subtle}</Text>}
-    {chart && <div className="es-stat-chart">{chart}</div>}
-    <span
-      className="es-stat-accent"
-      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-    />
   </div>
 );
 
-interface MiniBarProps {
-  segments: { value: number; color: string; label: string }[];
-}
-const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const height = 28;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
   return (
-    <div className="es-minibar">
-      <div className="es-minibar-track">
-        {segments.map((s, i) => (
-          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
-            <span
-              className="es-minibar-seg"
-              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
-            />
-          </Tooltip>
-        ))}
-      </div>
-      <div className="es-minibar-legend">
-        {segments.map((s, i) => (
-          <span key={i} className="es-minibar-legend-item">
-            <span className="es-minibar-dot" style={{ background: s.color }} />
-            {s.label}
-          </span>
-        ))}
-      </div>
-    </div>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
+};
+
+const getStylizedTrend = (total: number) => {
+  if (total === 0) return [0, 0, 0, 0, 0, 0, 0];
+  return [0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * total);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -923,35 +988,81 @@ export default function EscalationSettingsPage() {
   return (
     <MainLayout>
       <div className="es-shell">
-        <TimeTrackingHeader
-          icon={<SettingOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}
-          title="Escalation Settings"
-          description="Manage the master data: categories, priorities, and lifecycle statuses."
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            borderBottom: '1px solid var(--border-slate-200)',
-            padding: '9.5px 32px',
-            marginBottom: 20,
-          }}
-          extra={
-            canManageEscalations && (
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="es-sidebar">
+          <div className="es-sidebar-top">
+            <div className="es-side-head">
+              <div className="es-side-logo"><SettingOutlined style={{ color: BLUE_PRIMARY }} /></div>
+              <div className="es-side-head-text">
+                <div className="es-side-title">Settings</div>
+                <div className="es-side-subtitle">Escalations Data</div>
+              </div>
+            </div>
+
+            {canManageEscalations && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
+                className="es-create-btn"
                 onClick={() => handleOpenDrawer()}
-                className="es-primary-btn"
+                block
               >
                 Add {activeSection.singular}
               </Button>
-            )
-          }
-        />
+            )}
+          </div>
 
-        <div className="es-content">
+          <div className="es-side-scroll">
+            <div className="es-side-section-label">Master Data</div>
+            <div className="es-side-list">
+              <button
+                type="button"
+                className={`es-view-item ${activeTab === 'categories' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('categories')}
+              >
+                <span className="es-view-icon" style={{ color: activeTab === 'categories' ? '#3B82F6' : 'var(--text-slate-400)' }}><BlockOutlined /></span>
+                <span className="es-view-label">Categories</span>
+                <span className="es-view-count">{categories.length}</span>
+              </button>
+              <button
+                type="button"
+                className={`es-view-item ${activeTab === 'priorities' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('priorities')}
+              >
+                <span className="es-view-icon" style={{ color: activeTab === 'priorities' ? '#ef4444' : 'var(--text-slate-400)' }}><UpSquareOutlined /></span>
+                <span className="es-view-label">Priorities</span>
+                <span className="es-view-count">{priorities.length}</span>
+              </button>
+              <button
+                type="button"
+                className={`es-view-item ${activeTab === 'statuses' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('statuses')}
+              >
+                <span className="es-view-icon" style={{ color: activeTab === 'statuses' ? '#10b981' : 'var(--text-slate-400)' }}><CheckSquareOutlined /></span>
+                <span className="es-view-label">Statuses</span>
+                <span className="es-view-count">{statuses.length}</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* ============================ MAIN ============================ */}
+        <main className="es-main">
+          <div className="es-topbar">
+            <div className="es-topbar-meta">
+              <span className="es-meta-item"><span className="es-pulse" /><strong>{activeSection.data.length}</strong> total {activeSection.singular.toLowerCase()}s</span>
+            </div>
+            <div className="es-topbar-actions">
+              <Tooltip title="Refresh">
+                <button type="button" className="es-ghost-btn" onClick={fetchAll}><ReloadOutlined spin={loading} /></button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="es-divider" />
+
           {/* Stats overview */}
-          <div className="es-stat-grid">
+          <div className="es-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <StatCard
               label="Categories"
               value={stats.categoriesTotal}
@@ -961,20 +1072,7 @@ export default function EscalationSettingsPage() {
               loading={loading && stats.categoriesTotal === 0}
               chart={
                 stats.categoriesTotal > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: stats.categoriesActive,
-                        color: '#10b981',
-                        label: `${stats.categoriesActive} active`,
-                      },
-                      {
-                        value: stats.categoriesInactive,
-                        color: '#94a3b8',
-                        label: `${stats.categoriesInactive} retired`,
-                      },
-                    ]}
-                  />
+                  <Sparkline data={getStylizedTrend(stats.categoriesTotal)} color="#3b82f6" />
                 ) : null
               }
             />
@@ -992,12 +1090,7 @@ export default function EscalationSettingsPage() {
               loading={loading && stats.prioritiesTotal === 0}
               chart={
                 stats.prioritiesTotal > 0 ? (
-                  <div className="es-cv-row">
-                    <span className="es-cv-dot is-active" />
-                    <span>
-                      <strong>{stats.prioritiesActive}</strong> active levels
-                    </span>
-                  </div>
+                  <Sparkline data={getStylizedTrend(stats.prioritiesTotal)} color="#ef4444" />
                 ) : null
               }
             />
@@ -1011,85 +1104,15 @@ export default function EscalationSettingsPage() {
               loading={loading && stats.statusesTotal === 0}
               chart={
                 stats.statusesTotal > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: stats.statusesDefault,
-                        color: '#3b82f6',
-                        label: `${stats.statusesDefault} default`,
-                      },
-                      {
-                        value: stats.statusesFinal,
-                        color: '#f59e0b',
-                        label: `${stats.statusesFinal} final`,
-                      },
-                      {
-                        value: Math.max(
-                          stats.statusesTotal - stats.statusesDefault - stats.statusesFinal,
-                          0,
-                        ),
-                        color: '#94a3b8',
-                        label: `${Math.max(
-                          stats.statusesTotal - stats.statusesDefault - stats.statusesFinal,
-                          0,
-                        )} other`,
-                      },
-                    ]}
-                  />
+                  <Sparkline data={getStylizedTrend(stats.statusesTotal)} color="#10b981" />
                 ) : null
               }
             />
           </div>
 
           {/* Switcher + content card */}
-          <div className="es-panel">
-            <div className="es-panel__header">
-              <Segmented
-                className="es-segmented"
-                value={activeTab}
-                onChange={(val) => setActiveTab(val as TabKey)}
-                options={[
-                  {
-                    label: (
-                      <span className="es-seg-opt">
-                        <BlockOutlined />
-                        Categories
-                        <span className="es-seg-pill">{categories.length}</span>
-                      </span>
-                    ),
-                    value: 'categories',
-                  },
-                  {
-                    label: (
-                      <span className="es-seg-opt">
-                        <UpSquareOutlined />
-                        Priorities
-                        <span className="es-seg-pill">{priorities.length}</span>
-                      </span>
-                    ),
-                    value: 'priorities',
-                  },
-                  {
-                    label: (
-                      <span className="es-seg-opt">
-                        <CheckSquareOutlined />
-                        Statuses
-                        <span className="es-seg-pill">{statuses.length}</span>
-                      </span>
-                    ),
-                    value: 'statuses',
-                  },
-                ]}
-              />
-
-              <Text className="es-panel__meta">
-                <strong>{activeSection.data.length}</strong>{' '}
-                {activeSection.singular.toLowerCase()}
-                {activeSection.data.length === 1 ? '' : 's'}
-              </Text>
-            </div>
-
-            <div className="es-panel__body">
+          {/* Table / Panel */}
+          <div className="es-body">
               {!loading && activeSection.data.length === 0 ? (
                 <div className="es-empty">
                   <Empty
@@ -1113,18 +1136,21 @@ export default function EscalationSettingsPage() {
                   </Empty>
                 </div>
               ) : (
+              <div className="es-table-wrap">
                 <Table
-                  className="premium-table es-table"
+                  className="es-table"
+                  size="small"
                   dataSource={activeSection.data as any}
                   columns={activeSection.columns as any}
                   rowKey="id"
                   loading={loading}
                   pagination={false}
+                  rowClassName={() => 'es-row'}
                 />
+              </div>
               )}
             </div>
-          </div>
-        </div>
+        </main>
 
         {/* CRUD Drawer */}
         <Drawer
@@ -1174,6 +1200,60 @@ export default function EscalationSettingsPage() {
           )}
         </Drawer>
       </div>
+
+      <style jsx global>{`
+        .es-shell { display: flex; margin: 0 -16px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
+        .es-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; position: sticky; top: 0; height: calc(100vh - 64px); }
+        .es-sidebar-top { padding: 14px 14px 12px 18px; }
+        .es-side-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
+        .es-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .es-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.07em; }
+        .es-create-btn { height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 4px; }
+        .es-create-btn:hover { background: #2563EB !important; }
+        .es-create-btn .anticon { font-size: 12px !important; }
+        .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px; scrollbar-width: none; -ms-overflow-style: none; }
+        .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px; }
+        .es-side-scroll > .es-side-section-label:first-child { margin-top: 6px; }
+        .es-side-list { display: flex; flex-direction: column; gap: 1px; }
+        .es-view-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: 8px; border: none; background: transparent; cursor: pointer; transition: background .12s ease; text-align: left; }
+        .es-view-item:hover { background: var(--bg-slate-50); }
+        .es-view-item.is-active { background: var(--bg-blue-50); }
+        .es-view-item.is-active .es-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .es-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+        .es-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
+        .es-view-item.is-active .es-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
+        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+        .es-body { flex: 1 0 auto; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .es-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+        .es-meta-dot { color: var(--text-slate-300); }
+        .es-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
+        .es-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .es-ghost-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+        .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+        .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        
+        /* Table */
+        .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; }
+        .es-table .ant-table { background: transparent; font-size: 12px; }
+        .es-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .es-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; background: var(--bg-pure-white) !important; }
+        .es-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .es-table .ant-table-tbody > tr.es-row:hover > td { background: var(--bg-slate-50) !important; }
+        .es-table .ant-table-selection-column { padding-inline: 6px !important; }
+      `}</style>
     </MainLayout>
   );
 }

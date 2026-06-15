@@ -71,10 +71,10 @@ const STATUS_META: Record<
   Exclude<StatusKey, 'all'>,
   { label: string; color: string; bg: string; ring: string; icon: React.ReactNode }
 > = {
-  draft:    { label: 'Draft',    color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
-  sent:     { label: 'Sent',     color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)',  icon: <SendOutlined /> },
-  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)',  icon: <CheckCircleOutlined /> },
-  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.25)',   icon: <CloseCircleOutlined /> },
+  draft: { label: 'Draft', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
+  sent: { label: 'Sent', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)', icon: <SendOutlined /> },
+  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)', icon: <CheckCircleOutlined /> },
+  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)', ring: 'rgba(239,68,68,0.25)', icon: <CloseCircleOutlined /> },
 };
 
 // Deterministic accent gradient per card, hashed off client/title.
@@ -182,14 +182,14 @@ export default function ProposalsListPage() {
 
   const persistStarred = (next: Record<string, boolean>) => {
     setStarred(next);
-    try { window.localStorage.setItem(STARRED_KEY, JSON.stringify(next)); } catch {}
+    try { window.localStorage.setItem(STARRED_KEY, JSON.stringify(next)); } catch { }
   };
 
   const pushRecent = (p: any) => {
     const entry = { id: p.id, title: resolveTitle(p), client_name: p.client_name, ts: Date.now() };
     setRecents((prev) => {
       const next = [entry, ...prev.filter((r) => r.id !== p.id)].slice(0, 6);
-      try { window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch {}
+      try { window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { }
       return next;
     });
   };
@@ -303,7 +303,7 @@ export default function ProposalsListPage() {
         const blocks = typeof record.blocks_data === 'string' ? JSON.parse(record.blocks_data) : record.blocks_data || [];
         const coverData = blocks.find((b: any) => b.type === 'cover')?.data;
         if (coverData?.title) displayTitle = coverData.title;
-      } catch (e) {}
+      } catch (e) { }
     }
     return displayTitle || 'Untitled Proposal';
   };
@@ -381,10 +381,10 @@ export default function ProposalsListPage() {
     const wonTrend = trendFor((p) => p.status === 'accepted');
 
     return [
-      { key: 'total',   title: 'Total Proposals', value: stats.total,   suffix: '',  icon: <SnippetsOutlined />,    color: '#3b82f6', tint: 'rgba(59,130,246,0.10)',  trend: totalTrend, delta: sum(totalTrend) },
-      { key: 'draft',   title: 'In Draft',        value: stats.drafts,  suffix: '',  icon: <FileTextOutlined />,    color: '#64748b', tint: 'rgba(100,116,139,0.10)', trend: draftTrend, delta: sum(draftTrend) },
-      { key: 'sent',    title: 'Sent to Clients', value: stats.sent,    suffix: '',  icon: <SendOutlined />,        color: '#3b82f6', tint: 'rgba(59,130,246,0.10)',   trend: sentTrend,  delta: sum(sentTrend) },
-      { key: 'winrate', title: 'Win Rate',        value: stats.winRate, suffix: '%', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)',  trend: wonTrend,   delta: stats.accepted },
+      { key: 'total', title: 'Total Proposals', value: stats.total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: totalTrend, delta: sum(totalTrend) },
+      { key: 'draft', title: 'In Draft', value: stats.drafts, suffix: '', icon: <FileTextOutlined />, color: '#64748b', tint: 'rgba(100,116,139,0.10)', trend: draftTrend, delta: sum(draftTrend) },
+      { key: 'sent', title: 'Sent to Clients', value: stats.sent, suffix: '', icon: <SendOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: sentTrend, delta: sum(sentTrend) },
+      { key: 'winrate', title: 'Win Rate', value: stats.winRate, suffix: '%', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: wonTrend, delta: stats.accepted },
     ];
   }, [proposals, stats]);
 
@@ -418,10 +418,10 @@ export default function ProposalsListPage() {
   const scopedProposals = useMemo(() => {
     return proposals.filter((p) => {
       switch (savedView) {
-        case 'mine':    return p.createdBy?.id === user?.id;
-        case 'sent':    return p.status === 'sent';
+        case 'mine': return p.createdBy?.id === user?.id;
+        case 'sent': return p.status === 'sent';
         case 'starred': return !!starred[p.id];
-        default:        return true;
+        default: return true;
       }
     });
   }, [proposals, savedView, user?.id, starred]);
@@ -503,10 +503,10 @@ export default function ProposalsListPage() {
   }, [proposals]);
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'all',     label: 'All proposals', icon: <FolderOutlined />, color: '#3B82F6' },
-    { key: 'mine',    label: 'My proposals',  icon: <UserOutlined />,   color: '#64748B' },
-    { key: 'sent',    label: 'Sent',          icon: <GlobalOutlined />, color: '#10B981' },
-    { key: 'starred', label: 'Starred',       icon: <StarFilled />,     color: '#3B82F6' },
+    { key: 'all', label: 'All proposals', icon: <FolderOutlined />, color: '#3B82F6' },
+    { key: 'mine', label: 'My proposals', icon: <UserOutlined />, color: '#64748B' },
+    { key: 'sent', label: 'Sent', icon: <GlobalOutlined />, color: '#10B981' },
+    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
   ];
 
   // ─── Premium row/card action menu (shared by table + cards) ─────────────────
@@ -883,8 +883,8 @@ export default function ProposalsListPage() {
 
             {/* Table / grid */}
             <div className="pp-body">
-            {view === 'list' ? (
-              <div className="pp-table-wrap">
+              {view === 'list' ? (
+                <div className="pp-table-wrap">
                   <Table
                     columns={columns}
                     dataSource={pagedProposals}
@@ -905,9 +905,9 @@ export default function ProposalsListPage() {
                       className: 'pp-row',
                     })}
                   />
-              </div>
-            ) : (
-              <div className="pp-grid">
+                </div>
+              ) : (
+                <div className="pp-grid">
                   {loading ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : filteredProposals.length === 0 ? (
@@ -1068,7 +1068,7 @@ export default function ProposalsListPage() {
           .pp-shell {
             display: flex;
             margin: 0 -16px;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 54px);
             background: var(--bg-pure-white);
           }
 
@@ -1083,7 +1083,7 @@ export default function ProposalsListPage() {
             padding: 14px 14px 0;
             position: sticky;
             top: 0;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 54px);
           }
           .pp-side-head {
             display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;

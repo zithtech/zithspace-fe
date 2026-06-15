@@ -130,7 +130,7 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
-        borderRadius: 14,
+        borderRadius: 6,
         height: 600,
         display: "flex",
         flexDirection: "column",

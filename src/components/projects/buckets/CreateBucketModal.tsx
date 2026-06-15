@@ -154,7 +154,7 @@ export function CreateBucketModal({
         className="cbm-modal"
         styles={{
           body: { padding: 0 },
-          content: { padding: 0, overflow: "hidden", borderRadius: 16 },
+          content: { padding: 0, overflow: "hidden", borderRadius: 6 },
         }}
       >
         {/* ── Header ──────────────────────────────────────── */}
@@ -375,7 +375,7 @@ export function CreateBucketModal({
           top: 12px;
           bottom: 12px;
           width: 3px;
-          border-radius: 0 999px 999px 0;
+          border-radius: 0 0px 0px 0;
           opacity: 0.85;
         }
         .cbm-header-content {
@@ -515,11 +515,11 @@ export function CreateBucketModal({
         .cbm-input.ant-input-affix-wrapper,
         .cbm-input {
           height: 42px;
-          border-radius: 8px !important;
+          border-radius: 6px !important;
           font-size: 13px;
         }
         .cbm-textarea {
-          border-radius: 8px !important;
+          border-radius: 6px !important;
           font-size: 13px;
           padding: 10px 12px;
         }
@@ -620,7 +620,7 @@ export function CreateBucketModal({
           padding: 14px 14px;
           background: var(--bg-pure-white);
           border: 1.5px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-radius: 6px;
           cursor: pointer;
           text-align: left;
           transition: border-color 0.12s ease, background 0.12s ease;
@@ -643,7 +643,7 @@ export function CreateBucketModal({
         .cbm-vis-card-icon {
           width: 36px;
           height: 36px;
-          border-radius: 10px;
+          border-radius: 6px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -666,7 +666,7 @@ export function CreateBucketModal({
           margin-left: auto;
           width: 18px;
           height: 18px;
-          border-radius: 999px;
+          border-radius: 6px;
           background: var(--accent, #3b82f6);
           color: #fff;
           display: inline-flex;
@@ -710,7 +710,7 @@ export function CreateBucketModal({
         .cbm-btn {
           height: 38px;
           padding: 0 18px;
-          border-radius: 9px;
+          border-radius: 6px;
           font-family: inherit;
           font-size: 12.5px;
           font-weight: 700;

@@ -16,9 +16,10 @@ export interface FilterPillOption {
 interface TicketFilterPillProps {
   icon?: React.ReactNode;
   label: string;
-  values: string[];
+  values?: string[];
+  value?: string | string[];
   options: FilterPillOption[];
-  onChange: (next: string[]) => void;
+  onChange?: (next: any) => void;
   placeholder?: string;
   searchPlaceholder?: string;
   /** Suffix in footer ("4 statuses"). */
@@ -27,6 +28,7 @@ interface TicketFilterPillProps {
   disabled?: boolean;
   /** Show a colored avatar circle next to each option label */
   showAvatar?: boolean;
+  multiple?: boolean;
 }
 
 export const initialsFor = (s: string): string => {
@@ -54,6 +56,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   icon,
   label,
   values,
+  value,
   options,
   onChange,
   placeholder,
@@ -62,6 +65,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   width = 260,
   disabled = false,
   showAvatar = false,
+  multiple = true,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -86,13 +90,30 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
     );
   }, [options, search]);
 
-  const valueSet = useMemo(() => new Set(values), [values]);
+  const currentValues = useMemo(() => {
+    if (values) return values;
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return [value];
+  }, [values, value]);
+
+  const valueSet = useMemo(() => new Set(currentValues), [currentValues]);
 
   const toggle = (val: string) => {
+    if (multiple === false) {
+      if (onChange) {
+        onChange(val);
+      }
+      setOpen(false);
+      return;
+    }
+
     const next = new Set(valueSet);
     if (next.has(val)) next.delete(val);
     else next.add(val);
-    onChange(Array.from(next));
+    if (onChange) {
+      onChange(Array.from(next));
+    }
   };
 
   const overlay = (
@@ -128,7 +149,9 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
                 className={`fp-option ${checked ? "is-selected" : ""}`}
                 onClick={() => toggle(opt.value)}
               >
-                <Checkbox checked={checked} onChange={() => toggle(opt.value)} onClick={(e) => e.stopPropagation()} />
+                {multiple !== false && (
+                  <Checkbox checked={checked} onChange={() => toggle(opt.value)} onClick={(e) => e.stopPropagation()} />
+                )}
                 {showAvatar ? (
                   <div
                     className="fp-option-avatar"
@@ -160,24 +183,33 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
           })
         )}
       </div>
-      <div className="fp-footer">
-        <span className="fp-footer-count">
-          {filtered.length} {itemNoun}
-        </span>
-        {values.length > 0 && (
-          <button
-            type="button"
-            className="fp-footer-clear"
-            onClick={() => onChange([])}
-          >
-            Clear all
-          </button>
-        )}
-      </div>
+      {multiple !== false && (
+        <div className="fp-footer">
+          <span className="fp-footer-count">
+            {filtered.length} {itemNoun}
+          </span>
+          {currentValues.length > 0 && (
+            <button
+              type="button"
+              className="fp-footer-clear"
+              onClick={() => onChange && onChange([])}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 
-  const active = values.length > 0;
+  const active = currentValues.length > 0;
+  const selectedOptionLabel = useMemo(() => {
+    if (multiple === false && active) {
+      const selectedOpt = options.find(o => o.value === currentValues[0]);
+      return selectedOpt ? selectedOpt.label : undefined;
+    }
+    return undefined;
+  }, [multiple, active, options, currentValues]);
 
   return (
     <Popover
@@ -195,12 +227,16 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
         disabled={disabled}
       >
         {icon && <span className="fp-trigger-icon">{icon}</span>}
-        <span className="fp-trigger-label">{label}</span>
-        {active ? (
-          <span className="fp-trigger-count">{values.length}</span>
-        ) : placeholder ? (
+        <span className="fp-trigger-label">{multiple === false && selectedOptionLabel ? selectedOptionLabel : label}</span>
+        {multiple !== false && active && (
+          <span className="fp-trigger-count">{currentValues.length}</span>
+        )}
+        {multiple !== false && !active && placeholder && (
           <span className="fp-trigger-placeholder">{placeholder}</span>
-        ) : null}
+        )}
+        {multiple === false && !active && placeholder && (
+          <span className="fp-trigger-placeholder">{placeholder}</span>
+        )}
         <ChevronDown size={12} className={`fp-trigger-chevron ${open ? "is-open" : ""}`} />
       </button>
       <style dangerouslySetInnerHTML={{ __html: TICKET_FILTER_PILL_CSS }} />

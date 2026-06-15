@@ -45,6 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { useTheme } from "@/context/ThemeContext";
 
 dayjs.extend(relativeTime);
 
@@ -100,6 +101,8 @@ export default function ProjectTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filters, setFilters] = useState<{
@@ -276,7 +279,14 @@ export default function ProjectTrashManagementPage() {
                   icon={<DeleteOutlined />}
                   loading={emptyTrash.isPending}
                   block
-                  style={{ borderRadius: 6, fontWeight: 600, height: 36, backgroundColor: '#fff2f0', color: '#ff4d4f' }}
+                  style={{
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    height: 36,
+                    backgroundColor: isDark ? 'transparent' : '#fff2f0',
+                    color: '#ff4d4f',
+                    borderColor: isDark ? '#ff4d4f' : 'transparent'
+                  }}
                   disabled={filteredProjects.length === 0 || isLoading}
                 >
                   Empty Trash

@@ -53,6 +53,8 @@ export interface SearchableDropdownProps {
   width?: number | string;
   /** Show a trailing X when a value is set. Default true. */
   allowClear?: boolean;
+  /** Hide the leading avatar/initials chip on each option (e.g. for month/year lists). */
+  hideAvatar?: boolean;
   className?: string;
   /** Forwarded onto the trigger element so consumers can size it themselves. */
   style?: React.CSSProperties;
@@ -96,6 +98,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   itemNoun = "items",
   width = 290,
   allowClear = true,
+  hideAvatar = false,
   className,
   style,
   defaultOpen = false,
@@ -203,21 +206,23 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                     }
                   }}
                 >
-                  <div
-                    className="sd-option-avatar"
-                    style={opt.badge ? undefined : {
-                      backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
-                      color: opt.avatarUrl ? undefined : '#fff',
-                      borderColor: opt.avatarUrl ? undefined : 'transparent',
-                    }}
-                  >
-                    {opt.badge
-                      ? opt.badge
-                      : opt.avatarUrl
-                        ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
-                        : initialsFor(opt.label)
-                    }
-                  </div>
+                  {!hideAvatar && (
+                    <div
+                      className="sd-option-avatar"
+                      style={opt.badge ? undefined : {
+                        backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
+                        color: opt.avatarUrl ? undefined : '#fff',
+                        borderColor: opt.avatarUrl ? undefined : 'transparent',
+                      }}
+                    >
+                      {opt.badge
+                        ? opt.badge
+                        : opt.avatarUrl
+                          ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
+                          : initialsFor(opt.label)
+                      }
+                    </div>
+                  )}
                   <div className="sd-option-content">
                     <span className="sd-option-name">{opt.label}</span>
                     {opt.description && (
@@ -390,7 +395,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 }
 .sd-trigger-chevron.is-open {
   transform: rotate(180deg);
-  color: #7c3aed;
+  color: #2563eb;
 }
 .sd-trigger-clear {
   color: var(--text-slate-400, #94a3b8);
@@ -409,12 +414,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   border-color: var(--border-slate-700, #374151);
 }
 [data-theme='dark'] .sd-trigger.is-active {
-  background: rgba(124,58,237,0.06);
-  border-color: rgba(167,139,250,0.3);
+  background: rgba(37, 99, 235,0.06);
+  border-color: rgba(96, 165, 250,0.3);
 }
 [data-theme='dark'] .sd-trigger.is-open {
-  border-color: rgba(167,139,250,0.45);
-  box-shadow: 0 0 0 2px rgba(124,58,237,0.2);
+  border-color: rgba(96, 165, 250,0.45);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235,0.2);
 }
 [data-theme='dark'] .sd-trigger-value { color: #e2e8f0; }
 [data-theme='dark'] .sd-trigger.is-active .sd-trigger-value { color: #f8fafc; }
@@ -460,7 +465,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   transition: border-color .15s ease, background .15s ease;
 }
 .sd-search-input:focus {
-  border-color: #7c3aed;
+  border-color: #2563eb;
   background: var(--bg-pure-white, #ffffff);
 }
 [data-theme='dark'] .sd-search-input {
@@ -469,7 +474,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   color: #e2e8f0;
 }
 [data-theme='dark'] .sd-search-input:focus {
-  border-color: #a78bfa;
+  border-color: #60a5fa;
   background: #181824;
 }
 
@@ -500,10 +505,10 @@ const SEARCHABLE_DROPDOWN_CSS = `
   user-select: none;
 }
 .sd-option:hover { background: var(--bg-slate-50, #f8fafc); }
-.sd-option.is-selected { background: #faf9ff; }
+.sd-option.is-selected { background: #eff6ff; }
 .sd-option:disabled { opacity: 0.5; cursor: not-allowed; }
 [data-theme='dark'] .sd-option:hover { background: rgba(255,255,255,0.04); }
-[data-theme='dark'] .sd-option.is-selected { background: rgba(124,58,237,0.12); }
+[data-theme='dark'] .sd-option.is-selected { background: rgba(37, 99, 235,0.12); }
 
 .sd-option-avatar {
   width: 32px;
@@ -527,14 +532,14 @@ const SEARCHABLE_DROPDOWN_CSS = `
   object-fit: cover;
 }
 .sd-option-avatar-add {
-  background: rgba(124,58,237,0.08);
-  border-color: rgba(124,58,237,0.25);
-  color: #7c3aed;
+  background: rgba(37, 99, 235,0.08);
+  border-color: rgba(37, 99, 235,0.25);
+  color: #2563eb;
 }
 .sd-option.is-selected .sd-option-avatar {
-  background: #ede9fe;
-  color: #7c3aed;
-  border-color: #ddd6fe;
+  background: #dbeafe;
+  color: #2563eb;
+  border-color: #bfdbfe;
 }
 [data-theme='dark'] .sd-option-avatar {
   background: #2e354f;
@@ -542,9 +547,9 @@ const SEARCHABLE_DROPDOWN_CSS = `
   color: #94a3b8;
 }
 [data-theme='dark'] .sd-option.is-selected .sd-option-avatar {
-  background: rgba(124,58,237,0.2);
-  color: #c4b5fd;
-  border-color: rgba(167,139,250,0.3);
+  background: rgba(37, 99, 235,0.2);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250,0.3);
 }
 
 .sd-option-content {
@@ -573,8 +578,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sd-option.is-selected .sd-option-desc { color: #7c3aed; }
-[data-theme='dark'] .sd-option.is-selected .sd-option-desc { color: #a78bfa; }
+.sd-option.is-selected .sd-option-desc { color: #2563eb; }
+[data-theme='dark'] .sd-option.is-selected .sd-option-desc { color: #60a5fa; }
 
 .sd-option-meta {
   font-size: 11px;
@@ -585,12 +590,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
 }
 
 .sd-option-check {
-  color: #7c3aed;
+  color: #2563eb;
   flex-shrink: 0;
   margin-left: auto;
 }
 .sd-option-meta + .sd-option-check { margin-left: 6px; }
-[data-theme='dark'] .sd-option-check { color: #a78bfa; }
+[data-theme='dark'] .sd-option-check { color: #60a5fa; }
 
 .sd-footer {
   display: flex;

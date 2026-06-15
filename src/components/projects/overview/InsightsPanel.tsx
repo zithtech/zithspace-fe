@@ -33,7 +33,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights }) => {
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
-        borderRadius: 14,
+        borderRadius: 6,
         height: 292,
         display: "flex",
         flexDirection: "column",

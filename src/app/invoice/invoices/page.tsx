@@ -1,8 +1,6 @@
-
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -28,10 +26,12 @@ import {
   Menu,
   Progress,
   Timeline,
+  Skeleton,
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { MenuProps } from "antd";
+import { RestOutlined } from "@ant-design/icons";
 import {
   FileText,
   DollarSign,
@@ -57,7 +57,9 @@ import {
   Loader2,
   ChevronRight,
   RefreshCw,
-  Paperclip
+  Paperclip,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -73,7 +75,6 @@ import {
   useInvoicePaymentHistory
 } from "@/hooks/useInvoices";
 
-// In your component file (InvoiceInvoicesPage)
 import type {
   PaymentTransaction,
   PaymentHistoryData,
@@ -84,7 +85,27 @@ import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
+
+const CARD_ACCENTS: [string, string][] = [
+  ['#3b82f6', '#2563eb'], // blue
+  ['#10b981', '#059669'], // green
+  ['#64748b', '#475569'], // grey
+];
+
+const accentFor = (key: string): [string, string] => {
+  return ['#3b82f6', '#2563eb'];
+};
+
+const initialsOf = (name: string) =>
+  (name || '—')
+    .split(' ')
+    .map((s: string) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 const { RangePicker } = DatePicker;
+
+dayjs.extend(isBetween);
 
 type CustomerSnapshot = {
   id?: string;
@@ -92,15 +113,14 @@ type CustomerSnapshot = {
   name?: string;
   email?: string;
 };
+
 interface FailedInvoice {
   invoiceNumber: string;
   error: string;
 }
 
-// Define the InvoiceStatus to match your TypeScript interface
 type InvoiceStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'SENT' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
 
-// Helper function to get available status transitions
 const getAvailableTransitions = (currentStatus: InvoiceStatus): InvoiceStatus[] => {
   const transitions: Record<InvoiceStatus, InvoiceStatus[]> = {
     'DRAFT': ['PENDING', 'SENT', 'CANCELLED'],
@@ -116,18 +136,29 @@ const getAvailableTransitions = (currentStatus: InvoiceStatus): InvoiceStatus[] 
   return transitions[currentStatus] || [];
 };
 
-// Helper to convert frontend status to backend status
 const toBackendStatus = (status: InvoiceStatus): string => {
   return status === 'APPROVED' ? 'APPROVAL' : status;
 };
 
-// Helper to convert backend status to frontend status
 const fromBackendStatus = (status: string): InvoiceStatus => {
   if (status === 'APPROVAL') return 'APPROVED';
   return status as InvoiceStatus;
 };
 
-// Status color mapping
+const getStatusIcon = (status: InvoiceStatus) => {
+  const icons: Record<InvoiceStatus, React.ReactNode> = {
+    'DRAFT': <Clock size={13} />,
+    'PENDING': <Clock size={13} />,
+    'APPROVED': <CheckCircle size={13} />,
+    'SENT': <Mail size={13} />,
+    'PAID': <CheckCircle size={13} style={{ color: '#10b981' }} />,
+    'PARTIALLY_PAID': <DollarSign size={13} style={{ color: '#3b82f6' }} />,
+    'OVERDUE': <AlertCircle size={13} style={{ color: '#f87171' }} />,
+    'CANCELLED': <XCircle size={13} style={{ color: '#64748b' }} />
+  };
+  return icons[status] || <Clock size={13} />;
+};
+
 const getStatusColor = (status: InvoiceStatus) => {
   const colors: Record<InvoiceStatus, string> = {
     'DRAFT': 'default',
@@ -142,19 +173,18 @@ const getStatusColor = (status: InvoiceStatus) => {
   return colors[status] || 'default';
 };
 
-// Status icon mapping
-const getStatusIcon = (status: InvoiceStatus) => {
-  const icons: Record<InvoiceStatus, React.ReactNode> = {
-    'DRAFT': <Clock size={16} />,
-    'PENDING': <Clock size={16} />,
-    'APPROVED': <CheckCircle size={16} />,
-    'SENT': <Mail size={16} />,
-    'PAID': <CheckCircle size={16} style={{ color: '#52c41a' }} />,
-    'PARTIALLY_PAID': <DollarSign size={16} style={{ color: '#faad14' }} />,
-    'OVERDUE': <AlertCircle size={16} style={{ color: '#ff4d4f' }} />,
-    'CANCELLED': <XCircle size={16} style={{ color: '#bfbfbf' }} />
-  };
-  return icons[status] || <Clock size={16} />;
+const INVOICE_STATUS_META: Record<
+  InvoiceStatus,
+  { label: string; color: string; bg: string; ring: string }
+> = {
+  'DRAFT': { label: 'Draft', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' },
+  'PENDING': { label: 'Pending', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
+  'APPROVED': { label: 'Approved', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
+  'SENT': { label: 'Sent', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
+  'PAID': { label: 'Paid', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)' },
+  'PARTIALLY_PAID': { label: 'Partially Paid', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
+  'OVERDUE': { label: 'Overdue', color: '#f87171', bg: 'rgba(248,113,113,0.10)', ring: 'rgba(248,113,113,0.25)' },
+  'CANCELLED': { label: 'Cancelled', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' },
 };
 
 export default function InvoiceInvoicesPage() {
@@ -171,61 +201,6 @@ export default function InvoiceInvoicesPage() {
     canDeleteInvoiceTrash
   } = usePermission();
   const { isLoading: authLoading } = useAuth();
-
-  /* ================= STAT TILE (accent strip) ================= */
-  const StatCard = ({ label, value, icon: Icon, color, sub }: any) => (
-    <div
-      className="rounded-2xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-      }}
-    >
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: color }}
-      />
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{
-          background: `${color}14`,
-          color,
-          border: `1px solid ${color}33`,
-        }}
-      >
-        <Icon size={18} strokeWidth={2.25} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {label}
-        </div>
-        <div
-          className="text-[22px] font-bold leading-tight tabular-nums truncate"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div
-            className="text-[11px] mt-0.5"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Route guard
-  useEffect(() => {
-    if (!authLoading && !canReadInvoice && !canReadInvoiceHistory) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
 
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceList" });
@@ -271,11 +246,6 @@ export default function InvoiceInvoicesPage() {
   const [selectedProofInvoice, setSelectedProofInvoice] = useState<any>(null);
   const [viewedProofFile, setViewedProofFile] = useState<string | null>(null);
 
-
-
-
-
-
   // For bulk delete state
   const [bulkDeleteModalVisible, setBulkDeleteModalVisible] = useState(false);
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{
@@ -294,7 +264,6 @@ export default function InvoiceInvoicesPage() {
     isDeleting: false
   });
 
-  // In your component, update the hook call
   const {
     data: paymentHistory,
     isLoading: isPaymentLoading,
@@ -305,33 +274,32 @@ export default function InvoiceInvoicesPage() {
   );
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<"all" | "draft" | "awaiting" | "paid" | "overdue">("all");
+  const [customerFilter, setCustomerFilter] = useState<string | null>(null);
   const [previewInvoiceNumber, setPreviewInvoiceNumber] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
-  dayjs.extend(isBetween);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  // Add this useEffect after your hook calls
+  // Reset page when filters change
   useEffect(() => {
-    if (paymentHistory && transactionDrawerOpen) {
-      console.log('Payment History Data:', {
-        hasData: !!paymentHistory,
-        hasPayments: !!paymentHistory.payments,
-        paymentsCount: paymentHistory.payments?.length || 0,
-        summary: paymentHistory.summary,
-        firstPayment: paymentHistory.payments?.[0],
-        fullData: paymentHistory
-      });
+    setCurrentPage(1);
+  }, [searchText, activeView, customerFilter, dateRange]);
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadInvoice && !canReadInvoiceHistory) {
+      router.push('/dashboard');
     }
-  }, [paymentHistory, transactionDrawerOpen]);
+  }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
 
-
-  // Inside the component...
+  // Email state
   const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
-
   const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
 
-  // Function to handle the Quick Send (Background)
   const handleQuickSend = (record: any) => {
     const snapshot = record.customerSnapshot as any;
     const targetEmail = snapshot?.email || record.customer?.email;
@@ -356,16 +324,7 @@ export default function InvoiceInvoicesPage() {
     });
   };
 
-
-
-
-
-
-
-
-  /* ================= TRASH SINGLE ================= */
   const openDeleteModal = (record: any) => {
-    //console.log("Opening trash modal for:", record.invoiceNumber);
     setInvoiceToDelete(record);
     setDeleteModalVisible(true);
   };
@@ -378,7 +337,7 @@ export default function InvoiceInvoicesPage() {
       await deleteMutation.mutateAsync(invoiceToDelete.id, {
         onSuccess: () => {
           messageApi.success(`Invoice ${invoiceToDelete.invoiceNumber} moved to trash successfully`);
-          refetch(); // Refresh the invoice list
+          refetch();
           setDeleteModalVisible(false);
           setInvoiceToDelete(null);
           setDeletingId(null);
@@ -394,7 +353,6 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  /* ================= BULK TRASH ================= */
   const openBulkDeleteModal = () => {
     if (selectedInvoices.length === 0) {
       messageApi.warning('Please select invoices to move to trash');
@@ -407,174 +365,12 @@ export default function InvoiceInvoicesPage() {
     setBulkDeleteModalVisible(false);
   };
 
-
-
-
-  // const startBulkDelete = async () => {
-  //   if (selectedInvoices.length === 0) return;
-
-  //   setBulkDeleteModalVisible(false);
-
-  //   setBulkDeleteProgress({
-  //     visible: true,
-  //     total: selectedInvoices.length,
-  //     completed: 0,
-  //     failed: 0,
-  //     currentInvoice: null,
-  //     isDeleting: true
-  //   });
-
-  //   const deletedInvoices: string[] = [];
-  //   const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
-
-  //   for (let i = 0; i < selectedInvoices.length; i++) {
-  //     const inv = selectedInvoices[i];
-
-  //     setBulkDeleteProgress(prev => ({
-  //       ...prev,
-  //       currentInvoice: inv.invoiceNumber
-  //     }));
-
-  //     try {
-  //       console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
-  //         id: inv.id,
-  //         invoiceNumber: inv.invoiceNumber,
-  //         url: `/api/invoices/${inv.id}`
-  //       });
-
-  //       // Test if the endpoint exists first
-  //       const testResponse = await fetch(`/api/invoices/${inv.id}`, {
-  //         method: 'HEAD',
-  //       });
-
-  //       console.log('HEAD response status:', testResponse.status);
-
-  //       if (testResponse.status === 404) {
-  //         throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
-  //       }
-
-  //       // Now try the DELETE
-  //       const response = await fetch(`/api/invoices/${inv.id}`, {
-  //         method: 'DELETE',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //       });
-
-  //       console.log('DELETE response status:', response.status);
-
-  //       if (!response.ok) {
-  //         let errorMessage = `HTTP error! status: ${response.status}`;
-  //         try {
-  //           const errorData = await response.json();
-  //           errorMessage = errorData.message || errorMessage;
-  //         } catch {
-  //           // Ignore JSON parse errors
-  //         }
-  //         throw new Error(errorMessage);
-  //       }
-
-  //       deletedInvoices.push(inv.invoiceNumber);
-
-  //       setBulkDeleteProgress(prev => ({
-  //         ...prev,
-  //         completed: prev.completed + 1
-  //       }));
-
-  //       await new Promise(resolve => setTimeout(resolve, 300));
-
-  //     } catch (error: any) {
-  //       console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
-  //         error: error.message,
-  //         invoiceId: inv.id,
-  //         invoiceNumber: inv.invoiceNumber,
-  //         stack: error.stack
-  //       });
-
-  //       failedInvoices.push({
-  //         invoiceNumber: inv.invoiceNumber,
-  //         error: error.message || 'Unknown error'
-  //       });
-
-  //       setBulkDeleteProgress(prev => ({
-  //         ...prev,
-  //         failed: prev.failed + 1,
-  //         completed: prev.completed + 1
-  //       }));
-  //     }
-  //   }
-
-
-
-
-  //   // Wait a moment before closing progress modal
-  //   setTimeout(() => {
-  //     setBulkDeleteProgress({
-  //       visible: false,
-  //       total: 0,
-  //       completed: 0,
-  //       failed: 0,
-  //       currentInvoice: null,
-  //       isDeleting: false
-  //     });
-
-  //     // Show results
-  //     if (deletedInvoices.length > 0) {
-  //       messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
-  //     }
-
-  //     if (failedInvoices.length > 0) {
-  //       messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
-
-  //       // Show detailed error modal
-  //       Modal.warning({
-  //         title: 'Failed to Delete Some Invoices',
-  //         content: (
-  //           <div>
-  //             <Alert
-  //               message={`${failedInvoices.length} invoice(s) could not be deleted`}
-  //               description="The following invoices failed to delete:"
-  //               type="warning"
-  //               showIcon
-  //               className="mb-4"
-  //             />
-  //             <div className="max-h-60 overflow-y-auto border rounded p-2">
-  //               <ul className="list-disc pl-4">
-  //                 {failedInvoices.map((failed, idx) => (
-  //                   <li key={idx} className="mb-1 text-sm">
-  //                     <Text strong>{failed.invoiceNumber}</Text>
-  //                     <Text type="secondary" className="ml-2">
-  //                       - {failed.error}
-  //                     </Text>
-  //                   </li>
-  //                 ))}
-  //               </ul>
-  //             </div>
-  //           </div>
-  //         ),
-  //         width: 500,
-  //         okText: 'OK'
-  //       });
-  //     }
-
-  //     // Clear selection and refresh data
-  //     setSelectedRowKeys([]);
-  //     setSelectedInvoices([]);
-  //     refetch();
-
-  //   }, 1500);
-
-  //   // ... rest of your code
-  // };
-
-
   const startBulkDelete = async () => {
     if (selectedInvoices.length === 0) return;
 
     setBulkDeleteModalVisible(false);
 
     const ids = selectedInvoices.map(inv => inv.id);
-    const invoiceNumbers = selectedInvoices.map(inv => inv.invoiceNumber);
 
     setBulkDeleteProgress({
       visible: true,
@@ -586,7 +382,7 @@ export default function InvoiceInvoicesPage() {
     });
 
     try {
-      const result = await bulkDeleteMutation.mutateAsync(ids);
+      await bulkDeleteMutation.mutateAsync(ids);
 
       setBulkDeleteProgress(prev => ({
         ...prev,
@@ -594,20 +390,15 @@ export default function InvoiceInvoicesPage() {
         currentInvoice: 'Finished'
       }));
 
-      // Clear selection
       setSelectedRowKeys([]);
       setSelectedInvoices([]);
-
     } catch (error: any) {
       console.error(`Bulk trash failed:`, error);
-
       setBulkDeleteProgress(prev => ({
         ...prev,
         failed: selectedInvoices.length,
         isDeleting: false
       }));
-
-      // In case of error, the hook already shows a message, but we might want to handle it here too
     }
 
     setTimeout(() => {
@@ -619,8 +410,6 @@ export default function InvoiceInvoicesPage() {
         currentInvoice: null,
         isDeleting: false
       });
-
-      // Clear selection
       setSelectedRowKeys([]);
       setSelectedInvoices([]);
     }, 1000);
@@ -637,11 +426,10 @@ export default function InvoiceInvoicesPage() {
     });
   };
 
-  /* ================= ACTION MENU ================= */
   const getMenuItems = (record: any): MenuProps["items"] => [
     {
       key: "view",
-      icon: <Eye size={16} />,
+      icon: <Eye size={14} />,
       label: "View Details",
       onClick: () => {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
@@ -649,7 +437,7 @@ export default function InvoiceInvoicesPage() {
     },
     canUpdateInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
       key: "edit",
-      icon: <Edit2 size={16} />,
+      icon: <Edit2 size={14} />,
       label: "Edit Invoice",
       onClick: () => {
         router.push(`/invoice/newinvoice?edit=${record.id}`);
@@ -657,7 +445,7 @@ export default function InvoiceInvoicesPage() {
     },
     {
       key: "download",
-      icon: <Download size={16} />,
+      icon: <Download size={14} />,
       label: record.id === downloadingId && isDownloading ? "Downloading..." : "Download PDF",
       disabled: isDownloading,
       onClick: () => {
@@ -666,13 +454,13 @@ export default function InvoiceInvoicesPage() {
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
-      icon: <Mail size={16} />,
+      icon: <Mail size={14} />,
       label: "Quick Send Email",
       onClick: () => handleQuickSend(record),
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
-      icon: <Edit2 size={16} />,
+      icon: <Edit2 size={14} />,
       label: "Compose & Send",
       onClick: () => {
         setSelectedInvoiceForEmail(record);
@@ -681,7 +469,7 @@ export default function InvoiceInvoicesPage() {
     },
     canReadInvoiceHistory && {
       key: "transactions",
-      icon: <DollarSign size={16} />,
+      icon: <DollarSign size={14} />,
       label: "Transaction History",
       onClick: () => {
         setTransactionInvoice(record);
@@ -691,18 +479,16 @@ export default function InvoiceInvoicesPage() {
     (canUpdateInvoice || canDeleteInvoice || canDeleteInvoiceTrash) && { type: "divider" },
     (canDeleteInvoice || canDeleteInvoiceTrash) && {
       key: "delete",
-      icon: <Trash2 size={16} />,
+      icon: <Trash2 size={14} />,
       label: deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
       danger: true,
       disabled: deletingId === record.id && deleteMutation.isPending,
       onClick: () => {
-        console.log("Move to trash clicked for:", record.invoiceNumber);
         openDeleteModal(record);
       },
     },
   ].filter(Boolean) as MenuProps["items"];
 
-  /* ================= HANDLE STATUS CHANGE ================= */
   const handleStatusChange = (record: any) => {
     const frontendStatus = fromBackendStatus(record.status);
     const availableTransitions = getAvailableTransitions(frontendStatus);
@@ -717,7 +503,6 @@ export default function InvoiceInvoicesPage() {
     setStatusChangeModalVisible(true);
   };
 
-  /* ================= HANDLE PAYMENT UPDATE ================= */
   const handlePaymentUpdate = () => {
     statusForm.validateFields().then((values) => {
       const paidAmount = Number(values.paidAmount);
@@ -742,7 +527,7 @@ export default function InvoiceInvoicesPage() {
         onSuccess: () => {
           setStatusModalVisible(false);
           statusForm.resetFields();
-          refetch(); // Refresh the invoice list
+          refetch();
           messageApi.success('Payment updated successfully');
         },
         onError: (error: any) => {
@@ -752,7 +537,6 @@ export default function InvoiceInvoicesPage() {
     });
   };
 
-  /* ================= HANDLE APPROVAL UPDATE ================= */
   const handleApprovalUpdate = () => {
     approvalForm.validateFields().then((values) => {
       updateStatusMutation.mutate({
@@ -763,7 +547,7 @@ export default function InvoiceInvoicesPage() {
         onSuccess: () => {
           setApprovalModalVisible(false);
           approvalForm.resetFields();
-          refetch(); // Refresh the invoice list
+          refetch();
           messageApi.success('Invoice approved successfully');
         },
         onError: (error: any) => {
@@ -773,7 +557,6 @@ export default function InvoiceInvoicesPage() {
     });
   };
 
-  /* ================= HANDLE GENERAL STATUS UPDATE ================= */
   const handleGeneralStatusUpdate = () => {
     if (selectedNewStatus) {
       if (selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') {
@@ -800,7 +583,7 @@ export default function InvoiceInvoicesPage() {
         }, {
           onSuccess: () => {
             setStatusChangeModalVisible(false);
-            refetch(); // Refresh the invoice list
+            refetch();
             messageApi.success('Status updated successfully');
           },
           onError: (error: any) => {
@@ -811,13 +594,137 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
+  /* ================= SEARCH AND FILTER ================= */
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const frontendStatus = fromBackendStatus(inv.status);
+
+      // Sidebar view filter
+      if (activeView === "draft" && frontendStatus !== "DRAFT") return false;
+      if (activeView === "paid" && frontendStatus !== "PAID") return false;
+      if (activeView === "overdue" && frontendStatus !== "OVERDUE") return false;
+      if (activeView === "awaiting") {
+        if (!["PENDING", "APPROVED", "SENT", "PARTIALLY_PAID"].includes(frontendStatus)) {
+          return false;
+        }
+      }
+
+      const snapshot = inv.customerSnapshot as any;
+      const search = searchText?.toLowerCase().trim();
+
+      // SEARCH
+      const matchSearch =
+        !search ||
+        inv.invoiceNumber?.toLowerCase().includes(search) ||
+        snapshot?.companyName?.toLowerCase().includes(search) ||
+        snapshot?.name?.toLowerCase().includes(search) ||
+        snapshot?.email?.toLowerCase().includes(search);
+
+      if (!matchSearch) return false;
+
+      // CUSTOMER FILTER
+      if (customerFilter) {
+        const id = snapshot?.id || inv.customer?.id;
+        if (id !== customerFilter) return false;
+      }
+
+      // DATE RANGE
+      if (dateRange?.[0] && dateRange?.[1]) {
+        const invoiceDate = dayjs(inv.invoiceDate);
+        if (
+          !invoiceDate.isBetween(
+            dayjs(dateRange[0]).startOf("day"),
+            dayjs(dateRange[1]).endOf("day"),
+            undefined,
+            "[]"
+          )
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [invoices, activeView, searchText, customerFilter, dateRange]);
+
+  const total = filteredInvoices.length;
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = Math.min(currentPage * pageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pagedInvoices = useMemo(() => {
+    return filteredInvoices.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredInvoices, currentPage, pageSize]);
+
+  const viewCounts = useMemo(() => {
+    let drafts = 0;
+    let awaiting = 0;
+    let paid = 0;
+    let overdue = 0;
+
+    invoices.forEach((inv) => {
+      const status = fromBackendStatus(inv.status);
+      if (status === "DRAFT") drafts++;
+      else if (status === "PAID") paid++;
+      else if (status === "OVERDUE") overdue++;
+
+      if (["PENDING", "APPROVED", "SENT", "PARTIALLY_PAID"].includes(status)) {
+        awaiting++;
+      }
+    });
+
+    return {
+      all: invoices.length,
+      draft: drafts,
+      awaiting: awaiting,
+      paid: paid,
+      overdue: overdue,
+    };
+  }, [invoices]);
+
+  const customerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    invoices.forEach((inv) => {
+      const snapshot = inv.customerSnapshot as CustomerSnapshot | null;
+      const companyName = snapshot?.companyName || inv.customer?.companyName;
+      const id = snapshot?.id || inv.customer?.id;
+      if (id && companyName) {
+        map.set(id, companyName);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({
+      value: id,
+      label: name,
+    })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [invoices]);
+
+  const totalRevenue = useMemo(() => {
+    return invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0);
+  }, [invoices]);
+
+  const paidCount = invoices.filter(
+    (i) => fromBackendStatus(i.status) === "PAID"
+  ).length;
+
+  const pendingCount = invoices.filter(
+    (i) => ["PENDING", "APPROVED", "SENT", "PARTIALLY_PAID"].includes(fromBackendStatus(i.status))
+  ).length;
+
+  const customerCount = useMemo(() => {
+    return new Set(
+      invoices.map((i) => {
+        const snapshot = i.customerSnapshot as CustomerSnapshot | null;
+        return snapshot?.id || i.customer?.id;
+      })
+    ).size;
+  }, [invoices]);
+
   /* ================= TABLE COLUMNS ================= */
   const columns: ColumnsType<any> = [
     {
       title: "INVOICE NO",
       dataIndex: "invoiceNumber",
       key: "invoice_number",
-      width: 140,
+      width: 130,
       render: (text) => (
         <Tooltip title="Click to preview invoice">
           <button
@@ -828,10 +735,9 @@ export default function InvoiceInvoicesPage() {
             }}
             className="font-semibold transition-colors hover:underline"
             style={{
-              color: "var(--text-blue-700)",
-              fontFamily:
-                "ui-monospace, SFMono-Regular, Menlo, monospace",
-              fontSize: 13,
+              color: "#3b82f6",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 12.5,
               background: "transparent",
               border: "none",
               padding: 0,
@@ -851,15 +757,15 @@ export default function InvoiceInvoicesPage() {
         const snapshot = record.customerSnapshot as any;
         const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
-          <div className="flex items-center gap-3 truncate">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
               {companyName.charAt(0)}
             </div>
-            <div className="truncate">
-              <div className="font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+            <div className="truncate" style={{ lineHeight: 1.25 }}>
+              <div className="font-bold truncate" style={{ color: 'var(--text-slate-900)', fontSize: 12.5 }}>
                 {companyName}
               </div>
-              <div className="text-[10px] truncate" style={{ color: 'var(--text-slate-500)' }}>
+              <div className="text-[10px] truncate" style={{ color: 'var(--text-slate-400)' }}>
                 {snapshot?.email || record.customer?.email || ""}
               </div>
             </div>
@@ -870,9 +776,9 @@ export default function InvoiceInvoicesPage() {
     {
       title: "DATE",
       dataIndex: "invoiceDate",
-      width: 120,
+      width: 110,
       render: (date: string) => (
-        <div style={{ color: 'var(--text-secondary)' }}>
+        <div style={{ color: 'var(--text-slate-500)', fontSize: 11.5 }}>
           {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
@@ -880,11 +786,11 @@ export default function InvoiceInvoicesPage() {
     {
       title: "DUE DATE",
       dataIndex: "dueDate",
-      width: 120,
+      width: 110,
       render: (date: string) => {
         const isOverdue = date && dayjs(date).isBefore(dayjs(), 'day');
         return (
-          <div className={isOverdue ? "text-red-500 font-medium" : ""} style={{ color: isOverdue ? '#ef4444' : 'var(--text-secondary)' }}>
+          <div className={isOverdue ? "text-red-400 font-medium" : ""} style={{ color: isOverdue ? '#f87171' : 'var(--text-slate-500)', fontSize: 11.5 }}>
             {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
           </div>
         );
@@ -893,9 +799,9 @@ export default function InvoiceInvoicesPage() {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 120,
+      width: 110,
       render: (v, record) => (
-        <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
+        <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5 }}>
           ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
@@ -903,27 +809,28 @@ export default function InvoiceInvoicesPage() {
     {
       title: "CLIENT STATUS",
       dataIndex: "clientStatus",
-      width: 140,
+      width: 130,
       render: (status: string) => {
         if (!status || status === "UNPAID") {
-          return <Tag color="error" style={{ margin: 0, fontWeight: 600, border: "none" }}>UNPAID</Tag>;
+          return <span style={{ padding: "3.5px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700, color: "#f87171", background: "rgba(248,113,113,0.10)", border: "1px solid rgba(248,113,113,0.20)", textTransform: "uppercase", whiteSpace: "nowrap" }}>UNPAID</span>;
         }
         if (status === "PARTIALLY_PAID") {
-          return <Tag color="warning" style={{ margin: 0, fontWeight: 600, border: "none" }}>PARTIALLY PAID</Tag>;
+          return <span style={{ padding: "3.5px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700, color: "#3b82f6", background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.20)", textTransform: "uppercase", whiteSpace: "nowrap" }}>PARTIALLY PAID</span>;
         }
         if (status === "PAID") {
-          return <Tag color="success" style={{ margin: 0, fontWeight: 600, border: "none" }}>PAID</Tag>;
+          return <span style={{ padding: "3.5px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700, color: "#10b981", background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", textTransform: "uppercase", whiteSpace: "nowrap" }}>PAID</span>;
         }
-        return <span style={{ color: "var(--text-slate-400)" }}>{status}</span>;
+        return <span style={{ color: "var(--text-slate-400)", fontSize: 11.5 }}>{status}</span>;
       },
     },
     {
       title: "STATUS",
       dataIndex: "status",
-      width: 150,
+      width: 170,
       render: (status: string, record: any) => {
         const frontendStatus = fromBackendStatus(status);
         const hasUnverifiedProofs = record.paymentProofs && record.paymentProofs.length > 0 && frontendStatus !== 'PAID';
+        const meta = INVOICE_STATUS_META[frontendStatus] || INVOICE_STATUS_META.DRAFT;
         return (
           <div
             className={canUpdateInvoiceStatus ? "cursor-pointer flex items-center gap-2" : "flex items-center gap-2"}
@@ -938,35 +845,37 @@ export default function InvoiceInvoicesPage() {
             <Tooltip title={canUpdateInvoiceStatus ? "Click to change status" : ""}>
               <Badge
                 count={
-                  <Tag
-                    color={getStatusColor(frontendStatus)}
+                  <span
                     className={canUpdateInvoiceStatus ? "hover:opacity-80 transition-opacity m-0" : "m-0"}
                     style={{
-                      padding: "4px 10px",
-                      borderRadius: 12,
-                      fontSize: 11,
-                      fontWeight: 600,
+                      padding: "4px 9px",
+                      borderRadius: 6,
+                      fontSize: 10.5,
+                      fontWeight: 700,
                       lineHeight: "1",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px",
-                      border: "none",
+                      gap: "5px",
+                      border: `1px solid ${meta.ring}`,
+                      color: meta.color,
+                      background: meta.bg,
                       textTransform: "uppercase",
-                      letterSpacing: "0.02em"
+                      letterSpacing: "0.02em",
+                      whiteSpace: "nowrap"
                     }}
                   >
                     <div className="flex items-center gap-1.5 w-full">
                       {getStatusIcon(frontendStatus)}
-                      <span>{frontendStatus}</span>
+                      <span>{meta.label}</span>
                     </div>
-                  </Tag>
+                  </span>
                 }
               />
             </Tooltip>
             {hasUnverifiedProofs && (
               <Tooltip title="View Payment Proofs">
-                <div 
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "var(--accent-color-light, #e0e7ff)", color: "var(--accent-color, #4338ca)", cursor: "pointer" }}
+                <div
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "rgba(59,130,246,0.12)", color: "#3B82F6", cursor: "pointer" }}
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -975,7 +884,7 @@ export default function InvoiceInvoicesPage() {
                     setProofDrawerVisible(true);
                   }}
                 >
-                  <Paperclip size={14} />
+                  <Paperclip size={12} />
                 </div>
               </Tooltip>
             )}
@@ -986,13 +895,11 @@ export default function InvoiceInvoicesPage() {
     {
       title: "BALANCE DUE",
       dataIndex: "balanceDue",
-      width: 120,
-      render: (v, record) => {
-        // Use the balanceDue field directly since it's updated by the status update hook
+      width: 110,
+      render: (v) => {
         const balance = Number(v || 0);
-
         return (
-          <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-primary)' }}>
+          <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-slate-900)', fontSize: 12.5 }}>
             ${balance.toFixed(2)}
           </div>
         );
@@ -1001,7 +908,7 @@ export default function InvoiceInvoicesPage() {
     {
       title: "ACTIONS",
       align: "center",
-      width: 100,
+      width: 72,
       fixed: "right" as const,
       render: (_, record) => {
         const menuItems = getMenuItems(record);
@@ -1018,15 +925,15 @@ export default function InvoiceInvoicesPage() {
             placement="bottomRight"
             onOpenChange={(open) => {
               if (!open) {
-                // Reset deleting state when dropdown closes
                 setDeletingId(null);
               }
             }}
           >
             <Button
               type="text"
-              icon={<MoreVertical size={18} style={{ color: 'var(--text-slate-400)' }} />}
+              icon={<MoreVertical size={16} style={{ color: 'var(--text-slate-400)' }} />}
               className="hover:bg-gray-100"
+              style={{ width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
             />
           </Dropdown>
         );
@@ -1046,58 +953,6 @@ export default function InvoiceInvoicesPage() {
     }),
   };
 
-  /* ================= SEARCH AND FILTER ================= */
-  const filteredInvoices = invoices.filter((inv) => {
-    const snapshot = inv.customerSnapshot as any;
-    const search = searchText?.toLowerCase().trim();
-
-    // SEARCH
-    const matchSearch =
-      !search ||
-      inv.invoiceNumber?.toLowerCase().includes(search) ||
-      snapshot?.companyName?.toLowerCase().includes(search) ||
-      snapshot?.name?.toLowerCase().includes(search) ||
-      snapshot?.email?.toLowerCase().includes(search);
-
-    if (!matchSearch) return false;
-
-    // STATUS
-    if (statusFilter && fromBackendStatus(inv.status) !== statusFilter) {
-      return false;
-    }
-
-    // DATE RANGE
-    if (dateRange?.[0] && dateRange?.[1]) {
-      const invoiceDate = dayjs(inv.invoiceDate);
-      if (
-        !invoiceDate.isBetween(
-          dayjs(dateRange[0]).startOf("day"),
-          dayjs(dateRange[1]).endOf("day"),
-          undefined,
-          "[]"
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  const totalCount = invoices.length;
-  const paidCount = invoices.filter(
-    (i) => fromBackendStatus(i.status) === "PAID"
-  ).length;
-  const pendingCount = invoices.filter(
-    (i) => fromBackendStatus(i.status) === "PENDING"
-  ).length;
-  const customerCount = new Set(
-    invoices.map((i) => {
-      const snapshot = i.customerSnapshot as CustomerSnapshot | null;
-      return snapshot?.id || i.customer?.id;
-    })
-  ).size;
-
   /* ================= BULK DOWNLOAD ================= */
   const handleBulkDownload = async () => {
     for (const inv of selectedInvoices) {
@@ -1111,464 +966,527 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  const filterContent = (
-    <div className="w-72">
-      <Space direction="vertical" size="middle" className="w-full">
-        {/* Date Range */}
-        <div>
-          <div className="text-sm font-medium mb-1">Filter by Date</div>
-          <RangePicker
-            className="w-full"
-            value={dateRange as any}
-            onChange={(values) => setDateRange(values)}
-            allowClear
-          />
-        </div>
-
-        {/* Status */}
-        <div>
-          <div className="text-sm font-medium mb-1">Filter by Status</div>
-          <Select
-            className="w-full"
-            placeholder="Select status"
-            allowClear
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value)}
-            options={[
-              { label: "Draft", value: "DRAFT" },
-              { label: "Pending", value: "PENDING" },
-              { label: "Approval", value: "APPROVED" },
-              { label: "Sent", value: "SENT" },
-              { label: "Submitted", value: "SUBMITTED" },
-              { label: "Partially Paid", value: "PARTIALLY_PAID" },
-              { label: "Paid", value: "PAID" },
-              { label: "Overdue", value: "OVERDUE" },
-              { label: "Cancelled", value: "CANCELLED" },
-            ]}
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t">
-          <Button
-            size="small"
-            onClick={() => {
-              setDateRange(null);
-              setStatusFilter(null);
-            }}
-          >
-            Reset
-          </Button>
-          <Button size="small" type="primary">
-            Apply
-          </Button>
-        </div>
-      </Space>
-    </div>
-  );
-
-
-
   if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
   if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
     <MainLayout>
+      <div className="pp-shell">
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="pp-sidebar">
+          <div className="pp-side-head">
+            <div className="pp-side-logo"><FileText size={20} /></div>
+            <div className="pp-side-head-text">
+              <div className="pp-side-title">Invoices</div>
+              <div className="pp-side-subtitle">Billing · Payments</div>
+            </div>
+          </div>
 
-      <div style={{
-        margin: "0 -24px",
-        background: "var(--customers-page-bg)",
-        minHeight: "calc(100vh - 64px)"
-      }}>
-        {/* TOP BAR */}
-        <div
-          className="sticky top-0 z-40 backdrop-blur-md border-b"
-          style={{
-            background:
-              "color-mix(in oklab, var(--customers-page-bg) 85%, transparent)",
-            borderColor: "var(--border-color)",
-          }}
-        >
-          <div className="px-8 py-3 lg:py-0 min-h-[56px] lg:h-14 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: "var(--bg-blue-50)",
-                    color: "var(--text-blue-700)",
-                    border: "1px solid var(--border-blue-200)",
-                  }}
-                >
-                  <FileText size={14} strokeWidth={2.25} />
-                </div>
-                <span
-                  className="text-[14px] font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Invoices
-                </span>
-              </div>
-              <span
-                className="h-4 w-px hidden sm:inline"
-                style={{ background: "var(--border-color)" }}
-              />
-              <span
-                className="text-[12px]"
-                style={{ color: "var(--text-secondary)" }}
+          {canCreateInvoice && (
+            <Button
+              type="primary"
+              icon={<Plus size={14} />}
+              className="pp-create-btn"
+              onClick={() => router.push("/invoice/newinvoice")}
+              block
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              New Invoice
+            </Button>
+          )}
+
+          <div className="pp-side-scroll">
+            <div className="pp-side-section-label">Views</div>
+            <div className="pp-side-list">
+              <button
+                type="button"
+                className={`pp-view-item ${activeView === "all" ? "is-active" : ""}`}
+                onClick={() => setActiveView("all")}
               >
-                Manage, track payments, and monitor invoice statuses
-              </span>
+                <span className="pp-view-icon" style={{ color: activeView === "all" ? "#3b82f6" : "var(--text-slate-400)" }}><FileText size={14} /></span>
+                <span className="pp-view-label">All invoices</span>
+                <span className="pp-view-count">{viewCounts.all}</span>
+              </button>
+              <button
+                type="button"
+                className={`pp-view-item ${activeView === "draft" ? "is-active" : ""}`}
+                onClick={() => setActiveView("draft")}
+              >
+                <span className="pp-view-icon" style={{ color: activeView === "draft" ? "#64748b" : "var(--text-slate-400)" }}><Clock size={14} /></span>
+                <span className="pp-view-label">Drafts</span>
+                <span className="pp-view-count">{viewCounts.draft}</span>
+              </button>
+              <button
+                type="button"
+                className={`pp-view-item ${activeView === "awaiting" ? "is-active" : ""}`}
+                onClick={() => setActiveView("awaiting")}
+              >
+                <span className="pp-view-icon" style={{ color: activeView === "awaiting" ? "#3b82f6" : "var(--text-slate-400)" }}><Clock size={14} /></span>
+                <span className="pp-view-label">Awaiting Payment</span>
+                <span className="pp-view-count">{viewCounts.awaiting}</span>
+              </button>
+              <button
+                type="button"
+                className={`pp-view-item ${activeView === "paid" ? "is-active" : ""}`}
+                onClick={() => setActiveView("paid")}
+              >
+                <span className="pp-view-icon" style={{ color: activeView === "paid" ? "#10b981" : "var(--text-slate-400)" }}><CheckCircle size={14} /></span>
+                <span className="pp-view-label">Paid</span>
+                <span className="pp-view-count">{viewCounts.paid}</span>
+              </button>
+              <button
+                type="button"
+                className={`pp-view-item ${activeView === "overdue" ? "is-active" : ""}`}
+                onClick={() => setActiveView("overdue")}
+              >
+                <span className="pp-view-icon" style={{ color: activeView === "overdue" ? "#f87171" : "var(--text-slate-400)" }}><AlertCircle size={14} /></span>
+                <span className="pp-view-label">Overdue</span>
+                <span className="pp-view-count">{viewCounts.overdue}</span>
+              </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-              <Input
-                placeholder="Search invoices..."
+            <div className="pp-side-section-label">Filters</div>
+            <div className="pp-side-filters" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                className="pp-side-select"
+                placeholder="Select Customer"
+                value={customerFilter}
+                onChange={(v) => setCustomerFilter(v || null)}
                 allowClear
-                prefix={
-                  <Search
-                    size={14}
-                    style={{ color: "var(--text-secondary)" }}
-                  />
-                }
+                options={customerOptions}
+                style={{ width: "100%" }}
+              />
+              <RangePicker
+                className="pp-side-range"
+                value={dateRange as any}
+                onChange={(d) => setDateRange(d as any)}
+                placeholder={['Start date', 'End date']}
+                separator={<span style={{ color: 'var(--text-slate-400)' }}>›</span>}
+                suffixIcon={null}
+                format="MMM D"
+                style={{ width: "100%", height: "36px" }}
+              />
+              {(customerFilter || (dateRange && (dateRange[0] || dateRange[1]))) && (
+                <button
+                  type="button"
+                  className="pp-clear-filters"
+                  onClick={() => {
+                    setCustomerFilter(null);
+                    setDateRange(null);
+                  }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "none", border: "none", cursor: "pointer", padding: "3px", fontSize: "12px", fontWeight: "600", color: "#f87171" }}
+                >
+                  <XCircle size={12} /> Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="pp-side-bottom-actions">
+            <button
+              type="button"
+              className="pp-view-item"
+              onClick={() => router.push("/invoice/dashboard")}
+              style={{ padding: "7px 10px", borderRadius: "8px", border: "none", background: "transparent", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", width: "100%", marginBottom: "4px" }}
+            >
+              <span className="pp-view-icon" style={{ color: "#3b82f6" }}><ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /></span>
+              <span className="pp-view-label">Dashboard</span>
+            </button>
+            <button
+              type="button"
+              className="pp-trash"
+              onClick={() => router.push("/invoice/trash")}
+            >
+              <RestOutlined /> Trash
+            </button>
+          </div>
+        </aside>
+
+        {/* ============================ MAIN ============================ */}
+        <main className="pp-main">
+          {/* Top search & views bar */}
+          <div className="pp-topbar">
+            <div className="pp-search-wrap">
+              <Search className="pp-search-icon" size={14} />
+              <input
+                className="pp-search"
+                placeholder="Search invoices, clients, creators…"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className="w-full sm:w-[200px] md:w-[280px]"
-                style={{
-                  height: 36,
-                  borderRadius: 8,
-                  background: "var(--bg-secondary)",
-                  borderColor: "var(--border-color)",
-                }}
               />
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Popover content={filterContent} trigger="click" placement="bottomRight">
-                  <Button
-                    icon={<Filter size={14} />}
-                    className="flex-1 sm:flex-initial flex items-center justify-center"
-                    style={{
-                      borderRadius: 8,
-                      height: 36,
-                      fontWeight: 600,
-                    }}
+            </div>
+
+            <Tooltip title="Refresh">
+              <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><RefreshCw size={14} className={isLoading ? "animate-spin" : ""} /></button>
+            </Tooltip>
+
+            <div className="pp-topbar-meta">
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{filteredInvoices.length}</strong> invoices</span>
+            </div>
+
+            <div className="pp-topbar-actions">
+              <div className="pp-segmented">
+                <button
+                  type="button"
+                  className={viewMode === "card" ? "is-active" : ""}
+                  onClick={() => setViewMode("card")}
+                  aria-label="Card view"
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={viewMode === "table" ? "is-active" : ""}
+                  onClick={() => setViewMode("table")}
+                  aria-label="Table view"
+                >
+                  <List size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pp-divider" />
+
+          {/* Main View Area */}
+          <div className="pp-body">
+            {/* Stat Cards */}
+            <div className="pp-stats">
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}>
+                      <TrendingUp size={14} />
+                    </span>
+                    <span className="pp-stat-label">Total Revenue</span>
+                  </div>
+                </div>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <span className="pp-stat-period">All-time billed</span>
+                </div>
+              </div>
+
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                      <CheckCircle size={14} />
+                    </span>
+                    <span className="pp-stat-label">Paid Invoices</span>
+                  </div>
+                </div>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{paidCount}</span>
+                  </div>
+                  <span className="pp-stat-period">Settled invoices</span>
+                </div>
+              </div>
+
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: "rgba(100,116,139,0.1)", color: "#64748b" }}>
+                      <Clock size={14} />
+                    </span>
+                    <span className="pp-stat-label">Awaiting Payment</span>
+                  </div>
+                </div>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{pendingCount}</span>
+                  </div>
+                  <span className="pp-stat-period">Pending or sent</span>
+                </div>
+              </div>
+
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}>
+                      <User size={14} />
+                    </span>
+                    <span className="pp-stat-label">Total Customers</span>
+                  </div>
+                </div>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{customerCount}</span>
+                  </div>
+                  <span className="pp-stat-period">Unique clients</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bulk Action Bar */}
+            {selectedRowKeys.length > 0 && (
+              <div
+                className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
+                style={{
+                  background: "var(--bg-blue-50)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle
+                    size={14}
+                    style={{ color: "var(--text-blue-700)" }}
+                  />
+                  <span
+                    className="text-[12.5px] font-semibold"
+                    style={{ color: "var(--text-blue-700)" }}
                   >
-                    <span>Filter</span>
+                    {selectedRowKeys.length} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="small"
+                    icon={<Download size={13} />}
+                    loading={isDownloading}
+                    onClick={handleBulkDownload}
+                    style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
+                  >
+                    Download
                   </Button>
-                </Popover>
-                {canCreateInvoice && (
+                  {(canDeleteInvoice || canDeleteInvoiceTrash) && (
+                    <Button
+                      size="small"
+                      danger
+                      type="primary"
+                      icon={<Trash2 size={13} />}
+                      onClick={openBulkDeleteModal}
+                      loading={bulkDeleteProgress.isDeleting}
+                      style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
+                    >
+                      Move to trash
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRowKeys([]);
+                      setSelectedInvoices([]);
+                    }}
+                    className="p-1.5 rounded-md transition-colors hover:bg-white"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <XCircle size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isLoading ? (
+              viewMode === "card" ? (
+                <div className="pp-grid">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="pc-card p-4"
+                      style={{
+                        background: "var(--bg-slate-50)",
+                        border: "1px solid var(--border-slate-200)",
+                      }}
+                    >
+                      <Skeleton active avatar paragraph={{ rows: 1 }} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pp-table-wrap">
+                  <Table
+                    size="small"
+                    rowSelection={rowSelection}
+                    columns={columns}
+                    dataSource={[]}
+                    loading={true}
+                    pagination={false}
+                    scroll={{ x: 1100 }}
+                    className="pp-table"
+                  />
+                </div>
+              )
+            ) : filteredInvoices.length === 0 ? (
+              <div className="pp-empty">
+                <div className="pp-empty-orb"><FileText size={26} /></div>
+                <div className="pp-empty-title">No invoices found</div>
+                <div className="pp-empty-sub">
+                  {searchText || customerFilter || dateRange
+                    ? "Try adjusting your search or filters."
+                    : "Get started by creating your first invoice."}
+                </div>
+                {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
                   <Button
                     type="primary"
                     icon={<Plus size={14} />}
                     onClick={() => router.push("/invoice/newinvoice")}
-                    className="flex-1 sm:flex-initial flex items-center justify-center"
-                    style={{
-                      borderRadius: 8,
-                      height: 36,
-                      fontWeight: 600,
-                      background: "#2563eb",
-                    }}
+                    className="pp-btn-primary"
+                    style={{ marginTop: 14 }}
                   >
-                    <span>New invoice</span>
+                    New Invoice
                   </Button>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
+            ) : viewMode === "card" ? (
+              <div className="pp-grid">
+                {pagedInvoices.map((record) => {
+                  const snapshot = record.customerSnapshot as any;
+                  const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
+                  const accent = accentFor(companyName);
+                  const statusCfg = INVOICE_STATUS_META[fromBackendStatus(record.status)];
 
-        <div className="px-8 pt-6 pb-12">
-          <div className="mx-auto max-w-[1600px]">
+                  return (
+                    <div
+                      key={record.id}
+                      className="pc-card"
+                      onClick={() => setPreviewInvoiceNumber(record.invoiceNumber)}
+                    >
+                      <div className="pc-top">
+                        <div
+                          className="pc-avatar"
+                          style={{
+                            background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                          }}
+                        >
+                          {initialsOf(companyName)}
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title">
+                            {record.invoiceNumber}
+                          </div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Company:</span>
+                            <span className="pc-client-val">{companyName}</span>
+                          </div>
+                        </div>
+                        <Dropdown
+                          overlay={<Menu items={getMenuItems(record)} />}
+                          trigger={["click"]}
+                          placement="bottomRight"
+                        >
+                          <button
+                            type="button"
+                            className="pc-actions"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </Dropdown>
+                      </div>
 
-        {/* ================= STATS ================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-          <StatCard
-            label="Total revenue"
-            value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-            icon={TrendingUp}
-            color="#2563eb"
-            sub="All-time billed"
-          />
-          <StatCard
-            label="Paid"
-            value={paidCount}
-            icon={CheckCircle}
-            color="#10b981"
-            sub="Settled invoices"
-          />
-          <StatCard
-            label="Pending"
-            value={pendingCount}
-            icon={Clock}
-            color="#f59e0b"
-            sub="Awaiting payment"
-          />
-          <StatCard
-            label="Customers"
-            value={customerCount}
-            icon={User}
-            color="#8b5cf6"
-            sub="Unique clients"
-          />
-        </div>
-
-        {/* Bulk Action Bar */}
-        {selectedRowKeys.length > 0 && (
-          <div
-            className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
-            style={{
-              background: "var(--bg-blue-50)",
-              border: "1px solid var(--border-blue-200)",
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle
-                size={14}
-                style={{ color: "var(--text-blue-700)" }}
-              />
-              <span
-                className="text-[12.5px] font-semibold"
-                style={{ color: "var(--text-blue-700)" }}
-              >
-                {selectedRowKeys.length} selected
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="small"
-                icon={<Download size={13} />}
-                loading={isDownloading}
-                onClick={handleBulkDownload}
-                style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
-              >
-                Download
-              </Button>
-              {(canDeleteInvoice || canDeleteInvoiceTrash) && (
-                <Button
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Billed:</span>
+                            <span className="pc-foot-val">
+                              {record.invoiceDate ? dayjs(record.invoiceDate).format("MMM DD, YYYY") : "—"}
+                            </span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Amount:</span>
+                            <span className="pc-foot-val" style={{ fontWeight: 700 }}>
+                              ${Number(record.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Status:</span>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                color: statusCfg.color,
+                              }}
+                            >
+                              {statusCfg.label.toUpperCase()}
+                            </span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <button
+                            type="button"
+                            className="pc-foot-item pc-view-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
+                            }}
+                          >
+                            View
+                          </button>
+                          <span className="pc-foot-div" />
+                          <button
+                            type="button"
+                            className="pc-foot-item pc-view-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadInvoice(record.id);
+                            }}
+                          >
+                            PDF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="pp-table-wrap">
+                <Table
                   size="small"
-                  danger
-                  type="primary"
-                  icon={<Trash2 size={13} />}
-                  onClick={openBulkDeleteModal}
-                  loading={bulkDeleteProgress.isDeleting}
-                  style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
-                >
-                  Move to trash
-                </Button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRowKeys([]);
-                  setSelectedInvoices([]);
-                }}
-                className="p-1.5 rounded-md transition-colors hover:bg-white"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <XCircle size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isLoading ? (
-          <div
-            className="flex justify-center items-center h-64 rounded-2xl"
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--border-color)",
-            }}
-          >
-            <Spin />
-          </div>
-        ) : isError ? (
-          <div
-            className="flex flex-col items-center justify-center py-16 rounded-2xl"
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1.5px dashed #fecaca",
-            }}
-          >
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-              style={{
-                background: "#fef2f2",
-                color: "#dc2626",
-                border: "1px solid #fecaca",
-              }}
-            >
-              <AlertCircle size={20} strokeWidth={2} />
-            </div>
-            <div
-              className="text-[14px] font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              Failed to load invoices
-            </div>
-            <div
-              className="text-[12px] mt-1"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Please try again later
-            </div>
-            <Button
-              icon={<RefreshCw size={14} />}
-              onClick={() => refetch()}
-              style={{ borderRadius: 8, height: 36, fontWeight: 600, marginTop: 16 }}
-            >
-              Retry
-            </Button>
-          </div>
-        ) : filteredInvoices.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-20 rounded-2xl"
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1.5px dashed var(--border-color)",
-            }}
-          >
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-              style={{
-                background: "var(--bg-blue-50)",
-                color: "var(--text-blue-700)",
-                border: "1px solid var(--border-blue-200)",
-              }}
-            >
-              <FileText size={24} strokeWidth={2} />
-            </div>
-            <div
-              className="text-[14px] font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {searchText ? "No invoices match your search" : "No invoices yet"}
-            </div>
-            <div
-              className="text-[12px] mt-1 mb-5"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {searchText
-                ? "Try a different search term"
-                : "Create your first invoice to get started"}
-            </div>
-            {!searchText && canCreateInvoice && (
-              <Button
-                type="primary"
-                icon={<Plus size={14} />}
-                onClick={() => router.push("/invoice/newinvoice")}
-                style={{
-                  borderRadius: 8,
-                  height: 38,
-                  fontWeight: 600,
-                  background: "#2563eb",
-                }}
-              >
-                Create first invoice
-              </Button>
+                  rowSelection={rowSelection}
+                  columns={columns}
+                  dataSource={pagedInvoices.map((inv) => ({
+                    ...inv,
+                    key: inv.id,
+                  }))}
+                  pagination={false}
+                  scroll={{ x: 1100 }}
+                  className="pp-table"
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
+                      setPreviewInvoiceNumber(record.invoiceNumber);
+                    },
+                    className: 'pp-row',
+                  })}
+                />
+              </div>
             )}
           </div>
-        ) : (
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--border-color)",
-            }}
-          >
-            <Table
-              size="middle"
-              rowSelection={rowSelection}
-              columns={columns}
-              dataSource={filteredInvoices.map((inv) => ({
-                ...inv,
-                key: inv.id,
-              }))}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                style: { padding: "12px 20px" },
-                showTotal: (total, range) =>
-                  `${range[0]}–${range[1]} of ${total}`,
-              }}
-              scroll={{ x: 1100 }}
-              className="invoices-table"
-              rowClassName={() => "invoice-table-row"}
-            />
-          </div>
-        )}
-          </div>
-        </div>
-      </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .invoices-table .ant-table-thead > tr > th {
-          background-color: var(--bg-slate-50) !important;
-          color: var(--text-secondary) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          padding: 10px 16px !important;
-          white-space: nowrap !important;
-          letter-spacing: 0.06em !important;
-          border-bottom: 1px solid var(--border-color) !important;
-        }
-        .invoices-table .ant-table-tbody > tr > td {
-          padding: 14px 16px !important;
-          border-bottom: 1px solid var(--border-color) !important;
-        }
-        .invoices-table .ant-table-row:hover > td {
-          background-color: var(--bg-slate-50) !important;
-        }
-        .invoices-table .ant-table-tbody > tr:last-child > td {
-          border-bottom: none !important;
-        }
-        .ant-input-search-button {
-          height: 100% !important;
-          border-radius: 0 12px 12px 0 !important;
-        }
-        .ant-input-affix-wrapper {
-          border-radius: 12px !important;
-        }
-        
-        /* Dark theme specific styles - only apply when data-theme is dark */
-        [data-theme='dark'] .invoice-table-row:hover {
-          background-color: var(--customers-table-row-hover) !important;
-        }
-        [data-theme='dark'] .ant-table-thead > tr > th {
-          background-color: var(--customers-table-header-bg) !important;
-          color: var(--customers-table-header-text) !important;
-          border-bottom: 2px solid var(--border-color) !important;
-        }
-        [data-theme='dark'] .ant-table-tbody > tr > td {
-          border-bottom: 1px solid var(--border-color) !important;
-        }
-        [data-theme='dark'] .ant-table {
-          background-color: var(--customers-card-bg) !important;
-        }
-        [data-theme='dark'] .ant-table-tbody > tr > td {
-          background-color: var(--customers-card-bg) !important;
-        }
-        [data-theme='dark'] .ant-table-pagination {
-          background-color: var(--customers-card-bg) !important;
-        }
-        [data-theme='dark'] .ant-table-pagination .ant-pagination-item {
-          background-color: var(--customers-card-bg) !important;
-          border-color: var(--border-color) !important;
-        }
-        [data-theme='dark'] .ant-table-pagination .ant-pagination-item a {
-          color: var(--text-primary) !important;
-        }
-        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active {
-          background-color: var(--customers-header-icon-color) !important;
-          border-color: var(--customers-header-icon-color) !important;
-        }
-        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active a {
-          color: #ffffff !important;
-        }
-        [data-theme='dark'] .ant-table-pagination .ant-pagination-options {
-          color: var(--text-primary) !important;
-        }
-      `}} />
+          {/* Sticky footer pagination */}
+          {total > 0 && (
+            <div className="pp-footer pp-footer--sticky">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
+                  <button key={p} type="button" className={`pp-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+                ))}
+                <button type="button" className="pp-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+                  options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Bulk Trash Confirmation Modal */}
       <Modal
@@ -1752,7 +1670,6 @@ export default function InvoiceInvoicesPage() {
         </div>
 
         <div className="p-6">
-          {/* Metrics Summary */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
@@ -1875,7 +1792,7 @@ export default function InvoiceInvoicesPage() {
       <Modal
         title={
           <div className="flex items-center">
-            <CheckCircle size={20} className="text-green-500 mr-2" />
+            <CheckCircle size={20} className="text-green-500 mr-2" style={{ color: "#10b981" }} />
             Approve Invoice {approvalInvoice?.invoiceNumber}
           </div>
         }
@@ -1930,7 +1847,6 @@ export default function InvoiceInvoicesPage() {
         </div>
 
         <div className="p-6">
-          {/* Status Flow Indicator */}
           <div className="rounded-2xl p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
             <div className="text-center flex-1 min-w-0">
               <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
@@ -2031,8 +1947,6 @@ export default function InvoiceInvoicesPage() {
       </Modal>
 
       {/* Transaction History Drawer */}
-
-
       <Drawer
         title={
           <div className="flex items-center gap-2">
@@ -2074,10 +1988,8 @@ export default function InvoiceInvoicesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Invoice Summary - Single Line Metrics with Colors */}
             <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="flex items-center justify-between">
-                {/* Left side - Invoice info */}
                 <div className="flex items-center gap-4">
                   <div>
                     <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Invoice</span>
@@ -2097,7 +2009,6 @@ export default function InvoiceInvoicesPage() {
                   </div>
                 </div>
 
-                {/* Right side - Metrics in one line with colors */}
                 <div className="flex items-center gap-6">
                   <div className="text-right">
                     <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-slate-500)' }}>
@@ -2141,7 +2052,6 @@ export default function InvoiceInvoicesPage() {
                 </div>
               </div>
 
-              {/* Payment Progress Bar - Colored */}
               {Number(paymentHistory?.summary?.totalAmount || 0) > 0 && (
                 <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-color)' }}>
                   <div className="flex items-center gap-3">
@@ -2160,7 +2070,6 @@ export default function InvoiceInvoicesPage() {
               )}
             </div>
 
-            {/* Status Counts - Colored Icons, 2-Digit Format */}
             <div className="grid grid-cols-5 gap-2">
               <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
                 <div className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Total</div>
@@ -2214,7 +2123,6 @@ export default function InvoiceInvoicesPage() {
               </div>
             </div>
 
-            {/* Payment Table - Compact */}
             <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex items-center gap-2">
@@ -2302,7 +2210,6 @@ export default function InvoiceInvoicesPage() {
                     </table>
                   </div>
 
-                  {/* Simple Pagination */}
                   <div className="px-4 py-3 border-t flex justify-between items-center" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
                     <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>
                       Showing 1-{Math.min(5, paymentHistory.payments.length)} of {paymentHistory.payments.length}
@@ -2319,7 +2226,6 @@ export default function InvoiceInvoicesPage() {
               )}
             </div>
 
-            {/* Payment Timeline - Restored */}
             {paymentHistory.payments && paymentHistory.payments.length > 0 && (
               <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
                 <div className="flex items-center gap-2 mb-3">
@@ -2392,8 +2298,6 @@ export default function InvoiceInvoicesPage() {
         )}
       </Drawer>
 
-      {/* ... existing Modals for Delete and Status ... */}
-
       {/* EMAIL DRAWER */}
       {selectedInvoiceForEmail && (
         <ComposeEmailDrawer
@@ -2406,7 +2310,7 @@ export default function InvoiceInvoicesPage() {
         />
       )}
 
-      {/* INVOICE PREVIEW SLIDER */}
+      {/* INVOICE PREVIEW DRAWER */}
       <Drawer
         open={!!previewInvoiceNumber}
         onClose={() => setPreviewInvoiceNumber(null)}
@@ -2427,8 +2331,7 @@ export default function InvoiceInvoicesPage() {
           <div
             className="px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
             style={{
-              background:
-                "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
+              background: "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
               borderColor: "var(--border-color)",
             }}
           >
@@ -2454,8 +2357,7 @@ export default function InvoiceInvoicesPage() {
                   className="text-[12px] mt-0.5 truncate"
                   style={{
                     color: "var(--text-secondary)",
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}
                 >
                   {previewInvoiceNumber}
@@ -2468,9 +2370,7 @@ export default function InvoiceInvoicesPage() {
                   size="small"
                   onClick={() => {
                     if (previewInvoiceNumber) {
-                      router.push(
-                        `/invoice/invoices/view/${previewInvoiceNumber}`
-                      );
+                      router.push(`/invoice/invoices/view/${previewInvoiceNumber}`);
                       setPreviewInvoiceNumber(null);
                     }
                   }}
@@ -2511,6 +2411,7 @@ export default function InvoiceInvoicesPage() {
         </div>
       </Drawer>
 
+      {/* Payment Proof Timeline drawer */}
       <Drawer
         title={<div className="flex items-center gap-2"><Paperclip size={18} /> Payment Proofs</div>}
         placement="right"
@@ -2524,7 +2425,6 @@ export default function InvoiceInvoicesPage() {
         bodyStyle={{ padding: 0 }}
       >
         <div className="flex h-full w-full">
-          {/* Left panel: Timeline */}
           <div className="w-[350px] flex-shrink-0 p-6 overflow-y-auto border-r" style={{ borderColor: "var(--border-color)" }}>
             {selectedProofInvoice?.paymentProofs?.length > 0 ? (
               <div className="pt-2">
@@ -2532,8 +2432,8 @@ export default function InvoiceInvoicesPage() {
                   items={selectedProofInvoice.paymentProofs.map((proof: any) => ({
                     dot: <CheckCircle size={18} className="text-green-500" style={{ background: "var(--customers-page-bg)", borderRadius: "50%" }} />,
                     children: (
-                      <div 
-                        className={`ml-2 mb-6 p-4 rounded-xl border transition-all cursor-pointer ${viewedProofFile === proof.file ? 'border-indigo-500 shadow-md ring-1 ring-indigo-500' : 'shadow-sm hover:shadow-md'}`} 
+                      <div
+                        className={`ml-2 mb-6 p-4 rounded-xl border transition-all cursor-pointer ${viewedProofFile === proof.file ? 'border-indigo-500 shadow-md ring-1 ring-indigo-500' : 'shadow-sm hover:shadow-md'}`}
                         style={{ background: "var(--bg-secondary)", borderColor: viewedProofFile === proof.file ? "var(--accent-color, #6366f1)" : "var(--border-color)" }}
                         onClick={() => setViewedProofFile(proof.file)}
                       >
@@ -2548,24 +2448,24 @@ export default function InvoiceInvoicesPage() {
                           </div>
                           <Tag color="success" className="m-0 px-2 py-0.5 border-0 font-medium">Uploaded</Tag>
                         </div>
-                        
+
                         {(proof.reference || proof.note) && (
                           <div className="flex flex-col gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--border-color)" }}>
                             {proof.reference && (
                               <div className="flex flex-col">
-                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Reference</Text> 
+                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Reference</Text>
                                 <Text className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{proof.reference}</Text>
                               </div>
                             )}
                             {proof.note && (
                               <div className="flex flex-col mt-1">
-                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Note</Text> 
+                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Note</Text>
                                 <Text className="text-sm leading-snug" style={{ color: "var(--text-primary)" }}>{proof.note}</Text>
                               </div>
                             )}
                           </div>
                         )}
-                        
+
                         <div className="mt-4 flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--accent-color, #4f46e5)" }}>
                           <Eye size={16} /> View Document
                         </div>
@@ -2578,14 +2478,13 @@ export default function InvoiceInvoicesPage() {
               <div className="text-center py-8" style={{ color: "var(--text-secondary)" }}>No payment proofs found.</div>
             )}
           </div>
-          
-          {/* Right panel: Document Viewer */}
+
           <div className="flex-1 flex flex-col p-6 h-full overflow-hidden" style={{ background: "var(--customers-page-bg)" }}>
             <div className="flex-1 rounded-xl border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
               {viewedProofFile ? (
                 <>
                   <div className="absolute top-4 right-4 z-10 flex gap-2">
-                    <Button 
+                    <Button
                       icon={<FileText size={16} />}
                       onClick={() => window.open(viewedProofFile, "_blank")}
                       className="shadow-sm"
@@ -2594,10 +2493,10 @@ export default function InvoiceInvoicesPage() {
                     </Button>
                   </div>
                   {viewedProofFile.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
-                    <img 
-                      src={viewedProofFile} 
-                      alt="Payment Proof" 
-                      className="max-w-full max-h-full object-contain p-4" 
+                    <img
+                      src={viewedProofFile}
+                      alt="Payment Proof"
+                      className="max-w-full max-h-full object-contain p-4"
                     />
                   ) : (
                     <iframe
@@ -2618,6 +2517,286 @@ export default function InvoiceInvoicesPage() {
         </div>
       </Drawer>
 
+      <style jsx global>{`
+        .pp-shell {
+          display: flex;
+          margin: 0 -24px;
+          min-height: calc(100vh - 54px);
+          background: var(--bg-pure-white);
+        }
+
+        /* ---------------- Sidebar ---------------- */
+        .pp-sidebar {
+          width: 264px;
+          flex-shrink: 0;
+          border-right: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+          padding: 14px 14px 0 38px;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 54px);
+          z-index: 31;
+        }
+        .pp-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .pp-side-logo {
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+          color: var(--text-slate-900);
+        }
+        .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .pp-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+        }
+        .pp-create-btn {
+          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          background: #3B82F6 !important;
+          border: none !important; box-shadow: none !important;
+          margin-bottom: 12px;
+        }
+        .pp-create-btn:hover { background: #2563EB !important; }
+        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-side-scroll {
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: hidden;
+          margin: 0;
+          padding: 0;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .pp-side-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .pp-side-section-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        }
+        .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
+        .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
+        .pp-view-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+          cursor: pointer; transition: background .12s ease; text-align: left;
+        }
+        .pp-view-item:hover { background: var(--bg-slate-50); }
+        .pp-view-item.is-active { background: var(--bg-blue-50); }
+        .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .pp-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+        .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        .pp-view-count {
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+          min-width: 18px; text-align: right;
+        }
+        .pp-view-item.is-active .pp-view-count {
+          color: #3B82F6; font-weight: 700;
+          background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+        }
+        .pp-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+        .pp-side-sd { border-radius: 8px !important; }
+        .pp-side-sd.sd-trigger,
+        .pp-side-sd.sd-trigger.is-compact { height: 35px !important; border-radius: 8px !important; }
+        .pp-side-select .ant-select-selector,
+        .pp-side-range.ant-picker {
+          border-radius: 8px !important; border-color: var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .pp-side-select { width: 100%; }
+        .pp-side-select .ant-select-selector { height: 35px !important; padding: 0 12px !important; display: flex; align-items: center; }
+        .pp-side-select .ant-select-selection-placeholder,
+        .pp-side-select .ant-select-selection-item { font-size: 13px; line-height: 33px !important; }
+        .pp-side-range { width: 100%; height: 35px; border-style: solid !important; }
+        .pp-side-range .ant-picker-input > input { font-size: 13px; }
+        .pp-clear-filters {
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #f87171;
+        }
+        .pp-side-bottom-actions {
+          margin: auto -14px 0 -38px;
+          padding: 8px 14px 0 38px;
+          border-top: 1px solid var(--border-slate-100);
+          background: var(--bg-pure-white);
+        }
+        .pp-trash {
+          display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
+          margin: 0 -14px 0 -38px; padding: 0 0 0 38px;
+          height: 45px;
+          width: calc(100% + 52px);
+          border-top: 1px solid var(--border-slate-200);
+          background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500; cursor: pointer;
+        }
+        .pp-trash:hover { color: #3B82F6; }
+
+        /* ---------------- Main ---------------- */
+        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-search-wrap {
+          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900);
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .pp-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
+        .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+
+        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+
+        /* Stat cards */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+
+        /* Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
+        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+
+        /* Footer + pager */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+        }
+        .pp-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          margin: 8px -32px 0 -20px;
+          padding: 0 32px 0 20px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 45px;
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        @media (max-width: 820px) {
+          .pp-sidebar { display: none; }
+          .pp-topbar-meta { display: none; }
+        }
+
+        /* Grid view cards (matching accounts dashboard) */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+          height: 144px;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; height: 64px; overflow: hidden; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-avatar img { width: 100%; height: 100%; object-fit: contain; }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); height: 78px; justify-content: center; }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; padding: 6px 12px; overflow: hidden; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-val { font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); flex-shrink: 0; }
+        .pc-view-btn {
+          background: none; border: none; cursor: pointer; padding: 0;
+          color: #3B82F6; font-weight: 700; font-size: 11.5px;
+        }
+        .pc-view-btn .anticon { font-size: 12px; }
+        .pc-view-btn:hover { text-decoration: underline; }
+
+        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
+
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+        .pp-empty-orb {
+          width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+          background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
+        }
+        .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+        .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+        .pp-btn-primary {
+          background: #3B82F6 !important; border: none !important;
+          border-radius: 0 !important; font-weight: 600 !important;
+        }
+
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </MainLayout>
   );
 }

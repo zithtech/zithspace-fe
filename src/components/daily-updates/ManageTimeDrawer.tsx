@@ -64,6 +64,7 @@ import {
   calculateHours,
   formatHours,
 } from "@/types/dailyUpdate";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -277,51 +278,65 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
 
   return (
     <Drawer
-      title={
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ background: "var(--bg-sky-50)", padding: 8, borderRadius: 10, color: "var(--text-sky-500)", display: "flex" }}>
-            <Activity size={20} />
-          </div>
-          <span style={{ fontWeight: 700 }}>Manage Team Time Update</span>
-        </div>
-      }
       open={open}
       onClose={onClose}
-      width={800}
-      extra={
-        <Space size={16}>
-          {selectedUser && (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              background: "var(--bg-sky-50)",
-              borderRadius: "10px",
-              border: "1px solid var(--border-blue-200)"
-            }}>
-              <Clock size={16} color="var(--text-sky-500)" />
-              <Text strong style={{ color: "var(--text-blue-700)", fontSize: 13 }}>Total: {totalHours}h</Text>
-            </div>
-          )}
-          <Space>
-            <Button onClick={onClose} style={{ borderRadius: 10 }}>Cancel</Button>
-            <Button
-              type="primary"
-              loading={loading}
-              onClick={handleSubmit}
-              icon={<SendOutlined />}
-              disabled={!selectedUser}
-              style={{ borderRadius: 10, background: "#1677ff" }}
-            >
-              Submit Update
-            </Button>
-          </Space>
-        </Space>
-      }
+      width={560}
+      title={null}
+      closable={false}
       styles={{ body: { padding: "0" } }}
     >
       <div className="daily-update-drawer-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        {/* Custom Header */}
+        <div style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "var(--bg-pure-white)",
+          borderBottom: "1px solid var(--border-slate-200)",
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 10, color: "var(--text-slate-600)", display: "flex", border: "1px solid var(--border-slate-200)" }}>
+              <Activity size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>Manage Team Time Update</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {selectedUser && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                background: "var(--bg-pure-white)",
+                borderRadius: "10px",
+                border: "1px solid var(--border-slate-200)",
+                whiteSpace: "nowrap",
+                flexShrink: 0
+              }}>
+                <Clock size={16} color="var(--text-slate-500)" />
+                <Text strong style={{ color: "var(--text-slate-700)", fontSize: 13 }}>Total: {totalHours}h</Text>
+              </div>
+            )}
+            <Space>
+              <Button onClick={onClose} style={{ borderRadius: 0 }}>Cancel</Button>
+              <Button
+                type="primary"
+                loading={loading}
+                onClick={handleSubmit}
+                icon={<SendOutlined />}
+                disabled={!selectedUser}
+                style={{ borderRadius: 0, background: "#1677ff", borderColor: "#1677ff", color: "#ffffff" }}
+              >
+                Submit Update
+              </Button>
+            </Space>
+          </div>
+        </div>
         <style dangerouslySetInnerHTML={{
           __html: `
           .daily-update-drawer-container .ant-form-item-label > label {
@@ -341,10 +356,10 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
             justify-content: center !important;
             flex: 1;
           }
-          .mood-btn-active-happy { background: var(--bg-holiday) !important; border-color: var(--text-holiday) !important; color: var(--text-holiday) !important; }
-          .mood-btn-active-neutral { background: var(--bg-slate-50) !important; border-color: var(--text-slate-500) !important; color: var(--text-slate-900) !important; }
-          .mood-btn-active-stressed { background: var(--bg-paused-row) !important; border-color: #f59e0b !important; color: #92400e !important; }
-          .mood-btn-active-blocked { background: var(--bg-leave) !important; border-color: var(--text-leave) !important; color: var(--text-leave) !important; }
+          .mood-btn-active-happy { background: var(--bg-slate-50) !important; border-color: var(--border-slate-300) !important; color: #a16207 !important; }
+          .mood-btn-active-neutral { background: var(--bg-slate-50) !important; border-color: var(--border-slate-300) !important; color: var(--text-slate-700) !important; }
+          .mood-btn-active-stressed { background: var(--bg-slate-50) !important; border-color: var(--border-slate-300) !important; color: #9a3412 !important; }
+          .mood-btn-active-blocked { background: var(--bg-slate-50) !important; border-color: var(--border-slate-300) !important; color: #991b1b !important; }
           
           .project-card-premium {
             border: 1px solid var(--border-slate-200) !important;
@@ -355,8 +370,8 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
           }
           .project-card-premium:hover {
-            border-color: #0ea5e9 !important;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+            border-color: var(--border-slate-300) !important;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05) !important;
           }
           .project-card-premium .ant-card-head {
             background: var(--bg-table-header);
@@ -368,7 +383,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
           <Form form={form} layout="vertical">
             <Card
               size="small"
-              style={{ marginBottom: 24, background: "var(--bg-secondary)", border: "1px solid var(--border-slate-200)", borderRadius: 16, boxShadow: "inset 0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+              style={{ marginBottom: 24, background: "var(--bg-secondary)", border: "1px solid var(--border-slate-200)", borderRadius: 0, boxShadow: "none" }}
             >
               <Form.Item
                 label={<Text strong style={{ color: "var(--text-slate-900)" }}>Select Team Member</Text>}
@@ -376,15 +391,12 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                 rules={[{ required: true, message: "Please select a member" }]}
                 style={{ marginBottom: 0 }}
               >
-                <Select
-                  showSearch
+                <SearchableDropdown
                   placeholder="Search and select a team member"
-                  optionFilterProp="label"
-                  onChange={handleUserChange}
                   options={members}
-                  size="large"
+                  itemNoun="members"
+                  onChange={handleUserChange}
                   style={{ width: "100%" }}
-                  prefix={<UserOutlined style={{ color: "#0ea5e9" }} />}
                 />
               </Form.Item>
             </Card>
@@ -392,13 +404,13 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
             {selectedUser ? (
               <>
                 <div style={{ background: "var(--bg-pure-white)", padding: "16px", borderRadius: 16, border: "1px solid var(--border-slate-100)", marginBottom: 24 }}>
-                  <Row gutter={24} align="middle">
-                    <Col span={7}>
+                  <Row gutter={[16, 16]} align="middle">
+                    <Col span={12}>
                       <Form.Item name="date" label="Work Date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                         <DatePicker style={{ width: "100%", borderRadius: 10 }} />
                       </Form.Item>
                     </Col>
-                    <Col span={7}>
+                    <Col span={12}>
                       <Form.Item name="updateType" label="Update Type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                         <Select
                           style={{ borderRadius: 10 }}
@@ -406,12 +418,12 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={5}>
+                    <Col span={12}>
                       <Form.Item name="is_missed" label="Missed Update?" valuePropName="checked" style={{ marginBottom: 0 }}>
                         <Switch style={{ background: form.getFieldValue('is_missed') ? 'var(--text-sky-500)' : '#cbd5e1' }} />
                       </Form.Item>
                     </Col>
-                    <Col span={5}>
+                    <Col span={12}>
                       <Form.Item noStyle shouldUpdate={(p, c) => p.is_missed !== c.is_missed}>
                         {({ getFieldValue }) => getFieldValue('is_missed') ? (
                           <Form.Item name="missedDate" label="Target Date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
@@ -468,8 +480,8 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                     style={{ marginBottom: 24 }}
                     title={
                       <Space>
-                        <div style={{ background: "var(--bg-sky-50)", padding: 6, borderRadius: 8, display: "flex", color: "var(--text-sky-500)" }}>
-                          <Zap size={14} fill="var(--text-sky-500)" />
+                        <div style={{ background: "var(--bg-slate-50)", padding: 6, borderRadius: 8, display: "flex", color: "var(--text-slate-600)", border: "1px solid var(--border-slate-200)" }}>
+                          <Zap size={14} fill="var(--text-slate-400)" color="var(--text-slate-400)" />
                         </div>
                         <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>Project Update #{pIdx + 1}</Text>
                       </Space>
@@ -485,9 +497,9 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                       )
                     }
                   >
-                    <Row gutter={12}>
-                      <Col span={10}>
-                        <Form.Item label="Project" required>
+                    <Row gutter={[12, 12]}>
+                      <Col span={24}>
+                        <Form.Item label="Project" required style={{ marginBottom: 0 }}>
                           <Select
                             placeholder="Select Project"
                             value={update.projectId}
@@ -496,8 +508,8 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={6}>
-                        <Form.Item label="Start Time" required>
+                      <Col span={10}>
+                        <Form.Item label="Start Time" required style={{ marginBottom: 0 }}>
                           <DatePicker
                             showTime
                             format="DD-MM-YYYY HH:mm"
@@ -516,8 +528,8 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={6}>
-                        <Form.Item label="End Time" required>
+                      <Col span={10}>
+                        <Form.Item label="End Time" required style={{ marginBottom: 0 }}>
                           <DatePicker
                             showTime
                             format="DD-MM-YYYY HH:mm"
@@ -536,8 +548,8 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={2}>
-                        <Form.Item label="Hrs">
+                      <Col span={4}>
+                        <Form.Item label="Hrs" style={{ marginBottom: 0 }}>
                           <Tag style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>
                             {update.hoursWorked}h
                           </Tag>
@@ -668,7 +680,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                   }])}
                   block
                   icon={<Plus size={16} />}
-                  style={{ height: 48, borderRadius: 14, marginBottom: 32, borderStyle: "dashed", borderColor: "var(--border-blue-200)", color: "var(--text-sky-500)", fontWeight: 600 }}
+                  style={{ height: 48, borderRadius: 14, marginBottom: 32, borderStyle: "dashed", borderColor: "#bfdbfe", color: "#2563eb", background: "#eff6ff", fontWeight: 600 }}
                 >
                   Add Another Project Update
                 </Button>
@@ -678,7 +690,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                 </Form.Item>
               </>
             ) : (
-              <div style={{ padding: "80px 0", textAlign: "center", background: "var(--bg-secondary)", borderRadius: 20, border: "2px dashed var(--border-slate-200)" }}>
+              <div style={{ padding: "80px 0", textAlign: "center", background: "var(--bg-secondary)", borderRadius: 0, border: "2px dashed var(--border-slate-200)" }}>
                 <div style={{
                   width: 64,
                   height: 64,

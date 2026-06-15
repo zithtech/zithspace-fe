@@ -50,6 +50,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useTheme } from "@/context/ThemeContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { MenuOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -116,7 +117,7 @@ export default function SubmitDailyUpdatePage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <SubmitDailyUpdateContent />
     </MainLayout>
   );
@@ -132,6 +133,7 @@ function SubmitDailyUpdateContent() {
   const [checkingSubmission, setCheckingSubmission] = useState(true);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [existingUpdate, setExistingUpdate] = useState<any>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectTickets, setProjectTickets] = useState<
     Record<string, TicketOption[]>
@@ -632,19 +634,184 @@ function SubmitDailyUpdateContent() {
   const totalHours = getTotalHours();
 
   return (
-    <div
-      style={{
-        margin: "0 -24px",
-        height: "calc(100vh - 72px)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        backgroundColor: "var(--bg-pure-white)"
-      }}
-    >
-
+    <div className="du-shell">
       <style dangerouslySetInnerHTML={{
         __html: `
+        .du-shell {
+          margin: 0;
+          display: flex;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+          background: var(--bg-pure-white);
+        }
+
+        .du-sidebar {
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          height: calc(100vh - 54px);
+          width: 240px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-slate-200);
+        }
+
+        .du-sidebar-top {
+          padding: 0 14px 0 18px;
+          height: 57px;
+          display: flex;
+          align-items: center;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+
+        .du-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 0;
+        }
+
+        .du-hero-icon-box {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(22, 119, 255, 0.1);
+        }
+
+        .du-sidebar-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          color: var(--text-slate-900);
+        }
+
+        .du-sidebar-subtitle {
+          margin: 2px 0 0 0;
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+
+        .du-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .du-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+        .du-side-group { margin-bottom: 13px; }
+
+        .du-side-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+
+        .du-side-view {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 32px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          transition: background 0.15s, color 0.15s;
+        }
+
+        .du-side-view:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+
+        .du-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          height: calc(100vh - 54px);
+        }
+
+        .du-main-header {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          height: 52px;
+          border-bottom: 1px solid var(--border-slate-200);
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        [data-theme='dark'] .du-main-header {
+          background: rgba(15, 23, 42, 0.85);
+        }
+
+        .du-main-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
+        }
+
+        .du-sidebar-backdrop { display: none; }
+        .mobile-menu-btn { display: none; }
+
+        @media (max-width: 991px) {
+          .du-sidebar { width: 228px; }
+        }
+
+        @media (max-width: 767px) {
+          .mobile-menu-btn { display: inline-flex; }
+          .du-sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            height: 100vh;
+            width: 280px;
+            z-index: 1000;
+            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            background: var(--bg-pure-white);
+            border-right: 1px solid var(--border-slate-200);
+          }
+          .du-sidebar.is-mobile-open { left: 0; }
+          
+          .du-sidebar-backdrop {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+          }
+          .du-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+        }
+
         .daily-update-scroll-area::-webkit-scrollbar { display: none; }
         .daily-update-scroll-area { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -683,11 +850,17 @@ function SubmitDailyUpdateContent() {
 
         .dud-card {
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-radius: 0;
           background: var(--bg-pure-white);
           transition: border-color .15s ease;
         }
         .dud-card:hover { border-color: #cbd5e1; }
+
+        .dud-card .ant-input,
+        .dud-card .ant-picker,
+        .dud-card .ant-select-selector {
+          border-radius: 0 !important;
+        }
 
         .dud-task-row {
           transition: border-color .15s ease;
@@ -711,116 +884,81 @@ function SubmitDailyUpdateContent() {
         .dud-anim { animation: dudFadeUp .3s cubic-bezier(.2,.6,.2,1) both; }
       `}} />
 
-      <TimeTrackingHeader
-        style={{
-          padding: '3px 32px',
-          borderBottom: '1px solid var(--border-slate-200)',
-          marginBottom: 20
-        }}
-        icon={<FileText size={20} color="#8b5cf6" />}
-        title={alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
-        subTitle={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
-              {dayjs().format("dddd, MMMM D, YYYY")}
-            </Text>
-          </div>
-        }
-        description="Document your daily progress, accomplishments, and blockers."
-        extra={
-          <Space size={10} align="center">
-            {alreadySubmitted && (
-              <Tag color="success" style={{
-                margin: 0,
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                padding: "4px 10px",
-                marginRight: 4
-              }}>
-                Submitted
-              </Tag>
-            )}
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: "1px solid var(--border-slate-200)",
-              background: "var(--bg-pure-white)",
-              height: 38,
-            }}>
-              <Briefcase size={14} color="var(--text-slate-400)" />
-              <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
-                Projects
-              </Text>
-              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
-                {projectUpdates.length}
-              </Text>
-            </div>
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: "1px solid var(--border-slate-200)",
-              background: "var(--bg-pure-white)",
-              height: 38,
-            }}>
-              <Clock size={14} color="#0ea5e9" />
-              <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
-                Total
-              </Text>
-              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
-                {formatHours(totalHours)}
-              </Text>
-            </div>
-            <Button
-              type="primary"
-              icon={alreadySubmitted ? <Save size={16} /> : <Send size={16} />}
-              onClick={handleSubmit}
-              loading={loading}
-              disabled={alreadySubmitted && !isEditAllowed}
-              style={{
-                height: 38,
-                padding: "0 20px",
-                borderRadius: 10,
-                fontWeight: 600,
-                background: "#1677ff",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                border: 'none'
-              }}
-            >
-              {alreadySubmitted ? "Update Status" : "Submit Update"}
-            </Button>
-          </Space>
-        }
+      {/* Mobile drawer backdrop */}
+      <div
+        className={`du-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+        onClick={() => setMobileSidebarOpen(false)}
+        aria-hidden
       />
 
-      {/* Internal Scroll Area */}
-      <div className="daily-update-scroll-area" style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "0 32px 32px"
-      }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <Form form={form} layout="vertical" className="premium-form-item">
+      <aside className={`du-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+        <div className="du-sidebar-top">
+          <div className="du-sidebar-brand">
+            <div className="du-hero-icon-box">
+              <FileText size={16} color="#1677ff" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="du-sidebar-title">Submit Update</h1>
+              <p className="du-sidebar-subtitle">Document your progress</p>
+            </div>
+          </div>
+        </div>
 
-            {/* Context Toolbar — Update Type + Mood + Missed Update */}
-            <div className="dud-card" style={{
-              padding: "12px 16px",
-              marginBottom: isMissedUpdate ? 12 : 22,
+        <div className="du-sidebar-scroll">
+          <div className="du-side-group">
+            <button
+               type="button"
+               onClick={() => router.push("/daily-updates/view")}
+               className="du-side-view"
+            >
+              <span className="du-side-view-icon"><ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /></span>
+              <span className="du-side-view-label">Back to view</span>
+            </button>
+          </div>
+          
+
+
+          <div className="du-side-group">
+            <div className="du-side-label">Summary</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                   <Briefcase size={14} color="var(--text-slate-400)" />
+                   <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Projects</Text>
+                 </div>
+                 <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
+               </div>
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                   <Clock size={14} color="#0ea5e9" />
+                   <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Total Time</Text>
+                 </div>
+                 <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{formatHours(totalHours)}</Text>
+               </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="du-main">
+        <Form form={form} layout="vertical" className="premium-form-item" style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+          <header className="du-main-header" style={{ height: 'auto', minHeight: 52, padding: '12px 24px' }}>
+            <div style={{
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",
               gap: 18,
               rowGap: 12,
+              width: "100%",
             }}>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                className="mobile-menu-btn"
+                onClick={() => setMobileSidebarOpen(true)}
+                style={{ padding: '0 8px', marginLeft: -8 }}
+              />
+
               {/* Update Type */}
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Text style={{ fontSize: 11, color: "var(--text-slate-400)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
@@ -838,7 +976,7 @@ function SubmitDailyUpdateContent() {
                 </Form.Item>
               </div>
 
-              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} />
+              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} className="dud-divider" />
 
               {/* Mood */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
@@ -871,7 +1009,7 @@ function SubmitDailyUpdateContent() {
                 </Form.Item>
               </div>
 
-              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} />
+              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} className="dud-divider" />
 
               {/* Missed Update */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -888,22 +1026,32 @@ function SubmitDailyUpdateContent() {
                   }}
                 />
               </div>
+
+              {alreadySubmitted && (
+                 <Tag color="success" style={{ margin: 0, borderRadius: 6, fontSize: 11, fontWeight: 600, padding: "2px 8px" }}>
+                   Submitted
+                 </Tag>
+              )}
             </div>
+          </header>
+
+          <div className="du-main-scroll daily-update-scroll-area" style={{ paddingTop: 16 }}>
+            <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
 
             {/* Missed-update date picker (revealed below toolbar) */}
             {isMissedUpdate && (
               <div className="dud-anim" style={{
                 marginBottom: 22,
                 padding: "12px 16px",
-                background: isDark ? "rgba(251, 191, 36, 0.08)" : "#fffbeb",
-                border: isDark ? "1px solid rgba(251, 191, 36, 0.2)" : "1px solid #fde68a",
-                borderRadius: 12,
+                background: isDark ? "rgba(22, 119, 255, 0.08)" : "#eff6ff",
+                border: isDark ? "1px solid rgba(22, 119, 255, 0.2)" : "1px solid #bfdbfe",
+                borderRadius: 0,
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
               }}>
-                <AlertTriangle size={16} color={isDark ? "#fbbf24" : "#b45309"} />
-                <Text style={{ fontSize: 12, color: isDark ? "#fbbf24" : "#92400e", fontWeight: 600 }}>
+                <AlertTriangle size={16} color={isDark ? "#60a5fa" : "#1d4ed8"} />
+                <Text style={{ fontSize: 12, color: isDark ? "#60a5fa" : "#1d4ed8", fontWeight: 600 }}>
                   Date for the missed update:
                 </Text>
                 <DatePicker
@@ -937,7 +1085,6 @@ function SubmitDailyUpdateContent() {
               <Button
                 icon={<Plus size={14} />}
                 onClick={handleAddProject}
-                disabled={projectUpdates.length >= projects.length}
                 style={{
                   height: 32,
                   borderRadius: 8,
@@ -1322,54 +1469,54 @@ function SubmitDailyUpdateContent() {
               </Form.Item>
             </div>
 
-            {/* Daily Total Summary */}
-            <div style={{
-              marginTop: 18,
-              padding: "14px 18px",
-              background: "var(--bg-pure-white)",
-              borderRadius: 12,
-              border: "1px solid var(--border-slate-200)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <Clock size={18} strokeWidth={2.2} />
-                </div>
-                <div>
-                  <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 13, lineHeight: 1.3 }}>
-                    Daily Total
-                  </Text>
-                  <Text style={{ display: "block", fontSize: 11, color: "var(--text-slate-400)", lineHeight: 1.3 }}>
-                    Time logged across all project entries
-                  </Text>
-                </div>
-              </div>
-              <Text strong style={{
-                fontSize: 22,
-                color: "var(--text-slate-900)",
-                letterSpacing: -0.4,
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              }}>
-                {formatHours(totalHours)}
-              </Text>
-            </div>
+
 
             {/* Extra Spacing Bottom */}
             <div style={{ height: 40 }} />
-          </Form>
-        </div>
-      </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: "16px 24px",
+            borderTop: "1px solid var(--border-slate-200)",
+            background: "var(--bg-pure-white)",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 12,
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10
+          }}>
+            <Button
+              onClick={() => router.push("/daily-updates/view")}
+              style={{ height: 38, fontWeight: 600, borderRadius: 8, padding: "0 24px" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              icon={alreadySubmitted ? <Save size={16} /> : <Send size={16} />}
+              onClick={handleSubmit}
+              loading={loading}
+              disabled={alreadySubmitted && !isEditAllowed}
+              style={{
+                height: 38,
+                borderRadius: 8,
+                fontWeight: 600,
+                background: '#1677ff',
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                border: 'none',
+                padding: "0 24px"
+              }}
+            >
+              {alreadySubmitted ? "Update Status" : "Submit Update"}
+            </Button>
+          </div>
+        </Form>
+      </main>
     </div>
   );
 }

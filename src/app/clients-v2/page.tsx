@@ -47,6 +47,7 @@ import {
   RefreshCw,
   LayoutGrid,
   List as ListIcon,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -58,6 +59,7 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 
@@ -505,6 +507,55 @@ export default function ClientsV2ListPage() {
   /* ---------------------- Derived metrics ---------------------- */
 
 
+  /* ---------------------- Dropdown Menu Actions ---------------------- */
+
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pm2-menu-item">
+      <span className="pm2-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pm2-menu-text">
+        <span className="pm2-menu-title">{title}</span>
+        <span className="pm2-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  const actionMenu = (record: any) => ({
+    items: [
+      {
+        key: 'view',
+        label: menuLabel('View client', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      },
+      ...(canUpdateClient ? [{
+        key: 'edit',
+        label: menuLabel('Edit', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
+      }] : []),
+      {
+        key: 'view_projects',
+        label: menuLabel('View projects', 'View client projects', <FolderKanban size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      },
+      ...(canDeleteClient ? [
+        { type: 'divider' as const },
+        {
+          key: 'delete',
+          danger: true,
+          label: menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+        }
+      ] : [])
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent.stopPropagation();
+      if (key === 'view') {
+        router.push(`/clients-v2/${record.id}`);
+      } else if (key === 'edit') {
+        router.push(`/clients-v2/create?id=${record.id}`);
+      } else if (key === 'view_projects') {
+        router.push(`/clients-v2/${record.id}?tab=projects`);
+      } else if (key === 'delete') {
+        handleDeleteClient(record.id, record.companyName);
+      }
+    }
+  });
+
   /* ---------------------- Columns ---------------------- */
 
   const columns: ColumnType<any>[] = [
@@ -541,7 +592,7 @@ export default function ClientsV2ListPage() {
                   </Tooltip>
                 )}
               </div>
-              <div className="cm-client-meta">
+              {/* <div className="cm-client-meta">
                 <span className="cm-code">{record.clientCode}</span>
                 {record.industry && (
                   <>
@@ -556,11 +607,19 @@ export default function ClientsV2ListPage() {
                     <span>{record.country}</span>
                   </>
                 )}
-              </div>
+              </div> */}
             </div>
           </Space>
         );
       },
+    },
+    {
+      title: "Code",
+      key: "clientCode",
+      width: 130,
+      render: (_: any, record: any) => (
+        <span className="cm-tag cm-tag--blue"><span className="cm-tag-dot"></span>{record?.clientCode}</span>
+      ),
     },
     {
       title: "Type",
@@ -602,7 +661,7 @@ export default function ClientsV2ListPage() {
         return (
           <span className={`cm-projects-pill ${count > 0 ? "has" : "empty"}`}>
             <span className="cm-projects-ico">
-              <FolderKanban size={13} />
+              <FolderKanban size={10} />
             </span>
             <span className="cm-projects-count">{count}</span>
             <span className="cm-projects-label">
@@ -655,61 +714,19 @@ export default function ClientsV2ListPage() {
       width: 150,
       fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Space size={4} className="cm-actions">
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              size="small"
-              icon={<Eye size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/clients-v2/${record.id}`);
-              }}
-              className="cm-action-btn"
-            />
-          </Tooltip>
-          {canUpdateClient && (
-            <Tooltip title="Edit">
-              <Button
-                type="text"
-                size="small"
-                icon={<Settings2 size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/clients-v2/create?id=${record.id}`);
-                }}
-                className="cm-action-btn"
-              />
-            </Tooltip>
-          )}
-          {canDeleteClient && (
-            <Tooltip title="Delete">
-              <Button
-                type="text"
-                size="small"
-                icon={<Trash2 size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleDeleteClient(record.id, record.companyName);
-                }}
-                className="cm-action-btn delete"
-              />
-            </Tooltip>
-          )}
-          <Tooltip title="View projects">
-            <Button
-              type="text"
-              size="small"
-              icon={<FolderKanban size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/clients-v2/${record.id}?tab=projects`);
-              }}
-              className="cm-action-btn"
-            />
-          </Tooltip>
-        </Space>
+        <Dropdown
+          overlayClassName="pm2-action-pop"
+          menu={actionMenu(record)}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+            style={{ padding: '4px', height: 'auto', minWidth: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -975,79 +992,51 @@ export default function ClientsV2ListPage() {
                   <div className="bh2-side-group" style={{ marginTop: 22 }}>
                     <div className="bh2-side-label">Filters</div>
                     <div className="bh2-side-filters flex flex-col gap-2">
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Jump to client…"
+                        searchPlaceholder="Search clients"
+                        itemNoun="clients"
                         className="cm-quick-select cm-quick-select-client"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<Building2 size={13} />}
-                        options={allClientsOpts}
-                        style={{ width: '100%' }}
+                        options={allClientsOpts.map(opt => ({ label: opt.label, value: opt.value, description: opt.code }))}
+                        width="100%"
                         onChange={(id?: string) => {
                           if (id) router.push(`/clients-v2/${id}`);
                         }}
-                        filterOption={(input, option) => {
-                          const q = (input || "").toLowerCase();
-                          const label = ((option?.label as string) || "").toLowerCase();
-                          const code = ((option as any)?.code || "").toLowerCase();
-                          return label.includes(q) || code.includes(q);
-                        }}
-                        optionRender={(opt) => (
-                          <div className="cm-quick-opt">
-                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                            {(opt.data as any)?.code && (
-                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                            )}
-                          </div>
-                        )}
                       />
 
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Jump to project…"
+                        searchPlaceholder="Search projects"
+                        itemNoun="projects"
                         className="cm-quick-select cm-quick-select-project"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<FolderKanban size={13} />}
-                        options={allProjectsOpts}
-                        style={{ width: '100%' }}
+                        options={allProjectsOpts.map(opt => ({ label: opt.label, value: opt.value, description: opt.code }))}
+                        width="100%"
                         onChange={(id?: string) => {
                           if (id) router.push(`/projects/${id}/overview`);
                         }}
-                        filterOption={(input, option) => {
-                          const q = (input || "").toLowerCase();
-                          const label = ((option?.label as string) || "").toLowerCase();
-                          const code = ((option as any)?.code || "").toLowerCase();
-                          return label.includes(q) || code.includes(q);
-                        }}
-                        optionRender={(opt) => (
-                          <div className="cm-quick-opt">
-                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                            {(opt.data as any)?.code && (
-                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                            )}
-                          </div>
-                        )}
                       />
 
-                      <Select
-                        showSearch
-                        allowClear
+                      <SearchableDropdown
                         placeholder="Client type"
+                        searchPlaceholder="Search types"
+                        itemNoun="types"
                         className="cm-quick-select cm-quick-select-type"
-                        popupClassName="cm-quick-popup"
-                        suffixIcon={<Sparkles size={13} />}
-                        value={typeFilter}
+                        value={typeFilter || undefined}
                         options={typeOptions}
-                        style={{ width: '100%' }}
+                        width="100%"
                         onChange={(v?: string) => handleTypeChange(v)}
-                        filterOption={(input, option) =>
-                          ((option?.label as string) || "")
-                            .toLowerCase()
-                            .includes((input || "").toLowerCase())
-                        }
                       />
+
+                      {typeFilter && (
+                        <button
+                          type="button"
+                          className="bh2-side-clear"
+                          onClick={() => handleTypeChange(undefined)}
+                        >
+                          <X size={12} strokeWidth={2.5} />
+                          Clear filters
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1179,7 +1168,7 @@ export default function ClientsV2ListPage() {
                         columns={columns}
                         dataSource={data}
                         rowKey="id"
-                        size="middle"
+                        size="small"
                         scroll={{ x: 1100 }}
                         pagination={false}
                         loading={loading}
@@ -1275,7 +1264,7 @@ export default function ClientsV2ListPage() {
                               className="bh2-list-card"
                               style={{ ["--row-accent" as any]: accent }}
                             >
-                              <header className="bh2-list-head" style={{ padding: '12px' }}>
+                              <header className="bh2-list-head" style={{ padding: '10px 12px' }}>
                                 <div
                                   className="bh2-list-row"
                                   role="button"
@@ -1287,41 +1276,57 @@ export default function ClientsV2ListPage() {
                                       router.push(`/clients-v2/${record.id}`);
                                     }
                                   }}
-                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
+                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
                                 >
-                                  <div className="bh2-list-avatar">
-                                    <span className="bh2-list-avatar-letter">{initials}</span>
+                                  <div className="bh2-list-avatar" style={{ width: 30, height: 30, borderRadius: 6 }}>
+                                    <span className="bh2-list-avatar-letter" style={{ fontSize: 12 }}>{initials}</span>
                                   </div>
 
-                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 3 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
                                       {record.companyName}
                                     </span>
-                                    <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
+                                    <span style={{ fontSize: 11.5, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                                      <span style={{ color: 'var(--text-slate-400)' }}>Client:</span>
                                       {record.clientCode}
                                       {isActive ? (
                                         <span
                                           className="bh2-list-status"
                                           style={{
-                                            background: "rgba(16,185,129,0.08)",
-                                            borderColor: "rgba(16,185,129,0.2)",
+                                            background: "rgba(16,185,129,0.1)",
                                             color: "#047857",
+                                            padding: "2px 6px",
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            borderRadius: 4,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            textTransform: "uppercase",
+                                            border: "none"
                                           }}
                                         >
-                                          <Globe2 size={9} style={{ marginRight: 4 }} />
+                                          <Globe2 size={10} />
                                           Active
                                         </span>
                                       ) : (
                                         <span
                                           className="bh2-list-status"
                                           style={{
-                                            background: "rgba(100,116,139,0.08)",
-                                            borderColor: "rgba(100,116,139,0.2)",
-                                            color: "#475569",
+                                            background: "var(--bg-slate-50)",
+                                            color: "var(--text-slate-500)",
+                                            padding: "2px 6px",
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            borderRadius: 4,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            textTransform: "uppercase",
+                                            border: "1px solid var(--border-slate-100)"
                                           }}
                                         >
-                                          <ShieldCheck size={9} style={{ marginRight: 4 }} />
+                                          <ShieldCheck size={10} />
                                           Inactive
                                         </span>
                                       )}
@@ -1390,26 +1395,26 @@ export default function ClientsV2ListPage() {
                                 </div>
                               </header>
 
-                              <div className="bh2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
-                                <div className="bh2-list-foot-inline">
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Manager</span>
+                              <div className="bh2-list-foot" style={{ padding: '8px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
+                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Manager</span>
                                     {am ? (
                                       <div
                                         className="cm-mini-avatar"
                                         style={{
-                                          width: 18,
-                                          height: 18,
+                                          width: 16,
+                                          height: 16,
                                           background: gradientFor(fullName),
-                                          fontSize: 9,
-                                          fontWeight: 800,
+                                          fontSize: 8,
+                                          fontWeight: 700,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           borderRadius: '50%',
                                           color: '#fff',
-                                          marginLeft: 4,
-                                          marginRight: 4
+                                          marginLeft: 5,
+                                          marginRight: 5
                                         }}
                                       >
                                         {amInitials}
@@ -1418,55 +1423,54 @@ export default function ClientsV2ListPage() {
                                       <div
                                         className="cm-mini-avatar"
                                         style={{
-                                          width: 18,
-                                          height: 18,
-                                          background: '#e2e8f0',
-                                          fontSize: 9,
-                                          fontWeight: 800,
+                                          width: 16,
+                                          height: 16,
+                                          background: 'var(--bg-blue-50)',
+                                          fontSize: 8,
+                                          fontWeight: 700,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           borderRadius: '50%',
-                                          color: '#94a3b8',
-                                          marginLeft: 4,
-                                          marginRight: 4
+                                          color: '#3b82f6',
+                                          marginLeft: 5,
+                                          marginRight: 5
                                         }}
                                       >
                                         U
                                       </div>
                                     )}
-                                    <b>{fullName}</b>
+                                    <span style={{ fontWeight: 600 }}>{fullName}</span>
                                   </span>
 
-                                  {/* <span className="bh2-list-foot-div" style={{ height: 12, width: 1, background: 'var(--border-slate-300)', margin: '0 8px' }} /> */}
-                                  <span className="bh2-list-foot-div" />
+                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
 
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Allocation</span>
-                                    <b style={{ marginLeft: 4 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</b>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation</span>
+                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</span>
                                   </span>
                                 </div>
                               </div>
 
-                              <footer className="bh2-list-foot">
-                                <div className="bh2-list-foot-inline">
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label">Created:</span>
-                                    <b>
+                              <footer className="bh2-list-foot" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-slate-200)', background: 'var(--bg-slate-50)' }}>
+                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Created</span>
+                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>
                                       {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
                                         month: "short",
                                         day: "numeric",
                                         year: "numeric",
                                       })}
-                                    </b>
+                                    </span>
                                   </span>
 
-                                  <span className="bh2-list-foot-div" />
+                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
 
                                   <button
                                     type="button"
                                     className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
-                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 6 }}
+                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(59, 130, 246, 0.08)', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: '#3b82f6', fontSize: 9.5, fontWeight: 700 }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setExpandedCardId((prev) => {
@@ -1478,9 +1482,8 @@ export default function ClientsV2ListPage() {
                                       });
                                     }}
                                   >
-                                    <FolderKanban size={13} />
-                                    <span style={{ fontWeight: 600 }}>Active Projects</span>
-                                    <ChevronDown size={14} style={{ marginLeft: 2, transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                                    <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Projects</span>
+                                    <ChevronDown size={12} style={{ transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                                   </button>
                                 </div>
                               </footer>
@@ -1527,6 +1530,32 @@ export default function ClientsV2ListPage() {
 
           {/* ----------------------------- Styles ------------------------------ */}
           <style jsx global>{`
+          .pm2-action-pop .ant-dropdown-menu {
+            padding: 4px; border-radius: 0px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          }
+          .pm2-action-pop .ant-dropdown-menu-item {
+            padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+            transition: background .12s ease;
+          }
+          .pm2-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pm2-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+          .pm2-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .pm2-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+          .pm2-menu-ic {
+            width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          }
+          .pm2-menu-text { display: flex; flex-direction: column; min-width: 0; }
+          .pm2-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+          .pm2-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+          .pm2-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+          .pm2-action-pop .ant-dropdown-menu-item-danger .pm2-menu-title { color: #ef4444; }
+          .pm2-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+          .pm2-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
 
 /* === BH2 LAYOUT STYLES COPIED === */
 
@@ -1554,7 +1583,7 @@ export default function ClientsV2ListPage() {
         }
         .bh2-main {
           min-width: 0;
-          padding: 14px 24px 32px;
+          padding: 14px 20px 12px;
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
@@ -1583,7 +1612,7 @@ export default function ClientsV2ListPage() {
         }
 
         .bh2-sidebar-top { 
-          padding: 14px 14px 12px 18px;
+          padding: 14px 14px 12px 14px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-top {
@@ -1616,7 +1645,14 @@ export default function ClientsV2ListPage() {
         }
 
         .bh2-sidebar-scroll {
-          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 10px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .bh2-sidebar-scroll::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
 
         .bh2-side-group { margin-bottom: 22px; }
@@ -1633,19 +1669,19 @@ export default function ClientsV2ListPage() {
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
         [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
-        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 6px;
         }
         .bh2-view-btn.active .bh2-view-count {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
@@ -1921,7 +1957,7 @@ export default function ClientsV2ListPage() {
           top: 0;
           z-index: 10;
           background: var(--bg-pure-white);
-          margin: -14px -24px 0;
+          margin: -14px -20px 0;
           padding: 6px 20px;
           border-bottom: 1px solid var(--border-slate-200);
         }
@@ -2067,6 +2103,7 @@ export default function ClientsV2ListPage() {
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
           padding-top: 10px;
+          align-items: flex-start;
         }
         
         @media (max-width: 1200px) {
@@ -2082,7 +2119,7 @@ export default function ClientsV2ListPage() {
           justify-content: space-between;
           gap: 12px;
           padding: 10px 24px;
-          margin: auto -24px -32px -24px;
+          margin: auto -24px -32px -20px;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
@@ -2138,10 +2175,12 @@ export default function ClientsV2ListPage() {
           border-color: #1f2937 !important;
         }
         .bh2-list-card:hover {
-          border-color: var(--row-accent, #3b82f6);
+
+          box-shadow: 10px 10px 25px -8px rgba(14, 19, 30, 0.08);
         }
         [data-theme="dark"] .bh2-list-card:hover {
           background: #1c232e !important;
+          box-shadow: 10px 10px 25px -8px rgba(0, 0, 0, 0.3);
         }
         .bh2-list-card-skel {
           min-height: 96px;
@@ -2283,6 +2322,27 @@ export default function ClientsV2ListPage() {
         }
         [data-theme="dark"] .bh2-list-avatar {
           background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        }
+        .bh2-side-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 10px;
+          padding: 6px 0;
+          width: 100%;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-500);
+          font-size: 11.5px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+        .bh2-side-clear:hover {
+          background: var(--bg-slate-100);
+          color: var(--text-slate-900);
         }
         .bh2-list-avatar::after {
           content: "";
@@ -2616,9 +2676,9 @@ export default function ClientsV2ListPage() {
           .bh2-shell {
             grid-template-columns: 240px minmax(0, 1fr);
           }
-          .bh2-sidebar {
-            padding: 12px 8px 14px 14px;
-          }
+          // .bh2-sidebar {
+          //   padding: 12px 8px 14px 14px;
+          // }
           .bh2-search-box {
             width: 220px;
           }
@@ -2902,7 +2962,7 @@ export default function ClientsV2ListPage() {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 16px;
-              margin-bottom: 22px;
+              margin-bottom: 2px !important;
             }
             @media (max-width: 1100px) {
               .cm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3390,6 +3450,7 @@ export default function ClientsV2ListPage() {
               border-radius: 0;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
+              margin-top: 12px !important;
               box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
             }
             .cm-table-card .ant-table {
@@ -3402,12 +3463,12 @@ export default function ClientsV2ListPage() {
               text-transform: uppercase !important;
               font-size: 10.5px !important;
               letter-spacing: 0.08em !important;
-              padding: 14px 16px !important;
+              padding: 6px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
             }
             .cm-table-card .ant-table-thead > tr > th::before { display: none !important; }
             .cm-table-card .ant-table-tbody > tr > td {
-              padding: 18px 16px !important;
+              padding: 6.5px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
               transition: background .15s ease;
               position: relative;
@@ -3437,17 +3498,17 @@ export default function ClientsV2ListPage() {
             /* avatar / cells */
             .cm-avatar-wrap {
               position: relative;
-              width: 42px; height: 42px;
+              width: 24px; height: 24px;
               flex-shrink: 0;
             }
             .cm-avatar {
-              width: 42px; height: 42px;
-              border-radius: 12px;
+              width: 24px; height: 24px;
+              border-radius: 6px;
               display: flex; align-items: center; justify-content: center;
               background: #3b82f6;
               color: #fff;
               font-weight: 700;
-              font-size: 13px;
+              font-size: 10px;
               letter-spacing: 0.02em;
               box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
                           inset 0 1px 0 rgba(255,255,255,0.18);
@@ -3506,6 +3567,13 @@ export default function ClientsV2ListPage() {
               margin-top: 3px;
               flex-wrap: wrap;
             }
+
+            .cm-tag {
+              display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+              border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap;
+            }
+            .cm-tag--blue { background: var(--bg-blue-50); color: #3B82F6; }
+            .cm-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
             .cm-code {
               font-family: ui-monospace, "SF Mono", Menlo, monospace;
               background: var(--bg-slate-50);
@@ -3534,11 +3602,11 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 8px;
-              padding: 5px 11px 5px 6px;
-              border-radius: 999px;
+              padding: 2px 11px 2px 6px;
+              border-radius: 6px;
               border: 1px solid var(--border-slate-100);
               background: var(--bg-pure-white);
-              font-size: 12.5px;
+              font-size: 11px;
               font-weight: 600;
               color: var(--text-slate-700);
               transition: all .2s ease;
@@ -3550,8 +3618,8 @@ export default function ClientsV2ListPage() {
             }
             .cm-projects-pill.empty { color: var(--text-slate-500); }
             .cm-projects-ico {
-              width: 22px; height: 22px;
-              border-radius: 50%;
+              width: 20px; height: 20px;
+              border-radius: 6px;
               display: inline-flex; align-items: center; justify-content: center;
               background: var(--bg-slate-50);
               color: var(--text-slate-500);
@@ -3587,9 +3655,9 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 6px;
-              padding: 4px 10px;
-              border-radius: 999px;
-              font-size: 11.5px;
+              padding: 2px 10px;
+              border-radius: 6px;
+              font-size: 10px;
               font-weight: 700;
               letter-spacing: 0.02em;
             }
@@ -3597,9 +3665,9 @@ export default function ClientsV2ListPage() {
               display: inline-flex;
               align-items: center;
               gap: 6px;
-              padding: 4px 10px;
-              border-radius: 999px;
-              font-size: 10.5px;
+              padding: 2px 10px;
+              border-radius: 6px;
+              font-size: 10px;
               font-weight: 700;
               letter-spacing: 0.06em;
             }

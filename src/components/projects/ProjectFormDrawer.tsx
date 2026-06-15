@@ -34,6 +34,7 @@ import {
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
 import { useTheme } from "@/context/ThemeContext";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -120,7 +121,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
           status: "planning",
           defaultPriority: "medium",
         });
-        
+
         try {
           const nextCode = await ProjectService.getNextCode();
           if (nextCode) {
@@ -196,7 +197,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
       title={null}
       open={visible}
       onClose={onClose}
-      width={720}
+      width={580}
       closable={false}
       maskClosable={true}
       styles={{
@@ -216,7 +217,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
         {/* Drawer Header */}
         <div
           style={{
-            padding: "20px 28px",
+            padding: "16px 14px 12px 14px",
             borderBottom: "1px solid var(--border-color)",
             display: "flex",
             justifyContent: "space-between",
@@ -232,7 +233,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 10,
+                borderRadius: 0,
                 background: (fullProject || project)
                   ? "rgba(245, 158, 11, 0.10)"
                   : "rgba(59, 130, 246, 0.10)",
@@ -279,7 +280,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
         {/* Drawer Form Content */}
         <div
           style={{
-            padding: "24px 28px",
+            padding: "16px 16px",
             flex: 1,
             overflowY: "auto",
             background: "var(--bg-secondary, #f8fafc)",
@@ -310,17 +311,17 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 style={{
                   background: "var(--bg-pure-white)",
                   border: "1px solid var(--border-color)",
-                  borderRadius: 12,
-                  padding: "20px 22px",
+                  borderRadius: 0,
+                  padding: "12px 22px",
                   marginBottom: 16,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <div
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 9,
+                      borderRadius: 0,
                       background: "rgba(59, 130, 246, 0.10)",
                       color: "var(--premium-blue)",
                       display: "flex",
@@ -367,6 +368,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 <Row gutter={16}>
                   <Col span={24}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="name"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -381,12 +383,13 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       <Input
                         placeholder="e.g. Website Redesign"
                         size="large"
-                        style={{ borderRadius: 10 }}
+                        style={{ borderRadius: 6 }}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="code"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -397,12 +400,13 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       <Input
                         placeholder="e.g. WEB"
                         size="large"
-                        style={{ borderRadius: 10, textTransform: "uppercase" }}
+                        style={{ borderRadius: 6, textTransform: "uppercase" }}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="status"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -411,21 +415,23 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Please select status" }]}
                     >
-                      <Select
+                      <SearchableDropdown
                         placeholder="Select status"
-                        size="large"
-                        style={{ borderRadius: 10 }}
-                      >
-                        <Option value="planning">Planning</Option>
-                        <Option value="active">Active</Option>
-                        <Option value="on-hold">On Hold</Option>
-                        <Option value="completed">Completed</Option>
-                        <Option value="cancelled">Cancelled</Option>
-                      </Select>
+                        style={{ borderRadius: 6 }}
+                        width="100%"
+                        options={[
+                          { label: "Planning", value: "planning" },
+                          { label: "Active", value: "active" },
+                          { label: "On Hold", value: "on-hold" },
+                          { label: "Completed", value: "completed" },
+                          { label: "Cancelled", value: "cancelled" },
+                        ]}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={24}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="description"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -437,7 +443,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       <Input.TextArea
                         rows={4}
                         placeholder="What is this project about?"
-                        style={{ borderRadius: 10 }}
+                        style={{ borderRadius: 6 }}
                       />
                     </Form.Item>
                   </Col>
@@ -449,17 +455,17 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 style={{
                   background: "var(--bg-pure-white)",
                   border: "1px solid var(--border-color)",
-                  borderRadius: 12,
-                  padding: "20px 22px",
+                  borderRadius: 0,
+                  padding: "16px 22px",
                   marginBottom: 16,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <div
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 9,
+                      borderRadius: 0,
                       background: "rgba(16, 185, 129, 0.10)",
                       color: "#10b981",
                       display: "flex",
@@ -506,6 +512,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="projectManagerId"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -514,31 +521,21 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Please select manager" }]}
                     >
-                      <Select
+                      <SearchableDropdown
                         placeholder="Select lead"
-                        size="large"
+                        style={{ borderRadius: 6 }}
+                        width="100%"
                         onChange={handleProjectManagerChange}
-                        showSearch
-                        style={{ borderRadius: 10 }}
-                        filterOption={(input, option) => {
-                          const member = members.find((m) => m.value === option?.value);
-                          return member
-                            ? String(member.label ?? "")
-                                .toLowerCase()
-                                .includes(input.toLowerCase())
-                            : false;
-                        }}
-                      >
-                        {members.map((member) => (
-                          <Option key={member.value} value={member.value}>
-                            {member.label}
-                          </Option>
-                        ))}
-                      </Select>
+                        options={members.map((member) => ({
+                          label: member.label,
+                          value: member.value,
+                        }))}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="defaultPriority"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -547,19 +544,21 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Please select priority" }]}
                     >
-                      <Select
+                      <SearchableDropdown
                         placeholder="Priority"
-                        size="large"
-                        style={{ borderRadius: 10 }}
-                      >
-                        <Option value="high">High</Option>
-                        <Option value="medium">Medium</Option>
-                        <Option value="low">Low</Option>
-                      </Select>
+                        style={{ borderRadius: 6 }}
+                        width="100%"
+                        options={[
+                          { label: "High", value: "high" },
+                          { label: "Medium", value: "medium" },
+                          { label: "Low", value: "low" },
+                        ]}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={24}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="teamMemberIds"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -572,26 +571,17 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                         </span>
                       }
                     >
-                      <Select
+                      <SearchableDropdown
                         mode="multiple"
                         placeholder="Add contributors"
-                        size="large"
+                        style={{ borderRadius: 6 }}
+                        width="100%"
                         onChange={handleTeamMembersChange}
-                        showSearch
-                        style={{ borderRadius: 10 }}
-                        filterOption={(input, option) => {
-                          const member = members.find((m) => m.value === option?.value);
-                          return member
-                            ? member.label.toLowerCase().includes(input.toLowerCase())
-                            : false;
-                        }}
-                      >
-                        {members.map((member) => (
-                          <Option key={member.value} value={member.value}>
-                            {member.label}
-                          </Option>
-                        ))}
-                      </Select>
+                        options={members.map((member) => ({
+                          label: member.label,
+                          value: member.value,
+                        }))}
+                      />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -602,16 +592,16 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 style={{
                   background: "var(--bg-pure-white)",
                   border: "1px solid var(--border-color)",
-                  borderRadius: 12,
-                  padding: "20px 22px",
+                  borderRadius: 0,
+                  padding: "12px 22px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <div
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 9,
+                      borderRadius: 0,
                       background: "rgba(139, 92, 246, 0.10)",
                       color: "#8b5cf6",
                       display: "flex",
@@ -658,6 +648,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="startDate"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -666,11 +657,12 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Required" }]}
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
+                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="endDate"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -678,11 +670,12 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                         </span>
                       }
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
+                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
                     </Form.Item>
                   </Col>
                   <Col span={24}>
                     <Form.Item
+                      style={{ marginBottom: 14 }}
                       name="repositories"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -693,7 +686,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       <Input
                         placeholder="e.g. https://github.com/org/repo"
                         size="large"
-                        style={{ borderRadius: 10 }}
+                        style={{ borderRadius: 6 }}
                       />
                     </Form.Item>
                   </Col>
@@ -724,7 +717,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
           <Space size={10}>
             <Button
               onClick={onClose}
-              style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+              style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: "0 18px" }}
             >
               Cancel
             </Button>
@@ -733,7 +726,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
               onClick={() => form.submit()}
               loading={loading || dataLoading}
               icon={(fullProject || project) ? <EditOutlined /> : <PlusOutlined />}
-              style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+              style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: "0 18px" }}
             >
               {(fullProject || project) ? "Save Changes" : "Create Project"}
             </Button>

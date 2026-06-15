@@ -125,18 +125,28 @@ const ProjectOverviewPage = () => {
                     }}
                   />
                 </Tooltip>
-                <div style={{
+                <style>{`
+                  .overview-project-avatar {
+                    background: #3b82f6 !important;
+                    color: #ffffff !important;
+                  }
+                  [data-theme='dark'] .overview-project-avatar {
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+                  }
+                `}</style>
+                <div 
+                  className="overview-project-avatar"
+                  style={{
                   width: 38,
                   height: 38,
                   borderRadius: 10,
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                  color: '#ffffff',
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 800,
                   fontSize: 15,
-                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.25)',
                   letterSpacing: '0.02em'
                 }}>
                   {project.name.split(' ').slice(0, 2).map((n: any[]) => n[0]).join('').toUpperCase() || <ProjectOutlined />}

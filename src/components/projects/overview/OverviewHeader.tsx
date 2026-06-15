@@ -51,45 +51,56 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
     .toUpperCase();
 
   return (
-    <div
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 14,
-        padding: "16px 20px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        {/* Left: back + identity */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          <Tooltip title="Back to projects">
-            <Button
-              type="text"
-              shape="circle"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => router.push("/projects/manage")}
-              style={{ color: "var(--text-slate-500)" }}
-            />
-          </Tooltip>
+    <>
+      <style>{`
+        .overview-project-avatar {
+          background: #3b82f6 !important;
+          color: #ffffff !important;
+        }
+        [data-theme='dark'] .overview-project-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+        }
+      `}</style>
+      <div
+        style={{
+          background: "var(--bg-pure-white)",
+          border: "1px solid var(--border-color)",
+          borderRadius: 6,
+          padding: "16px 20px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          {/* Left: back + identity */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            <Tooltip title="Back to projects">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/projects/manage")}
+                style={{ color: "var(--text-slate-500)" }}
+              />
+            </Tooltip>
 
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: `${accentColor}12`,
-              color: accentColor,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-              fontSize: 16,
-              letterSpacing: "0.02em",
-              flexShrink: 0,
-            }}
-          >
-            {initials || <ProjectOutlined />}
-          </div>
+            <div
+              className="overview-project-avatar"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: 16,
+                letterSpacing: "0.02em",
+                flexShrink: 0,
+              }}
+            >
+              {initials || <ProjectOutlined />}
+            </div>
 
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -207,5 +218,6 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

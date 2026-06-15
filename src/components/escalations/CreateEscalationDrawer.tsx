@@ -454,7 +454,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
     <Drawer
       className="ced-drawer"
       placement="right"
-      width={760}
+      width={580}
       open={open}
       onClose={handleClose}
       closable={false}

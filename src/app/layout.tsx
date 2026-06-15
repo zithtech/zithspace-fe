@@ -13,6 +13,24 @@ import { LayoutProvider } from "@/context/LayoutContext";
 import { TicketDrawerProvider } from "@/context/TicketDrawerContext";
 import AppSetupGuard from "@/components/common/AppSetupGuard";
 
+import iconLight from "./icon-light.png";
+import iconDark from "./icon-dark.png";
+
+export const metadata: Metadata = {
+  icons: {
+    icon: [
+      {
+        url: iconLight.src,
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: iconDark.src,
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
+};
+
 export default function RootLayout({
   children,
 }: {

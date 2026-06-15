@@ -184,25 +184,38 @@ export default function PortalInvoicesPage() {
     return items.filter((i) => i.isOverdue).length;
   }, [items]);
 
+  const total = meta?.total ?? items.length;
+  const hasMore = page * limit < total;
+  const allDisplayedOnCurrentPage = total <= limit;
+
   return (
-    <div style={{ padding: "24px 32px 48px", maxWidth: 1280, margin: "0 auto", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-      {/* Top Header Card */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 20,
-          padding: "16px 24px",
-          background: p.surfaceElevated,
-          border: `1px solid ${p.border}`,
-          borderRadius: 10,
-          marginBottom: 16,
-          position: "relative",
-          overflow: "hidden",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.02)"
-        }}
-      >
+    <div
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        backgroundColor: "#fafafa",
+        width: "100%",
+      }}
+    >
+      <div style={{ padding: "24px 32px 48px", maxWidth: 1280, margin: "0 auto", fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        {/* Top Header Card */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 20,
+            padding: "16px 24px",
+            background: p.surfaceElevated,
+            border: `1px solid ${p.border}`,
+            borderRadius: 10,
+            marginBottom: 16,
+            position: "relative",
+            overflow: "hidden",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+            flexWrap: "wrap",
+          }}
+        >
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: p.accent }} />
         
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -236,7 +249,7 @@ export default function PortalInvoicesPage() {
       </div>
 
       {/* Filter / Search Bar */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {/* Search */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10, padding: "0 14px",
@@ -275,6 +288,7 @@ export default function PortalInvoicesPage() {
           borderRadius: 12,
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
+          overflowX: "auto",
         }}
       >
         {/* Table header */}
@@ -292,6 +306,7 @@ export default function PortalInvoicesPage() {
           letterSpacing: "0.06em",
           borderTopLeftRadius: 12,
           borderTopRightRadius: 12,
+          minWidth: "1000px",
         }}>
           <div>INVOICE NUMBER</div>
           <div>CUSTOMER</div>
@@ -368,23 +383,108 @@ export default function PortalInvoicesPage() {
         borderTop: "none",
         borderRadius: "0 0 12px 12px",
         fontSize: 13,
+        flexWrap: "wrap",
+        gap: 12,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: p.successText, fontWeight: 600 }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: p.success }} />
-          All invoices loaded
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          color: items.length === 0 ? p.textSubtle : hasMore ? p.textSubtle : p.successText,
+          fontWeight: 600
+        }}>
+          <div style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            background: items.length === 0 ? p.textFaint : hasMore ? p.textFaint : p.success
+          }} />
+          {items.length === 0 ? "No invoices to display" : hasMore ? "More pages available" : "All invoices loaded"}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, color: p.textMuted }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, color: p.textMuted, flexWrap: "wrap" }}>
           {items.length > 0 ? (
-            <span>{(page - 1) * limit + 1}-{Math.min(page * limit, meta?.total || items.length)} of {meta?.total || items.length} invoices</span>
+            <span>{(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total} invoices</span>
           ) : (
             <span>0 invoices</span>
           )}
           <div style={{ display: "flex", gap: 6 }}>
-            <button style={{ width: 32, height: 32, borderRadius: 16, border: `1px solid ${p.border}`, background: p.surfaceElevated, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: p.textFaint }} disabled={page === 1} onClick={() => setPage(Math.max(1, page - 1))}><ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /></button>
-            <button style={{ width: 32, height: 32, borderRadius: 16, border: `1px solid ${p.accentBorder}`, background: p.accentBg, color: p.accentText, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{page}</button>
-            <button style={{ width: 32, height: 32, borderRadius: 16, border: `1px solid ${p.border}`, background: p.surfaceElevated, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: p.textMuted }} onClick={() => setPage(page + 1)}><ChevronRight size={14} /></button>
+            {/* Prev Button */}
+            <button
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                border: `1px solid ${p.border}`,
+                background: p.surfaceElevated,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: (page === 1 || loading) ? "not-allowed" : "pointer",
+                color: (page === 1 || loading) ? p.textFaint : p.textMuted,
+                opacity: (page === 1 || loading) ? 0.5 : 1,
+              }}
+              disabled={page === 1 || loading}
+              onClick={() => setPage(Math.max(1, page - 1))}
+            >
+              <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
+            </button>
+
+            {/* Current Page Indicator */}
+            <button
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                border: allDisplayedOnCurrentPage ? `1px solid ${p.border}` : `1px solid ${p.accentBorder}`,
+                background: allDisplayedOnCurrentPage ? p.surfaceMuted : p.accentBg,
+                color: allDisplayedOnCurrentPage ? p.textSubtle : p.accentText,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "default",
+                opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
+              }}
+            >
+              {page}
+            </button>
+
+            {/* Next Button */}
+            <button
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                border: `1px solid ${p.border}`,
+                background: p.surfaceElevated,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: (!hasMore || loading) ? "not-allowed" : "pointer",
+                color: (!hasMore || loading) ? p.textFaint : p.textMuted,
+                opacity: (!hasMore || loading) ? 0.5 : 1,
+              }}
+              disabled={!hasMore || loading}
+              onClick={() => setPage(page + 1)}
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${p.border}`, borderRadius: 16, background: p.surfaceElevated, cursor: "pointer" }}>
+          {/* Limit Selector */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              border: `1px solid ${p.border}`,
+              borderRadius: 16,
+              background: p.surfaceElevated,
+              cursor: allDisplayedOnCurrentPage ? "not-allowed" : "pointer",
+              opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
+              pointerEvents: allDisplayedOnCurrentPage ? "none" : "auto",
+            }}
+          >
             20 / page <ChevronDown size={14} color={p.textFaint} />
           </div>
         </div>
@@ -401,6 +501,7 @@ export default function PortalInvoicesPage() {
         {selectedId && <PortalInvoiceDetailPage invoiceId={selectedId} onClose={() => setSelectedId(null)} />}
       </Drawer>
     </div>
+  </div>
   );
 }
 
@@ -500,7 +601,8 @@ function InvoiceRow({ inv, onClick, onStatusChange }: { inv: PortalInvoiceListIt
         color: "inherit",
         alignItems: "center",
         transition: "background 150ms ease",
-        cursor: "pointer"
+        cursor: "pointer",
+        minWidth: "1000px",
       }}
       className="invoice-row"
     >

@@ -974,6 +974,9 @@ function TeamMemberModal({
             <Form.Item
               name="contactEmail"
               label={<L c={c} >Email</L>}
+              rules={[
+                { type: "email", message: "Please enter a valid email address" },
+              ]}
               style={{ marginBottom: 0 }}
             >
               <Input

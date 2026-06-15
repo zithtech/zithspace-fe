@@ -1149,7 +1149,7 @@ export const hivebugStyles = `
   padding: 0 4px;
 }
 .hb-pagination-page strong { color: var(--hb-text); font-weight: 600; }
-.hb-table { width: 100%; max-width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.hb-table { width: 100%; max-width: 100%; min-width: 1200px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 .hb-table thead th {
   position: sticky; top: 0; z-index: 1;
   background: var(--hb-bg-elev);

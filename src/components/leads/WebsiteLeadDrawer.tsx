@@ -16,6 +16,13 @@ import {
   Activity,
   Globe,
   Sparkles,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  Users,
+  MessageSquare,
+  Tag,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { apiClient } from "@/lib/axios";
@@ -35,7 +42,7 @@ interface Props {
   configStatuses: Status[];
 }
 
-type Tab = "timeline" | "notes" | "emails" | "meetings";
+type Tab = "details" | "timeline" | "notes" | "emails" | "meetings";
 
 const SOURCE_PALETTE: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
   Zukvo:    { bg: "rgba(139,92,246,0.10)", color: "#a5b4fc", border: "rgba(139,92,246,0.30)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
@@ -104,13 +111,31 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
   onClose,
   configStatuses,
 }) => {
-  const [tab, setTab] = useState<Tab>("timeline");
+  const [tab, setTab] = useState<Tab>("details");
   const [timeline, setTimeline] = useState<any[]>([]);
   const [tlLoading, setTlLoading] = useState(false);
+  const [mails, setMails] = useState<any[]>([]);
+  const [mailsLoading, setMailsLoading] = useState(false);
+  const [mailsFetched, setMailsFetched] = useState(false);
+
+  const fetchMails = async (leadId: string) => {
+    setMailsLoading(true);
+    try {
+      const res = await apiClient.get(`/api/leads/${leadId}/mails`);
+      setMails(res.data?.data || []);
+    } catch {
+      message.error('Failed to load mailing history');
+    } finally {
+      setMailsLoading(false);
+      setMailsFetched(true);
+    }
+  };
 
   useEffect(() => {
     if (!open || !lead?.id) return;
-    setTab("timeline");
+    setTab("details");
+    setMails([]);
+    setMailsFetched(false);
     setTlLoading(true);
     apiClient
       .get(`/api/leads/${lead.id}/timeline`)
@@ -118,6 +143,13 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
       .catch(() => message.error("Failed to load timeline"))
       .finally(() => setTlLoading(false));
   }, [open, lead?.id]);
+
+  // Lazy-load mails when tab is opened for the first time
+  useEffect(() => {
+    if (tab === 'emails' && !mailsFetched && lead?.id) {
+      fetchMails(lead.id);
+    }
+  }, [tab, mailsFetched, lead?.id]);
 
   if (!lead) return null;
 
@@ -140,7 +172,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
     <Drawer
       open={open}
       onClose={onClose}
-      width={680}
+      width={540}
       closable={false}
       placement="right"
       className="wld-drawer"
@@ -238,7 +270,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
 
       {/* Tabs */}
       <div className="wld-tabs">
-        {(["timeline", "notes", "emails", "meetings"] as Tab[]).map((t) => (
+        {(["details", "timeline", "notes", "emails", "meetings"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -252,6 +284,114 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
 
       {/* Tab body */}
       <div className="wld-body">
+        {tab === "details" && (
+          <div className="wld-details">
+            {/* Two-column contact + company grid */}
+            <div className="wld-details-grid">
+              {/* Left column — Contact */}
+              <div className="wld-details-col">
+                <div className="wld-details-section-head">
+                  <div className="wld-details-section-icon" style={{ background: "rgba(14,165,233,0.1)", color: "#0ea5e9" }}>
+                    <Mail size={12} strokeWidth={2.5} />
+                  </div>
+                  <span className="wld-details-section-title">Contact</span>
+                </div>
+                <dl className="wld-details-dl">
+                  <div className="wld-details-row">
+                    <dt><Mail size={12} />Email</dt>
+                    <dd>
+                      {lead.client_mail
+                        ? <a href={`mailto:${lead.client_mail}`} className="wld-details-link">{lead.client_mail}</a>
+                        : <span className="wld-details-empty">—</span>}
+                    </dd>
+                  </div>
+                  <div className="wld-details-row">
+                    <dt><Phone size={12} />Phone</dt>
+                    <dd>
+                      {lead.client_phone
+                        ? <a href={`tel:${lead.client_phone}`} className="wld-details-link">{lead.client_phone}</a>
+                        : <span className="wld-details-empty">—</span>}
+                    </dd>
+                  </div>
+                  <div className="wld-details-row">
+                    <dt><MapPin size={12} />Location</dt>
+                    <dd>{lead.client_location || <span className="wld-details-empty">—</span>}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Right column — Company */}
+              <div className="wld-details-col">
+                <div className="wld-details-section-head">
+                  <div className="wld-details-section-icon" style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}>
+                    <Building2 size={12} strokeWidth={2.5} />
+                  </div>
+                  <span className="wld-details-section-title">Company</span>
+                </div>
+                <dl className="wld-details-dl">
+                  <div className="wld-details-row">
+                    <dt><Building2 size={12} />Name</dt>
+                    <dd>{lead.company || <span className="wld-details-empty">—</span>}</dd>
+                  </div>
+                  <div className="wld-details-row">
+                    <dt><Globe size={12} />Domain</dt>
+                    <dd>
+                      {lead.company_domain
+                        ? (
+                          <a
+                            href={`https://${lead.company_domain.replace(/^https?:\/\//, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="wld-details-link wld-details-link-ext"
+                          >
+                            {lead.company_domain}
+                            <ExternalLink size={10} />
+                          </a>
+                        )
+                        : <span className="wld-details-empty">—</span>}
+                    </dd>
+                  </div>
+                  <div className="wld-details-row">
+                    <dt><Users size={12} />Team size</dt>
+                    <dd>{lead.company_size || <span className="wld-details-empty">—</span>}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            {/* Inquiry meta row */}
+            <div className="wld-details-meta-row">
+              <div className="wld-details-meta-item">
+                <Tag size={11} />
+                <span className="wld-details-meta-label">Subject</span>
+                <span className="wld-details-meta-value">{lead.title || "—"}</span>
+              </div>
+              <div className="wld-details-meta-sep" />
+              <div className="wld-details-meta-item">
+                <Globe size={11} />
+                <span className="wld-details-meta-label">Source</span>
+                <span className="wld-details-meta-value">{lead.website_source || lead.platform || "—"}</span>
+              </div>
+            </div>
+
+            {/* Message card */}
+            {lead.inquiry_message ? (
+              <div className="wld-details-msg-card">
+                <div className="wld-details-msg-head">
+                  <MessageSquare size={13} strokeWidth={2.2} />
+                  <span>Inquiry message</span>
+                </div>
+                <p className="wld-details-msg-body">{lead.inquiry_message}</p>
+              </div>
+            ) : (
+              <div className="wld-details-msg-empty">
+                <MessageSquare size={20} strokeWidth={1.5} />
+                <span>No inquiry message recorded</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === "timeline" && (
           tlLoading ? (
             <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
@@ -287,7 +427,37 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Inline notes are coming soon. Use the timeline for now.</span>} />
         )}
         {tab === "emails" && (
-          <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Email thread view coming soon.</span>} />
+          mailsLoading ? (
+            <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
+          ) : mails.length === 0 ? (
+            <div className="wld-mails-empty">
+              <Send size={22} strokeWidth={1.4} />
+              <span>No emails sent yet</span>
+            </div>
+          ) : (
+            <ol className="wld-mails-list">
+              {mails.map((mail: any) => (
+                <li key={mail.id} className="wld-mail-item">
+                  <div className="wld-mail-header">
+                    <span className="wld-mail-subject">{mail.subject || "(no subject)"}</span>
+                    <span className="wld-mail-date">
+                      {mail.sent_at ? dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A") : "—"}
+                    </span>
+                  </div>
+                  <div className="wld-mail-to">
+                    <Mail size={11} />
+                    <span>{mail.recipient_email || "—"}</span>
+                  </div>
+                  {mail.body && (
+                    <div className="wld-mail-excerpt">
+                      {mail.body.replace(/<[^>]*>?/gm, "").slice(0, 160)}
+                      {mail.body.replace(/<[^>]*>?/gm, "").length > 160 ? "…" : ""}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )
         )}
         {tab === "meetings" && (
           <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Meeting log coming soon.</span>} />
@@ -526,6 +696,238 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           color: var(--text-slate-500);
           margin-top: 2px;
           line-height: 1.45;
+        }
+
+        /* ── Emails tab ── */
+        .wld-mails-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 40px;
+          color: var(--text-slate-300);
+          font-size: 12.5px;
+          font-weight: 500;
+        }
+        .wld-mails-list {
+          list-style: none;
+          padding: 0; margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .wld-mail-item {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .wld-mail-header {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .wld-mail-subject {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .wld-mail-date {
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .wld-mail-to {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          color: var(--text-slate-500);
+          font-weight: 500;
+        }
+        .wld-mail-to svg { color: var(--text-slate-400); }
+        .wld-mail-excerpt {
+          font-size: 12.5px;
+          color: var(--text-slate-500);
+          line-height: 1.5;
+          border-top: 1px solid var(--border-slate-100);
+          padding-top: 8px;
+          margin-top: 2px;
+        }
+
+        /* ── Details tab ── */
+        .wld-details {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .wld-details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .wld-details-col {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 12px;
+          padding: 14px 16px;
+        }
+        .wld-details-section-head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .wld-details-section-icon {
+          width: 22px; height: 22px;
+          border-radius: 6px;
+          display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .wld-details-section-title {
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          color: var(--text-slate-500);
+        }
+        .wld-details-dl {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+          margin: 0; padding: 0;
+        }
+        .wld-details-row {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .wld-details-row dt {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        .wld-details-row dt svg { flex-shrink: 0; }
+        .wld-details-row dd {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-800);
+          word-break: break-word;
+          padding-left: 17px;
+        }
+        .wld-details-empty {
+          color: var(--text-slate-300);
+          font-weight: 500;
+        }
+        .wld-details-link {
+          color: #6366f1;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .wld-details-link:hover { text-decoration: underline; }
+        .wld-details-link-ext {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .wld-details-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .wld-details-meta-item {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 10px 16px;
+          min-width: 0;
+        }
+        .wld-details-meta-item svg { color: var(--text-slate-400); flex-shrink: 0; }
+        .wld-details-meta-sep {
+          width: 1px;
+          align-self: stretch;
+          background: var(--border-slate-100);
+          flex-shrink: 0;
+        }
+        .wld-details-meta-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-slate-400);
+          white-space: nowrap;
+        }
+        .wld-details-meta-value {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-slate-800);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .wld-details-msg-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 12px;
+          padding: 14px 16px;
+        }
+        .wld-details-msg-head {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--text-slate-500);
+          margin-bottom: 10px;
+        }
+        .wld-details-msg-head svg { color: var(--text-slate-400); }
+        .wld-details-msg-body {
+          margin: 0;
+          font-size: 13.5px;
+          line-height: 1.65;
+          color: var(--text-slate-700);
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        .wld-details-msg-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 28px;
+          border: 1px dashed var(--border-slate-100);
+          border-radius: 12px;
+          color: var(--text-slate-300);
+          font-size: 12.5px;
+          font-weight: 500;
         }
       `}} />
     </Drawer>

@@ -72,7 +72,7 @@ export const TimeStatsBar: React.FC<TimeStatsBarProps> = ({ hoursLogged, daysWor
         margin: "16px 0",
         padding: "16px 20px",
         background: "var(--bg-pure-white)",
-        borderRadius: 14,
+        borderRadius: 6,
         border: "1px solid var(--border-color)",
         display: "flex",
         alignItems: "center",

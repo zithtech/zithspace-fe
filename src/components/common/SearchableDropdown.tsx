@@ -30,11 +30,14 @@ export interface SearchableDropdownOption {
   badge?: React.ReactNode;
   meta?: React.ReactNode;
   disabled?: boolean;
+  /** Avatar image URL — renders an image instead of initials when provided. */
+  avatarUrl?: string | null;
 }
 
 export interface SearchableDropdownProps {
-  value?: string;
-  onChange?: (value: string | undefined) => void;
+  mode?: "multiple";
+  value?: string | string[];
+  onChange?: (value: any) => void;
   options: SearchableDropdownOption[];
   placeholder?: string;
   /** Small uppercase eyebrow above the value in the trigger (activity-page style). */
@@ -50,6 +53,8 @@ export interface SearchableDropdownProps {
   width?: number | string;
   /** Show a trailing X when a value is set. Default true. */
   allowClear?: boolean;
+  /** Hide the leading avatar/initials chip on each option (e.g. for month/year lists). */
+  hideAvatar?: boolean;
   className?: string;
   /** Forwarded onto the trigger element so consumers can size it themselves. */
   style?: React.CSSProperties;
@@ -69,6 +74,17 @@ const initialsFor = (s: string): string => {
   return s.slice(0, 2).toUpperCase();
 };
 
+/** Deterministic color from string so the same person always gets the same color */
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
+
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   value,
   onChange,
@@ -82,6 +98,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   itemNoun = "items",
   width = 290,
   allowClear = true,
+  hideAvatar = false,
   className,
   style,
   defaultOpen = false,
@@ -118,7 +135,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     freeText && search.trim().length > 0 && !exactMatch;
 
   const displayLabel = useMemo(() => {
-    if (!value) return placeholder;
+    if (!value || (Array.isArray(value) && value.length === 0)) return placeholder;
+    if (Array.isArray(value)) {
+      if (value.length === 1) {
+        const opt = options.find((o) => o.value === value[0]);
+        return opt ? opt.label : value[0];
+      }
+      return `${value.length} selected`;
+    }
     const opt = options.find((o) => o.value === value);
     return opt ? opt.label : value;
   }, [value, options, placeholder]);
@@ -159,7 +183,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         ) : (
           <>
             {filtered.map((opt) => {
-              const isSelected = value === opt.value;
+              const isSelected = Array.isArray(value) ? value.includes(opt.value) : value === opt.value;
               return (
                 <button
                   type="button"
@@ -168,12 +192,37 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                   disabled={opt.disabled}
                   onClick={() => {
                     if (opt.disabled) return;
-                    commit(isSelected ? undefined : opt.value);
+                    if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+                      // mode === 'multiple'
+                      const valArray = Array.isArray(value) ? value : [];
+                      if (isSelected) {
+                        onChange?.(valArray.filter(v => v !== opt.value));
+                      } else {
+                        onChange?.([...valArray, opt.value]);
+                      }
+                      // DO NOT close dropdown in multiple mode
+                    } else {
+                      commit(isSelected ? undefined : opt.value);
+                    }
                   }}
                 >
-                  <div className="sd-option-avatar">
-                    {opt.badge ?? initialsFor(opt.label)}
-                  </div>
+                  {!hideAvatar && (
+                    <div
+                      className="sd-option-avatar"
+                      style={opt.badge ? undefined : {
+                        backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
+                        color: opt.avatarUrl ? undefined : '#fff',
+                        borderColor: opt.avatarUrl ? undefined : 'transparent',
+                      }}
+                    >
+                      {opt.badge
+                        ? opt.badge
+                        : opt.avatarUrl
+                          ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
+                          : initialsFor(opt.label)
+                      }
+                    </div>
+                  )}
                   <div className="sd-option-content">
                     <span className="sd-option-name">{opt.label}</span>
                     {opt.description && (
@@ -217,7 +266,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const triggerClasses = [
     "sd-trigger",
-    value ? "is-active" : "",
+    (Array.isArray(value) ? value.length > 0 : !!value) ? "is-active" : "",
     open ? "is-open" : "",
     disabled ? "is-disabled" : "",
     triggerLabel ? "" : "is-compact",
@@ -238,7 +287,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       }}
       placement="bottomLeft"
       overlayClassName="sd-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <div className={triggerClasses} style={style}>
         <div className="sd-trigger-content">
@@ -247,13 +296,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           )}
           <span className="sd-trigger-value">{displayLabel}</span>
         </div>
-        {allowClear && value ? (
+        {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
           <XIcon
             className="sd-trigger-clear"
             size={14}
             onClick={(e) => {
               e.stopPropagation();
-              if (!disabled) onChange?.(undefined);
+              if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
             }}
           />
         ) : (
@@ -276,7 +325,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   justify-content: space-between;
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 5px 12px;
   height: 42px;
   min-width: 150px;
@@ -294,12 +343,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   background: var(--bg-slate-50, #f8fafc);
 }
 .sd-trigger.is-active {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: #3b82f6;
+  background: #faf9ff;
 }
 .sd-trigger.is-open {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(68, 131, 232, 0.12);
 }
 .sd-trigger.is-disabled {
   opacity: 0.55;
@@ -464,7 +513,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 50%;
   background: var(--bg-slate-100, #f1f5f9);
   color: var(--text-slate-600, #475569);
   display: flex;
@@ -480,7 +529,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar > img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .sd-option-avatar-add {
   background: rgba(37, 99, 235,0.08);

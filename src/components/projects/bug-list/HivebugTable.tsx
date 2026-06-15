@@ -7,7 +7,6 @@ import {
   Link as LinkIcon,
   Plus,
   Archive,
-  Paperclip,
   Link2,
   Video,
 } from "lucide-react";
@@ -170,7 +169,7 @@ export default function HivebugTable({
                 onChange={(e) => onToggleAll(e.target.checked)}
               />
             </th>
-            <th>TITLE</th>
+            <th style={{ width: 240 }}>TITLE</th>
             <th style={{ width: 110 }}>SEVERITY</th>
             <th style={{ width: 120 }}>STATUS</th>
             <th style={{ width: 120 }}>BUG STATUS</th>
@@ -310,23 +309,8 @@ function BugRow({
               {bug.title || bug.description}
             </span>
           </div>
-          {((bug.attachments && bug.attachments.length > 0) || (bug.externalLinks && bug.externalLinks.length > 0)) && (
+          {bug.externalLinks && bug.externalLinks.length > 0 && (
             <div className="hb-title-indicators" onClick={(e) => e.stopPropagation()}>
-              {bug.attachments?.map((att, idx) => {
-                const isVideo = att.fileType?.startsWith("video/") || /\.(mp4|webm|ogg|mov)/i.test(att.fileUrl || "");
-                return (
-                  <Tooltip key={att.id || idx} title={`Attachment: ${att.fileName}`}>
-                    <a
-                      href={att.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hb-indicator"
-                    >
-                      {isVideo ? <Video size={11} /> : <Paperclip size={11} />}
-                    </a>
-                  </Tooltip>
-                );
-              })}
               {bug.externalLinks?.map((link, idx) => {
                 const isVideo = /youtube\.com|youtu\.be|loom\.com|vimeo\.com/i.test(link.url) || /\.(mp4|webm|ogg|mov)/i.test(link.url);
                 return (

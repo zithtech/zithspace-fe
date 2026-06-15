@@ -276,7 +276,7 @@ export default function ProjectTrashManagementPage() {
                   icon={<DeleteOutlined />}
                   loading={emptyTrash.isPending}
                   block
-                  style={{ borderRadius: 6, fontWeight: 600, height: 36 }}
+                  style={{ borderRadius: 6, fontWeight: 600, height: 36, backgroundColor: '#fff2f0', color: '#ff4d4f' }}
                   disabled={filteredProjects.length === 0 || isLoading}
                 >
                   Empty Trash
@@ -671,7 +671,7 @@ export default function ProjectTrashManagementPage() {
                                   title="Permanently delete project?"
                                   description="This action cannot be undone."
                                   onConfirm={() => permanentDelete.mutate(project.id)}
-                                  okText="Yes, purge"
+                                  okText="Yes, Delete"
                                   cancelText="Cancel"
                                   okButtonProps={{ danger: true, loading: permanentDelete.isPending }}
                                 >
@@ -856,11 +856,19 @@ export default function ProjectTrashManagementPage() {
           align-items: center;
         }
           
+        .premium-range-picker{
+          border: 1px dashed var(--border-color) !important;    
+          height: 36px !important;
+          border-radius: 6px !important;
+        }
 
         .premium-range-picker .ant-picker-input > input {
           font-size: 13px !important;
           padding: 8px !important;
           
+        }
+        .premium-range-picker:hover{
+          border: 1px dashed var(--border-color) !important;    
         }
 
         .premium-table .ant-table-tbody > tr > td {

@@ -1433,6 +1433,21 @@ const ProjectsManageContent: React.FC = () => {
           align-items: center;
         }
 
+        .pm2-sidebar .premium-range-picker {
+          border-radius: 6px !important;
+          border: 1px dashed var(--border-slate-200) !important;
+          height: 36px !important;
+        }
+
+        .pm2-sidebar .premium-range-picker:hover{
+          border: 1px dashed var(--border-color) !important;    
+        }
+        .pm2-sidebar .premium-range-picker .ant-picker-input > input {
+          font-size: 13px !important;
+          padding: 8px !important;
+          color: var(--text-slate-600) !important; 
+        }
+
         .pm2-view-btn {
           display: flex; align-items: center; gap: 10px; padding: 7px 10px;
           border-radius: 8px; background: transparent; border: none; cursor: pointer;
@@ -1483,10 +1498,10 @@ const ProjectsManageContent: React.FC = () => {
 
         .pm2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 6px;
         }
         .pm2-view-btn.active .pm2-view-count {
-          background: #BFDBFE; color: #1E3A8A;
+          background: #BFDBFE; color: #1E3A8A; border-radius: 6px;
         }
         [data-theme='dark'] .pm2-view-count { background: #1c232e; color: #64748b; }
         [data-theme='dark'] .pm2-view-btn.active .pm2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }

@@ -235,7 +235,13 @@ export default function PortalTeamPage() {
     : undefined;
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+    <div
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        backgroundColor: "#ffffff",
+      }}
+    >
       {/* Sticky Header */}
       <div
         className="saas-header-container portal-team-header-container"
@@ -319,7 +325,10 @@ export default function PortalTeamPage() {
         </AntRow>
       </div>
 
-      <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
+      <div
+        className="portal-team-content-container"
+        style={{ padding: "20px 40px 56px", maxWidth: 1280 }}
+      >
         {/* Stats strip */}
         <div
           style={{
@@ -548,6 +557,16 @@ export default function PortalTeamPage() {
           }
           .portal-team-header-title { color: #0f172a !important; }
           .portal-team-header-desc { color: #475569 !important; }
+
+          @media (max-width: 640px) {
+            .portal-team-header-container,
+            .saas-header-container.portal-team-header-container {
+              padding: 12px 16px !important;
+            }
+            .portal-team-content-container {
+              padding: 16px 16px 40px !important;
+            }
+          }
         `,
           }}
         />

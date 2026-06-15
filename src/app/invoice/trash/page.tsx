@@ -126,7 +126,6 @@ export default function InvoiceTrashPage() {
   >(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -148,6 +147,14 @@ export default function InvoiceTrashPage() {
 
   const invoices = data?.data ?? [];
   const total = data?.pagination?.total ?? 0;
+
+  const pageStart = total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
+  const pageEnd = Math.min(pagination.page * pagination.limit, total);
+  const pageCount = Math.max(1, Math.ceil(total / pagination.limit));
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [debouncedSearch, statusFilter, dateRange]);
 
   const filteredInvoices = useMemo(
     () =>
@@ -308,52 +315,36 @@ export default function InvoiceTrashPage() {
     }, 1000);
   };
 
-  // Stat tile — minimal accent strip
+  // Stat tile — standard stat card style
   const StatTile = ({
     label,
     value,
     icon: Icon,
-    accent,
+    color,
+    bgColor,
+    sub,
   }: {
     label: string;
     value: string | number;
     icon: any;
-    accent: string;
+    color: string;
+    bgColor: string;
+    sub?: string;
   }) => (
-    <div
-      className="rounded-2xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-      }}
-    >
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: accent }}
-      />
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          border: `1px solid ${accent}33`,
-        }}
-      >
-        <Icon size={18} strokeWidth={2.25} />
+    <div className="pp-stat-card">
+      <div className="pp-stat-top">
+        <div className="pp-stat-left">
+          <span className="pp-stat-icon" style={{ background: bgColor, color }}>
+            <Icon size={14} />
+          </span>
+          <span className="pp-stat-label">{label}</span>
+        </div>
       </div>
-      <div className="min-w-0">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {label}
+      <div className="pp-stat-bottom">
+        <div className="pp-stat-value-wrap">
+          <span className="pp-stat-value">{value}</span>
         </div>
-        <div
-          className="text-[22px] font-bold leading-tight tabular-nums"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {value}
-        </div>
+        {sub && <span className="pp-stat-period">{sub}</span>}
       </div>
     </div>
   );
@@ -430,11 +421,11 @@ export default function InvoiceTrashPage() {
       width: 140,
       render: (date: string) => (
         <span
-          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
           style={{
-            background: "#fef2f2",
-            color: "#991b1b",
-            border: "1px solid #fecaca",
+            background: "rgba(248,113,113,0.10)",
+            color: "#f87171",
+            border: "1px solid rgba(248,113,113,0.25)",
           }}
         >
           <Trash2 size={10} />
@@ -448,28 +439,61 @@ export default function InvoiceTrashPage() {
       width: 140,
       render: (status: string) => {
         const frontendStatus = fromBackendStatus(status);
+        const map: Record<string, { bg: string; color: string; border: string; label: string }> = {
+          paid: {
+            bg: "rgba(16,185,129,0.10)",
+            color: "#10b981",
+            border: "rgba(16,185,129,0.25)",
+            label: "Paid",
+          },
+          submitted: {
+            bg: "rgba(59,130,246,0.10)",
+            color: "#3b82f6",
+            border: "rgba(59,130,246,0.25)",
+            label: "Submitted",
+          },
+          pending: {
+            bg: "rgba(59,130,246,0.10)",
+            color: "#3b82f6",
+            border: "rgba(59,130,246,0.25)",
+            label: "Pending",
+          },
+          draft: {
+            bg: "rgba(100,116,139,0.10)",
+            color: "#64748b",
+            border: "rgba(100,116,139,0.25)",
+            label: "Draft",
+          },
+          overdue: {
+            bg: "rgba(248,113,113,0.10)",
+            color: "#f87171",
+            border: "rgba(248,113,113,0.25)",
+            label: "Overdue",
+          },
+        };
+        const cfg =
+          map[frontendStatus?.toLowerCase()] || {
+            bg: "rgba(100,116,139,0.10)",
+            color: "#64748b",
+            border: "rgba(100,116,139,0.25)",
+            label: frontendStatus || "Unknown",
+          };
         return (
-          <Tag
-            color={getStatusColor(frontendStatus)}
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
             style={{
-              padding: "4px 10px",
-              borderRadius: 12,
-              fontSize: 11,
-              fontWeight: 600,
-              lineHeight: "1",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              border: "none",
-              textTransform: "uppercase",
-              letterSpacing: "0.02em"
+              background: cfg.bg,
+              color: cfg.color,
+              border: `1px solid ${cfg.border}`,
+              textTransform: "uppercase"
             }}
           >
-            <div className="flex items-center gap-1.5 w-full">
-              {getStatusIcon(frontendStatus)}
-              <span>{frontendStatus}</span>
-            </div>
-          </Tag>
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: cfg.color }}
+            />
+            {cfg.label}
+          </span>
         );
       }
     },
@@ -480,7 +504,7 @@ export default function InvoiceTrashPage() {
       align: "right",
       render: (v) => (
         <span
-          className="text-[13px] font-semibold tabular-nums"
+          className="text-[12px] font-semibold tabular-nums"
           style={{ color: "var(--text-primary)" }}
         >
           ${Number(v || 0).toLocaleString()}
@@ -502,14 +526,14 @@ export default function InvoiceTrashPage() {
               <button
                 type="button"
                 onClick={() => handleRestore(record)}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors"
                 style={{
                   background: "var(--bg-secondary)",
-                  color: "#047857",
+                  color: "#10b981",
                   border: "1px solid var(--border-color)",
                 }}
               >
-                <RotateCcw size={12} strokeWidth={2.25} />
+                <RotateCcw size={11} strokeWidth={2.25} />
                 Restore
               </button>
             </Tooltip>
@@ -520,14 +544,14 @@ export default function InvoiceTrashPage() {
                 type="button"
                 onClick={() => openDeleteModal(record)}
                 disabled={deletingId === record.id}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-60"
                 style={{
                   background: "var(--bg-secondary)",
-                  color: "#dc2626",
+                  color: "#f87171",
                   border: "1px solid var(--border-color)",
                 }}
               >
-                <Trash2 size={12} strokeWidth={2.25} />
+                <Trash2 size={11} strokeWidth={2.25} />
                 Delete
               </button>
             </Tooltip>
@@ -566,7 +590,7 @@ export default function InvoiceTrashPage() {
         style={{
           margin: "0 -24px",
           background: "var(--customers-page-bg)",
-          minHeight: "calc(100vh - 64px)",
+          minHeight: "calc(100vh - 54px)",
         }}
       >
         {/* TOP BAR */}
@@ -578,41 +602,41 @@ export default function InvoiceTrashPage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 py-3 md:py-0 min-h-[56px] md:h-14 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div className="px-6 py-2 md:py-0 min-h-[48px] md:h-12 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => router.push("/invoice/invoices")}
-                  className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                  className="p-1 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
                   aria-label="Back"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={16} />
                 </button>
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{
-                    background: "#fef2f2",
-                    color: "#dc2626",
-                    border: "1px solid #fecaca",
+                    background: "rgba(248,113,113,0.1)",
+                    color: "#f87171",
+                    border: "1px solid rgba(248,113,113,0.2)",
                   }}
                 >
-                  <Trash2 size={14} strokeWidth={2.25} />
+                  <Trash2 size={13} strokeWidth={2.25} />
                 </div>
                 <span
-                  className="text-[14px] font-semibold"
+                  className="text-[13px] font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
                   Trash
                 </span>
               </div>
               <span
-                className="h-4 w-px hidden sm:inline"
+                className="h-3 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[11.5px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Review and restore deleted invoices, or remove them permanently
@@ -624,7 +648,7 @@ export default function InvoiceTrashPage() {
                 <Button
                   icon={
                     <RefreshCw
-                      size={14}
+                      size={13}
                       className={isFetching ? "animate-spin" : ""}
                     />
                   }
@@ -636,19 +660,21 @@ export default function InvoiceTrashPage() {
                   }}
                   className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{
-                    borderRadius: 8,
-                    height: 36,
+                    borderRadius: 6,
+                    height: 30,
+                    width: 30,
                   }}
                 />
               </Tooltip>
               <Button
-                icon={<ChevronLeft size={14} />}
+                icon={<ChevronLeft size={13} />}
                 onClick={() => router.push("/invoice/invoices")}
                 className="flex-1 md:flex-initial flex items-center justify-center"
                 style={{
-                  borderRadius: 8,
-                  height: 36,
+                  borderRadius: 6,
+                  height: 30,
                   fontWeight: 600,
+                  fontSize: 12,
                 }}
               >
                 <span>Back to invoices</span>
@@ -657,21 +683,23 @@ export default function InvoiceTrashPage() {
           </div>
         </div>
 
-        <div className="px-8 pt-6 pb-12">
+        <div className="px-6 pt-4 pb-8">
           <div className="mx-auto max-w-[1600px]">
             {/* STATS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <StatTile
                 label="Trashed invoices"
                 value={isLoading ? "—" : total}
                 icon={Trash2}
-                accent="#ef4444"
+                color="#f87171"
+                bgColor="rgba(248,113,113,0.1)"
               />
               <StatTile
                 label="Affected customers"
                 value={isLoading ? "—" : customerCount}
                 icon={Users}
-                accent="#2563eb"
+                color="#3B82F6"
+                bgColor="rgba(59,130,246,0.1)"
               />
               <StatTile
                 label="Total amount"
@@ -679,69 +707,75 @@ export default function InvoiceTrashPage() {
                   isLoading ? "—" : `$${totalAmount.toLocaleString()}`
                 }
                 icon={Inbox}
-                accent="#f59e0b"
+                color="#64748b"
+                bgColor="rgba(100,116,139,0.1)"
               />
             </div>
 
-            {/* TOOLS */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setShowFilters((v) => !v)}
-                  className="inline-flex items-center gap-2 h-9 px-3 rounded-lg text-[13px] font-medium transition-all"
-                  style={{
-                    background: showFilters
-                      ? "var(--bg-blue-50)"
-                      : "var(--bg-secondary)",
-                    color: showFilters
-                      ? "var(--text-blue-700)"
-                      : "var(--text-secondary)",
-                    border: `1px solid ${
-                      showFilters
-                        ? "var(--border-blue-200)"
-                        : "var(--border-color)"
-                    }`,
-                    boxShadow: showFilters
-                      ? "0 0 0 3px rgba(96,165,250,0.12)"
-                      : "none",
-                  }}
+            {/* FILTERS — all on one line */}
+            <div
+              className="flex flex-wrap items-center gap-2 mb-2.5 px-3 py-2"
+              style={{
+                background: "var(--bg-secondary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 0,
+              }}
+            >
+              {/* Status */}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"
+                  style={{ color: "var(--text-secondary)" }}
                 >
-                  <FilterIcon size={13} strokeWidth={2.25} />
-                  Filters
-                  {filterCount > 0 && (
-                    <span
-                      className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-md text-[11px] font-semibold tabular-nums"
-                      style={{
-                        background: "white",
-                        color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
-                      }}
-                    >
-                      {filterCount}
-                    </span>
-                  )}
-                </button>
-                {filterCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter(null);
-                      setDateRange(null);
-                    }}
-                    className="text-[12px] font-medium hover:underline"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Clear
-                  </button>
-                )}
+                  Status
+                </span>
+                <Select
+                  placeholder="Any status"
+                  allowClear
+                  value={statusFilter}
+                  onChange={(value) => setStatusFilter(value)}
+                  style={{ width: 150, height: 30 }}
+                  size="small"
+                  options={[
+                    { label: "Draft", value: "DRAFT" },
+                    { label: "Pending", value: "PENDING" },
+                    { label: "Approved", value: "APPROVED" },
+                    { label: "Sent", value: "SENT" },
+                    { label: "Paid", value: "PAID" },
+                    { label: "Partially Paid", value: "PARTIALLY_PAID" },
+                    { label: "Overdue", value: "OVERDUE" },
+                    { label: "Cancelled", value: "CANCELLED" },
+                  ]}
+                />
               </div>
 
+              <span className="h-4 w-px" style={{ background: "var(--border-color)" }} />
+
+              {/* Date Range */}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Date range
+                </span>
+                <RangePicker
+                  value={dateRange as any}
+                  onChange={(values) => setDateRange(values)}
+                  allowClear
+                  size="small"
+                  style={{ height: 30, borderRadius: 6 }}
+                />
+              </div>
+
+              <span className="h-4 w-px" style={{ background: "var(--border-color)" }} />
+
+              {/* Search */}
               <Input
                 placeholder="Search by invoice number or customer..."
                 prefix={
                   <Search
-                    size={14}
+                    size={13}
                     style={{ color: "var(--text-secondary)" }}
                   />
                 }
@@ -749,85 +783,48 @@ export default function InvoiceTrashPage() {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 style={{
-                  width: 320,
-                  height: 36,
-                  borderRadius: 8,
+                  width: 260,
+                  height: 30,
+                  borderRadius: 6,
                   background: "var(--bg-secondary)",
                   borderColor: "var(--border-color)",
+                  fontSize: 12,
                 }}
               />
-            </div>
 
-            {/* FILTER PANEL */}
-            {showFilters && (
-              <div
-                className="rounded-2xl p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <div>
-                  <div
-                    className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Status
-                  </div>
-                  <Select
-                    className="w-full"
-                    placeholder="Any status"
-                    allowClear
-                    value={statusFilter}
-                    onChange={(value) => setStatusFilter(value)}
-                    style={{ height: 38 }}
-                    options={[
-                      { label: "Draft", value: "DRAFT" },
-                      { label: "Pending", value: "PENDING" },
-                      { label: "Approved", value: "APPROVED" },
-                      { label: "Sent", value: "SENT" },
-                      { label: "Paid", value: "PAID" },
-                      { label: "Partially Paid", value: "PARTIALLY_PAID" },
-                      { label: "Overdue", value: "OVERDUE" },
-                      { label: "Cancelled", value: "CANCELLED" },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <div
-                    className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Invoice date range
-                  </div>
-                  <RangePicker
-                    className="w-full"
-                    value={dateRange as any}
-                    onChange={(values) => setDateRange(values)}
-                    allowClear
-                    style={{ height: 38, borderRadius: 8 }}
-                  />
-                </div>
-              </div>
-            )}
+              {/* Clear */}
+              {filterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(null);
+                    setDateRange(null);
+                  }}
+                  className="text-[11.5px] font-medium hover:underline"
+                  style={{ color: "#f87171" }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
             {/* SELECTION BAR */}
             {selectedRowKeys.length > 0 && (
               <div
-                className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
+                className="rounded-none px-3.5 py-1.5 mb-2.5 flex items-center justify-between"
                 style={{
-                  background: "var(--bg-blue-50)",
-                  border: "1px solid var(--border-blue-200)",
+                  background: "rgba(59,130,246,0.1)",
+                  border: "1px solid rgba(59,130,246,0.2)",
                 }}
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle2
                     size={14}
-                    style={{ color: "var(--text-blue-700)" }}
+                    style={{ color: "#3B82F6" }}
                   />
                   <span
-                    className="text-[12.5px] font-semibold"
-                    style={{ color: "var(--text-blue-700)" }}
+                    className="text-[12px] font-semibold"
+                    style={{ color: "#3B82F6" }}
                   >
                     {selectedRowKeys.length} selected
                   </span>
@@ -836,12 +833,13 @@ export default function InvoiceTrashPage() {
                   {canRestoreInvoiceTrash && (
                     <Button
                       size="small"
-                      icon={<RotateCcw size={13} />}
+                      icon={<RotateCcw size={12} />}
                       onClick={handleBulkRestore}
                       loading={bulkRestoreMutation.isPending}
                       style={{
-                        borderRadius: 8,
-                        height: 32,
+                        borderRadius: 6,
+                        height: 28,
+                        fontSize: 11.5,
                         fontWeight: 600,
                       }}
                     >
@@ -853,13 +851,15 @@ export default function InvoiceTrashPage() {
                       size="small"
                       danger
                       type="primary"
-                      icon={<Trash2 size={13} />}
+                      icon={<Trash2 size={12} />}
                       onClick={openBulkDeleteModal}
                       loading={bulkDeleteProgress.isDeleting}
                       style={{
-                        borderRadius: 8,
-                        height: 32,
+                        borderRadius: 6,
+                        height: 28,
+                        fontSize: 11.5,
                         fontWeight: 600,
+                        background: "#f87171",
                       }}
                     >
                       Delete permanently
@@ -871,10 +871,10 @@ export default function InvoiceTrashPage() {
                       setSelectedRowKeys([]);
                       setSelectedInvoices([]);
                     }}
-                    className="p-1.5 rounded-md transition-colors hover:bg-white"
+                    className="p-1 rounded-md transition-colors hover:bg-white"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    <X size={14} />
+                    <X size={13} />
                   </button>
                 </div>
               </div>
@@ -883,7 +883,7 @@ export default function InvoiceTrashPage() {
             {/* CONTENT */}
             {isLoading || (filteredInvoices.length === 0 && isFetching) ? (
               <div
-                className="flex flex-col justify-center items-center h-64 rounded-2xl"
+                className="flex flex-col justify-center items-center h-64 rounded-none"
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-color)",
@@ -893,21 +893,21 @@ export default function InvoiceTrashPage() {
               </div>
             ) : filteredInvoices.length === 0 ? (
               <div
-                className="flex flex-col items-center justify-center py-20 rounded-2xl"
+                className="flex flex-col items-center justify-center py-20 rounded-none"
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1.5px dashed var(--border-color)",
                 }}
               >
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  className="w-12 h-12 rounded-lg flex items-center justify-center mb-3.5"
                   style={{
-                    background: "#fef2f2",
-                    color: "#dc2626",
-                    border: "1px solid #fecaca",
+                    background: "rgba(248,113,113,0.1)",
+                    color: "#f87171",
+                    border: "1px solid rgba(248,113,113,0.2)",
                   }}
                 >
-                  <Trash2 size={24} strokeWidth={2} />
+                  <Trash2 size={20} strokeWidth={2} />
                 </div>
                 <Title
                   level={5}
@@ -915,6 +915,7 @@ export default function InvoiceTrashPage() {
                     color: "var(--text-primary)",
                     margin: 0,
                     fontWeight: 700,
+                    fontSize: 14,
                   }}
                 >
                   {searchText || filterCount > 0
@@ -924,9 +925,9 @@ export default function InvoiceTrashPage() {
                 <Typography.Text
                   style={{
                     color: "var(--text-secondary)",
-                    fontSize: 13,
-                    marginTop: 6,
-                    marginBottom: 20,
+                    fontSize: 12,
+                    marginTop: 4,
+                    marginBottom: 16,
                   }}
                 >
                   {searchText || filterCount > 0
@@ -935,11 +936,12 @@ export default function InvoiceTrashPage() {
                 </Typography.Text>
                 {!searchText && filterCount === 0 && (
                   <Button
-                    icon={<ChevronLeft size={14} />}
+                    icon={<ChevronLeft size={13} />}
                     onClick={() => router.push("/invoice/invoices")}
                     style={{
-                      borderRadius: 8,
-                      height: 38,
+                      borderRadius: 6,
+                      height: 32,
+                      fontSize: 12,
                       fontWeight: 600,
                     }}
                   >
@@ -949,7 +951,7 @@ export default function InvoiceTrashPage() {
               </div>
             ) : (
               <div
-                className="rounded-2xl overflow-hidden"
+                className="rounded-none overflow-hidden"
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-color)",
@@ -964,17 +966,7 @@ export default function InvoiceTrashPage() {
                     ...inv,
                     key: inv.id,
                   }))}
-                  pagination={{
-                    total,
-                    current: pagination.page,
-                    pageSize: pagination.limit,
-                    onChange: (page, limit) => setPagination({ page, limit }),
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    style: { padding: "12px 20px" },
-                    showTotal: (t, range) =>
-                      `${range[0]}–${range[1]} of ${t}`,
-                  }}
+                  pagination={false}
                   scroll={{ x: 1100 }}
                   className="trash-table"
                 />
@@ -982,24 +974,90 @@ export default function InvoiceTrashPage() {
             )}
           </div>
         </div>
+
+        {/* Sticky footer pagination */}
+        {total > 0 && (
+          <div className="pp-footer pp-footer--sticky">
+            <div className="pp-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+            </div>
+            <div className="pp-pager">
+              <button
+                type="button"
+                className="pp-pager-btn"
+                disabled={pagination.page <= 1}
+                onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+              >
+                ‹
+              </button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1)
+                .slice(Math.max(0, pagination.page - 3), Math.max(0, pagination.page - 3) + 5)
+                .map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`pp-pager-num ${p === pagination.page ? "is-active" : ""}`}
+                    onClick={() => setPagination((prev) => ({ ...prev, page: p }))}
+                  >
+                    {p}
+                  </button>
+                ))}
+              <button
+                type="button"
+                className="pp-pager-btn"
+                disabled={pagination.page >= pageCount}
+                onClick={() => setPagination((p) => ({ ...p, page: Math.min(pageCount, p.page + 1) }))}
+              >
+                ›
+              </button>
+              <Select
+                className="pp-pagesize"
+                value={pagination.limit}
+                onChange={(v) => setPagination({ page: 1, limit: v })}
+                options={[5, 10, 15, 25, 50, 100].map((n) => ({
+                  value: n,
+                  label: `${n} / page`,
+                }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        .pp-stat-card {
+          background: var(--bg-pure-white, #fff); border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 0; padding: 10px 12px; min-height: 84px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-600, #475569); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900, #0f172a); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400, #94a3b8); font-weight: 500; }
+
         .trash-table .ant-table-thead > tr > th {
           background-color: var(--bg-slate-50) !important;
           color: var(--text-secondary) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          padding: 10px 16px !important;
+          font-weight: 650 !important;
+          font-size: 10.5px !important;
+          padding: 6px 12px !important;
           white-space: nowrap !important;
-          letter-spacing: 0.06em !important;
+          letter-spacing: 0.05em !important;
           border-bottom: 1px solid var(--border-color) !important;
+          text-transform: uppercase !important;
         }
         .trash-table .ant-table-tbody > tr > td {
-          padding: 14px 16px !important;
+          padding: 8px 12px !important;
           border-bottom: 1px solid var(--border-color) !important;
+          font-size: 12px !important;
         }
         .trash-table .ant-table-row:hover > td {
           background-color: var(--bg-slate-50) !important;
@@ -1007,6 +1065,32 @@ export default function InvoiceTrashPage() {
         .trash-table .ant-table-tbody > tr:last-child > td {
           border-bottom: none !important;
         }
+
+        /* Footer + pager */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+          padding: 10px 14px; border-top: 1px solid var(--border-slate-200, #e2e8f0);
+        }
+        .pp-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          margin: 16px 0 0 0;
+          padding: 0 24px;
+          background: var(--bg-pure-white, #fff);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 48px;
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500, #64748b); }
+        .pp-footer-info strong { color: var(--text-slate-700, #334155); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200, #e2e8f0);
+          background: var(--bg-pure-white, #fff); color: var(--text-slate-600, #475569); cursor: pointer; font-size: 12.5px; font-weight: 600;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
       `,
         }}
       />
@@ -1028,7 +1112,7 @@ export default function InvoiceTrashPage() {
             backdropFilter: "blur(4px)",
             background: "rgba(15, 23, 42, 0.45)",
           },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" },
         }}
       >
         <div
@@ -1042,9 +1126,9 @@ export default function InvoiceTrashPage() {
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{
-                background: "#fef2f2",
-                color: "#dc2626",
-                border: "1px solid #fecaca",
+                background: "rgba(248,113,113,0.1)",
+                color: "#f87171",
+                border: "1px solid rgba(248,113,113,0.2)",
               }}
             >
               <Trash2 size={18} strokeWidth={2.25} />
@@ -1091,7 +1175,7 @@ export default function InvoiceTrashPage() {
             </p>
 
             <div
-              className="rounded-lg overflow-hidden mb-4"
+              className="rounded-none overflow-hidden mb-4"
               style={{ border: "1px solid var(--border-color)" }}
             >
               <div
@@ -1133,18 +1217,18 @@ export default function InvoiceTrashPage() {
             </div>
 
             <div
-              className="rounded-lg p-3 mb-5 flex items-start gap-2"
+              className="rounded-none p-3 mb-5 flex items-start gap-2"
               style={{
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
+                background: "rgba(248,113,113,0.1)",
+                border: "1px solid rgba(248,113,113,0.2)",
               }}
             >
               <AlertCircle
                 size={14}
                 className="mt-0.5 flex-shrink-0"
-                style={{ color: "#dc2626" }}
+                style={{ color: "#f87171" }}
               />
-              <span className="text-[12px]" style={{ color: "#991b1b" }}>
+              <span className="text-[12px]" style={{ color: "#f87171" }}>
                 The invoice will be removed from the database and cannot be
                 restored.
               </span>
@@ -1156,7 +1240,7 @@ export default function InvoiceTrashPage() {
                   setDeleteModalVisible(false);
                   setInvoiceToDelete(null);
                 }}
-                style={{ borderRadius: 8, height: 36 }}
+                style={{ borderRadius: 6, height: 32 }}
               >
                 Cancel
               </Button>
@@ -1165,7 +1249,7 @@ export default function InvoiceTrashPage() {
                 type="primary"
                 loading={deletingId === invoiceToDelete.id}
                 onClick={handlePermanentDelete}
-                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                style={{ borderRadius: 6, height: 32, fontWeight: 600, background: "#f87171" }}
               >
                 Delete permanently
               </Button>
@@ -1188,7 +1272,7 @@ export default function InvoiceTrashPage() {
             backdropFilter: "blur(4px)",
             background: "rgba(15, 23, 42, 0.45)",
           },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" },
         }}
       >
         <div
@@ -1202,9 +1286,9 @@ export default function InvoiceTrashPage() {
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{
-                background: "#fef2f2",
-                color: "#dc2626",
-                border: "1px solid #fecaca",
+                background: "rgba(248,113,113,0.1)",
+                color: "#f87171",
+                border: "1px solid rgba(248,113,113,0.2)",
               }}
             >
               <Trash2 size={18} strokeWidth={2.25} />
@@ -1228,7 +1312,7 @@ export default function InvoiceTrashPage() {
 
         <div className="px-6 py-5">
           <div
-            className="rounded-lg p-3 mb-4 max-h-64 overflow-y-auto"
+            className="rounded-none p-3 mb-4 max-h-64 overflow-y-auto"
             style={{
               background: "var(--bg-slate-50)",
               border: "1px solid var(--border-color)",
@@ -1272,18 +1356,18 @@ export default function InvoiceTrashPage() {
           </div>
 
           <div
-            className="rounded-lg p-3 mb-5 flex items-start gap-2"
+            className="rounded-none p-3 mb-5 flex items-start gap-2"
             style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
+              background: "rgba(248,113,113,0.1)",
+              border: "1px solid rgba(248,113,113,0.2)",
             }}
           >
             <AlertCircle
               size={14}
               className="mt-0.5 flex-shrink-0"
-              style={{ color: "#dc2626" }}
+              style={{ color: "#f87171" }}
             />
-            <span className="text-[12px]" style={{ color: "#991b1b" }}>
+            <span className="text-[12px]" style={{ color: "#f87171" }}>
               All selected invoices will be permanently removed from the
               database.
             </span>
@@ -1292,7 +1376,7 @@ export default function InvoiceTrashPage() {
           <div className="flex items-center justify-end gap-2">
             <Button
               onClick={() => setBulkDeleteModalVisible(false)}
-              style={{ borderRadius: 8, height: 36 }}
+              style={{ borderRadius: 6, height: 32 }}
             >
               Cancel
             </Button>
@@ -1300,7 +1384,7 @@ export default function InvoiceTrashPage() {
               danger
               type="primary"
               onClick={startBulkDelete}
-              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+              style={{ borderRadius: 6, height: 32, fontWeight: 600, background: "#f87171" }}
             >
               Delete {selectedInvoices.length} invoices
             </Button>
@@ -1322,7 +1406,7 @@ export default function InvoiceTrashPage() {
             backdropFilter: "blur(4px)",
             background: "rgba(15, 23, 42, 0.45)",
           },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" },
         }}
       >
         <div
@@ -1336,9 +1420,9 @@ export default function InvoiceTrashPage() {
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{
-                background: "var(--bg-blue-50)",
-                color: "var(--text-blue-700)",
-                border: "1px solid var(--border-blue-200)",
+                background: "rgba(59,130,246,0.1)",
+                color: "#3B82F6",
+                border: "1px solid rgba(59,130,246,0.2)",
               }}
             >
               <RefreshCw size={18} strokeWidth={2.25} className="animate-spin" />
@@ -1381,15 +1465,15 @@ export default function InvoiceTrashPage() {
             )}
             status={bulkDeleteProgress.failed > 0 ? "exception" : "active"}
             strokeColor={
-              bulkDeleteProgress.failed > 0 ? undefined : "#2563eb"
+              bulkDeleteProgress.failed > 0 ? undefined : "#3B82F6"
             }
-            strokeWidth={8}
+            strokeWidth={6}
             showInfo={false}
           />
           <div className="flex justify-between text-[11px] mt-2">
             <span
               className="inline-flex items-center gap-1.5"
-              style={{ color: "#047857" }}
+              style={{ color: "#10b981" }}
             >
               <CheckCircle2 size={11} /> Success:{" "}
               {bulkDeleteProgress.completed - bulkDeleteProgress.failed}
@@ -1397,7 +1481,7 @@ export default function InvoiceTrashPage() {
             {bulkDeleteProgress.failed > 0 && (
               <span
                 className="inline-flex items-center gap-1.5"
-                style={{ color: "#dc2626" }}
+                style={{ color: "#f87171" }}
               >
                 <XCircle size={11} /> Failed: {bulkDeleteProgress.failed}
               </span>

@@ -3,6 +3,8 @@
 import React, { Suspense, useState, useEffect } from "react";
 import {
   App,
+  Skeleton,
+  Dropdown,
   Table,
   Button,
   Input,
@@ -23,6 +25,7 @@ import {
   Divider,
   Segmented,
   Empty,
+  Pagination,
   theme as antdTheme,
   ConfigProvider,
 } from "antd";
@@ -46,6 +49,10 @@ import {
 } from "@ant-design/icons";
 import {
   FolderKanban,
+  Eye,
+  Settings2,
+  Trash2,
+  MoreHorizontal,
   Rocket,
   PauseCircle,
   CheckCircle2,
@@ -69,6 +76,50 @@ import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
 import { ProjectFormDrawer } from "@/components/projects/ProjectFormDrawer";
+
+const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
 
 // Extend dayjs with relativeTime plugin
 dayjs.extend(relativeTime);
@@ -207,13 +258,22 @@ const ProjectsManageContent: React.FC = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const response = await ProjectService.getProjects(filters);
-      setProjects(response.data);
-      console.log({ projects: response.data });
+      const { status, ...apiFilters } = filters;
+      const response = await ProjectService.getProjects(apiFilters);
+
+      let filteredProjects = response.data;
+      if (status) {
+        filteredProjects = filteredProjects.filter(
+          (project) => project.status?.toLowerCase() === status.toLowerCase()
+        );
+      }
+
+      setProjects(filteredProjects);
+      console.log({ projects: filteredProjects });
       setPagination({
         current: response.pagination.current,
         pageSize: response.pagination.pageSize,
-        total: response.pagination.total,
+        total: status ? filteredProjects.length : response.pagination.total,
       });
     } catch (error) {
       message.error("Failed to load projects");
@@ -281,9 +341,9 @@ const ProjectsManageContent: React.FC = () => {
   // Stats calculation
   const stats = {
     total: projects.length,
-    active: projects.filter((p) => p.status === "active").length,
-    onHold: projects.filter((p) => p.status === "on-hold").length,
-    completed: projects.filter((p) => p.status === "completed").length,
+    active: projects.filter((p) => p.status?.toLowerCase() === "active").length,
+    onHold: projects.filter((p) => p.status?.toLowerCase() === "on-hold").length,
+    completed: projects.filter((p) => p.status?.toLowerCase() === "completed").length,
   };
 
   // Handle project manager change - automatically add to team members
@@ -409,7 +469,7 @@ const ProjectsManageContent: React.FC = () => {
   const getPriorityColor = (priority: string) => {
     const colors = {
       high: "red",
-      medium: "orange",
+      medium: "blue",
       low: "green",
     };
     return colors[priority as keyof typeof colors] || "default";
@@ -469,7 +529,7 @@ const ProjectsManageContent: React.FC = () => {
           <Avatar
             size="small"
             src={record?.projectManager?.avatarUrl}
-            style={{ backgroundColor: "rgba(245, 106, 0, 0.2)", border: "1px solid var(--border-color)" }}
+            style={{ backgroundColor: '#3b82f6' }}
           >
             {record?.projectManager?.name.charAt(0)}
           </Avatar>
@@ -700,786 +760,2086 @@ const ProjectsManageContent: React.FC = () => {
 
   const hasActiveFilters = !!(filters.search || filters.status || filters.projectManagerId || filters.startDate);
 
+  // ─── Premium dropdown action menu ──────────────────────────────────────────
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pm2-menu-item">
+      <span className="pm2-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pm2-menu-text">
+        <span className="pm2-menu-title">{title}</span>
+        <span className="pm2-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
   return (
-    <MainLayout>
-      <div style={{
-        margin: "0 -24px",
-        background: "var(--bg-pure-white)",
-        minHeight: "calc(100vh - 64px)"
-      }}>
-        {/* Premium Header */}
-        <TimeTrackingHeader
-          icon={<ApartmentOutlined style={{ fontSize: 18, color: "var(--premium-blue)" }} />}
-          title="Projects Management"
-          description="Oversee and orchestrate every initiative across your organization"
-          style={{
-            padding: '10.5px 32px',
-            borderBottom: '1px solid var(--border-slate-200)',
-            marginBottom: 20,
-            position: "sticky",
-            top: 0,
-            zIndex: 100,
-            background: "var(--bg-pure-white)"
-          }}
-          extra={
-            <Space size={10} align="center">
-              <Tooltip title="Refresh view">
-                <Button
-                  icon={<ReloadOutlined spin={isRefreshing} />}
-                  onClick={async () => {
-                    setIsRefreshing(true);
-                    await loadProjects();
-                    setIsRefreshing(false);
-                    message.success("Projects view synchronized");
-                  }}
-                  loading={loading}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "transparent",
-                    borderColor: "var(--border-color)"
-                  }}
-                />
-              </Tooltip>
-              <Segmented
-                value={viewMode}
-                onChange={(v) => setViewMode(v as "card" | "table")}
-                options={[
-                  { label: "Card", value: "card", icon: <AppstoreOutlined style={{ fontSize: 12 }} /> },
-                  { label: "List", value: "table", icon: <BarsOutlined style={{ fontSize: 12 }} /> },
-                ]}
-                className="saas-segmented-premium"
-              />
-              {canCreateProject && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAdd}
-                  style={{
-                    height: 34,
-                    padding: "0 14px",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                  }}
-                >
-                  Add Project
-                </Button>
-              )}
-            </Space>
-          }
-        />
-
-        <div style={{ padding: "0 32px 32px" }}>
-
-          {/* Stats Row */}
-          <div className="pm-stat-grid">
-            <StatCard
-              label="Total Projects"
-              value={stats.total}
-              icon={FolderKanban}
-              accent="#3b82f6"
-              subtle="Across all statuses"
-              chart={
-                stats.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: stats.active, color: "#10b981", label: `${stats.active} active` },
-                      { value: stats.onHold, color: "#f59e0b", label: `${stats.onHold} on hold` },
-                      { value: stats.completed, color: "#8b5cf6", label: `${stats.completed} completed` },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-            <StatCard
-              label="Active"
-              value={stats.active}
-              icon={Rocket}
-              accent="#10b981"
-              subtle={stats.total > 0 ? `${activePct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${activePct}%`,
-                          background: "linear-gradient(90deg, #10b981, #34d399)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{activePct}%</span>
+    <MainLayout noPadding>
+      <div className="pm2-page">
+        <div className="pm2-shell-wrap">
+          <div className="pm2-shell">
+            {/* ── Sidebar ───────────────────────────────────────────── */}
+            <aside className="pm2-sidebar">
+              <div className="pm2-sidebar-top">
+                <div className="pm2-sidebar-brand">
+                  <div className="pm2-hero-icon-box">
+                    <ApartmentOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
                   </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="On Hold"
-              value={stats.onHold}
-              icon={PauseCircle}
-              accent="#f59e0b"
-              subtle={stats.total > 0 ? `${onHoldPct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${onHoldPct}%`,
-                          background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{onHoldPct}%</span>
+                  <div className="min-w-0">
+                    <h1 className="pm2-sidebar-title">Projects Management</h1>
+                    <p className="pm2-sidebar-subtitle">Oversee initiatives</p>
                   </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="Completed"
-              value={stats.completed}
-              icon={CheckCircle2}
-              accent="#8b5cf6"
-              subtle={stats.total > 0 ? `${completedPct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${completedPct}%`,
-                          background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{completedPct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-
-          {/* Filter / All Projects Bar */}
-          <div style={{
-            marginBottom: 20,
-            padding: "12px 16px",
-            borderRadius: 12,
-            background: "var(--bg-secondary, #f8fafc)",
-            border: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-            justifyContent: "space-between",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 3, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
-              <Text strong style={{ fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-                All Projects
-              </Text>
-              <span style={{
-                padding: "1px 8px",
-                borderRadius: 999,
-                background: "var(--bg-blue-50)",
-                color: "var(--premium-blue)",
-                border: "1px solid var(--border-blue-200)",
-                fontSize: 11,
-                fontWeight: 700,
-              }}>
-                {projects.length}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Input
-                placeholder="Search projects..."
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={filters.search || ""}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="saas-input"
-                style={{ width: 240, height: 36, borderRadius: 8, background: 'transparent' }}
-                allowClear
-              />
-              <Select
-                placeholder="Status"
-                value={filters.status}
-                onChange={handleStatusFilter}
-                style={{ width: 150, height: 36 }}
-                allowClear
-                styles={{ popup: { root: { borderRadius: 12 } } }}
-              >
-                <Option value="planning">Planning</Option>
-                <Option value="active">Active</Option>
-                <Option value="on-hold">On Hold</Option>
-                <Option value="completed">Completed</Option>
-                <Option value="cancelled">Cancelled</Option>
-              </Select>
-              <Select
-                placeholder="Project Manager"
-                value={filters.projectManagerId}
-                onChange={handleProjectManagerFilter}
-                style={{ width: 200, height: 36 }}
-                allowClear
-                showSearch
-                styles={{ popup: { root: { borderRadius: 12 } } }}
-                filterOption={(input, option) => {
-                  const member = members.find((m) => m.value === option?.value);
-                  return member
-                    ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
-                    String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
-                    : false;
-                }}
-              >
-                {members.map((member) => (
-                  <Option key={member.value} value={member.value}>
-                    {member.label}
-                  </Option>
-                ))}
-              </Select>
-              <RangePicker
-                placeholder={["Start", "End"]}
-                onChange={handleDateRangeFilter}
-                style={{ width: 220, height: 36, borderRadius: 8 }}
-              />
-              {hasActiveFilters && (
-                <Button
-                  type="text"
-                  danger
-                  onClick={() => setFilters({ page: 1, limit: 10 })}
-                  style={{ fontWeight: 600, height: 36 }}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-
-
-          {/* Projects Card View - DASHBOARD STYLE */}
-          {viewMode === "card" ? (
-            projects.length === 0 && !loading ? (
-              <div style={{
-                padding: "64px 24px",
-                borderRadius: 16,
-                border: "1px dashed var(--border-color)",
-                textAlign: "center",
-                background: "var(--bg-pure-white)",
-              }}>
-                <Empty
-                  description={
-                    <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
-                      {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
-                    </Text>
-                  }
-                >
-                  {!hasActiveFilters && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleAdd}
-                      style={{ borderRadius: 8, fontWeight: 600 }}
-                    >
-                      Add Project
-                    </Button>
-                  )}
-                </Empty>
+                </div>
+                {canCreateProject && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    className="pm2-side-create"
+                    block
+                    onClick={handleAdd}
+                  >
+                    Add Project
+                  </Button>
+                )}
               </div>
-            ) : (
-              <Row gutter={[20, 20]}>
-                {loading
-                  ? [1, 2, 3, 4, 5, 6].map((i) => (
-                    <Col xs={24} sm={12} lg={8} xl={8} key={i}>
-                      <Card
-                        loading
+
+              <div className="pm2-sidebar-scroll">
+                {/* Views */}
+                <div className="pm2-side-group" style={{ marginTop: 22 }}>
+                  <div className="pm2-side-label">Views</div>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      className={`pm2-view-btn ${!hasActiveFilters ? 'active' : ''}`}
+                      onClick={() => setFilters({ page: 1, limit: 10 })}
+                    >
+                      <FolderKanban className="pm2-view-icon" size={16} />
+                      <span className="pm2-view-label">All projects</span>
+                      <span className="pm2-view-count">{stats.total}</span>
+                    </button>
+                    <button
+                      className={`pm2-view-btn ${filters.status === 'active' ? 'active' : ''}`}
+                      onClick={() => setFilters({ page: 1, limit: 10, status: 'active' })}
+                    >
+                      <Rocket className="pm2-view-icon" size={16} />
+                      <span className="pm2-view-label">Active</span>
+                      <span className="pm2-view-count">{stats.active}</span>
+                    </button>
+                    <button
+                      className={`pm2-view-btn ${filters.status === 'on-hold' ? 'active' : ''}`}
+                      onClick={() => setFilters({ page: 1, limit: 10, status: 'on-hold' })}
+                    >
+                      <PauseCircle className="pm2-view-icon" size={16} />
+                      <span className="pm2-view-label">On Hold</span>
+                      <span className="pm2-view-count">{stats.onHold}</span>
+                    </button>
+                    <button
+                      className={`pm2-view-btn ${filters.status === 'completed' ? 'active' : ''}`}
+                      onClick={() => setFilters({ page: 1, limit: 10, status: 'completed' })}
+                    >
+                      <CheckCircle2 className="pm2-view-icon" size={16} />
+                      <span className="pm2-view-label">Completed</span>
+                      <span className="pm2-view-count">{stats.completed}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="pm2-side-group" style={{ marginTop: 22 }}>
+                  <div className="pm2-side-label">Filters</div>
+                  <div className="pm2-side-filters flex flex-col gap-2">
+                    <Select
+                      placeholder="Status"
+                      value={filters.status}
+                      onChange={handleStatusFilter}
+                      style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
+                      allowClear
+                      styles={{ popup: { root: { borderRadius: "6px !important" } } }}
+                      className="pm2-side-filter-select"
+                    >
+                      <Option value="planning">Planning</Option>
+                      <Option value="active">Active</Option>
+                      <Option value="on-hold">On Hold</Option>
+                      <Option value="completed">Completed</Option>
+                      <Option value="cancelled">Cancelled</Option>
+                    </Select>
+
+                    <Select
+                      placeholder="Project Manager"
+                      value={filters.projectManagerId}
+                      onChange={handleProjectManagerFilter}
+                      style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
+                      className="pm2-side-filter-select"
+                      allowClear
+                      showSearch
+                      styles={{ popup: { root: { borderRadius: "6px !important" } } }}
+                      filterOption={(input, option) => {
+                        const member = members.find((m) => m.value === option?.value);
+                        return member
+                          ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
+                          String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
+                          : false;
+                      }}
+                    >
+                      {members.map((member) => (
+                        <Option key={member.value} value={member.value}>
+                          {member.label}
+                        </Option>
+                      ))}
+                    </Select>
+
+                    <DatePicker.RangePicker
+                      className="premium-range-picker"
+                      placeholder={["Start", "End"]}
+                      onChange={handleDateRangeFilter}
+                      style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
+                      format="MMM D, YYYY"
+                    />
+
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        className="pm2-side-clear"
+                        onClick={() => setFilters({ page: 1, limit: 10 })}
+                      >
+                        <CloseOutlined style={{ fontSize: 10 }} />
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* ── Main ──────────────────────────────────────────────── */}
+            <main className="pm2-main">
+              {/* Toolbar */}
+              <div className="pm2-toolbar">
+                <div className="pm2-main-search">
+                  <Input
+                    placeholder="Search project name..."
+                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                    className="premium-search-input rounded-lg transition-all"
+                    style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
+                    value={filters.search || ""}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    allowClear
+                  />
+                </div>
+
+                <div className="pm2-main-stats">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="pm2-pulse-dot" />
+                    <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{projects.length}</span> {projects.length === 1 ? "result" : "results"}
+                  </span>
+                </div>
+
+                <div className="pm2-main-controls">
+                  <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                    <Tooltip title="List">
+                      <button
+                        onClick={() => setViewMode('table')}
+                        className={`flex items-center justify-center rounded-[8px] transition-colors`}
                         style={{
-                          height: 240,
-                          ...glassStyle,
-                          borderRadius: 16,
+                          width: 30, height: 30,
+                          background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
+                          color: viewMode === 'table' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
                         }}
-                      />
-                    </Col>
-                  ))
-                  : projects.map((project) => {
-                    const memberCount = project.members?.length || 0;
-                    const statusColorMap: Record<string, string> = {
-                      planning: "#3b82f6",
-                      active: "#10b981",
-                      "on-hold": "#f59e0b",
-                      completed: "#8b5cf6",
-                      cancelled: "#ef4444",
-                    };
-                    const accentColor = statusColorMap[project.status] || "#3b82f6";
-                    const priorityColor =
-                      project.defaultPriority === "high" ? "#ef4444" :
-                        project.defaultPriority === "medium" ? "#f59e0b" : "#10b981";
+                      >
+                        <BarsOutlined style={{ fontSize: 16, color: viewMode === 'table' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Cards">
+                      <button
+                        onClick={() => setViewMode('card')}
+                        className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                        style={{
+                          width: 30, height: 30,
+                          background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
+                          color: viewMode === 'card' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
+                        }}
+                      >
+                        <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                      </button>
+                    </Tooltip>
+                  </div>
+                  <Tooltip title="Refresh projects">
+                    <Button
+                      icon={<ReloadOutlined spin={isRefreshing} />}
+                      onClick={async () => {
+                        setIsRefreshing(true);
+                        await loadProjects();
+                        setIsRefreshing(false);
+                        message.success("Projects view synchronized");
+                      }}
+                      className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                      style={{ height: 38, width: 38 }}
+                      loading={loading}
+                    />
+                  </Tooltip>
+                </div>
+              </div>
 
-                    let progress = 0;
-                    if (project.startDate && project.endDate) {
-                      const start = dayjs(project.startDate);
-                      const end = dayjs(project.endDate);
-                      const total = end.diff(start, "day");
-                      const elapsed = dayjs().diff(start, "day");
-                      if (total > 0) progress = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
-                    }
-                    if (project.status === "completed") progress = 100;
+              {/* Premium KPI Hero Row */}
+              <div className="pm2-stat-cards-grid">
+                <div className="pm2-stat-card">
+                  <div className="pm2-stat-top">
+                    <div className="pm2-stat-left">
+                      <span className="pm2-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <FolderKanban />
+                      </span>
+                      <span className="pm2-stat-label">Total Projects</span>
+                    </div>
+                    <span className="pm2-stat-pulse" />
+                  </div>
+                  <div className="pm2-stat-bottom">
+                    <div className="pm2-stat-value-wrap">
+                      <span className="pm2-stat-value">{stats.total}</span>
+                      <span className="pm2-stat-period">projects</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * (stats.total || 1))} color="#3b82f6" />
+                    </div>
+                  </div>
+                </div>
 
+                <div className="pm2-stat-card">
+                  <div className="pm2-stat-top">
+                    <div className="pm2-stat-left">
+                      <span className="pm2-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.10)', color: '#10b981' }}>
+                        <Rocket />
+                      </span>
+                      <span className="pm2-stat-label">Active</span>
+                    </div>
+                  </div>
+                  <div className="pm2-stat-bottom">
+                    <div className="pm2-stat-value-wrap">
+                      <span className="pm2-stat-value">{stats.active}</span>
+                      <span className="pm2-stat-period">projects</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.1, 0.3, 0.4, 0.6, 0.8, 1.0].map(r => r * (stats.active || 1))} color="#10b981" />
+                    </div>
+                  </div>
+                </div>
 
+                <div className="pm2-stat-card">
+                  <div className="pm2-stat-top">
+                    <div className="pm2-stat-left">
+                      <span className="pm2-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
+                        <PauseCircle />
+                      </span>
+                      <span className="pm2-stat-label">On Hold</span>
+                    </div>
+                  </div>
+                  <div className="pm2-stat-bottom">
+                    <div className="pm2-stat-value-wrap">
+                      <span className="pm2-stat-value">{stats.onHold}</span>
+                      <span className="pm2-stat-period">projects</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0].map(r => r * (stats.onHold || 1))} color="#979797" />
+                    </div>
+                  </div>
+                </div>
 
-                    return (
-                      <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
-                        <Card
-                          onClick={() => router.push(`/projects/${project.id}/overview`)}
-                          style={{
-                            ...glassStyle,
-                            height: "100%",
-                            overflow: "hidden",
-                            position: "relative",
-                            cursor: "pointer",
-                            transition: "all 0.3s cubic-bezier(0.23, 1, 0.32, 1)",
-                            border: "1px solid var(--border-color)",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                            e.currentTarget.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
-                            e.currentTarget.style.borderColor = "var(--border-blue-200)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow = "none";
-                            e.currentTarget.style.borderColor = "var(--border-color)";
-                          }}
-                          styles={{ body: { padding: 0 } }}
-                        >
-                          <div style={{ padding: "18px 20px 14px" }}>
-                            {/* Top: icon + name + status pill */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-                              <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                  width: 36, height: 36, borderRadius: 10,
-                                  background: `${accentColor}12`,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  flexShrink: 0,
-                                }}>
-                                  <Text style={{ color: accentColor, fontWeight: 700, fontSize: 11, letterSpacing: "0.02em" }}>
-                                    {(project.code || project.name).slice(0, 3).toUpperCase()}
-                                  </Text>
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <Text strong style={{ fontSize: 14.5, display: "block", color: "var(--text-slate-900)", letterSpacing: "-0.01em" }} ellipsis>
-                                    {project.name}
-                                  </Text>
-                                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                                    #{project.code || "—"}
-                                  </Text>
-                                </div>
-                              </div>
-                              <div style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                                background: `${accentColor}10`,
-                                flexShrink: 0,
-                              }}>
-                                <span style={{
-                                  width: 5, height: 5, borderRadius: "50%",
-                                  background: accentColor,
-                                }} />
-                                <Text style={{
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  color: accentColor,
-                                  textTransform: "capitalize",
-                                  letterSpacing: "0.02em",
-                                }}>
-                                  {project.status.replace("-", " ")}
-                                </Text>
-                              </div>
-                            </div>
+                <div className="pm2-stat-card">
+                  <div className="pm2-stat-top">
+                    <div className="pm2-stat-left">
+                      <span className="pm2-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
+                        <CheckCircle2 />
+                      </span>
+                      <span className="pm2-stat-label">Completed</span>
+                    </div>
+                  </div>
+                  <div className="pm2-stat-bottom">
+                    <div className="pm2-stat-value-wrap">
+                      <span className="pm2-stat-value">{stats.completed}</span>
+                      <span className="pm2-stat-period">projects</span>
+                    </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.15, 0.3, 0.45, 0.65, 0.8, 1.0].map(r => r * (stats.completed || 1))} color="#3b82f6" />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                            {/* Description */}
-                            <Typography.Paragraph
-                              style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginBottom: 14, lineHeight: 1.5, minHeight: 36 }}
-                              ellipsis={{ rows: 2 }}
-                            >
-                              {project.description || "No description provided."}
-                            </Typography.Paragraph>
-
-                            {/* Progress */}
-                            <div style={{ marginBottom: 14 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                <Text style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                  Timeline
-                                </Text>
-                                <Text style={{ fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)" }}>
-                                  {progress}%
-                                </Text>
-                              </div>
-                              <div style={{
-                                height: 4,
-                                borderRadius: 999,
-                                background: "var(--bg-secondary, #f1f5f9)",
-                                overflow: "hidden",
-                              }}>
-                                <div style={{
-                                  width: `${progress}%`,
-                                  height: "100%",
-                                  background: accentColor,
-                                  opacity: 0.85,
-                                  borderRadius: 999,
-                                  transition: "width 0.4s ease",
-                                }} />
-                              </div>
-                            </div>
-
-                            {/* Priority + dates */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: priorityColor }} />
-                                <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-slate-600)", textTransform: "capitalize" }}>
-                                  {project.defaultPriority}
-                                </Text>
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <CalendarOutlined style={{ fontSize: 11, color: "var(--text-slate-400)" }} />
-                                <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                                  {dayjs(project.startDate).format("MMM DD")}
-                                  {project.endDate && ` → ${dayjs(project.endDate).format("MMM DD")}`}
-                                </Text>
-                              </div>
-                            </div>
-
-                            {/* Manager + team avatars */}
-                            <div style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              paddingTop: 12,
-                              borderTop: "1px solid var(--border-color)",
-                            }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                <Avatar
-                                  size={26}
-                                  src={project.projectManager?.avatarUrl}
-                                  style={{
-                                    background: "var(--bg-secondary, #f1f5f9)",
-                                    color: "var(--text-slate-600)",
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    border: "1px solid var(--border-color)",
-                                  }}
-                                >
-                                  {project.projectManager?.name?.charAt(0)}
-                                </Avatar>
-                                <div style={{ minWidth: 0 }}>
-                                  <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }} ellipsis>
-                                    {project.projectManager?.name?.split(" ")[0] || "Unassigned"}
-                                  </Text>
-                                  <Text style={{ fontSize: 10, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                                    Project Lead
-                                  </Text>
-                                </div>
-                              </div>
-                              <Tooltip title={`${memberCount} members`}>
-                                <Avatar.Group
-                                  max={{ count: 3, style: { background: "var(--bg-secondary, #f1f5f9)", color: "var(--text-slate-600)", fontSize: 10, fontWeight: 600, border: "2px solid var(--bg-pure-white)" } }}
-                                  size={24}
-                                >
-                                  {(project.members || []).slice(0, 4).map((m: any, idx: number) => (
-                                    <Avatar
-                                      key={m.user?.id || idx}
-                                      src={m.user?.avatarUrl}
-                                      style={{
-                                        background: ["#94a3b8", "#a3a3a3", "#cbd5e1", "#9ca3af"][idx % 4],
-                                        fontSize: 10,
-                                        fontWeight: 600,
-                                        border: "2px solid var(--bg-pure-white)",
-                                      }}
-                                    >
-                                      {m.user?.name?.charAt(0) || "?"}
-                                    </Avatar>
-                                  ))}
-                                </Avatar.Group>
-                              </Tooltip>
-                            </div>
-                          </div>
-
-                          {/* Footer actions */}
-                          <div style={{
-                            padding: "8px 16px",
-                            borderTop: "1px solid var(--border-color)",
-                            background: "var(--bg-secondary, #fafbfc)",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}>
-                            <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 600 }}>
-                              <TeamOutlined style={{ marginRight: 4 }} />
-                              {memberCount} {memberCount === 1 ? "member" : "members"}
+              <div className="pm2-main-content">
+                <div className="pm2-list-area" style={{ padding: "0 0px 10px" }}>
+                  {/* Projects Card View - DASHBOARD STYLE */}
+                  {viewMode === "card" ? (
+                    projects.length === 0 && !loading ? (
+                      <div style={{
+                        padding: "20px 20px",
+                        borderRadius: 16,
+                        border: "1px dashed var(--border-color)",
+                        textAlign: "center",
+                        background: "var(--bg-pure-white)",
+                      }}>
+                        <Empty
+                          description={
+                            <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                              {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
                             </Text>
-                            <Space size={4}>
-                              {canUpdateProject && (
-                                <Tooltip title="Edit">
-                                  <Button
-                                    size="small"
-                                    type="text"
-                                    icon={<EditOutlined style={{ color: "var(--premium-blue)" }} />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEdit(project);
-                                    }}
-                                  />
-                                </Tooltip>
-                              )}
-                              {canDeleteProject && (
-                                <Popconfirm
-                                  title="Delete project?"
-                                  onConfirm={(e) => {
-                                    e?.stopPropagation();
-                                    handleDelete(project.id);
-                                  }}
-                                  okText="Yes"
-                                  cancelText="No"
-                                >
-                                  <Tooltip title="Delete">
-                                    <Button
-                                      size="small"
-                                      type="text"
-                                      danger
-                                      icon={<DeleteOutlined />}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  </Tooltip>
-                                </Popconfirm>
-                              )}
-                              <Tooltip title="Open">
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<ArrowRightOutlined style={{ fontSize: 13, color: "var(--premium-blue)" }} />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/projects/${project.id}/overview`);
-                                  }}
-                                />
-                              </Tooltip>
-                            </Space>
-                          </div>
-                        </Card>
-                      </Col>
-                    );
-                  })}
-              </Row>
-            )
-          ) : (
-            /* ===== TABLE VIEW ===== */
-            <Card size="small">
-              <Table
-                columns={columns}
-                dataSource={projects}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                  current: pagination.current,
-                  pageSize: pagination.pageSize,
-                  total: pagination.total,
-                  showSizeChanger: true,
-                  showQuickJumper: true,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} projects`,
-                }}
-                scroll={{ x: 1200 }}
-                onChange={handleTableChange}
-                onRow={(record) => ({
-                  onClick: () => {
-                    router.push(`/projects/${record.id}/overview`);
-                  },
-                })}
-              />
-            </Card>
-          )}
-          <ProjectFormDrawer
-            visible={drawerVisible}
-            onClose={() => {
-              setDrawerVisible(false);
-              setEditingProject(null);
-            }}
-            project={editingProject}
-            onSuccess={loadProjects}
-          />
+                          }
+                        >
+                          {!hasActiveFilters && (
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={handleAdd}
+                              style={{ borderRadius: 8, fontWeight: 600 }}
+                            >
+                              Add Project
+                            </Button>
+                          )}
+                        </Empty>
+                      </div>
+                    ) : (
+                      <div className="pm2-grid">
+                        {loading
+                          ? [1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="pm2-list-card pm2-list-card-skel">
+                              <Skeleton active paragraph={{ rows: 2 }} />
+                            </div>
+                          ))
+                          : projects.map((project) => {
+                            const memberCount = project.members?.length || 0;
+                            const statusColorMap: Record<string, string> = {
+                              planning: "#3b82f6",
+                              active: "#10b981",
+                              "on-hold": "#f59e0b",
+                              completed: "#43A047",
+                              cancelled: "#ef4444",
+                              'in-progress': "#10b981",
+                            };
+                            const accent = statusColorMap[project.status?.toLowerCase()] || "#3b82f6";
 
+                            let progress = 0;
+                            if (project.startDate && project.endDate) {
+                              const start = dayjs(project.startDate);
+                              const end = dayjs(project.endDate);
+                              const total = end.diff(start, "day");
+                              const elapsed = dayjs().diff(start, "day");
+                              if (total > 0) progress = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+                            }
+                            if (project.status === "completed") progress = 100;
+
+                            const pm = project.projectManager;
+                            const pmFullName = pm?.name ? pm.name : "Unassigned";
+
+                            return (
+                              <article
+                                key={project.id}
+                                className="pm2-list-card"
+                                style={{ ["--row-accent" as any]: accent, borderRadius: 0 }}
+                              >
+                                <header className="pm2-list-head" style={{ padding: '8px 12px' }}>
+                                  <div
+                                    className="pm2-list-row"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => router.push(`/projects/${project.id}/overview`)}
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
+                                  >
+                                    <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff' }}>
+                                      <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                      <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {project.name}
+                                      </span>
+                                      <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
+                                        {project.code || `#${project.id.slice(0, 8)}`}
+                                        <span
+                                          className="pm2-list-status"
+                                          style={{
+                                            background: `${accent}12`,
+                                            borderColor: `${accent}30`,
+                                            color: accent,
+                                          }}
+                                        >
+                                          {project.status.toUpperCase()}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {/* Right side more icon */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div className="pm2-list-more" onClick={e => e.stopPropagation()}>
+                                      <Dropdown
+                                        overlayClassName="pm2-action-pop"
+                                        menu={{
+                                          items: [
+                                            {
+                                              key: 'view',
+                                              label: menuLabel('View project', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+                                              onClick: () => router.push(`/projects/${project.id}/overview`)
+                                            },
+                                            ...(canUpdateProject ? [{
+                                              key: 'edit',
+                                              label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                                              onClick: () => handleEdit(project)
+                                            }] : []),
+                                            ...(canDeleteProject ? [
+                                              { type: 'divider' as const },
+                                              {
+                                                key: 'delete',
+                                                danger: true,
+                                                label: menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+                                                onClick: () => handleDelete(project.id)
+                                              }
+                                            ] : [])
+                                          ]
+                                        }}
+                                        trigger={['click']}
+                                        placement="bottomRight"
+                                      >
+                                        <Button
+                                          type="text"
+                                          icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+                                          style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
+                                        />
+                                      </Dropdown>
+                                    </div>
+                                  </div>
+                                </header>
+
+                                <div style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', alignItems: 'center', borderTop: '1px solid var(--border-slate-200)' }}>
+                                  <Typography.Paragraph
+                                    style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
+                                    ellipsis={{ rows: 2 }}
+                                  >
+                                    {project.description || "No description provided."}
+                                  </Typography.Paragraph>
+                                </div>
+
+                                <div className="pm2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
+                                  <div className="pm2-list-foot-inline" style={{ display: 'flex', gap: 20 }}>
+                                    <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>MANAGER</span>
+                                      <Avatar size={18} src={pm?.avatarUrl} style={{ fontSize: 9, background: '#e2e8f0', color: '#64748b' }}>
+                                        {pmFullName.charAt(0)}
+                                      </Avatar>
+                                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
+                                        {pmFullName.split(' ')[0]}
+                                      </span>
+                                    </span>
+                                    <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>MEMBERS</span>
+                                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
+                                        {memberCount}
+                                      </span>
+                                    </span>
+                                    <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>TIMELINE</span>
+                                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
+                                        {progress}%
+                                      </span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </article>
+                            );
+                          })}
+                      </div>
+                    )
+                  ) : (
+                    /* ===== TABLE VIEW ===== */
+                    <Card size="small" style={{ borderRadius: 0, overflow: "hidden" }} bodyStyle={{ padding: 0 }}>
+                      <Table
+                        size="small"
+                        className="premium-table"
+                        columns={columns}
+                        dataSource={projects}
+                        rowKey="id"
+                        loading={loading}
+                        pagination={false}
+                        scroll={{ x: 1200 }}
+                        onChange={handleTableChange}
+                        onRow={(record) => ({
+                          onClick: () => {
+                            router.push(`/projects/${record.id}/overview`);
+                          },
+                        })}
+                      />
+                    </Card>
+                  )}
+                  <ProjectFormDrawer
+                    visible={drawerVisible}
+                    onClose={() => {
+                      setDrawerVisible(false);
+                      setEditingProject(null);
+                    }}
+                    project={editingProject}
+                    onSuccess={loadProjects}
+                  />
+                </div>
+              </div>
+
+              {!loading && projects.length > 0 && (
+                <div className="pm2-pagination">
+                  <Typography.Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                    Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                      {(pagination.current - 1) * pagination.pageSize + 1}–{Math.min(pagination.current * pagination.pageSize, pagination.total)}
+                    </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{pagination.total}</span> project{pagination.total !== 1 ? 's' : ''}
+                  </Typography.Text>
+                  <Pagination
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    total={pagination.total}
+                    onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
+                    showSizeChanger
+                    pageSizeOptions={[10, 15, 25, 50, 100]}
+                  />
+                </div>
+              )}
+            </main>
+          </div>
         </div>
-      </div>
 
-      <style jsx global>{`
-        .pm-stat-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-        @media (max-width: 1100px) {
-          .pm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        @media (max-width: 600px) {
-          .pm-stat-grid { grid-template-columns: 1fr; }
-        }
-        .pm-stat-card {
-          position: relative;
+        <style jsx global>{`
+        /* ── Page shell ──────────────────────────────────────────── */
+        .pm2-page {
           background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-100);
-          border-radius: 14px;
-          padding: 14px 16px 14px;
-          overflow: hidden;
-          transition: transform .25s cubic-bezier(.2,.8,.2,1),
-                      box-shadow .25s cubic-bezier(.2,.8,.2,1),
-                      border-color .25s ease;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-        }
-        .pm-stat-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
-          border-color: var(--border-slate-200);
-        }
-        .pm-stat-card:hover .pm-stat-accent { opacity: 1; }
-        .pm-stat-accent {
-          position: absolute;
-          left: 0; right: 0; bottom: 0;
-          height: 2px;
-          opacity: 0.55;
-          transition: opacity .25s ease;
-          pointer-events: none;
-        }
-        .pm-stat-head {
+          min-height: calc(100vh - 54px);
           display: flex;
-          align-items: center;
-          gap: 10px;
-          min-width: 0;
+          flex-direction: column;
         }
-        .pm-stat-icon {
-          width: 32px; height: 32px;
-          border-radius: 9px;
+        [data-theme="dark"] .pm2-page {
+          background: var(--bg-pure-white) !important;
+        }
+
+        .pm2-shell-wrap {
+          flex: 1;
+        }
+        .pm2-shell {
+          display: grid;
+          grid-template-columns: 252px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+        }
+        .pm2-main {
+          min-width: 0;
+          padding: 14px 24px 32px;
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+        }
+        [data-theme="dark"] .pm2-main {
+          background: transparent !important;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────────── */
+        .pm2-sidebar {
+          width: 252px;
+          background: var(--bg-pure-white);
+          border-right: 1px solid var(--border-slate-200);
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 54px);
+          overflow: hidden;
+          z-index: 10;
+        }
+        [data-theme="dark"] .pm2-sidebar {
+          background: #0f1419 !important;
+          border-right-color: #1f2937 !important;
+        }
+
+        .pm2-sidebar-top { 
+          padding: 14px 14px 12px 14px; 
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .pm2-sidebar-top {
+          border-bottom-color: #1f2937 !important;
+        }
+        .pm2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .pm2-hero-icon-box {
+          width: 38px; height: 38px; border-radius: 10px;
+          background: rgba(59, 130, 246, 0.08);
           display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
           flex-shrink: 0;
         }
-        .pm-stat-label {
+        [data-theme='dark'] .pm2-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .pm2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
+        
+        .pm2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .pm2-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
+        }
+
+        .pm2-sidebar-scroll {
+          flex: 1; min-height: 0; overflow-y: auto; padding: 6px 10px 6px 10px;
+        }
+
+        .pm2-side-group { margin-bottom: 22px; }
+        .pm2-side-label {
+          font-size: 10px; font-weight: 800; color: var(--text-slate-400);
+          text-transform: uppercase; letter-spacing: 0.08em;
+          padding: 0 10px; margin-bottom: 8px;
+        }
+        .pm2-sidebar .ant-select-selector,
+        .pm2-sidebar .ant-picker {
+          border-radius: 6px !important;
+        }
+        .pm2-sidebar .ant-select:hover .ant-select-selector,
+        .pm2-sidebar .ant-select-focused .ant-select-selector,
+        .pm2-sidebar .ant-select-open .ant-select-selector,
+        .pm2-sidebar .ant-picker:hover,
+        .pm2-sidebar .ant-picker-focused {
+          background-color: #f8f9fa !important;
+          border-color: var(--text-slate-600) !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select:hover .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-select-focused .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-select-open .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-picker:hover,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-focused {
+          background-color: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .pm2-sidebar .ant-select-selection-item,
+        .pm2-sidebar .ant-select-selection-placeholder,
+        .pm2-sidebar .ant-picker-input > input,
+        .pm2-sidebar .ant-picker-input > input::placeholder {
+          color: var(--text-slate-600) !important;
+          font-weight: 500 !important;
+          font-size: 13px !important;
+          padding: 6px  !important;
+        }
+
+        .pm2-side-filter-select .ant-select-selection-item,
+        .pm2-side-filter-select .ant-select-selection-placeholder {
+          font-size: 13px !important;
+          height: 22px !important;
+          line-height: 22px !important;
+          padding: 0 !important;
+          display: flex;
+          align-items: center;
+        }
+
+        .pm2-side-filter-select .ant-select-selector {
+          height: 36px !important;
+          padding: 0px 10px !important;
+          display: flex;
+          align-items: center;
+        }
+
+        .pm2-view-btn {
+          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          border-radius: 8px; background: transparent; border: none; cursor: pointer;
+          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          color: var(--text-slate-600); transition: all 0.15s ease;
+        }
+
+        /* ── Action Menu Dropdown (Premium Style) ────────────────────────────────── */
+        .pm2-action-pop .ant-dropdown-menu {
+          padding: 6px !important;
+          border-radius: 12px !important;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04) !important;
+          border: 1px solid var(--border-slate-200) !important;
+        }
+        .pm2-action-pop .ant-dropdown-menu-item {
+          border-radius: 8px !important;
+          padding: 0 !important;
+          margin-bottom: 2px !important;
+          transition: background .12s ease;
+        }
+        .pm2-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pm2-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pm2-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pm2-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pm2-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pm2-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pm2-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pm2-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pm2-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pm2-action-pop .ant-dropdown-menu-item-danger .pm2-menu-title { color: #ef4444; }
+        .pm2-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pm2-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        .pm2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .pm2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); }
+        [data-theme='dark'] .pm2-view-btn { color: #94a3b8; }
+        [data-theme='dark'] .pm2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        [data-theme='dark'] .pm2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; }
+
+        .pm2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
+        .pm2-view-btn.active .pm2-view-icon { color: #3b82f6; }
+        .pm2-view-btn.active .pm2-view-label { font-weight: 600; }
+        [data-theme='dark'] .pm2-view-icon { color: #64748b; }
+        [data-theme='dark'] .pm2-view-btn.active .pm2-view-icon { color: #60a5fa; }
+
+        .pm2-view-count {
+          margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+        }
+        .pm2-view-btn.active .pm2-view-count {
+          background: #BFDBFE; color: #1E3A8A;
+        }
+        [data-theme='dark'] .pm2-view-count { background: #1c232e; color: #64748b; }
+        [data-theme='dark'] .pm2-view-btn.active .pm2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+
+        .pm2-view-label {
           flex: 1;
-          min-width: 0;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-slate-700);
-          letter-spacing: -0.005em;
-          text-transform: none;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .pm-stat-value-wrap {
+          
+        }
+        [data-theme="dark"] .pm2-sidebar-item:hover {
+          background: #1c232e !important;
+        }
+        .pm2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .pm2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+          color: #60a5fa !important;
+        }
+        .pm2-sidebar-item-icon {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 800;
+          flex-shrink: 0;
+          letter-spacing: -0.01em;
+        }
+        .pm2-icon-all {
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        [data-theme="dark"] .pm2-icon-all {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          
+        }
+        .pm2-sidebar-item-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          margin: 0 6px 0 7px;
+        }
+        .pm2-sidebar-item-label {
+          flex: 1;
+          font-size: 12.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: -0.005em;
+        }
+        .pm2-sidebar-item-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          padding: 0 6px;
+          line-height: 1.6;
+          border: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .pm2-sidebar-item-count {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          
+        }
+        .pm2-sidebar-item.active .pm2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.14);
+          border-color: rgba(59, 130, 246, 0.28);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .pm2-sidebar-item.active .pm2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.22) !important;
+          border-color: rgba(59, 130, 246, 0.38) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Project row with expandable toggle */
+        .pm2-sidebar-proj-row {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          padding: 0;
+          border-radius: 8px;
+          border: 1px solid transparent;
+          transition: background 0.12s ease, border-color 0.12s ease;
+        }
+        .pm2-sidebar-proj-row:hover {
+          background: var(--bg-slate-50);
+        }
+        [data-theme="dark"] .pm2-sidebar-proj-row:hover {
+          background: #1c232e !important;
+        }
+        .pm2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+        }
+        [data-theme="dark"] .pm2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+        }
+        .pm2-sidebar-proj-toggle {
+          flex-shrink: 0;
+          width: 18px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          border-radius: 4px;
+          transition: color 0.12s ease;
+        }
+        .pm2-sidebar-proj-toggle:hover {
+          color: #1d4ed8;
+        }
+        .pm2-sidebar-proj-main {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 6px 10px 6px 4px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-700);
+          text-align: left;
+          min-width: 0;
+        }
+        [data-theme="dark"] .pm2-sidebar-proj-main {
+          
+        }
+        .pm2-sidebar-proj-row.active .pm2-sidebar-proj-main {
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .pm2-sidebar-proj-row.active .pm2-sidebar-proj-main {
+          color: #60a5fa !important;
+        }
+
+        /* Nested buckets under project */
+        .pm2-sidebar-children {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          margin: 2px 0 4px 22px;
+          padding-left: 8px;
+          border-left: 1px dashed var(--border-slate-200);
+        }
+        [data-theme="dark"] .pm2-sidebar-children {
+          border-left-color: #2d3748 !important;
+        }
+        .pm2-sidebar-bucket {
           display: flex;
           align-items: center;
           gap: 8px;
+          padding: 5px 8px;
+          border-radius: 6px;
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-600);
+          text-align: left;
+          width: 100%;
+          transition: background 0.12s ease, color 0.12s ease;
+          min-width: 0;
+        }
+        .pm2-sidebar-bucket:hover {
+          background: var(--bg-slate-50);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .pm2-sidebar-bucket {
+          
+        }
+        [data-theme="dark"] .pm2-sidebar-bucket:hover {
+          background: #1c232e !important;
+          color: #60a5fa !important;
+        }
+        .pm2-sidebar-bucket-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
           flex-shrink: 0;
         }
-        .pm-stat-value {
-          font-size: 22px;
+        .pm2-sidebar-bucket-label {
+          flex: 1;
+          font-size: 11.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .pm2-sidebar-bucket-count {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-slate-400);
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0;
+        }
+        .pm2-sidebar-empty-mini {
+          padding: 6px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        .pm2-sidebar-empty {
+          padding: 10px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+        }
+        .pm2-sidebar-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 6px 4px;
+        }
+        [data-theme="dark"] .pm2-sidebar-divider {
+          background: #1f2937 !important;
+        }
+        .pm2-sidebar-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 6px;
+          padding: 8px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          color: var(--text-slate-500);
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: color 0.12s ease, border-color 0.12s ease;
+        }
+        .pm2-sidebar-clear:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .pm2-sidebar-clear {
+          border-color: #2d3748 !important;
+          
+        }
+
+        /* ── Main toolbar ───────────────────────────────────────── */
+        .pm2-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: var(--bg-pure-white);
+          margin: -14px -24px 0;
+          padding: 6px 20px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .pm2-toolbar {
+          background: #0d1117 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .pm2-main-search {
+          flex: 1;
+          max-width: 320px;
+        }
+        .premium-search-input{
+          border-radius: 6px !important;
+          height: 32px !important;
+        }
+        .pm2-search-kbd {
+          display: inline-block;
+          font-family: ui-monospace, SFMono-Regular, monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          margin: 0 2px;
+          border-radius: 5px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-700);
+          box-shadow: 0 1px 0 var(--border-slate-200);
+        }
+        .pm2-main-stats {
+          margin-left: 12px;
+          color: var(--text-slate-500);
+          font-size: 13px;
+        }
+        .pm2-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+          animation: pm2-pulse 2s infinite;
+        }
+        @keyframes pm2-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .pm2-main-controls {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .pm2-vis-badge {
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid;
+        }
+        .pm2-vis-badge-public {
+          background: rgba(16, 185, 129, 0.1);
+          border-color: rgba(16, 185, 129, 0.25);
+          color: #047857;
+        }
+        .pm2-vis-badge-private {
+          background: rgba(245, 158, 11, 0.1);
+          border-color: rgba(245, 158, 11, 0.25);
+          color: #b45309;
+        }
+        /* RangePicker — match the SearchableDropdown trigger height/border */
+        .pm2-range-picker {
+          height: 32px !important;
+          border-radius: 6px !important;
+          font-size: 12px;
+        }
+        .pm2-range-picker.ant-picker {
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .pm2-range-picker.ant-picker {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        .pm2-toolbar-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .pm2-toolbar-chip {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-200);
+          padding: 2px 8px;
+          border-radius: 999px;
+          letter-spacing: 0.01em;
+        }
+        [data-theme="dark"] .pm2-toolbar-chip {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          
+        }
+        .pm2-search-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          width: 260px;
+          transition: border-color 0.15s ease;
+        }
+        .pm2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .pm2-search-box {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        [data-theme="dark"] .pm2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.5) !important;
+        }
+
+        /* ── List cards ─────────────────────────────────────────── */
+        .pm2-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding-top: 10px;
+        }
+        
+        .pm2-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
+          padding-top: 10px;
+        }
+        
+        @media (max-width: 1300px) {
+          .pm2-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 900px) {
+          .pm2-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* ── Sticky pagination footer ──────────────────────────── */
+        .pm2-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          margin: auto -24px -32px -24px;
+          flex-wrap: wrap;
+          position: sticky;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="dark"] .pm2-pagination {
+          background: #161b22 !important;
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Custom Pagination Styles */
+        .pm2-pagination .ant-pagination-item,
+        .pm2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .pm2-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .pm2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .pm2-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .pm2-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+
+        .pm2-list-card {
+          position: relative;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0px;
+          /* When we smooth-scroll a card into view on Manage-Tickets click,
+             land its top 120px below the viewport so it clears the sticky
+             page header (~52px) + sticky toolbar (~60px). */
+          scroll-margin-top: 120px;
+          padding: 0px 0px 0px 0px;
+          display: flex;
+          flex-direction: column;
+          gap: 0px;
+          overflow: hidden;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+        [data-theme="dark"] .pm2-list-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .pm2-list-card:hover {
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+          border-color: transparent !important;
+        }
+        [data-theme="dark"] .pm2-list-card:hover {
+          background: #1c232e !important;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+          border-color: transparent !important;
+        }
+        .pm2-list-card-skel {
+          min-height: 96px;
+        }
+
+        .pm2-list-head {
+          display: flex;
+          align-items: center;
+        }
+        .pm2-list-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+          min-width: 0;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          padding: 0;
+          text-align: left;
+          font-family: inherit;
+          outline: none;
+        }
+        .pm2-list-row:focus-visible {
+          outline: 2px solid rgba(59, 130, 246, 0.3);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+        .pm2-list-row-segments {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+        .pm2-list-row-div {
+          width: 1px;
+          height: 18px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .pm2-list-row-div {
+          background: #2d3748 !important;
+        }
+        .pm2-list-seg {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .pm2-list-seg-project {
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .pm2-list-seg-bucket {
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        .pm2-list-seg-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .pm2-list-seg-label {
+          
+        }
+        .pm2-list-seg-value {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .pm2-list-seg-value {
+          
+        }
+        .pm2-list-seg-value.muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .pm2-list-seg-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pm2-list-seg-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 13.5px;
           font-weight: 800;
           color: var(--text-slate-900);
           letter-spacing: -0.025em;
-          line-height: 1;
-          font-variant-numeric: tabular-nums;
-        }
-        .pm-stat-subtle {
-          display: block;
-          font-size: 11.5px;
-          color: var(--text-slate-500);
-          margin-top: 8px;
-          padding-left: 42px;
-          font-weight: 500;
-          line-height: 1.4;
-        }
-        .pm-stat-chart {
-          margin-top: 10px;
-          padding-top: 10px;
-          padding-left: 42px;
-          border-top: 1px dashed var(--border-slate-100);
-        }
-
-        /* MiniBar */
-        .pm-minibar { display: flex; flex-direction: column; gap: 7px; }
-        .pm-minibar-track {
-          height: 6px;
-          background: var(--bg-slate-50);
-          border-radius: 999px;
-          display: flex;
+          line-height: 1.25;
           overflow: hidden;
-          border: 1px solid var(--border-slate-100);
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
-        .pm-minibar-seg {
-          display: block;
-          height: 100%;
-          transition: width .4s ease;
+        [data-theme="dark"] .pm2-list-seg-name {
+          color: #f1f5f9 !important;
         }
-        .pm-minibar-seg + .pm-minibar-seg {
-          border-left: 1px solid var(--bg-pure-white);
+        .pm2-list-row:hover .pm2-list-seg-name {
+          color: #1d4ed8;
         }
-        .pm-minibar-legend {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
+        [data-theme="dark"] .pm2-list-row:hover .pm2-list-seg-name {
+          color: #60a5fa !important;
         }
-        .pm-minibar-legend-item {
+        .pm2-list-avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 9px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+        }
+        [data-theme="dark"] .pm2-list-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+        }
+        .pm2-list-avatar::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 75% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0, 0, 0, 0.06), transparent 55%);
+          pointer-events: none;
+        }
+        .pm2-list-avatar-letter {
+          position: relative;
+          z-index: 1;
+          line-height: 1;
+        }
+        .pm2-list-status {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          font-size: 11px;
-          color: var(--text-slate-600);
-          font-weight: 500;
-        }
-        .pm-minibar-dot {
-          width: 7px; height: 7px;
-          border-radius: 2px;
-          display: inline-block;
+          padding: 2px 9px;
+          border-radius: 999px;
+          border: 1px solid;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
         }
 
-        /* Inline progress */
-        .pm-progress-row {
+        .pm2-list-desc {
+          margin: 0;
+          padding: 4px 8px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 6px;
+          align-self: flex-start;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .pm2-list-desc {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          
+        }
+
+        /* Body */
+        .pm2-list-body {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 8px;
+        }
+        .pm2-list-block {
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 8px;
+          padding: 6px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        [data-theme="dark"] .pm2-list-block {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .pm2-list-block-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .pm2-list-block-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .pm2-list-block-label {
+          
+        }
+        .pm2-list-stats {
           display: flex;
           align-items: center;
           gap: 10px;
         }
-        .pm-progress-track {
-          flex: 1;
-          height: 6px;
-          background: var(--bg-slate-50);
-          border-radius: 999px;
-          overflow: hidden;
-          border: 1px solid var(--border-slate-100);
+        .pm2-list-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 5px;
         }
-        .pm-progress-fill {
-          display: block;
-          height: 100%;
-          border-radius: 999px;
-          transition: width .4s ease;
-        }
-        .pm-progress-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-slate-700);
+        .pm2-list-stat-value {
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--text-slate-900);
           font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
+        }
+        [data-theme="dark"] .pm2-list-stat-value {
+          color: #f1f5f9 !important;
+        }
+        .pm2-list-stat-label {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+        }
+        .pm2-list-stat-sep {
+          width: 1px;
+          height: 14px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .pm2-list-stat-sep {
+          background: #2d3748 !important;
+        }
+        .pm2-list-owner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .pm2-list-owner-info {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          line-height: 1.25;
+        }
+        .pm2-list-owner-name {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-800);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .pm2-list-owner-name {
+          color: #e2e8f0 !important;
+        }
+        .pm2-list-owner-email {
+          font-size: 10.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+          overflow: hidden;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        [data-theme='dark'] .pm-stat-card { background: var(--bg-secondary); }
+        /* Footer */
+        .pm2-list-foot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding-top: 4px;
+          border-top: 1px solid var(--border-slate-100);
+        }
+        [data-theme="dark"] .pm2-list-foot {
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Divider between footer and the inline Manage-Tickets panel */
+        .pm2-list-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          /* Extend to the card's edges, eating the parent padding (10 14 10 16) */
+          margin: 2px -14px 2px -16px;
+        }
+        [data-theme="dark"] .pm2-list-divider {
+          background: #1f2937 !important;
+        }
+        .pm2-list-foot-inline {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .pm2-list-foot-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .pm2-list-foot-item b {
+          color: var(--text-slate-800);
+          font-weight: 700;
+        }
+        [data-theme="dark"] .pm2-list-foot-item b {
+          color: #e2e8f0 !important;
+        }
+        .pm2-list-foot-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .pm2-list-foot-div {
+          width: 1px;
+          height: 12px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .pm2-list-foot-div {
+          background: #2d3748 !important;
+        }
+        .pm2-list-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .pm2-list-action-btn {
+          width: 28px;
+          height: 28px;
+          padding: 0 !important;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 7px !important;
+        }
+
+        /* Labeled footer button (e.g. Move to Sprint / Move to Backlog) */
+        .pm2-foot-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          height: 28px !important;
+          padding: 0 10px !important;
+          border-radius: 7px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-700) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.005em;
+          transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .pm2-foot-btn:hover:not(:disabled) {
+          border-color: #3b82f6 !important;
+          color: #3b82f6 !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .pm2-foot-btn:disabled {
+          opacity: 0.5;
+        }
+        [data-theme="dark"] .pm2-foot-btn {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          
+        }
+        [data-theme="dark"] .pm2-foot-btn:hover:not(:disabled) {
+          background: #1c232e !important;
+        }
+
+        /* Manage Tickets button */
+        .pm2-manage-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 11px;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          color: var(--text-slate-600);
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .pm2-manage-btn:hover {
+          color: #fff !important;
+          border-color: #3b82f6 !important;
+          background: #3b82f6 !important;
+        }
+        .pm2-manage-btn.active {
+          color: #fff !important;
+          border-color: #3b82f6 !important;
+          background: #3b82f6 !important;
+        }
+        [data-theme="dark"] .pm2-manage-btn {
+          border-color: #2d3748 !important;
+          
+        }
+        [data-theme="dark"] .pm2-manage-btn:hover {
+          background: #1c232e !important;
+        }
+        [data-theme="dark"] .pm2-manage-btn.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+        }
+
+        /* Empty */
+        .pm2-empty {
+          padding: 64px 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .pm2-empty-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: rgba(59, 130, 246, 0.08);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+
+        /* Slim sidebar + tighter toolbar on smaller desktop */
+        @media (max-width: 1200px) {
+          .pm2-shell {
+            grid-template-columns: 240px minmax(0, 1fr);
+          }
+          .pm2-sidebar {
+            padding: 12px 8px 14px 14px;
+          }
+          .pm2-search-box {
+            width: 220px;
+          }
+          .pm2-list-card {
+            padding: 16px 18px 14px 20px;
+          }
+        }
+
+        /* Tablet — toolbar filters wrap to their own row */
+        @media (max-width: 1024px) {
+          .pm2-toolbar-filters {
+            margin-left: 0;
+            width: 100%;
+            order: 3;
+          }
+          .pm2-search-box {
+            width: 200px;
+          }
+          .pm2-list-foot {
+            flex-wrap: wrap;
+            row-gap: 10px;
+          }
+        }
+
+        /* Sidebar collapses above content */
+        @media (max-width: 900px) {
+          .pm2-page {
+            margin: 0 -16px;
+          }
+          .pm2-shell {
+            grid-template-columns: 1fr;
+          }
+          .pm2-sidebar {
+            position: relative;
+            top: 0;
+            height: auto;
+            max-height: 320px;
+            padding: 10px 16px 12px;
+            border-right: none;
+            border-bottom: 1px solid var(--border-slate-200);
+          }
+          .pm2-main {
+            padding: 14px 16px 28px;
+          }
+          .pm2-list-body {
+            grid-template-columns: 1fr;
+          }
+          .pm2-toolbar {
+            margin: -14px -16px 0;
+            padding: 12px 16px;
+          }
+          .pm2-pagination {
+            margin: 14px -16px -28px;
+            padding: 10px 16px;
+          }
+          .pm2-list-card {
+            padding: 14px 16px 14px 18px;
+            gap: 12px;
+          }
+          .pm2-list-stripe {
+            top: 14px;
+            bottom: 14px;
+          }
+          /* When sidebar is above the main column, drop the desktop scroll-margin
+             since the user no longer has to clear a fixed left rail. */
+          .pm2-list-card {
+            scroll-margin-top: 88px;
+          }
+        }
+
+        /* Phone */
+        @media (max-width: 640px) {
+          .pm2-page {
+            margin: 0 -8px;
+          }
+          .pm2-main {
+            padding: 12px 12px 24px;
+          }
+          .pm2-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            margin: -12px -12px 0;
+            padding: 10px 12px;
+          }
+          .pm2-toolbar-title {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .pm2-toolbar-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+          }
+          .pm2-toolbar-filters > * {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .pm2-range-picker {
+            grid-column: 1 / -1;
+          }
+          .pm2-search-box {
+            width: 100%;
+          }
+          /* Bucket cards */
+          .pm2-list-card {
+            padding: 14px 14px 12px 16px;
+            scroll-margin-top: 76px;
+          }
+          .pm2-list-row {
+            gap: 10px;
+          }
+          .pm2-list-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 15px;
+          }
+          .pm2-list-seg-name {
+            font-size: 14px;
+            white-space: normal;
+          }
+          .pm2-list-foot {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .pm2-list-actions {
+            flex-wrap: wrap;
+            row-gap: 6px;
+            justify-content: flex-start;
+          }
+          .pm2-foot-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          /* Pagination */
+          .pm2-pagination {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            margin: 12px -12px -24px;
+            padding: 10px 12px;
+          }
+          .pm2-pagination-meta {
+            text-align: center;
+          }
+          /* Sidebar items more compact */
+          .pm2-sidebar {
+            padding: 8px 14px 10px;
+            max-height: 280px;
+          }
+          .pm2-sidebar-section-head {
+            padding: 4px 6px 6px;
+          }
+        }
+
+        /* Very small phones */
+        @media (max-width: 400px) {
+          .pm2-list-stripe {
+            display: none;
+          }
+          .pm2-list-status {
+            font-size: 9.5px;
+          }
+          .pm2-list-seg-name {
+            font-size: 13px;
+          }
+        }
+        /* ── Premium Table CSS ───────────────────────────────────── */
+        .premium-table .ant-table {
+          background: transparent !important;
+        }
+        .premium-table .ant-table-thead > tr > th {
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          color: #64748b;
+          font-weight: 600;
+          font-size: 11.5px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 6px 16px !important;
+        }
+        .premium-table .ant-table-thead > tr > th::before {
+          display: none;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+          background: #1e293b;
+          border-bottom-color: #334155;
+          color: #94a3b8;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 6px 16px !important;
+          border-bottom: 1px solid #f1f5f9;
+          transition: background-color 0.2s ease;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1e293b;
+        }
+        .premium-table .ant-table-row:hover > td {
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .premium-table .ant-table-row-expand-icon-cell {
+          padding: 0 4px !important;
+        }
+        .premium-table .ant-table-expanded-row > td {
+          padding: 0 !important;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        [data-theme='dark'] .premium-table .ant-table-expanded-row > td {
+          background: rgba(15, 23, 42, 0.5);
+          border-bottom-color: #1e293b;
+        }
+        .dh-col-icon {
+          color: #94a3b8;
+          font-size: 13px;
+        }
+        [data-theme='dark'] .dh-col-icon {
+          color: #475569;
+        }
+
+        .dh-name-avatar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          background: #3b82f6;
+          color: #ffffff;
+        }
+        [data-theme='dark'] .dh-name-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .bmp-owner-avatar {
+          background: #3b82f6 !important;
+          color: #ffffff !important;
+        }
+        [data-theme='dark'] .bmp-owner-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+          border: none;
+        }
+
+        .bmp-table-text-primary {
+          color: #334155;
+        }
+        [data-theme='dark'] .bmp-table-text-primary {
+          color: #f1f5f9;
+        }
+
+        .bmp-project-tag {
+          background: #eff6ff;
+          color: #2563eb;
+        }
+        [data-theme='dark'] .bmp-project-tag {
+          background: rgba(59, 130, 246, 0.15);
+          color: #60a5fa;
+        }
+
+        .bmp-tag-public {
+          background: #ecfdf5;
+          color: #059669;
+          border: 1px solid #d1fae5;
+        }
+        [data-theme='dark'] .bmp-tag-public {
+          background: rgba(16, 185, 129, 0.1);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .bmp-tag-private {
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+        }
+        [data-theme='dark'] .bmp-tag-private {
+          background: rgba(148, 163, 184, 0.1);
+          color: #94a3b8;
+          border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        /* ── Status Cards ────────────────────────────────────────── */
+        .pm2-stat-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin: 16px 0 8px 0;
+        }
+        @media (max-width: 1024px) {
+          .pm2-stat-cards-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 640px) {
+          .pm2-stat-cards-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .pm2-stat-card {
+          background: #ffffff;
+          border-radius: 6px;
+          padding: 12px 14px;
+          border: 1px solid var(--border-slate-200);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          transition: all 0.2s ease;
+        }
+        [data-theme="dark"] .pm2-stat-card {
+          background: rgba(255, 255, 255, 0.03);
+          border-color: rgba(255, 255, 255, 0.08);
+          box-shadow: none;
+        }
+        .pm2-stat-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
+          border-color: var(--border-blue-300);
+        }
+        [data-theme="dark"] .pm2-stat-card:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .pm2-stat-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+        }
+        .pm2-stat-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .pm2-stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          font-size: 16px;
+        }
+        .pm2-stat-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+        .pm2-stat-pulse {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+          animation: pulse-dot 2s infinite;
+        }
+        .pm2-stat-bottom {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+        }
+        .pm2-stat-value-wrap {
+          display: flex;
+          flex-direction: column;
+        }
+        .pm2-stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          line-height: 1.1;
+        }
+        .pm2-stat-period {
+          font-size: 12px;
+          color: var(--text-slate-400);
+          margin-top: 2px;
+        }
+
       `}</style>
-    </MainLayout >
+      </div>
+    </MainLayout>
   );
 };
 

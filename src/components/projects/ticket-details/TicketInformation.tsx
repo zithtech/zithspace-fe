@@ -144,15 +144,21 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
           {ticket?.estimateHours || 0}h
         </Descriptions.Item>
         <Descriptions.Item label="Assigned To">
-          <Space>
+          <Space align="start">
             <Avatar
-              size="small"
+              shape="circle"
+              size="large"
               src={(ticket?.assignee as any)?.avatarUrl}
-              style={{ backgroundColor: "#1677ff" }}
+              style={{ backgroundColor: "#1677ff", flexShrink: 0 }}
             >
               {ticket?.assignee?.name?.charAt(0) || "U"}
             </Avatar>
-            {ticket?.assignee?.name || "Unassigned"}
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
+              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.assignee?.name || "Unassigned"}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {(ticket?.assignee as any)?.position || "Member"}
+              </Text>
+            </div>
           </Space>
         </Descriptions.Item>
         <Descriptions.Item label="Reports To">
@@ -161,7 +167,22 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
             : ticket?.reportTo?.name || "Not assigned"}
         </Descriptions.Item>
         <Descriptions.Item label="Created By">
-          {ticket?.createdBy?.name || "Unknown"}
+          <Space align="start">
+            <Avatar
+              shape="circle"
+              size="large"
+              src={(ticket?.createdBy as any)?.avatarUrl}
+              style={{ backgroundColor: "#87d068", flexShrink: 0 }}
+            >
+              {ticket?.createdBy?.name?.charAt(0) || "U"}
+            </Avatar>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
+              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.createdBy?.name || "Unknown"}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {(ticket?.createdBy as any)?.position || "Member"}
+              </Text>
+            </div>
+          </Space>
         </Descriptions.Item>
         <Descriptions.Item label="Created At">
           {ticket?.createdAt

@@ -410,13 +410,13 @@ function DashboardContent() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "#ff4d4f";
+        return "#EF4444";
       case "medium":
-        return "#faad14";
+        return "#10B981";
       case "low":
-        return "#52c41a";
+        return "#10B981";
       default:
-        return "#8c8c8c";
+        return "#94A3B8";
     }
   };
 
@@ -498,7 +498,7 @@ function DashboardContent() {
       : 0;
 
   const cardBase: React.CSSProperties = {
-    borderRadius: 16,
+    borderRadius: 12,
     border: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
@@ -561,7 +561,7 @@ function DashboardContent() {
     const trendColors: Record<string, { bg: string; fg: string }> = {
       positive: { bg: "rgba(16,185,129,0.1)", fg: "#047857" },
       neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
-      warning: { bg: "rgba(245,158,11,0.12)", fg: "#92400E" },
+      warning: { bg: "rgba(16,185,129,0.12)", fg: "#047857" },
     };
     const tc = trendColors[trendTone];
     return (
@@ -598,7 +598,7 @@ function DashboardContent() {
         <span
           className="dash-stat-accent"
           style={{
-            background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)`,
+            background: accent,
           }}
         />
       </div>
@@ -674,7 +674,7 @@ function DashboardContent() {
       <div
         style={{
           margin: "0 -24px",
-          padding: "16px 32px 40px",
+          padding: "12px 32px 28px",
           background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
         }}
@@ -685,8 +685,8 @@ function DashboardContent() {
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 24,
+            gap: 12,
+            marginBottom: 12,
             flexWrap: "wrap",
           }}
         >
@@ -706,7 +706,7 @@ function DashboardContent() {
                   color: token.colorText,
                   fontWeight: 700,
                   letterSpacing: "-0.6px",
-                  fontSize: 26,
+                  fontSize: 22,
                 }}
               >
                 {greeting}, {firstName} 👋
@@ -729,7 +729,6 @@ function DashboardContent() {
                     height: 6,
                     borderRadius: "50%",
                     background: "#10B981",
-                    boxShadow: "0 0 8px rgba(16, 185, 129, 0.6)",
                   }}
                   className="live-pulse"
                 />
@@ -767,22 +766,22 @@ function DashboardContent() {
                 value: "me" as const,
                 title: "Me",
                 icon: <UserOutlined />,
-                accent: "#7C3AED",
-                accentLight: "#A78BFA",
+                accent: "#3B82F6",
+                accentLight: "#60A5FA",
               },
               {
                 value: "freelancer" as const,
                 title: "Freelancer",
                 icon: <SolutionOutlined />,
-                accent: "#F59E0B",
-                accentLight: "#FBBF24",
+                accent: "#10B981",
+                accentLight: "#34D399",
               },
               {
                 value: "organization" as const,
                 title: "Organization",
                 icon: <TeamOutlined />,
-                accent: "#0EA5E9",
-                accentLight: "#38BDF8",
+                accent: "#3B82F6",
+                accentLight: "#60A5FA",
               },
             ].map((opt) => {
               const isActive = activeSegment === opt.value;
@@ -796,8 +795,8 @@ function DashboardContent() {
                   onClick={() => setActiveSegment(opt.value)}
                   style={
                     {
-                      "--switch-grad": `linear-gradient(135deg, ${opt.accent}, ${opt.accentLight})`,
-                      "--switch-glow": `${opt.accent}88`,
+                      "--switch-grad": opt.accent,
+                      "--switch-glow": "transparent",
                       "--switch-icon-bg": `${opt.accent}14`,
                       "--switch-icon-fg": opt.accent,
                       "--switch-icon-border": `${opt.accent}33`,
@@ -824,7 +823,7 @@ function DashboardContent() {
                 type="error"
                 showIcon
                 closable
-                style={{ marginBottom: 16, borderRadius: 12 }}
+                style={{ marginBottom: 12, borderRadius: 12 }}
               />
             )}
             {calendarError && (
@@ -834,7 +833,7 @@ function DashboardContent() {
                 type="error"
                 showIcon
                 closable
-                style={{ marginBottom: 16, borderRadius: 12 }}
+                style={{ marginBottom: 12, borderRadius: 12 }}
               />
             )}
             {calendarSuccess && (
@@ -844,26 +843,26 @@ function DashboardContent() {
                 type="success"
                 showIcon
                 closable
-                style={{ marginBottom: 16, borderRadius: 12 }}
+                style={{ marginBottom: 12, borderRadius: 12 }}
               />
             )}
 
             {loading ? (
               <>
-                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   {[1, 2, 3, 4].map((i) => (
                     <Col xs={24} sm={12} lg={6} key={i}>
                       <Card
                         size="small"
                         style={{ ...cardBase }}
-                        styles={{ body: { padding: 18 } }}
+                        styles={{ body: { padding: 14 } }}
                       >
                         <Skeleton active paragraph={{ rows: 1 }} />
                       </Card>
                     </Col>
                   ))}
                 </Row>
-                <Row gutter={[16, 16]}>
+                <Row gutter={[12, 12]}>
                   <Col xs={24} lg={16}>
                     <Card style={cardBase}>
                       <Skeleton active paragraph={{ rows: 5 }} />
@@ -879,13 +878,13 @@ function DashboardContent() {
             ) : dashboardData ? (
               <>
                 {/* ─── KPI Strip ──────────────────────────────────── */}
-                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   {/* BOD / EOD */}
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const submittedCount =
                         (todayUpdates.bod ? 1 : 0) + (todayUpdates.eod ? 1 : 0);
-                      const accent = "#4F46E5";
+                      const accent = "#3B82F6";
                       return (
                         <KpiCard
                           eyebrow="Daily Updates"
@@ -944,7 +943,7 @@ function DashboardContent() {
                                           width: 8,
                                           height: 8,
                                           borderRadius: "50%",
-                                          background: "#F59E0B",
+                                          background: "#10B981",
                                           display: "inline-block",
                                         }}
                                       />
@@ -955,7 +954,7 @@ function DashboardContent() {
                                         fontWeight: 600,
                                         color: item.state
                                           ? "#10B981"
-                                          : "#F59E0B",
+                                          : "#10B981",
                                       }}
                                     >
                                       {item.state ? "Submitted" : "Pending"}
@@ -978,7 +977,7 @@ function DashboardContent() {
                         .map((n) => Number(n) || 0);
                       const hoursDecimal = hh + mm / 60 + ss / 3600;
                       const pct = Math.min(100, Math.round((hoursDecimal / 8) * 100));
-                      const accent = "#0EA5E9";
+                      const accent = "#3B82F6";
                       return (
                         <KpiCard
                           eyebrow="Avg Hours"
@@ -1008,7 +1007,7 @@ function DashboardContent() {
                                     display: "block",
                                     height: "100%",
                                     width: `${pct}%`,
-                                    background: `linear-gradient(90deg, ${accent}, #38BDF8)`,
+                                    background: accent,
                                     borderRadius: 999,
                                     transition: "width .4s ease",
                                   }}
@@ -1039,7 +1038,7 @@ function DashboardContent() {
                       const totalT = myTicketsStats.total;
                       const open = Math.max(0, totalT - closed);
                       const pctDone = totalT > 0 ? Math.round((closed / totalT) * 100) : 0;
-                      const accent = "#7C3AED";
+                      const accent = "#3B82F6";
                       return (
                         <KpiCard
                           eyebrow="My Tickets"
@@ -1085,7 +1084,7 @@ function DashboardContent() {
                                     <span
                                       style={{
                                         width: `${(open / totalT) * 100}%`,
-                                        background: "#C4B5FD",
+                                        background: "#93C5FD",
                                         display: "block",
                                         height: "100%",
                                         transition: "width .4s ease",
@@ -1129,7 +1128,7 @@ function DashboardContent() {
                                         width: 7,
                                         height: 7,
                                         borderRadius: 2,
-                                        background: "#C4B5FD",
+                                        background: "#93C5FD",
                                       }}
                                     />
                                     {open} open
@@ -1181,7 +1180,7 @@ function DashboardContent() {
                                     display: "block",
                                     height: "100%",
                                     width: `${rate}%`,
-                                    background: `linear-gradient(90deg, ${accent}, #34D399)`,
+                                    background: accent,
                                     borderRadius: 999,
                                     transition: "width .4s ease",
                                   }}
@@ -1207,22 +1206,22 @@ function DashboardContent() {
                 </Row>
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
-                <Row gutter={[16, 16]}>
+                <Row gutter={[12, 12]}>
                   {/* Time Tracker */}
                   <Col xs={24} lg={8}>
                     <Card
                       style={{
                         ...cardBase,
                         background: todayAttendance?.canClockOut
-                          ? `linear-gradient(135deg, ${token.colorPrimaryBg}33 0%, ${token.colorBgContainer} 60%)`
+                          ? token.colorPrimaryBg
                           : token.colorBgContainer,
                         overflow: "hidden",
                         position: "relative",
-                        height: 340,
+                        height: 300,
                         display: "flex",
                         flexDirection: "column",
                       }}
-                      styles={{ body: { padding: 18, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                      styles={{ body: { padding: 14, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                     >
 
                       <div
@@ -1230,7 +1229,7 @@ function DashboardContent() {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "flex-start",
-                          marginBottom: 20,
+                          marginBottom: 14,
                           position: "relative",
                           zIndex: 1,
                         }}
@@ -1252,12 +1251,12 @@ function DashboardContent() {
                                 ? "#ECFDF5"
                                 : todayAttendance.canClockIn
                                   ? token.colorFillAlter
-                                  : "#F0F9FF",
+                                  : "#EFF6FF",
                               color: todayAttendance.canClockOut
                                 ? "#047857"
                                 : todayAttendance.canClockIn
                                   ? token.colorTextSecondary
-                                  : "#0369A1",
+                                  : "#1D4ED8",
                             }}
                           >
                             {todayAttendance.canClockOut && (
@@ -1340,7 +1339,7 @@ function DashboardContent() {
                                       isActive
                                         ? {
                                           "0%": token.colorPrimary,
-                                          "100%": "#7C3AED",
+                                          "100%": "#3B82F6",
                                         }
                                         : ringColor
                                     }
@@ -1387,8 +1386,7 @@ function DashboardContent() {
                                         height: 7,
                                         borderRadius: "50%",
                                         background: "#10B981",
-                                        boxShadow:
-                                          "0 0 0 3px rgba(16, 185, 129, 0.18)",
+                                        boxShadow: "none",
                                       }}
                                     />
                                   )}
@@ -1511,8 +1509,8 @@ function DashboardContent() {
                                       height: 40,
                                       fontWeight: 600,
                                       fontSize: 13,
-                                      boxShadow: `0 6px 16px -8px ${token.colorPrimary}99`,
-                                      background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`,
+                                      boxShadow: "none",
+                                      background: token.colorPrimary,
                                       border: "none",
                                     }}
                                   >
@@ -1567,7 +1565,7 @@ function DashboardContent() {
                   {/* Today's Meetings */}
                   <Col xs={24} lg={8}>
                     {(() => {
-                      const accentTM = "#7C3AED";
+                      const accentTM = "#3B82F6";
                       const tmCount = todaysMeetings.length;
                       const liveTM = todaysMeetings.find((m: any) => {
                         const now = dayjs();
@@ -1581,7 +1579,7 @@ function DashboardContent() {
                       ).length;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                          style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
                           styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
                           title={
                             <div
@@ -1652,7 +1650,7 @@ function DashboardContent() {
                                     fontSize: 10,
                                     fontWeight: 700,
                                     letterSpacing: "0.4px",
-                                    color: "#4F46E5",
+                                    color: "#3B82F6",
                                     background: "rgba(79,70,229,0.10)",
                                     border: "1px solid rgba(79,70,229,0.25)",
                                     padding: "2px 7px",
@@ -1911,7 +1909,7 @@ function DashboardContent() {
                                                     : "1px solid rgba(79,70,229,0.25)",
                                                   color: live
                                                     ? "#047857"
-                                                    : "#4F46E5",
+                                                    : "#3B82F6",
                                                   fontSize: 9,
                                                   fontWeight: 700,
                                                   letterSpacing: "0.6px",
@@ -1928,7 +1926,7 @@ function DashboardContent() {
                                                     borderRadius: "50%",
                                                     background: live
                                                       ? "#10B981"
-                                                      : "#4F46E5",
+                                                      : "#3B82F6",
                                                   }}
                                                 />
                                                 {live ? "LIVE NOW" : "NEXT UP"}
@@ -2191,13 +2189,13 @@ function DashboardContent() {
                                     width: 48,
                                     height: 48,
                                     borderRadius: 14,
-                                    background: `linear-gradient(135deg, #EEF2FF 0%, #FAFBFF 100%)`,
-                                    border: "1px solid #C7D2FE",
+                                    background: "#EFF6FF",
+                                    border: "1px solid #BFDBFE",
                                     margin: "0 auto 10px",
                                     display: "inline-flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    color: "#4F46E5",
+                                    color: "#3B82F6",
                                   }}
                                 >
                                   <CalendarOutlined
@@ -2232,16 +2230,16 @@ function DashboardContent() {
                     {(() => {
                       const segments = [
                         { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
                         { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
                       ];
                       const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 340, overflow: "hidden" }}
+                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
                           extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
@@ -2249,7 +2247,7 @@ function DashboardContent() {
                               <div>
                                 <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
                                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                  <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
                                     {completionRate}%
                                   </span>
                                 </div>
@@ -2348,10 +2346,10 @@ function DashboardContent() {
                 </Row>
 
                 {/* Bottom Row: Recent Tickets + Quick Actions */}
-                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
                   <Col xs={24} lg={16}>
                     {(() => {
-                      const accent = "#0EA5E9";
+                      const accent = "#3B82F6";
                       const testingCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
                         return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
@@ -2423,9 +2421,9 @@ function DashboardContent() {
                                       fontSize: 10,
                                       fontWeight: 700,
                                       letterSpacing: "0.3px",
-                                      color: "#0EA5E9",
-                                      background: "#F0F9FF",
-                                      border: "1px solid #0EA5E933",
+                                      color: "#3B82F6",
+                                      background: "#EFF6FF",
+                                      border: "1px solid #3B82F633",
                                       padding: "2px 7px",
                                       borderRadius: 999,
                                     }}
@@ -2435,8 +2433,8 @@ function DashboardContent() {
                                         width: 5,
                                         height: 5,
                                         borderRadius: "50%",
-                                        background: "#0EA5E9",
-                                        boxShadow: "0 0 6px #0EA5E980",
+                                        background: "#3B82F6",
+                                        boxShadow: "none",
                                         animation:
                                           "pulse-soft 2s infinite ease-in-out",
                                       }}
@@ -2455,9 +2453,9 @@ function DashboardContent() {
                                       fontSize: 10,
                                       fontWeight: 700,
                                       letterSpacing: "0.3px",
-                                      color: "#F59E0B",
-                                      background: "#FFFBEB",
-                                      border: "1px solid #F59E0B33",
+                                      color: "#10B981",
+                                      background: "#ECFDF5",
+                                      border: "1px solid #10B98133",
                                       padding: "2px 7px",
                                       borderRadius: 999,
                                     }}
@@ -2467,7 +2465,7 @@ function DashboardContent() {
                                         width: 5,
                                         height: 5,
                                         borderRadius: "50%",
-                                        background: "#F59E0B",
+                                        background: "#10B981",
                                       }}
                                     />
                                     {testingCount} TESTING
@@ -2581,12 +2579,12 @@ function DashboardContent() {
                                   completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
                                   live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
                                   done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
-                                  in_progress: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
-                                  doing: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
-                                  in_testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
-                                  testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
-                                  live_testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
-                                  "live testing": { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
+                                  in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                  doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                  in_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  live_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  "live testing": { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
                                   not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
                                 };
                                 const sm =
@@ -2622,7 +2620,7 @@ function DashboardContent() {
                                         cursor: "pointer",
                                         borderRadius: 14,
                                         border: `1px solid ${token.colorBorderSecondary}`,
-                                        background: `linear-gradient(135deg, ${sm.color}08 0%, ${token.colorBgContainer} 70%)`,
+                                        background: token.colorBgContainer,
                                         padding: "14px 14px 12px 18px",
                                         display: "flex",
                                         flexDirection: "column",
@@ -2644,7 +2642,7 @@ function DashboardContent() {
                                         bottom: 0,
                                         width: 4,
                                         background: priorityColor,
-                                        boxShadow: `0 0 12px ${priorityColor}80`,
+                                        boxShadow: "none",
                                       }}
                                     />
 
@@ -2772,7 +2770,7 @@ function DashboardContent() {
                                             height: 5,
                                             borderRadius: "50%",
                                             background: sm.color,
-                                            boxShadow: `0 0 6px ${sm.color}80`,
+                                            boxShadow: "none",
                                             animation: isLive
                                               ? "pulse-soft 2s infinite ease-in-out"
                                               : undefined,
@@ -2799,12 +2797,11 @@ function DashboardContent() {
                                               size={22}
                                               src={item.assignee.avatar}
                                               style={{
-                                                backgroundColor: "#7C3AED",
+                                                backgroundColor: "#3B82F6",
                                                 fontSize: 10,
                                                 fontWeight: 700,
                                                 border: `2px solid ${token.colorBgContainer}`,
-                                                boxShadow:
-                                                  "0 2px 6px rgba(15, 23, 42, 0.12)",
+                                                boxShadow: "none",
                                               }}
                                             >
                                               {item.assignee.name
@@ -2827,13 +2824,13 @@ function DashboardContent() {
 
                   <Col xs={24} lg={8}>
                     {(() => {
-                      const accentQA = "#F59E0B";
+                      const accentQA = "#10B981";
                       const quickActions = [
                         {
                           icon: <PlusCircleOutlined />,
                           title: "Create Ticket",
                           desc: "Log a new task or issue",
-                          accent: "#7C3AED",
+                          accent: "#3B82F6",
                           onClick: () => router.push("/tickets/create"),
                           shortcut: "T",
                         },
@@ -2849,7 +2846,7 @@ function DashboardContent() {
                           icon: <AppstoreOutlined />,
                           title: "Project",
                           desc: "Manage and track all projects",
-                          accent: "#0EA5E9",
+                          accent: "#3B82F6",
                           onClick: () => router.push("/projects/manage"),
                           shortcut: "P",
                         },
@@ -2922,7 +2919,7 @@ function DashboardContent() {
                                     padding: "10px 12px 10px 14px",
                                     borderRadius: 12,
                                     border: `1px solid ${token.colorBorderSecondary}`,
-                                    background: `linear-gradient(135deg, ${a.accent}0A 0%, ${token.colorBgContainer} 70%)`,
+                                    background: token.colorBgContainer,
                                     position: "relative",
                                     overflow: "hidden",
                                     ["--qa-accent" as any]: a.accent,
@@ -3020,10 +3017,10 @@ function DashboardContent() {
         {activeSegment === "freelancer" && (
           <>
             {loading ? (
-              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                 {[1, 2, 3, 4].map((i) => (
                   <Col xs={24} sm={12} lg={6} key={i}>
-                    <Card size="small" style={{ ...cardBase }} styles={{ body: { padding: 18 } }}>
+                    <Card size="small" style={{ ...cardBase }} styles={{ body: { padding: 14 } }}>
                       <Skeleton active paragraph={{ rows: 1 }} />
                     </Card>
                   </Col>
@@ -3032,14 +3029,14 @@ function DashboardContent() {
             ) : (
               <>
                 {/* ─── KPI Strip ──────────────────────────────────── */}
-                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const closed = myTicketsStats.closed;
                       const totalT = myTicketsStats.total;
                       const open = Math.max(0, totalT - closed);
                       const pctDone = totalT > 0 ? Math.round((closed / totalT) * 100) : 0;
-                      const accent = "#7C3AED";
+                      const accent = "#3B82F6";
                       return (
                         <KpiCard
                           eyebrow="My Tickets"
@@ -3082,7 +3079,7 @@ function DashboardContent() {
                                   <span
                                     style={{
                                       width: `${(open / totalT) * 100}%`,
-                                      background: "#C4B5FD",
+                                      background: "#93C5FD",
                                       display: "block",
                                       height: "100%",
                                       transition: "width .4s ease",
@@ -3125,7 +3122,7 @@ function DashboardContent() {
                                         width: 7,
                                         height: 7,
                                         borderRadius: 2,
-                                        background: "#C4B5FD",
+                                        background: "#93C5FD",
                                       }}
                                     />
                                     {open} open
@@ -3140,7 +3137,7 @@ function DashboardContent() {
                   </Col>
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
-                      const accent = "#F59E0B";
+                      const accent = "#10B981";
                       const count = recentLeads.length;
                       const pct = Math.min(100, count * 10);
                       return (
@@ -3177,7 +3174,7 @@ function DashboardContent() {
                                       display: "block",
                                       height: "100%",
                                       width: `${pct}%`,
-                                      background: `linear-gradient(90deg, ${accent}, #FBBF24)`,
+                                      background: accent,
                                       borderRadius: 999,
                                       transition: "width .4s ease",
                                     }}
@@ -3317,7 +3314,7 @@ function DashboardContent() {
                     {(() => {
                       const active = dashboardData?.stats.activeProjects || 0;
                       const growth = dashboardData?.trends.projectGrowth || "0%";
-                      const accent = "#0EA5E9";
+                      const accent = "#3B82F6";
                       return (
                         <KpiCard
                           eyebrow="Active Projects"
@@ -3348,7 +3345,7 @@ function DashboardContent() {
                                       display: "block",
                                       height: "100%",
                                       width: `${Math.min(100, active * 12)}%`,
-                                      background: `linear-gradient(90deg, ${accent}, #38BDF8)`,
+                                      background: accent,
                                       borderRadius: 999,
                                       transition: "width .4s ease",
                                     }}
@@ -3375,22 +3372,22 @@ function DashboardContent() {
                 </Row>
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
-                <Row gutter={[16, 16]}>
+                <Row gutter={[12, 12]}>
                   {/* My Tickets Stats */}
                   <Col xs={24} lg={8}>
                     {(() => {
                       const segments = [
                         { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
                         { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
                       ];
                       const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 340, overflow: "hidden" }}
+                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
                           extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
@@ -3398,7 +3395,7 @@ function DashboardContent() {
                               <div>
                                 <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
                                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                  <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
                                     {completionRate}%
                                   </span>
                                 </div>
@@ -3498,12 +3495,12 @@ function DashboardContent() {
                   {/* Today's Meetings */}
                   <Col xs={24} lg={8}>
                     <Card
-                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column" }}
                       styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                       title={sectionTitle(
                         <VideoCameraOutlined />,
                         "Today's Meetings",
-                        "#7C3AED",
+                        "#3B82F6",
                       )}
                       extra={
                         connectedProvider ? (
@@ -3762,7 +3759,7 @@ function DashboardContent() {
                                                 : "1px solid rgba(79,70,229,0.25)",
                                               color: live
                                                 ? "#047857"
-                                                : "#4F46E5",
+                                                : "#3B82F6",
                                               fontSize: 9,
                                               fontWeight: 700,
                                               letterSpacing: "0.6px",
@@ -3779,7 +3776,7 @@ function DashboardContent() {
                                                 borderRadius: "50%",
                                                 background: live
                                                   ? "#10B981"
-                                                  : "#4F46E5",
+                                                  : "#3B82F6",
                                               }}
                                             />
                                             {live ? "LIVE NOW" : "NEXT UP"}
@@ -4042,13 +4039,13 @@ function DashboardContent() {
                                 width: 48,
                                 height: 48,
                                 borderRadius: 14,
-                                background: `linear-gradient(135deg, #EEF2FF 0%, #FAFBFF 100%)`,
-                                border: "1px solid #C7D2FE",
+                                background: "#EFF6FF",
+                                border: "1px solid #BFDBFE",
                                 margin: "0 auto 10px",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: "#4F46E5",
+                                color: "#3B82F6",
                               }}
                             >
                               <CalendarOutlined
@@ -4081,7 +4078,7 @@ function DashboardContent() {
                   {/* Recent Tickets List */}
                   <Col xs={24} lg={8}>
                     {(() => {
-                      const accent = "#0EA5E9";
+                      const accent = "#3B82F6";
                       const list = recentTickets.slice(0, 5);
                       const activeCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
@@ -4099,7 +4096,7 @@ function DashboardContent() {
                         <Card
                           style={{
                             ...cardBase,
-                            height: 340,
+                            height: 300,
                             display: "flex",
                             flexDirection: "column",
                             overflow: "hidden",
@@ -4183,33 +4180,33 @@ function DashboardContent() {
                                     },
                                     in_progress: {
                                       label: "In Progress",
-                                      color: "#0EA5E9",
-                                      bg: "#F0F9FF",
+                                      color: "#3B82F6",
+                                      bg: "#EFF6FF",
                                     },
                                     doing: {
                                       label: "In Progress",
-                                      color: "#0EA5E9",
-                                      bg: "#F0F9FF",
+                                      color: "#3B82F6",
+                                      bg: "#EFF6FF",
                                     },
                                     in_testing: {
                                       label: "In Testing",
-                                      color: "#F59E0B",
-                                      bg: "#FFFBEB",
+                                      color: "#10B981",
+                                      bg: "#ECFDF5",
                                     },
                                     testing: {
                                       label: "In Testing",
-                                      color: "#F59E0B",
-                                      bg: "#FFFBEB",
+                                      color: "#10B981",
+                                      bg: "#ECFDF5",
                                     },
                                     live_testing: {
                                       label: "In Testing",
-                                      color: "#F59E0B",
-                                      bg: "#FFFBEB",
+                                      color: "#10B981",
+                                      bg: "#ECFDF5",
                                     },
                                     "live testing": {
                                       label: "In Testing",
-                                      color: "#F59E0B",
-                                      bg: "#FFFBEB",
+                                      color: "#10B981",
+                                      bg: "#ECFDF5",
                                     },
                                     not_started: {
                                       label: "Not Started",
@@ -4333,7 +4330,7 @@ function DashboardContent() {
                                               height: 4,
                                               borderRadius: "50%",
                                               background: sm.color,
-                                              boxShadow: `0 0 5px ${sm.color}80`,
+                                              boxShadow: "none",
                                             }}
                                           />
                                           {sm.label.toUpperCase()}
@@ -4414,12 +4411,11 @@ function DashboardContent() {
                                                 size={18}
                                                 src={item.assignee.avatar}
                                                 style={{
-                                                  backgroundColor: "#7C3AED",
+                                                  backgroundColor: "#3B82F6",
                                                   fontSize: 9,
                                                   fontWeight: 700,
                                                   border: `2px solid ${token.colorBgContainer}`,
-                                                  boxShadow:
-                                                    "0 2px 6px rgba(15, 23, 42, 0.12)",
+                                                  boxShadow: "none",
                                                 }}
                                               >
                                                 {item.assignee.name
@@ -4490,7 +4486,7 @@ function DashboardContent() {
                   {/* Recent Leads */}
                   <Col xs={24} lg={12}>
                     {(() => {
-                      const accent = "#F59E0B";
+                      const accent = "#10B981";
                       const list = recentLeads.slice(0, 5);
                       const wonCount = recentLeads.filter(
                         (l: any) => l.status?.toLowerCase() === "won",
@@ -4505,17 +4501,17 @@ function DashboardContent() {
                       > = {
                         won: { label: "Won", color: "#10B981", bg: "#ECFDF5" },
                         lost: { label: "Lost", color: "#EF4444", bg: "#FEF2F2" },
-                        open: { label: "Open", color: "#F59E0B", bg: "#FFFBEB" },
-                        new: { label: "New", color: "#F59E0B", bg: "#FFFBEB" },
+                        open: { label: "Open", color: "#10B981", bg: "#ECFDF5" },
+                        new: { label: "New", color: "#10B981", bg: "#ECFDF5" },
                         qualified: {
                           label: "Qualified",
-                          color: "#0EA5E9",
-                          bg: "#F0F9FF",
+                          color: "#3B82F6",
+                          bg: "#EFF6FF",
                         },
                         contacted: {
                           label: "Contacted",
-                          color: "#7C3AED",
-                          bg: "#F5F3FF",
+                          color: "#3B82F6",
+                          bg: "#EFF6FF",
                         },
                         proposal_sent: {
                           label: "Proposal Sent",
@@ -4533,7 +4529,7 @@ function DashboardContent() {
                         <Card
                           style={{
                             ...cardBase,
-                            height: 340,
+                            height: 300,
                             display: "flex",
                             flexDirection: "column",
                             overflow: "hidden",
@@ -4603,7 +4599,7 @@ function DashboardContent() {
                                         height: 5,
                                         borderRadius: "50%",
                                         background: "#10B981",
-                                        boxShadow: "0 0 6px #10B98180",
+                                        boxShadow: "none",
                                       }}
                                     />
                                     {wonCount} WON
@@ -4621,8 +4617,7 @@ function DashboardContent() {
                                       fontWeight: 700,
                                       letterSpacing: "0.4px",
                                       color: "#EF4444",
-                                      background:
-                                        "linear-gradient(135deg, #FEF2F2 0%, #FFF7ED 100%)",
+                                      background: "#FEF2F2",
                                       border: "1px solid #EF444433",
                                       padding: "2px 7px",
                                       borderRadius: 999,
@@ -4776,7 +4771,7 @@ function DashboardContent() {
                                               height: 4,
                                               borderRadius: "50%",
                                               background: sm.color,
-                                              boxShadow: `0 0 5px ${sm.color}80`,
+                                              boxShadow: "none",
                                             }}
                                           />
                                           {sm.label.toUpperCase()}
@@ -4917,7 +4912,7 @@ function DashboardContent() {
                                                   fontWeight: 700,
                                                   color: isHot
                                                     ? "#EF4444"
-                                                    : "#7C3AED",
+                                                    : "#3B82F6",
                                                 }}
                                               >
                                                 {isHot ? (
@@ -4944,7 +4939,7 @@ function DashboardContent() {
                                                   gap: 3,
                                                   fontSize: 10,
                                                   fontWeight: 700,
-                                                  color: "#F59E0B",
+                                                  color: "#10B981",
                                                 }}
                                               >
                                                 <StarFilled
@@ -5077,15 +5072,15 @@ function DashboardContent() {
                         PAID: { label: "Paid", color: "#10B981", bg: "#ECFDF5" },
                         PENDING: {
                           label: "Pending",
-                          color: "#F59E0B",
-                          bg: "#FFFBEB",
+                          color: "#10B981",
+                          bg: "#ECFDF5",
                         },
                         OVERDUE: {
                           label: "Overdue",
                           color: "#EF4444",
                           bg: "#FEF2F2",
                         },
-                        SENT: { label: "Sent", color: "#0EA5E9", bg: "#F0F9FF" },
+                        SENT: { label: "Sent", color: "#3B82F6", bg: "#EFF6FF" },
                         DRAFT: {
                           label: "Draft",
                           color: "#94A3B8",
@@ -5102,7 +5097,7 @@ function DashboardContent() {
                         <Card
                           style={{
                             ...cardBase,
-                            height: 340,
+                            height: 300,
                             display: "flex",
                             flexDirection: "column",
                             overflow: "hidden",
@@ -5174,7 +5169,7 @@ function DashboardContent() {
                                         height: 5,
                                         borderRadius: "50%",
                                         background: "#EF4444",
-                                        boxShadow: "0 0 6px #EF444480",
+                                        boxShadow: "none",
                                       }}
                                     />
                                     {overdueCount} OVERDUE
@@ -5279,7 +5274,7 @@ function DashboardContent() {
                                   const dueColor = overdue
                                     ? "#EF4444"
                                     : daysToDue !== null && daysToDue <= 3
-                                      ? "#F59E0B"
+                                      ? "#10B981"
                                       : token.colorTextTertiary;
 
                                   return (
@@ -5379,7 +5374,7 @@ function DashboardContent() {
                                               height: 4,
                                               borderRadius: "50%",
                                               background: sm.color,
-                                              boxShadow: `0 0 5px ${sm.color}80`,
+                                              boxShadow: "none",
                                             }}
                                           />
                                           {sm.label.toUpperCase()}
@@ -5523,7 +5518,7 @@ function DashboardContent() {
                                   size="small"
                                   type="primary"
                                   onClick={() =>
-                                    router.push("/invoice/create")
+                                    router.push("/invoice/newinvoice")
                                   }
                                   style={{
                                     background: accent,

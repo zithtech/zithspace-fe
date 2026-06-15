@@ -317,7 +317,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       style={{
         height: '100%',
         background: "var(--bg-pure-white)",
-        borderRadius: 16,
+        borderRadius: 0,
         border: "1px solid var(--border-slate-100)",
         overflow: "hidden",
         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)"

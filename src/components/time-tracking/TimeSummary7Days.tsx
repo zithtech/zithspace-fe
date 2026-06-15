@@ -79,103 +79,90 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
   }, [dailyStats]);
 
   return (
-    <div className="mtt-week-card">
-      <div className="mtt-week-card__head">
-        <div className="mtt-week-card__title-wrap">
-          <div className="mtt-week-card__icon">
-            <BarChartOutlined />
-          </div>
-          <div>
-            <div className="mtt-week-card__title">7-Day Activity</div>
-            <div className="mtt-week-card__subtitle">
-              Last 7 days · {summary.activeDays} active
-            </div>
+    <div 
+      className="mtt-week-card flex flex-col"
+      style={{
+        background: 'var(--bg-pure-white)',
+        borderRadius: 6,
+        border: '1px solid var(--border-slate-200)',
+        padding: '16px',
+      }}
+    >
+      <div className="flex items-start gap-3 mb-4">
+        <div 
+          className="flex items-center justify-center rounded-md"
+          style={{ width: 32, height: 32, background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}
+        >
+          <BarChartOutlined />
+        </div>
+        <div>
+          <div className="text-[13px] font-bold text-slate-800 leading-tight">7-Day Activity</div>
+          <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+            Last 7 days · {summary.activeDays} active
           </div>
         </div>
       </div>
 
-      <div className="mtt-week-card__metrics">
-        <div className="mtt-week-card__metric">
-          <span className="mtt-week-card__metric-label">Total</span>
-          <span className="mtt-week-card__metric-value">
-            {formatDurationShort(summary.totalSec)}
-          </span>
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total</div>
+          <div className="text-sm font-semibold text-slate-700">{formatDurationShort(summary.totalSec)}</div>
         </div>
-        <div className="mtt-week-card__metric">
-          <span className="mtt-week-card__metric-label">Daily Avg</span>
-          <span className="mtt-week-card__metric-value">
-            {formatDurationShort(summary.avgSec)}
-          </span>
+        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Daily Avg</div>
+          <div className="text-sm font-semibold text-slate-700">{formatDurationShort(summary.avgSec)}</div>
         </div>
-        {summary.best && summary.best.seconds > 0 && (
-          <div className="mtt-week-card__metric mtt-week-card__metric--best">
-            <span className="mtt-week-card__metric-label">
-              <TrophyFilled /> Best
-            </span>
-            <span className="mtt-week-card__metric-value">
-              {dayjs(summary.best.date).format("ddd")}
-            </span>
-          </div>
-        )}
       </div>
 
       {loading ? (
-        <div className="mtt-week-card__chart-wrap">
-          <Skeleton active paragraph={{ rows: 5 }} />
-        </div>
+        <Skeleton active paragraph={{ rows: 5 }} title={false} />
       ) : (
-        <div className="mtt-week-card__chart-wrap">
-          <div className="mtt-week-card__chart">
-            {dailyStats.map((d) => {
-              const heightPct = summary.maxSec
-                ? Math.max(d.seconds > 0 ? 8 : 0, (d.seconds / summary.maxSec) * 100)
-                : 0;
-              return (
-                <Tooltip
-                  key={d.date}
-                  title={
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontWeight: 600 }}>
-                        {dayjs(d.date).format("dddd, MMM D")}
-                      </div>
-                      <div style={{ marginTop: 2 }}>{formatDurationShort(d.seconds)}</div>
+        <div className="flex flex-col gap-2.5">
+          {dailyStats.map((d) => {
+            const widthPct = summary.maxSec
+              ? Math.max(d.seconds > 0 ? 4 : 0, (d.seconds / summary.maxSec) * 100)
+              : 0;
+            return (
+              <Tooltip
+                key={d.date}
+                title={
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {dayjs(d.date).format("dddd, MMM D")}
                     </div>
-                  }
-                >
-                  <div
-                    className={`mtt-week-card__col ${d.isToday ? "is-today" : ""} ${
-                      d.seconds === 0 ? "is-empty" : ""
-                    }`}
-                  >
-                    <div className="mtt-week-card__col-value">
-                      {formatDurationCompact(d.seconds)}
-                    </div>
-                    <div className="mtt-week-card__col-track">
-                      <div
-                        className="mtt-week-card__col-bar"
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    <div className="mtt-week-card__col-label">
-                      <span className="mtt-week-card__col-day">
-                        {dayjs(d.date).format("ddd")}
-                      </span>
-                      <span className="mtt-week-card__col-date">
-                        {dayjs(d.date).format("D")}
-                      </span>
-                    </div>
+                    <div style={{ marginTop: 2 }}>{formatDurationShort(d.seconds)}</div>
                   </div>
-                </Tooltip>
-              );
-            })}
-          </div>
+                }
+                placement="right"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-[30px] shrink-0 text-right">
+                    <span className={`text-[11px] font-bold ${d.isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+                      {dayjs(d.date).format("ddd")}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${d.isToday ? 'bg-blue-500' : 'bg-slate-300'}`}
+                      style={{ width: `${widthPct}%` }}
+                    />
+                  </div>
+                  <div className="w-[42px] shrink-0 text-left">
+                    <span className={`text-[11px] font-semibold ${d.seconds === 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {formatDurationCompact(d.seconds)}
+                    </span>
+                  </div>
+                </div>
+              </Tooltip>
+            );
+          })}
         </div>
       )}
 
       {!loading && summary.totalSec === 0 && (
-        <div className="mtt-week-card__empty">
-          <ClockCircleOutlined />
-          <span>No time logged in the last 7 days</span>
+        <div className="flex flex-col items-center justify-center py-6 text-slate-400 text-xs gap-2">
+          <ClockCircleOutlined style={{ fontSize: 20 }} />
+          <span>No time logged in 7 days</span>
         </div>
       )}
     </div>

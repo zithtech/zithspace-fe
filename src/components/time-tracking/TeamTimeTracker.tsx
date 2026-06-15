@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -19,6 +20,52 @@ import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
+
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+    const min = Math.min(...data);
+    const max = Math.max(...data, min + 1);
+    const range = max - min;
+    const width = 72;
+    const height = 28;
+    const bottomPadding = 4;
+
+    const points = data.map((d, i) => {
+        const x = (i / (data.length - 1)) * width;
+        let y = height - bottomPadding;
+        if (max > min) {
+            y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+        }
+        return { x, y };
+    });
+
+    let pathD = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+        pathD += ` L ${points[i].x},${points[i].y}`;
+    }
+
+    const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+    const isFlat = data.every(d => d === data[0]);
+    const flatY = 2;
+    const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+    const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+    const gradId = `spark-grad-team-${color.replace('#', '')}`;
+
+    return (
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+            <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+                </linearGradient>
+            </defs>
+            <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+            <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+};
 
 const { Title, Text } = Typography;
 
@@ -246,6 +293,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
   const { data: members = [] } = useMembers();
   const { data: projects = [] } = useUserProjects();
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const fetchTeamEntries = async () => {
     try {
@@ -813,84 +863,122 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     return { h, m };
   })();
 
+  const teamCards = [
+    {
+      key: 'members',
+      title: 'Active Members',
+      value: stats.activeUsers.toString(),
+      deltaText: null,
+      deltaColor: '#10b981',
+      icon: <TeamOutlined />,
+      color: '#10B981',
+      trend: [20, 30, 40, 35, 50, 60, Math.max(stats.activeUsers * 10, 10)], // Mock trend
+      footerText: `${groupedData.length} ${groupedData.length === 1 ? 'tracked day' : 'tracked days'} in range`
+    },
+    {
+      key: 'hours',
+      title: 'Total Work Hours',
+      value: `${totalFmt.h}h ${String(totalFmt.m).padStart(2, '0')}m`,
+      deltaText: null,
+      deltaColor: '#3b82f6',
+      icon: <ClockCircleOutlined />,
+      color: '#3B82F6',
+      trend: [5, 10, 8, 15, 12, 18, Math.max(stats.totalSeconds > 0 ? 25 : 5, 5)],
+      footerText: `Across ${totalDailyEntries} ${totalDailyEntries === 1 ? 'entry' : 'entries'}`
+    },
+    {
+      key: 'projects',
+      title: 'Project Coverage',
+      value: stats.uniqueProjects.toString(),
+      deltaText: null,
+      deltaColor: '#f59e0b',
+      icon: <RocketOutlined />,
+      color: '#F59E0B',
+      trend: [2, 3, 2, 4, 3, 5, Math.max(stats.uniqueProjects, 2)],
+      footerText: filters.projectId ? 'Filtered to one project' : 'Across the team'
+    },
+    {
+      key: 'avg',
+      title: avgLabel,
+      value: `${avgFmt.h}h ${String(avgFmt.m).padStart(2, '0')}m`,
+      deltaText: null,
+      deltaColor: '#8b5cf6',
+      icon: <RiseOutlined />,
+      color: '#8B5CF6',
+      trend: [10, 15, 12, 20, 18, 25, Math.max(avgSeconds > 0 ? 30 : 10, 10)],
+      footerText: filters.userId ? 'Selected member · per active day' : 'Per active member'
+    }
+  ];
+
   return (
     <div style={{ padding: '0 0 24px 0' }}>
       {/* KPI Strip */}
-      <div className="mtt-kpi-strip">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={6}>
-            <div className="mtt-kpi mtt-kpi--emerald">
-              <div className="mtt-kpi__head">
-                <div className="mtt-kpi__icon"><TeamOutlined /></div>
-                <span className="mtt-kpi__label">Active Members</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-5">
+        {teamCards.map((s) => (
+          <div
+              key={s.key}
+              className="dh-stats-card flex flex-col justify-between p-4 transition-all"
+              style={{
+                  border: '1px solid var(--border-slate-200)',
+                  background: 'var(--bg-pure-white)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  height: 100,
+                  borderRadius: 0,
+              }}
+          >
+              <div className="flex items-start justify-between w-full">
+                  <div className="flex items-center gap-2">
+                      <div style={{
+                          color: s.color,
+                          fontSize: 15,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 26,
+                          height: 26,
+                          background: `${s.color}1c`,
+                          borderRadius: 6,
+                      }}>
+                          {s.icon}
+                      </div>
+                      <span
+                          className="text-[12.5px] font-medium whitespace-nowrap"
+                          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
+                      >
+                          {s.title}
+                      </span>
+                  </div>
+                  {s.deltaText && (
+                      <Tooltip title="Trend">
+                          <span
+                              className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full whitespace-nowrap"
+                              style={{
+                                  color: s.deltaColor,
+                                  background: `${s.deltaColor}1c`
+                              }}
+                          >
+                              {s.deltaText}
+                          </span>
+                      </Tooltip>
+                  )}
               </div>
-              <div className="mtt-kpi__value">
-                <span className="mtt-kpi__main">{stats.activeUsers}</span>
-                <span className="mtt-kpi__unit">{stats.activeUsers === 1 ? 'member' : 'members'}</span>
+
+              <div className="flex items-end justify-between w-full mt-auto gap-2">
+                  <div className="flex items-baseline gap-1.5 pb-1 min-w-0">
+                      <span className="text-[18px] xl:text-[20px] font-semibold leading-none tracking-tight truncate whitespace-nowrap" style={{ color: 'var(--text-slate-800)' }}>
+                          {s.value}
+                      </span>
+                      <span className="text-[11px] font-medium truncate hidden 2xl:inline-block" style={{ color: 'var(--text-slate-400)' }}>
+                          {s.footerText}
+                      </span>
+                  </div>
+
+                  <div className="shrink-0 mb-[2px]">
+                      <Sparkline data={s.trend} color={s.color} />
+                  </div>
               </div>
-              <div className="mtt-kpi__sub">
-                <span className="mtt-trend mtt-trend--flat">
-                  {groupedData.length} {groupedData.length === 1 ? 'tracked day' : 'tracked days'} in range
-                </span>
-              </div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <div className="mtt-kpi mtt-kpi--blue">
-              <div className="mtt-kpi__head">
-                <div className="mtt-kpi__icon"><ClockCircleOutlined /></div>
-                <span className="mtt-kpi__label">Total Work Hours</span>
-              </div>
-              <div className="mtt-kpi__value">
-                <span className="mtt-kpi__main">{totalFmt.h}</span>
-                <span className="mtt-kpi__unit">h</span>
-                <span className="mtt-kpi__main mtt-kpi__main--sm">{String(totalFmt.m).padStart(2, '0')}</span>
-                <span className="mtt-kpi__unit">m</span>
-              </div>
-              <div className="mtt-kpi__sub">
-                <span className="mtt-trend mtt-trend--flat">
-                  Across {totalDailyEntries} {totalDailyEntries === 1 ? 'entry' : 'entries'}
-                </span>
-              </div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <div className="mtt-kpi mtt-kpi--amber">
-              <div className="mtt-kpi__head">
-                <div className="mtt-kpi__icon"><RocketOutlined /></div>
-                <span className="mtt-kpi__label">Project Coverage</span>
-              </div>
-              <div className="mtt-kpi__value">
-                <span className="mtt-kpi__main">{stats.uniqueProjects}</span>
-                <span className="mtt-kpi__unit">{stats.uniqueProjects === 1 ? 'project' : 'projects'}</span>
-              </div>
-              <div className="mtt-kpi__sub">
-                <span className="mtt-trend mtt-trend--flat">
-                  {filters.projectId ? 'Filtered to one project' : 'Across the team'}
-                </span>
-              </div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <div className="mtt-kpi mtt-kpi--violet">
-              <div className="mtt-kpi__head">
-                <div className="mtt-kpi__icon"><RiseOutlined /></div>
-                <span className="mtt-kpi__label">{avgLabel}</span>
-              </div>
-              <div className="mtt-kpi__value">
-                <span className="mtt-kpi__main">{avgFmt.h}</span>
-                <span className="mtt-kpi__unit">h</span>
-                <span className="mtt-kpi__main mtt-kpi__main--sm">{String(avgFmt.m).padStart(2, '0')}</span>
-                <span className="mtt-kpi__unit">m</span>
-              </div>
-              <div className="mtt-kpi__sub">
-                <span className="mtt-trend mtt-trend--flat">
-                  {filters.userId ? 'Selected member · per active day' : 'Per active member'}
-                </span>
-              </div>
-            </div>
-          </Col>
-        </Row>
+          </div>
+        ))}
       </div>
 
       {/* Tracker card */}
@@ -923,37 +1011,35 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
 
           <div className="mtt-team-filters">
-            <Select
-              allowClear
-              showSearch
-              placeholder="All members"
-              className="mtt-team-filters__select"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.children ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              value={filters.userId}
-              onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
-            >
-              {members.map(m => (
-                <Select.Option key={m.value} value={m.value}>
-                  {m.label}
-                </Select.Option>
-              ))}
-            </Select>
+            {mounted && document.getElementById('team-sidebar-filters-portal') && createPortal(
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginTop: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Filters
+                </div>
+                <SearchableDropdown
+                  value={filters.userId}
+                  onChange={(v) => setFilters(f => ({ ...f, userId: v as string | undefined }))}
+                  placeholder="All members"
+                  searchPlaceholder="Search by name"
+                  itemNoun="members"
+                  width="100%"
+                  style={{ width: '100%' }}
+                  options={members.map(m => ({ value: m.value, label: m.label }))}
+                />
 
-            <Select
-              allowClear
-              placeholder="All projects"
-              className="mtt-team-filters__select"
-              value={filters.projectId}
-              onChange={(val) => setFilters(f => ({ ...f, projectId: val }))}
-            >
-              {projects.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
-            </Select>
+                <SearchableDropdown
+                  value={filters.projectId}
+                  onChange={(v) => setFilters(f => ({ ...f, projectId: v as string | undefined }))}
+                  placeholder="All projects"
+                  searchPlaceholder="Search by name"
+                  itemNoun="projects"
+                  width="100%"
+                  style={{ width: '100%' }}
+                  options={projects.map(p => ({ value: p.value, label: p.label }))}
+                />
+              </div>,
+              document.getElementById('team-sidebar-filters-portal')!
+            )}
 
             <RangePicker
               className="mtt-team-filters__range"

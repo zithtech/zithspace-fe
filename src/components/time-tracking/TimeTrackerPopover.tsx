@@ -393,20 +393,19 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
             disabled={!!activeEntry || isLoading || !selectedPids.length}
             showSearch
             maxTagCount="responsive"
-            options={tickets.map((t) => ({
-              label: `${t.title}${selectedPids.length > 1
-                  ? ` · ${projects.find((p) => p.value === t.projectId)?.label ||
-                  "Unknown"
-                  }`
-                  : ""
-                }`,
-              value: t.id,
-            }))}
-            filterOption={(input, option) =>
-              String(option?.label ?? "")
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
+            optionFilterProp="label"
+            options={tickets.map((t) => {
+              const projectSuffix = selectedPids.length > 1
+                ? ` · ${projects.find((p) => p.value === t.projectId)?.label || "Unknown"}`
+                : "";
+              // label is what Ant Design filters against — include both ticketNumber and title
+              // so copy-pasting either (any case) finds the correct ticket
+              const searchableLabel = `${t.ticketNumber ? `[${t.ticketNumber}] ` : ""}${t.title}${projectSuffix}`;
+              return {
+                label: searchableLabel,
+                value: t.id,
+              };
+            })}
           />
         </Form.Item>
 

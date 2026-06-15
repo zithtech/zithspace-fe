@@ -1067,7 +1067,7 @@ export default function ProposalsListPage() {
         <style jsx global>{`
           .pp-shell {
             display: flex;
-            margin: 0 -16px;
+            margin: 0 -8px;
             min-height: calc(100vh - 64px);
             background: var(--bg-pure-white);
           }
@@ -1100,7 +1100,7 @@ export default function ProposalsListPage() {
             text-transform: uppercase; letter-spacing: 0.07em;
           }
           .pp-create-btn {
-            height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+            height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
             background: #3B82F6 !important;
             border: none !important; box-shadow: none !important;
             margin-bottom: 4px;
@@ -1135,10 +1135,10 @@ export default function ProposalsListPage() {
             background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
           }
           .pp-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
-          .pp-side-sd { border-radius: 0 !important; }
+          .pp-side-sd { border-radius: 8px !important; }
           .pp-side-select .ant-select-selector,
           .pp-side-range.ant-picker {
-            border-radius: 0 !important; border-color: var(--border-slate-200) !important;
+            border-radius: 8px !important; border-color: var(--border-slate-200) !important;
             background: var(--bg-pure-white) !important;
           }
           .pp-side-select { width: 100%; }
@@ -1168,9 +1168,11 @@ export default function ProposalsListPage() {
           .pp-recent-sub { font-size: 9.5px; color: var(--text-slate-400); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .pp-trash {
             display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
-            margin: 0 -14px; padding: 12px 22px;
+            margin: 0 -14px; padding: 0 22px;
+            height: 52px !important;
             border-top: 1px solid var(--border-slate-200);
             background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500; cursor: pointer;
+            box-sizing: border-box;
           }
           .pp-trash .anticon { font-size: 15px; }
           .pp-trash:hover { color: #ef4444; }
@@ -1298,12 +1300,16 @@ export default function ProposalsListPage() {
           /* Footer + pager */
           .pp-footer {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 12px 18px;
+            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
           }
           .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
           .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

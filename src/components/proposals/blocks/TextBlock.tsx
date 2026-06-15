@@ -18,7 +18,7 @@ export const TextBlock: React.FC<TextBlockProps & { editable?: boolean }> = ({ d
   // Inline edit-in-place on the canvas (heading + rich content).
   if (editable && onUpdate) {
     return (
-      <div style={{ padding: '40px' }}>
+      <div style={{ padding: '16px 24px' }}>
         <input
           className="pb-inline-heading"
           value={data.heading || ''}
@@ -45,7 +45,7 @@ export const TextBlock: React.FC<TextBlockProps & { editable?: boolean }> = ({ d
 
   const isEmpty = !data.heading && !data.content;
   return (
-    <div style={{ padding: '40px' }}>
+    <div style={{ padding: '16px 24px' }}>
       {isEmpty && <BlockGhostHint />}
       <Title
         level={2}

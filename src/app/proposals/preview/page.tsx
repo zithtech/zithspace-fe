@@ -73,6 +73,11 @@ function PreviewContent() {
 
   return (
     <div style={{ width: '100%', height: '100vh', overflowX: 'hidden', overflowY: 'auto', background: 'var(--bg-primary)' }}>
+      <style>{`
+        .preview-blocks-container div[id^="preview-block-"] > div {
+          padding: 8px 24px !important;
+        }
+      `}</style>
       <div style={{
         minHeight: '100vh',
         background: 'var(--bg-secondary)',
@@ -87,7 +92,7 @@ function PreviewContent() {
             Document live preview starts here...
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} className="preview-blocks-container">
             {blocks.map((block) => (
               <div key={block.id} id={`preview-block-${block.id}`} style={{ scrollMarginTop: '20px' }}>
                 <BlockRenderer type={block.type} data={block.data} />

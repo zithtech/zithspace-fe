@@ -25,7 +25,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Signature-style fonts for the proposal Signature block */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Allura&family=Dancing+Script:wght@600&family=Great+Vibes&family=Sacramento&family=Mr+Dafoe&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Allura&family=Dancing+Script:wght@600&family=Great+Vibes&family=Sacramento&family=Mr+Dafoe&family=Alex+Brush&family=Pinyon+Script&family=Parisienne&family=Mrs+Saint+Delafield&family=Monsieur+La+Doulaise&display=swap"
           rel="stylesheet"
         />
       </head>

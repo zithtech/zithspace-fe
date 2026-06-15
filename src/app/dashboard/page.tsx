@@ -1588,8 +1588,7 @@ function DashboardContent() {
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 10,
-                                flexWrap: "wrap",
+                                gap: 8,
                                 minWidth: 0,
                               }}
                             >
@@ -1613,53 +1612,6 @@ function DashboardContent() {
                                   }}
                                 >
                                   {tmCount} TODAY
-                                </span>
-                              )}
-                              {liveTM && (
-                                <Tooltip title="Live meeting in progress">
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.4px",
-                                      color: "#047857",
-                                      background: "#ECFDF5",
-                                      border: "1px solid #10B98133",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#10B981",
-                                        animation:
-                                          "pulse-soft 2s infinite ease-in-out",
-                                      }}
-                                    />
-                                    LIVE
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {!liveTM && upcomingTM > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: "#4F46E5",
-                                    background: "rgba(79,70,229,0.10)",
-                                    border: "1px solid rgba(79,70,229,0.25)",
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                  }}
-                                >
-                                  {upcomingTM} UPCOMING
                                 </span>
                               )}
                             </div>
@@ -1814,31 +1766,76 @@ function DashboardContent() {
                                       display: "flex",
                                       flexDirection: "column",
                                       gap: 10,
-                                      padding: "10px 14px 14px",
+                                      padding: "12px 14px 14px",
                                     }}
                                   >
-                                    {ended.length > 0 && (
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          justifyContent: "flex-end",
-                                          alignItems: "center",
-                                          marginBottom: -4,
-                                        }}
-                                      >
+                                    {/* Sub-header status bar */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        background: "var(--bg-slate-50)",
+                                        border: "1px solid var(--border-color)",
+                                        borderRadius: 8,
+                                        padding: "6px 12px",
+                                        marginBottom: 2,
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        {liveTM ? (
+                                          <span
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 6,
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              color: "#047857",
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                width: 6,
+                                                height: 6,
+                                                borderRadius: "50%",
+                                                background: "#10B981",
+                                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.2)",
+                                                animation: "pulse-soft 2s infinite ease-in-out",
+                                              }}
+                                            />
+                                            Live now
+                                          </span>
+                                        ) : upcomingTM > 0 ? (
+                                          <span
+                                            style={{
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              color: "#4F46E5",
+                                            }}
+                                          >
+                                            {upcomingTM} upcoming
+                                          </span>
+                                        ) : (
+                                          <span style={{ fontSize: 11, color: token.colorTextTertiary, fontStyle: "italic", fontWeight: 600 }}>
+                                            No more meetings
+                                          </span>
+                                        )}
+                                      </div>
+                                      {ended.length > 0 && (
                                         <Text
                                           style={{
-                                            fontSize: 9.5,
+                                            fontSize: 10.5,
                                             color: token.colorTextTertiary,
                                             fontWeight: 600,
-                                            letterSpacing: "0.4px",
                                             textTransform: "uppercase",
+                                            letterSpacing: "0.2px",
                                           }}
                                         >
-                                          {ended.length} done earlier
+                                          {ended.length} done
                                         </Text>
-                                      </div>
-                                    )}
+                                      )}
+                                    </div>
 
                                     {/* Hero meeting */}
                                     {heroMeeting &&
@@ -3497,14 +3494,56 @@ function DashboardContent() {
 
                   {/* Today's Meetings */}
                   <Col xs={24} lg={8}>
-                    <Card
-                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
-                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
-                      title={sectionTitle(
-                        <VideoCameraOutlined />,
-                        "Today's Meetings",
-                        "#7C3AED",
-                      )}
+                    {(() => {
+                      const accentTM = "#7C3AED";
+                      const tmCount = todaysMeetings.length;
+                      const liveTM = todaysMeetings.find((m: any) => {
+                        const now = dayjs();
+                        return (
+                          dayjs(m.startTime).isBefore(now) &&
+                          dayjs(m.endTime).isAfter(now)
+                        );
+                      });
+                      const upcomingTM = todaysMeetings.filter((m: any) =>
+                        dayjs(m.startTime).isAfter(dayjs()),
+                      ).length;
+                      return (
+                        <Card
+                          style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                          styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
+                          title={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                minWidth: 0,
+                              }}
+                            >
+                              {sectionTitle(
+                                <VideoCameraOutlined />,
+                                "Today's Meetings",
+                                accentTM,
+                              )}
+                              {tmCount > 0 && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.4px",
+                                    color: accentTM,
+                                    background: `${accentTM}14`,
+                                    border: `1px solid ${accentTM}33`,
+                                    padding: "2px 7px",
+                                    borderRadius: 999,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {tmCount} TODAY
+                                </span>
+                              )}
+                            </div>
+                          }
                       extra={
                         connectedProvider ? (
                           <Space size={4}>
@@ -3652,44 +3691,76 @@ function DashboardContent() {
                                   display: "flex",
                                   flexDirection: "column",
                                   gap: 10,
-                                  padding: "10px 14px 14px",
+                                  padding: "12px 14px 14px",
                                 }}
                               >
-                                {/* Summary row */}
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <Text
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      color: token.colorTextSecondary,
-                                      letterSpacing: "0.6px",
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    {sorted.length} meeting
-                                    {sorted.length !== 1 ? "s" : ""}
-                                    {liveMeeting && " · 1 live"}
-                                    {!liveMeeting && upcoming.length > 0 &&
-                                      ` · ${upcoming.length} upcoming`}
-                                  </Text>
-                                  {ended.length > 0 && (
-                                    <Text
+                                    {/* Sub-header status bar */}
+                                    <div
                                       style={{
-                                        fontSize: 10,
-                                        color: token.colorTextTertiary,
-                                        fontWeight: 600,
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        background: "var(--bg-slate-50)",
+                                        border: "1px solid var(--border-color)",
+                                        borderRadius: 8,
+                                        padding: "6px 12px",
+                                        marginBottom: 2,
                                       }}
                                     >
-                                      {ended.length} done
-                                    </Text>
-                                  )}
-                                </div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        {liveTM ? (
+                                          <span
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 6,
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              color: "#047857",
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                width: 6,
+                                                height: 6,
+                                                borderRadius: "50%",
+                                                background: "#10B981",
+                                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.2)",
+                                                animation: "pulse-soft 2s infinite ease-in-out",
+                                              }}
+                                            />
+                                            Live now
+                                          </span>
+                                        ) : upcomingTM > 0 ? (
+                                          <span
+                                            style={{
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              color: "#4F46E5",
+                                            }}
+                                          >
+                                            {upcomingTM} upcoming
+                                          </span>
+                                        ) : (
+                                          <span style={{ fontSize: 11, color: token.colorTextTertiary, fontStyle: "italic", fontWeight: 600 }}>
+                                            No more meetings
+                                          </span>
+                                        )}
+                                      </div>
+                                      {ended.length > 0 && (
+                                        <Text
+                                          style={{
+                                            fontSize: 10.5,
+                                            color: token.colorTextTertiary,
+                                            fontWeight: 600,
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.2px",
+                                          }}
+                                        >
+                                          {ended.length} done
+                                        </Text>
+                                      )}
+                                    </div>
 
                                 {/* Hero meeting */}
                                 {heroMeeting &&
@@ -4075,7 +4146,9 @@ function DashboardContent() {
                           </div>
                         )}
                       </div>
-                    </Card>
+                        </Card>
+                      );
+                    })()}
                   </Col>
 
                   {/* Recent Tickets List */}

@@ -27,6 +27,11 @@ export const SIGNATURE_FONTS = [
   { id: 'allura', label: 'Classic', family: "'Allura', cursive" },
   { id: 'sacramento', label: 'Casual', family: "'Sacramento', cursive" },
   { id: 'dafoe', label: 'Bold', family: "'Mr Dafoe', cursive" },
+  { id: 'alexbrush', label: 'Artistic', family: "'Alex Brush', cursive" },
+  { id: 'pinyon', label: 'Calligraphy', family: "'Pinyon Script', cursive" },
+  { id: 'parisienne', label: 'Chic', family: "'Parisienne', cursive" },
+  { id: 'delafield', label: 'Delicate', family: "'Mrs Saint Delafield', cursive" },
+  { id: 'doulaise', label: 'Formal', family: "'Monsieur La Doulaise', cursive" },
 ];
 export const sigFamily = (id?: string) =>
   SIGNATURE_FONTS.find((f) => f.id === id)?.family || SIGNATURE_FONTS[0].family;
@@ -133,7 +138,7 @@ export const SignatureBlock: React.FC<SignatureBlockProps> = ({ data }) => {
   const isEmpty = !data.companyName && !data.clientName && !data.companySigner && !data.clientSigner;
 
   return (
-    <div style={{ padding: '40px', pageBreakInside: 'avoid' }}>
+    <div style={{ padding: '16px 24px', pageBreakInside: 'avoid' }}>
       {isEmpty && <BlockGhostHint />}
 
       <div

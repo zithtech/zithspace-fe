@@ -360,11 +360,20 @@ const renderBlockContent = (block: any) => {
                 </Title>
               )}
               {hasValue(m.deliverables) && (
-                <div style={{ marginBottom: 6 }}>
+                <div style={{
+                  marginBottom: 12,
+                  background: "rgba(16, 185, 129, 0.05)",
+                  borderLeft: "3px solid #10b981",
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4
+                }}>
                   <Text strong style={{ color: "var(--text-primary)", fontSize: 13 }}>
-                    Key Deliverables:
+                    Key Deliverables
                   </Text>
-                  <Text style={{ marginLeft: 6, color: "var(--text-secondary)", fontSize: 14 }}>
+                  <Text style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
                     {m.deliverables}
                   </Text>
                 </div>
@@ -435,7 +444,7 @@ const renderBlockContent = (block: any) => {
       const logo = data.logoUrl || data.logo;
       return (
         <div style={{ padding: "8px 0 16px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
             {logo ? (
               <img
                 src={logo}
@@ -459,7 +468,7 @@ const renderBlockContent = (block: any) => {
             </div>
           </div>
 
-          <div style={{ marginBottom: 22 }}>
+          <div style={{ marginBottom: 10 }}>
             <span
               style={{
                 color: "#4f46e5",
@@ -477,7 +486,7 @@ const renderBlockContent = (block: any) => {
               style={{
                 fontSize: 26,
                 marginTop: 0,
-                marginBottom: 12,
+                marginBottom: 6,
                 fontWeight: 800,
                 color: "var(--text-primary)",
                 letterSpacing: "-0.02em",
@@ -732,7 +741,7 @@ export const ProposalLivePreview: React.FC<ProposalLivePreviewProps> = ({
         .plp-blocks {
           display: flex;
           flex-direction: column;
-          gap: 28px;
+          gap: 12px;
         }
         .plp-block {
           /* flat — no shadow */

@@ -119,7 +119,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
   const itemsToRender = items.length > 0 ? items : ghostItems;
 
   return (
-    <div style={{ padding: '40px' }}>
+    <div style={{ padding: '16px 24px' }}>
       {isEmpty && <BlockGhostHint />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>

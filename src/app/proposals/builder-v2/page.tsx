@@ -12,7 +12,7 @@ import {
 import type { MenuProps } from 'antd';
 import {
   ArrowLeftOutlined, SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined,
-  CopyOutlined, EyeInvisibleOutlined,
+  FileWordOutlined, CopyOutlined, EyeInvisibleOutlined,
 } from '@ant-design/icons';
 import { Wand2, SlidersHorizontal, Braces, Palette, Layers } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -206,40 +206,408 @@ function BuilderV2Content() {
   };
 
   // ─── Save ───────────────────────────────────────────────────────────
-  const handleSave = async () => {
+  const handleSave = async (skipRedirect?: boolean) => {
+    const focusBlock = (id: string) => {
+      setSelectedBlockId(id);
+      setPropTab('section');
+      setTimeout(() => {
+        document.getElementById(`editor-block-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
+
+    // 1. Cover validation
+    const cover = blocks.find((b: any) => b.type === 'cover');
+    if (cover) {
+      if (!cover.data?.title?.trim()) {
+        messageApi.warning({ content: 'Please enter a Proposal Title in the Cover settings.', duration: 3.5 });
+        focusBlock(cover.id);
+        return;
+      }
+      if (!cover.data?.clientName?.trim()) {
+        messageApi.warning({ content: 'Please enter a Client Contact Person in the Cover settings.', duration: 3.5 });
+        focusBlock(cover.id);
+        return;
+      }
+    }
+
+    // 2. Validate all added blocks/components
+    for (const block of blocks) {
+      if (block.type === 'text' || block.type === 'section') {
+        if (!block.data?.heading?.trim()) {
+          messageApi.warning({ content: `Please enter a Heading for the ${block.type === 'text' ? 'Text' : 'Section'} block.`, duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+      }
+
+      if (block.type === 'pricing') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Pricing block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.items || block.data.items.length === 0) {
+          messageApi.warning({ content: 'Please add at least one line item to the Pricing block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.items.length; i++) {
+          const item = block.data.items[i];
+          if (!item.name?.trim()) {
+            messageApi.warning({ content: `Please enter a Name for Service Item #${i + 1} in the Pricing block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (item.price === undefined || item.price === null || item.price < 0) {
+            messageApi.warning({ content: `Please enter a valid Price for Service Item "${item.name || i + 1}" in the Pricing block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'scope') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Scope of Work block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.milestones || block.data.milestones.length === 0) {
+          messageApi.warning({ content: 'Please add at least one Milestone Phase to the Scope block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.milestones.length; i++) {
+          const m = block.data.milestones[i];
+          if (!m.title?.trim()) {
+            messageApi.warning({ content: `Please enter a Phase Name for Milestone Phase #${i + 1} in the Scope block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!m.deliverables?.trim()) {
+            messageApi.warning({ content: `Please enter the Deliverables for Milestone Phase "${m.title || i + 1}" in the Scope block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'timeline') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.startDate) {
+          messageApi.warning({ content: 'Please set a Kickoff Date in the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.finalDate) {
+          messageApi.warning({ content: 'Please set a Final Delivery Date in the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.phases || block.data.phases.length === 0) {
+          messageApi.warning({ content: 'Please add at least one Project Phase to the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.phases.length; i++) {
+          const p = block.data.phases[i];
+          if (!p.title?.trim()) {
+            messageApi.warning({ content: `Please enter a Phase Name for Project Phase #${i + 1} in the Timeline block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!p.deadline) {
+            messageApi.warning({ content: `Please set a Deadline for Project Phase "${p.title || i + 1}" in the Timeline block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'signature') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Signature block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.companyName?.trim()) {
+          messageApi.warning({ content: 'Please enter Your Company Name in the Signature block settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.companySigner?.trim()) {
+          messageApi.warning({ content: 'Please enter Your Authorized Signer name/title in the Signature settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.clientName?.trim()) {
+          messageApi.warning({ content: 'Please enter the Client Company Name in the Signature block settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.clientSigner?.trim()) {
+          messageApi.warning({ content: 'Please enter the Client Authorized Signer name/title in the Signature settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+      }
+
+      if (block.type === 'component') {
+        const kind = block.data?.kind;
+        const props = block.data?.props || {};
+
+        if (kind === 'heading') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter a Heading text for the Heading component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'phase') {
+          if (!props.title?.trim()) {
+            messageApi.warning({ content: 'Please enter a Phase Title for the Phase component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'paragraph') {
+          const cleanText = props.text?.replace(/<[^>]*>/g, '').trim();
+          if (!cleanText) {
+            messageApi.warning({ content: 'Please enter paragraph content.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'deliverable') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter a description for the Deliverable component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'callout') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter body text for the Callout component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'quote') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter quote text for the Testimonial component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'bullets') {
+          if (!props.items || props.items.length === 0 || props.items.some((item: string) => !item.trim())) {
+            messageApi.warning({ content: 'Please fill in all Bullet List items.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'tasklist') {
+          if (!props.items || props.items.length === 0 || props.items.some((item: string) => !item.trim())) {
+            messageApi.warning({ content: 'Please fill in all Task List items.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'twoColumn') {
+          const leftText = props.left?.replace(/<[^>]*>/g, '').trim();
+          const rightText = props.right?.replace(/<[^>]*>/g, '').trim();
+          if (!props.leftTitle?.trim()) {
+            messageApi.warning({ content: 'Please enter a title for the Left Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!leftText) {
+            messageApi.warning({ content: 'Please enter content for the Left Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!props.rightTitle?.trim()) {
+            messageApi.warning({ content: 'Please enter a title for the Right Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!rightText) {
+            messageApi.warning({ content: 'Please enter content for the Right Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'table') {
+          const columns = props.columns || [];
+          const rows = props.rows || [];
+          if (columns.length === 0) {
+            messageApi.warning({ content: 'Please add at least one column to the Table component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (rows.length === 0) {
+            messageApi.warning({ content: 'Please add at least one row to the Table component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < columns.length; i++) {
+            if (!columns[i].label?.trim()) {
+              messageApi.warning({ content: `Please enter a label for Column #${i + 1} in the Table component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+          for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            for (let c = 0; c < columns.length; c++) {
+              const col = columns[c];
+              const cellValue = row.cells?.[col.id]?.replace(/<[^>]*>/g, '').trim();
+              if (!cellValue) {
+                messageApi.warning({ content: `Please fill in Row #${r + 1}, Column "${col.label || c + 1}" in the Table component.`, duration: 3.5 });
+                focusBlock(block.id);
+                return;
+              }
+            }
+          }
+        }
+
+        if (kind === 'keyvalue') {
+          if (!props.label?.trim()) {
+            messageApi.warning({ content: 'Please enter a Label for the Highlights component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          const rows = props.rows || [];
+          if (rows.length === 0) {
+            messageApi.warning({ content: 'Please add at least one highlight row in the Highlights component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].k?.trim() || !rows[i].v?.trim()) {
+              messageApi.warning({ content: `Please enter both label and value for Row #${i + 1} in the Highlights component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+        }
+
+        if (kind === 'image') {
+          if (!props.src?.trim()) {
+            messageApi.warning({ content: 'Please upload or paste an image URL in the Image component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'gallery') {
+          const images = props.images || [];
+          if (images.length === 0) {
+            messageApi.warning({ content: 'Please add at least one image to the Gallery component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < images.length; i++) {
+            if (!images[i].src?.trim()) {
+              messageApi.warning({ content: `Please upload or paste an image URL for Image #${i + 1} in the Gallery component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+        }
+
+        if (kind === 'cta') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter button text for the CTA component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+    }
+
     try {
       messageApi.loading({ content: 'Saving…', key: 'save' });
-      const cover = blocks.find((b) => b.type === 'cover')?.data || {};
+      const coverBlock = cover?.data || {};
       const payload = {
-        title: cover.title || templateName || 'Untitled Proposal',
-        client_name: cover.clientName || 'Unnamed Client',
+        title: coverBlock.title.trim(),
+        client_name: coverBlock.clientName.trim(),
         blocks,
         status: 'draft',
         lead_id: pendingLeadId,
       };
-      const res: any = proposalId
-        ? await ProposalService.updateProposal(proposalId, payload)
-        : await ProposalService.createProposal(payload);
-      if (res) {
+      let response: any;
+      let activeId = proposalId;
+      if (activeId) {
+        response = await ProposalService.updateProposal(activeId, payload);
+      } else {
+        response = await ProposalService.createProposal(payload);
+        const createdObj = response?.data?.data || response?.data || response;
+        if (createdObj?.id) {
+          activeId = createdObj.id;
+          router.replace(`/proposals/builder-v2?id=${activeId}`);
+        }
+      }
+      if (response) {
         messageApi.success({ content: `Proposal ${proposalId ? 'updated' : 'created'}`, key: 'save' });
+        if (skipRedirect) {
+          return activeId;
+        }
         setTimeout(() => router.push('/proposals'), 1000);
+        return activeId;
       }
     } catch (err: any) {
       messageApi.error({ content: err?.message || 'Save failed', key: 'save' });
     }
+    return null;
   };
 
-  const exportPdf = () => {
-    if (!previewOpen) {
-      setPreviewOpen(true);
-      setTimeout(() => iframeRef.current?.contentWindow?.print(), 600);
-    } else {
-      iframeRef.current?.contentWindow?.print();
+  const handleExport = async (format: 'pdf' | 'word') => {
+    const key = 'exporting';
+    try {
+      const activeId = await handleSave(true);
+      if (!activeId) return;
+
+      messageApi.open({ key, type: 'loading', content: `Downloading ${format.toUpperCase()}...`, duration: 0 });
+      const response = await ProposalService.requestProposalExport(activeId);
+      const resData = response?.data?.data || response?.data || response;
+      const { pdfUrl, docxUrl } = resData || {};
+      const fileUrl = format === 'pdf' ? pdfUrl : docxUrl;
+      if (!fileUrl) throw new Error("Server didn't return a file URL");
+
+      if (format === 'pdf') {
+        window.open(fileUrl, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.setAttribute('download', `Proposal-${activeId}.docx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      messageApi.open({ key, type: 'success', content: 'Export complete!', duration: 3 });
+    } catch (err: any) {
+      console.error('Export Failed:', err);
+      messageApi.open({ key, type: 'error', content: `Export Failed: ${err.message}`, duration: 4 });
     }
   };
 
   const exportMenu: MenuProps['items'] = [
-    { key: 'pdf', label: 'Download as PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} />, onClick: exportPdf },
+    { key: 'pdf', label: 'Download as PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} />, onClick: () => handleExport('pdf') },
+    { key: 'word', label: 'Download as Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} />, onClick: () => handleExport('word') },
   ];
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
@@ -288,7 +656,7 @@ function BuilderV2Content() {
             </Dropdown>
           )}
           {((proposalId && canUpdateProposal) || (!proposalId && canCreateProposal)) && (
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
+            <Button type="primary" icon={<SaveOutlined />} onClick={() => { handleSave(); }}>
               {proposalId ? 'Save Changes' : 'Save'}
             </Button>
           )}

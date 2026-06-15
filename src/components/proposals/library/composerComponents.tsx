@@ -2,7 +2,7 @@
 
 import '@/app/proposals/library.css';
 import React, { useLayoutEffect, useRef } from 'react';
-import { Input } from 'antd';
+import { Input, Segmented, Button } from 'antd';
 import { nanoid } from 'nanoid';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { SectionComponent } from '@/store/proposalLibraryStore';
 import { EditableTable, makeDefaultTable } from '../blocks/EditableTable';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 export type Group = 'Structure' | 'Content' | 'Callouts' | 'Media' | 'Commerce';
 
@@ -40,35 +41,35 @@ const ASH = '#475569';
 
 // ── Default props per kind ────────────────────────────────────────────────
 const DEFAULTS: Record<string, () => Record<string, any>> = {
-  heading: () => ({ text: 'Section Heading' }),
-  phase: () => ({ badge: 'PHASE 1', title: 'Phase Title' }),
+  heading: () => ({ text: '' }),
+  phase: () => ({ badge: 'PHASE 1', title: '' }),
   divider: () => ({}),
   spacer: () => ({ size: 'md' }),
   twoColumn: () => ({ leftTitle: '', rightTitle: '', left: '', right: '' }),
   table: () => makeDefaultTable(),
   paragraph: () => ({ text: '' }),
-  bullets: () => ({ items: ['First point', 'Second point', 'Third point'] }),
+  bullets: () => ({ items: ['', '', ''] }),
   scope: () => ({
     title: 'Scope of Work',
     phases: [
-      { id: nanoid(), badge: 'PHASE 1', title: 'Phase Title', deliverable: '', tasks: ['Task one', 'Task two'] },
+      { id: nanoid(), badge: 'PHASE 1', title: '', deliverable: '', tasks: ['', ''] },
     ],
   }),
   timeline: () => ({
     title: 'Project Timeline',
     phases: [
-      { id: nanoid(), title: 'Phase Title', deadline: '', description: '' },
+      { id: nanoid(), title: '', deadline: '', description: '' },
     ],
   }),
-  deliverable: () => ({ label: 'Major Deliverables', text: 'Describe the key deliverable for this phase.' }),
-  tasklist: () => ({ label: 'Detailed Tasks', items: ['Task one', 'Task two', 'Task three'] }),
-  keyvalue: () => ({ label: 'Highlights', rows: [{ k: 'Timeline', v: '6 weeks' }, { k: 'Team', v: '3 specialists' }] }),
-  callout: () => ({ variant: 'info', title: 'Note', text: 'Add an important note for the client.' }),
+  deliverable: () => ({ label: 'Major Deliverables', text: '' }),
+  tasklist: () => ({ label: 'Detailed Tasks', items: ['', '', ''] }),
+  keyvalue: () => ({ label: 'Highlights', rows: [{ k: '', v: '' }, { k: '', v: '' }] }),
+  callout: () => ({ variant: 'info', title: 'Note', text: '' }),
   image: () => ({ src: '', caption: '' }),
   gallery: () => ({ columns: 3, images: [{ id: nanoid(), src: '' }, { id: nanoid(), src: '' }] }),
   video: () => ({ label: 'Embedded video' }),
-  pricing: () => ({ label: 'Pricing', rows: [{ item: 'Service item', price: '$0' }] }),
-  quote: () => ({ text: 'A glowing line about the results we delivered.', author: 'Client Name · Role' }),
+  pricing: () => ({ label: 'Pricing', rows: [{ item: '', price: '' }] }),
+  quote: () => ({ text: '', author: '' }),
   cta: () => ({ text: 'Accept Proposal' }),
   signature: () => ({}),
 };
@@ -249,9 +250,24 @@ export const TwoColumnSettings: React.FC<{ props: any; onChange: (patch: Record<
     <div>
       {cols.map(([tKey, bKey, title]) => (
         <div key={title} style={{ marginBottom: 16, padding: 12, border: '1px solid var(--border-color, #e5e7eb)', borderRadius: 10 }}>
-          <span style={label}>{title} Name</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={label}>{title} Name</span>
+            <AIEnhanceButton
+              originalData={props?.[tKey] || ''}
+              blockType={`two-column ${title.toLowerCase()} name`}
+              onApply={(newTitle) => onChange({ [tKey]: newTitle })}
+            />
+          </div>
           <Input value={props?.[tKey] || ''} placeholder={`${title.toLowerCase()} name`} onChange={(e) => onChange({ [tKey]: e.target.value })} style={{ marginBottom: 10 }} />
-          <span style={label}>{title} Content</span>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={label}>{title} Content</span>
+            <AIEnhanceButton
+              originalData={props?.[bKey] || ''}
+              blockType={`two-column ${title.toLowerCase()} content`}
+              onApply={(newContent) => onChange({ [bKey]: newContent })}
+            />
+          </div>
           <TiptapEditor
             content={props?.[bKey] || ''}
             onChange={(html) => onChange({ [bKey]: html })}
@@ -260,6 +276,398 @@ export const TwoColumnSettings: React.FC<{ props: any; onChange: (patch: Record<
           />
         </div>
       ))}
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Heading component.
+export const HeadingSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={label}>Heading Text</span>
+        <AIEnhanceButton
+          originalData={props?.text || ''}
+          blockType="heading"
+          onApply={(newText) => onChange({ text: newText })}
+        />
+      </div>
+      <Input
+        value={props?.text || ''}
+        placeholder="Section Heading"
+        onChange={(e) => onChange({ text: e.target.value })}
+      />
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Phase component.
+export const PhaseSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <span style={label}>Phase Badge</span>
+        <Input
+          value={props?.badge || ''}
+          placeholder="e.g. PHASE 1"
+          onChange={(e) => onChange({ badge: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={label}>Phase Title</span>
+          <AIEnhanceButton
+            originalData={props?.title || ''}
+            blockType="phase title"
+            onApply={(newTitle) => onChange({ title: newTitle })}
+          />
+        </div>
+        <Input
+          value={props?.title || ''}
+          placeholder="Phase Title"
+          onChange={(e) => onChange({ title: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Bullet List component.
+export const BulletsSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  const items = props?.items || [];
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={label}>Bullet Points</span>
+        <AIEnhanceButton
+          originalData={{ items }}
+          blockType="bullet list"
+          onApply={(newData) => onChange({ items: newData.items || items })}
+        />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {items.map((item: string, idx: number) => (
+          <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 16, color: 'var(--text-secondary, #64748b)' }}>•</span>
+            <Input
+              value={item}
+              placeholder={`Point ${idx + 1}`}
+              onChange={(e) => {
+                const next = [...items];
+                next[idx] = e.target.value;
+                onChange({ items: next });
+              }}
+              style={{ flex: 1 }}
+            />
+            <Button
+              type="text"
+              danger
+              icon={<X size={14} />}
+              onClick={() => {
+                const next = items.filter((_: any, i: number) => i !== idx);
+                onChange({ items: next });
+              }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            />
+          </div>
+        ))}
+        <Button
+          type="dashed"
+          icon={<Plus size={12} />}
+          onClick={() => onChange({ items: [...items, ''] })}
+          style={{ marginTop: 4, borderRadius: 8 }}
+        >
+          Add Point
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Deliverable component.
+export const DeliverableSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Label</span>
+          <AIEnhanceButton
+            originalData={props?.label || ''}
+            blockType="deliverable label"
+            onApply={(newLabel) => onChange({ label: newLabel })}
+          />
+        </div>
+        <Input
+          value={props?.label || ''}
+          placeholder="e.g. Major Deliverables"
+          onChange={(e) => onChange({ label: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Description</span>
+          <AIEnhanceButton
+            originalData={props?.text || ''}
+            blockType="deliverable description"
+            onApply={(newText) => onChange({ text: newText })}
+          />
+        </div>
+        <Input.TextArea
+          rows={4}
+          value={props?.text || ''}
+          placeholder="Describe the key deliverable..."
+          onChange={(e) => onChange({ text: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Task List component.
+export const TaskListSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  const items = props?.items || [];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Label</span>
+          <AIEnhanceButton
+            originalData={props?.label || ''}
+            blockType="task list label"
+            onApply={(newLabel) => onChange({ label: newLabel })}
+          />
+        </div>
+        <Input
+          value={props?.label || ''}
+          placeholder="e.g. Detailed Tasks"
+          onChange={(e) => onChange({ label: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={labelStyle}>Tasks</span>
+          <AIEnhanceButton
+            originalData={{ items }}
+            blockType="task list items"
+            onApply={(newData) => onChange({ items: newData.items || items })}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.map((item: string, idx: number) => (
+            <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 16, color: 'var(--text-secondary, #64748b)' }}>•</span>
+              <Input
+                value={item}
+                placeholder={`Task ${idx + 1}`}
+                onChange={(e) => {
+                  const next = [...items];
+                  next[idx] = e.target.value;
+                  onChange({ items: next });
+                }}
+                style={{ flex: 1 }}
+              />
+              <Button
+                type="text"
+                danger
+                icon={<X size={14} />}
+                onClick={() => {
+                  const next = items.filter((_: any, i: number) => i !== idx);
+                  onChange({ items: next });
+                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </div>
+          ))}
+          <Button
+            type="dashed"
+            icon={<Plus size={12} />}
+            onClick={() => onChange({ items: [...items, ''] })}
+            style={{ marginTop: 4, borderRadius: 8 }}
+          >
+            Add Task
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Callout component.
+export const CalloutSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <span style={labelStyle}>Variant</span>
+        <Segmented
+          block
+          value={props?.variant || 'info'}
+          onChange={(v) => onChange({ variant: v })}
+          options={[
+            { label: 'Info', value: 'info' },
+            { label: 'Success', value: 'success' },
+            { label: 'Warn', value: 'warning' },
+            { label: 'Excl.', value: 'danger' },
+          ]}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Title</span>
+          <AIEnhanceButton
+            originalData={props?.title || ''}
+            blockType="callout title"
+            onApply={(newTitle) => onChange({ title: newTitle })}
+          />
+        </div>
+        <Input
+          value={props?.title || ''}
+          placeholder="Callout title"
+          onChange={(e) => onChange({ title: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Body Text</span>
+          <AIEnhanceButton
+            originalData={props?.text || ''}
+            blockType="callout body text"
+            onApply={(newText) => onChange({ text: newText })}
+          />
+        </div>
+        <Input.TextArea
+          rows={4}
+          value={props?.text || ''}
+          placeholder="Callout body text..."
+          onChange={(e) => onChange({ text: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Quote (Testimonial) component.
+export const QuoteSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Testimonial Text</span>
+          <AIEnhanceButton
+            originalData={props?.text || ''}
+            blockType="testimonial text"
+            onApply={(newText) => onChange({ text: newText })}
+          />
+        </div>
+        <Input.TextArea
+          rows={4}
+          value={props?.text || ''}
+          placeholder="Client testimonial..."
+          onChange={(e) => onChange({ text: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Author</span>
+          <AIEnhanceButton
+            originalData={props?.author || ''}
+            blockType="testimonial author"
+            onApply={(newAuthor) => onChange({ author: newAuthor })}
+          />
+        </div>
+        <Input
+          value={props?.author || ''}
+          placeholder="Client Name · Role"
+          onChange={(e) => onChange({ author: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Right-panel settings editor for the Highlights (keyvalue) component.
+export const KeyValueSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
+  const rows = props?.rows || [];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={labelStyle}>Label</span>
+          <AIEnhanceButton
+            originalData={props?.label || ''}
+            blockType="highlights label"
+            onApply={(newLabel) => onChange({ label: newLabel })}
+          />
+        </div>
+        <Input
+          value={props?.label || ''}
+          placeholder="e.g. Highlights"
+          onChange={(e) => onChange({ label: e.target.value })}
+        />
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={labelStyle}>Rows (Key-Value)</span>
+          <AIEnhanceButton
+            originalData={{ rows }}
+            blockType="highlights rows"
+            onApply={(newData) => onChange({ rows: newData.rows || rows })}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {rows.map((row: any, idx: number) => (
+            <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--bg-secondary)', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                <Input
+                  size="small"
+                  value={row.k}
+                  placeholder="Label"
+                  onChange={(e) => {
+                    const next = [...rows];
+                    next[idx] = { ...row, k: e.target.value };
+                    onChange({ rows: next });
+                  }}
+                />
+                <Input
+                  size="small"
+                  value={row.v}
+                  placeholder="Value"
+                  onChange={(e) => {
+                    const next = [...rows];
+                    next[idx] = { ...row, v: e.target.value };
+                    onChange({ rows: next });
+                  }}
+                />
+              </div>
+              <Button
+                type="text"
+                danger
+                icon={<X size={14} />}
+                onClick={() => {
+                  const next = rows.filter((_: any, i: number) => i !== idx);
+                  onChange({ rows: next });
+                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </div>
+          ))}
+          <Button
+            type="dashed"
+            icon={<Plus size={12} />}
+            onClick={() => onChange({ rows: [...rows, { k: '', v: '' }] })}
+            style={{ marginTop: 4, borderRadius: 8 }}
+          >
+            Add Row
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -315,7 +723,13 @@ export const ComposerBlockView: React.FC<{
                 )}
               </div>
 
-              <div className="cmp-b-deliv" style={{ marginTop: 10 }}>
+              <div className="cmp-b-deliv" style={{
+                marginTop: 10,
+                background: 'rgba(5, 150, 105, 0.04)',
+                borderLeft: '4px solid #059669',
+                padding: '12px 16px',
+                borderRadius: '8px',
+              }}>
                 <div className="cmp-b-row-head">
                   <span className="cmp-b-ic cmp-b-ic--green"><CircleCheckBig size={14} /></span>
                   <span className="cmp-b-row-label">Major Deliverables</span>
@@ -377,7 +791,14 @@ export const ComposerBlockView: React.FC<{
 
     case 'deliverable':
       return (
-        <div className="cmp-b-deliv">
+        <div className="cmp-b-deliv" style={{
+          background: 'rgba(5, 150, 105, 0.04)',
+          borderLeft: '4px solid #059669',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginTop: '8px',
+          marginBottom: '8px'
+        }}>
           <div className="cmp-b-row-head">
             <span className="cmp-b-ic cmp-b-ic--green"><CircleCheckBig size={14} /></span>
             <TextLine editable={editable} value={props.label} onChange={(v) => set({ label: v })} placeholder="Major Deliverables" className="cmp-b-row-label" />

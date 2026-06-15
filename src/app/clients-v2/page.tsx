@@ -507,6 +507,55 @@ export default function ClientsV2ListPage() {
   /* ---------------------- Derived metrics ---------------------- */
 
 
+  /* ---------------------- Dropdown Menu Actions ---------------------- */
+
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pm2-menu-item">
+      <span className="pm2-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pm2-menu-text">
+        <span className="pm2-menu-title">{title}</span>
+        <span className="pm2-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  const actionMenu = (record: any) => ({
+    items: [
+      {
+        key: 'view',
+        label: menuLabel('View client', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      },
+      ...(canUpdateClient ? [{
+        key: 'edit',
+        label: menuLabel('Edit', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
+      }] : []),
+      {
+        key: 'view_projects',
+        label: menuLabel('View projects', 'View client projects', <FolderKanban size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      },
+      ...(canDeleteClient ? [
+        { type: 'divider' as const },
+        {
+          key: 'delete',
+          danger: true,
+          label: menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+        }
+      ] : [])
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent.stopPropagation();
+      if (key === 'view') {
+        router.push(`/clients-v2/${record.id}`);
+      } else if (key === 'edit') {
+        router.push(`/clients-v2/create?id=${record.id}`);
+      } else if (key === 'view_projects') {
+        router.push(`/clients-v2/${record.id}?tab=projects`);
+      } else if (key === 'delete') {
+        handleDeleteClient(record.id, record.companyName);
+      }
+    }
+  });
+
   /* ---------------------- Columns ---------------------- */
 
   const columns: ColumnType<any>[] = [
@@ -665,61 +714,19 @@ export default function ClientsV2ListPage() {
       width: 150,
       fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Space size={4} className="cm-actions">
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              size="small"
-              icon={<Eye size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/clients-v2/${record.id}`);
-              }}
-              className="cm-action-btn"
-            />
-          </Tooltip>
-          {canUpdateClient && (
-            <Tooltip title="Edit">
-              <Button
-                type="text"
-                size="small"
-                icon={<Settings2 size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/clients-v2/create?id=${record.id}`);
-                }}
-                className="cm-action-btn"
-              />
-            </Tooltip>
-          )}
-          {canDeleteClient && (
-            <Tooltip title="Delete">
-              <Button
-                type="text"
-                size="small"
-                icon={<Trash2 size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleDeleteClient(record.id, record.companyName);
-                }}
-                className="cm-action-btn delete"
-              />
-            </Tooltip>
-          )}
-          <Tooltip title="View projects">
-            <Button
-              type="text"
-              size="small"
-              icon={<FolderKanban size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/clients-v2/${record.id}?tab=projects`);
-              }}
-              className="cm-action-btn"
-            />
-          </Tooltip>
-        </Space>
+        <Dropdown
+          overlayClassName="pm2-action-pop"
+          menu={actionMenu(record)}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+            style={{ padding: '4px', height: 'auto', minWidth: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -1523,6 +1530,32 @@ export default function ClientsV2ListPage() {
 
           {/* ----------------------------- Styles ------------------------------ */}
           <style jsx global>{`
+          .pm2-action-pop .ant-dropdown-menu {
+            padding: 4px; border-radius: 0px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          }
+          .pm2-action-pop .ant-dropdown-menu-item {
+            padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+            transition: background .12s ease;
+          }
+          .pm2-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pm2-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+          .pm2-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .pm2-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+          .pm2-menu-ic {
+            width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          }
+          .pm2-menu-text { display: flex; flex-direction: column; min-width: 0; }
+          .pm2-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+          .pm2-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+          .pm2-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+          .pm2-action-pop .ant-dropdown-menu-item-danger .pm2-menu-title { color: #ef4444; }
+          .pm2-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+          .pm2-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
 
 /* === BH2 LAYOUT STYLES COPIED === */
 
@@ -1648,7 +1681,7 @@ export default function ClientsV2ListPage() {
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 6px;
         }
         .bh2-view-btn.active .bh2-view-count {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
@@ -2070,6 +2103,7 @@ export default function ClientsV2ListPage() {
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
           padding-top: 10px;
+          align-items: flex-start;
         }
         
         @media (max-width: 1200px) {

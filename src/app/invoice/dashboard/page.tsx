@@ -118,21 +118,21 @@ export default function DashboardPage() {
       yField: "revenue",
       smooth: true,
       theme: isDark ? "dark" : undefined,
-      color: "#2563eb",
+      color: "#3B82F6",
       lineStyle: { lineWidth: 2.5 },
       point: {
         size: 3,
         style: {
           fill: isDark ? "#161B22" : "#fff",
-          stroke: "#2563eb",
+          stroke: "#3B82F6",
           lineWidth: 2,
         },
       },
       area: {
         style: {
           fill: isDark
-            ? "l(270) 0:rgba(37,99,235,0.25) 1:rgba(37,99,235,0.01)"
-            : "l(270) 0:rgba(37,99,235,0.18) 1:rgba(37,99,235,0.02)",
+            ? "l(270) 0:rgba(59,130,246,0.25) 1:rgba(59,130,246,0.01)"
+            : "l(270) 0:rgba(59,130,246,0.18) 1:rgba(59,130,246,0.02)",
         },
       },
       xAxis: {
@@ -175,57 +175,31 @@ export default function DashboardPage() {
     label,
     value,
     icon: Icon,
-    accent,
+    color,
+    bgColor,
     sub,
   }: {
     label: string;
     value: string | number;
     icon: any;
-    accent: string;
+    color: string;
+    bgColor: string;
     sub?: string;
   }) => (
-    <div
-      className="rounded-2xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-      }}
-    >
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: accent }}
-      />
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          border: `1px solid ${accent}33`,
-        }}
-      >
-        <Icon size={18} strokeWidth={2.25} />
+    <div className="pp-stat-card">
+      <div className="pp-stat-top">
+        <div className="pp-stat-left">
+          <span className="pp-stat-icon" style={{ background: bgColor, color }}>
+            <Icon size={14} />
+          </span>
+          <span className="pp-stat-label">{label}</span>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {label}
+      <div className="pp-stat-bottom">
+        <div className="pp-stat-value-wrap">
+          <span className="pp-stat-value">{value}</span>
         </div>
-        <div
-          className="text-[22px] font-bold leading-tight tabular-nums truncate"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div
-            className="text-[11px] mt-0.5"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {sub}
-          </div>
-        )}
+        {sub && <span className="pp-stat-period">{sub}</span>}
       </div>
     </div>
   );
@@ -243,22 +217,22 @@ export default function DashboardPage() {
     right?: React.ReactNode;
   }) => (
     <div
-      className="px-5 py-3 flex items-center justify-between gap-3 border-b"
+      className="px-4 py-2 flex items-center justify-between gap-3 border-b"
       style={{ borderColor: "var(--border-color)" }}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{
-            background: "var(--bg-blue-50)",
-            color: "var(--text-blue-700)",
-            border: "1px solid var(--border-blue-200)",
+            background: "rgba(59,130,246,0.1)",
+            color: "#3B82F6",
+            border: "1px solid rgba(59,130,246,0.2)",
           }}
         >
           <Icon size={13} strokeWidth={2.25} />
         </div>
         <span
-          className="text-[14px] font-semibold"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--text-primary)" }}
         >
           {title}
@@ -266,11 +240,11 @@ export default function DashboardPage() {
         {subtitle && (
           <>
             <span
-              className="h-3.5 w-px"
+              className="h-3 w-px"
               style={{ background: "var(--border-color)" }}
             />
             <span
-              className="text-[11px] uppercase tracking-[0.08em]"
+              className="text-[10.5px] uppercase tracking-[0.08em]"
               style={{ color: "var(--text-secondary)" }}
             >
               {subtitle}
@@ -344,14 +318,14 @@ export default function DashboardPage() {
           date && new Date(date) < new Date();
         return (
           <span
-            className="inline-flex items-center gap-1 text-[12.5px]"
-            style={{ color: isPastDue ? "#dc2626" : "var(--text-secondary)" }}
+            className="inline-flex items-center gap-1 text-[12px]"
+            style={{ color: isPastDue ? "#f87171" : "var(--text-secondary)" }}
           >
             {date ? dayjs(date).format("MMM D, YYYY") : "—"}
             {isPastDue && (
               <span
-                className="text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: "#dc2626" }}
+                className="text-[9.5px] font-bold uppercase tracking-wider"
+                style={{ color: "#f87171" }}
               >
                 · past due
               </span>
@@ -367,7 +341,7 @@ export default function DashboardPage() {
       align: "right",
       render: (v, record) => (
         <span
-          className="text-[13px] font-semibold tabular-nums"
+          className="text-[12px] font-semibold tabular-nums"
           style={{ color: "var(--text-primary)" }}
         >
           ${Number(v || record.total || 0).toLocaleString(undefined, {
@@ -385,46 +359,46 @@ export default function DashboardPage() {
       render: (status: string) => {
         const map: Record<string, { bg: string; color: string; border: string; label: string }> = {
           paid: {
-            bg: "#ecfdf5",
-            color: "#047857",
-            border: "#a7f3d0",
+            bg: "rgba(16,185,129,0.10)",
+            color: "#10b981",
+            border: "rgba(16,185,129,0.25)",
             label: "Paid",
           },
           submitted: {
-            bg: "#eff6ff",
-            color: "#1d4ed8",
-            border: "#bfdbfe",
+            bg: "rgba(59,130,246,0.10)",
+            color: "#3b82f6",
+            border: "rgba(59,130,246,0.25)",
             label: "Submitted",
           },
           pending: {
-            bg: "#fffbeb",
-            color: "#b45309",
-            border: "#fde68a",
+            bg: "rgba(59,130,246,0.10)",
+            color: "#3b82f6",
+            border: "rgba(59,130,246,0.25)",
             label: "Pending",
           },
           draft: {
-            bg: "var(--bg-slate-50)",
-            color: "var(--text-secondary)",
-            border: "var(--border-color)",
+            bg: "rgba(100,116,139,0.10)",
+            color: "#64748b",
+            border: "rgba(100,116,139,0.25)",
             label: "Draft",
           },
           overdue: {
-            bg: "#fef2f2",
-            color: "#b91c1c",
-            border: "#fecaca",
+            bg: "rgba(248,113,113,0.10)",
+            color: "#f87171",
+            border: "rgba(248,113,113,0.25)",
             label: "Overdue",
           },
         };
         const cfg =
           map[status?.toLowerCase()] || {
-            bg: "var(--bg-slate-50)",
-            color: "var(--text-secondary)",
-            border: "var(--border-color)",
+            bg: "rgba(100,116,139,0.10)",
+            color: "#64748b",
+            border: "rgba(100,116,139,0.25)",
             label: status || "Unknown",
           };
         return (
           <span
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
             style={{
               background: cfg.bg,
               color: cfg.color,
@@ -450,9 +424,9 @@ export default function DashboardPage() {
         const isZero = amount === 0;
         return (
           <span
-            className="text-[13px] font-semibold tabular-nums"
+            className="text-[12px] font-semibold tabular-nums"
             style={{
-              color: isZero ? "#047857" : "var(--text-primary)",
+              color: isZero ? "#10b981" : "var(--text-primary)",
             }}
           >
             {isZero ? "Settled" : `$${amount.toFixed(2)}`}
@@ -518,7 +492,7 @@ export default function DashboardPage() {
             {data.created > 0 && (
               <span
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ background: "#2563eb" }}
+                style={{ background: "#3B82F6" }}
               />
             )}
             {data.received > 0 && (
@@ -569,7 +543,7 @@ export default function DashboardPage() {
         style={{
           margin: "0 -24px",
           background: "var(--customers-page-bg)",
-          minHeight: "calc(100vh - 64px)",
+          minHeight: "calc(100vh - 54px)",
         }}
       >
         {/* TOP BAR */}
@@ -581,32 +555,32 @@ export default function DashboardPage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 py-3 md:py-0 min-h-[56px] md:h-14 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div className="px-6 py-2 md:py-0 min-h-[48px] md:h-12 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
               <div className="flex items-center gap-3">
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{
-                    background: "var(--bg-blue-50)",
-                    color: "var(--text-blue-700)",
-                    border: "1px solid var(--border-blue-200)",
+                    background: "rgba(59,130,246,0.1)",
+                    color: "#3B82F6",
+                    border: "1px solid rgba(59,130,246,0.2)",
                   }}
                 >
-                  <LayoutDashboard size={14} strokeWidth={2.25} />
+                  <LayoutDashboard size={13} strokeWidth={2.25} />
                 </div>
                 <span
-                  className="text-[14px] font-semibold"
+                  className="text-[13px] font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
                   Dashboard
                 </span>
               </div>
               <span
-                className="h-4 w-px hidden sm:inline"
+                className="h-3 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[11.5px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Overview of your invoicing and revenue performance
@@ -616,10 +590,10 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               {canReadInvoiceHistory && (
                 <Button
-                  icon={<History size={14} />}
+                  icon={<History size={13} />}
                   onClick={() => setHistoryDrawerVisible(true)}
                   className="flex-1 md:flex-initial flex items-center justify-center"
-                  style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                  style={{ borderRadius: 6, height: 30, fontSize: 12, fontWeight: 600 }}
                 >
                   <span>Email history</span>
                 </Button>
@@ -627,14 +601,15 @@ export default function DashboardPage() {
               {canCreateInvoice && (
                 <Button
                   type="primary"
-                  icon={<Plus size={14} />}
+                  icon={<Plus size={13} />}
                   onClick={() => router.push("/invoice/newinvoice")}
                   className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{
-                    borderRadius: 8,
-                    height: 36,
+                    borderRadius: 6,
+                    height: 30,
+                    fontSize: 12,
                     fontWeight: 600,
-                    background: "#2563eb",
+                    background: "#3B82F6",
                   }}
                 >
                   <span>New invoice</span>
@@ -644,20 +619,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="px-8 pt-6 pb-12">
+        <div className="px-6 pt-4 pb-8">
           <div className="mx-auto max-w-[1600px]">
             {/* STATS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
               {isLoading ? (
                 <>
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="rounded-2xl px-5 py-4"
-                      style={{
-                        background: "var(--bg-secondary)",
-                        border: "1px solid var(--border-color)",
-                      }}
+                      className="pp-stat-card"
                     >
                       <Skeleton active paragraph={{ rows: 1 }} />
                     </div>
@@ -669,7 +640,8 @@ export default function DashboardPage() {
                     label="Total invoices"
                     value={totalInvoices}
                     icon={FileText}
-                    accent="#2563eb"
+                    color="#3B82F6"
+                    bgColor="rgba(59,130,246,0.1)"
                     sub="All-time"
                   />
                   <StatTile
@@ -678,7 +650,8 @@ export default function DashboardPage() {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={DollarSign}
-                    accent="#10b981"
+                    color="#10b981"
+                    bgColor="rgba(16,185,129,0.1)"
                     sub={`Paid: $${totalPaid.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`}
@@ -689,7 +662,8 @@ export default function DashboardPage() {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={TrendingUp}
-                    accent="#f59e0b"
+                    color="#64748b"
+                    bgColor="rgba(100,116,139,0.1)"
                     sub="Awaiting payment"
                   />
                   <StatTile
@@ -698,7 +672,8 @@ export default function DashboardPage() {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={AlertCircle}
-                    accent="#ef4444"
+                    color="#f87171"
+                    bgColor="rgba(248,113,113,0.1)"
                     sub="Past due date"
                   />
                 </>
@@ -706,10 +681,10 @@ export default function DashboardPage() {
             </div>
 
             {/* CHART + CALENDAR */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
               {/* Chart card */}
               <div
-                className="col-span-12 lg:col-span-7 rounded-2xl overflow-hidden"
+                className="col-span-12 lg:col-span-7 rounded-none overflow-hidden"
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-color)",
@@ -720,15 +695,15 @@ export default function DashboardPage() {
                   title="Monthly revenue"
                   subtitle={`Year ${currentYear}`}
                 />
-                <div className="px-5 py-5">
-                  <div style={{ height: 280 }}>
+                <div className="px-4 py-4">
+                  <div style={{ height: 220 }}>
                     {isLoading ? (
-                      <Skeleton active paragraph={{ rows: 6 }} />
+                      <Skeleton active paragraph={{ rows: 5 }} />
                     ) : mounted && yearlyRevenueData.length > 0 ? (
                       <Line key={theme} {...monthlyRevenueConfig} />
                     ) : (
                       <div
-                        className="h-full flex items-center justify-center text-[13px]"
+                        className="h-full flex items-center justify-center text-[12px]"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         No data
@@ -740,7 +715,7 @@ export default function DashboardPage() {
 
               {/* Calendar card */}
               <div
-                className="col-span-12 lg:col-span-5 rounded-2xl overflow-hidden"
+                className="col-span-12 lg:col-span-5 rounded-none overflow-hidden"
                 style={{
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border-color)",
@@ -753,25 +728,25 @@ export default function DashboardPage() {
                   right={
                     <div className="flex items-center gap-1.5">
                       <span
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold"
                         style={{
-                          background: "var(--bg-blue-50)",
-                          color: "var(--text-blue-700)",
-                          border: "1px solid var(--border-blue-200)",
+                          background: "rgba(59,130,246,0.1)",
+                          color: "#3B82F6",
+                          border: "1px solid rgba(59,130,246,0.2)",
                         }}
                       >
                         <span
                           className="w-1.5 h-1.5 rounded-full"
-                          style={{ background: "#2563eb" }}
+                          style={{ background: "#3B82F6" }}
                         />
                         {monthlyCreated} created
                       </span>
                       <span
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold"
                         style={{
-                          background: "#ecfdf5",
-                          color: "#047857",
-                          border: "1px solid #a7f3d0",
+                          background: "rgba(16,185,129,0.1)",
+                          color: "#10b981",
+                          border: "1px solid rgba(16,185,129,0.2)",
                         }}
                       >
                         <span
@@ -783,9 +758,9 @@ export default function DashboardPage() {
                     </div>
                   }
                 />
-                <div className="px-3 py-3">
+                <div className="px-2 py-2">
                   {isLoading ? (
-                    <Skeleton active paragraph={{ rows: 8 }} />
+                    <Skeleton active paragraph={{ rows: 6 }} />
                   ) : (
                     <Calendar
                       fullscreen={false}
@@ -793,9 +768,9 @@ export default function DashboardPage() {
                       onChange={(val) => setCurrentMonth(val)}
                       fullCellRender={fullCellRender}
                       headerRender={({ value, onChange }) => (
-                        <div className="flex items-center justify-between mb-2 px-1">
+                        <div className="flex items-center justify-between mb-1.5 px-1">
                           <span
-                            className="text-[14px] font-semibold"
+                            className="text-[13px] font-semibold"
                             style={{ color: "var(--text-primary)" }}
                           >
                             {value.format("MMMM YYYY")}
@@ -808,13 +783,13 @@ export default function DashboardPage() {
                                 setCurrentMonth(v);
                                 onChange(v);
                               }}
-                              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                              className="w-6.5 h-6.5 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
                               style={{
                                 color: "var(--text-secondary)",
                                 border: "1px solid var(--border-color)",
                               }}
                             >
-                              <ChevLeft size={14} />
+                              <ChevLeft size={13} />
                             </button>
                             <button
                               type="button"
@@ -823,13 +798,13 @@ export default function DashboardPage() {
                                 setCurrentMonth(v);
                                 onChange(v);
                               }}
-                              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                              className="w-6.5 h-6.5 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
                               style={{
                                 color: "var(--text-secondary)",
                                 border: "1px solid var(--border-color)",
                               }}
                             >
-                              <ChevRight size={14} />
+                              <ChevRight size={13} />
                             </button>
                           </div>
                         </div>
@@ -842,7 +817,7 @@ export default function DashboardPage() {
 
             {/* RECENT INVOICES */}
             <div
-              className="rounded-2xl overflow-hidden"
+              className="rounded-none overflow-hidden"
               style={{
                 background: "var(--bg-secondary)",
                 border: "1px solid var(--border-color)",
@@ -856,11 +831,11 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => router.push("/invoice/invoices")}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold transition-colors"
-                    style={{ color: "var(--text-blue-700)" }}
+                    className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold transition-colors"
+                    style={{ color: "#3B82F6" }}
                   >
                     View all
-                    <ArrowRight size={13} />
+                    <ArrowRight size={12} />
                   </button>
                 }
               />
@@ -916,18 +891,35 @@ export default function DashboardPage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        .pp-stat-card {
+          background: var(--bg-pure-white, #fff); border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 0; padding: 10px 12px; min-height: 84px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-600, #475569); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900, #0f172a); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400, #94a3b8); font-weight: 500; }
+
         .dashboard-table .ant-table-thead > tr > th {
           background-color: var(--bg-slate-50) !important;
           color: var(--text-secondary) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          padding: 10px 16px !important;
-          letter-spacing: 0.06em !important;
+          font-weight: 650 !important;
+          font-size: 10.5px !important;
+          padding: 6px 12px !important;
+          letter-spacing: 0.05em !important;
           border-bottom: 1px solid var(--border-color) !important;
+          text-transform: uppercase !important;
         }
         .dashboard-table .ant-table-tbody > tr > td {
-          padding: 14px 16px !important;
+          padding: 8px 12px !important;
           border-bottom: 1px solid var(--border-color) !important;
+          font-size: 12px !important;
         }
         .dashboard-table .ant-table-row:hover > td {
           background-color: var(--bg-slate-50) !important;
@@ -937,17 +929,17 @@ export default function DashboardPage() {
         }
         .ant-picker-calendar-mini .ant-picker-content thead th {
           color: var(--text-secondary) !important;
-          font-size: 10.5px !important;
+          font-size: 10px !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
           letter-spacing: 0.06em !important;
-          padding: 6px 0 !important;
+          padding: 4px 0 !important;
         }
         .ant-picker-calendar-mini .ant-picker-cell {
-          padding: 1px !important;
+          padding: 0px !important;
         }
         .ant-picker-calendar-mini .ant-picker-cell-inner {
-          height: 38px !important;
+          height: 30px !important;
         }
       `,
         }}

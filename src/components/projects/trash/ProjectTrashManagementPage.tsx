@@ -44,6 +44,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 dayjs.extend(relativeTime);
 
@@ -150,8 +151,18 @@ export default function ProjectTrashManagementPage() {
       width: 250,
       render: (record: any) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>{record.code}</Text>
+          <Text style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-slate-900)" }}>{record.name}</Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Project Code',
+      dataIndex: 'code',
+      key: 'code',
+      width: 200,
+      render: (code: string) => (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <Text style={{ fontSize: "12px", color: "var(--text-slate-600)" }}>{code}</Text>
         </div>
       ),
     },
@@ -165,7 +176,7 @@ export default function ProjectTrashManagementPage() {
           <Avatar src={manager?.avatarUrl} size="small" style={{ background: "#3b82f6", color: "#fff" }}>
             {manager?.name?.[0]}
           </Avatar>
-          <Text style={{ fontSize: 13 }}>{manager?.name}</Text>
+          <Text style={{ fontSize: "12px", fontWeight: 500 }}>{manager?.name}</Text>
         </div>
       ),
     },
@@ -176,7 +187,7 @@ export default function ProjectTrashManagementPage() {
       width: 180,
       render: (date: string) => (
         <Tooltip title={dayjs(date).format("YYYY-MM-DD HH:mm:ss")}>
-          <Text style={{ fontSize: 13 }}>{dayjs(date).fromNow()}</Text>
+          <Text style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>{dayjs(date).fromNow()}</Text>
         </Tooltip>
       ),
     },
@@ -277,33 +288,27 @@ export default function ProjectTrashManagementPage() {
               <div className="pm2-side-group" style={{ marginTop: 22 }}>
                 <div className="pm2-side-label">Filters</div>
                 <div className="pm2-side-filters flex flex-col gap-2">
-                  <Select
+                  <SearchableDropdown
+                    className="pm2-side-filter-select"
                     placeholder="Project"
-                    value={filters.projectId}
-                    onChange={(val) => setFilters(prev => ({ ...prev, projectId: val }))}
-                    style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
-                    allowClear
-                    showSearch
-                    className="pm2-side-filter-select"
-                  >
-                    {uniqueProjects.map(([id, name]) => (
-                      <Option key={id} value={id}>{name as string}</Option>
-                    ))}
-                  </Select>
+                    searchPlaceholder="Search projects"
+                    itemNoun="projects"
+                    value={filters.projectId || undefined}
+                    onChange={(val) => setFilters(prev => ({ ...prev, projectId: val ?? undefined }))}
+                    options={uniqueProjects.map(([id, name]) => ({ value: id as string, label: name as string }))}
+                    width="100%"
+                  />
 
-                  <Select
-                    placeholder="Project Manager"
-                    value={filters.projectManagerId}
-                    onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val }))}
-                    style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
-                    allowClear
-                    showSearch
+                  <SearchableDropdown
                     className="pm2-side-filter-select"
-                  >
-                    {uniqueManagers.map(([id, name]) => (
-                      <Option key={id} value={id}>{name as string}</Option>
-                    ))}
-                  </Select>
+                    placeholder="Project Manager"
+                    searchPlaceholder="Search managers"
+                    itemNoun="managers"
+                    value={filters.projectManagerId || undefined}
+                    onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
+                    options={uniqueManagers.map(([id, name]) => ({ value: id as string, label: name as string }))}
+                    width="100%"
+                  />
 
                   <DatePicker.RangePicker
                     className="premium-range-picker"
@@ -481,7 +486,7 @@ export default function ProjectTrashManagementPage() {
               </div>
             </div>
 
-            <div className="pm2-main-content" style={{ marginTop: 24 }}>
+            <div className="pm2-main-content" style={{ marginTop: 10 }}>
               {selectedRowKeys.length > 0 && (
                 <div className="saas-bulk-actions">
                   <div className="saas-bulk-content">
@@ -540,7 +545,7 @@ export default function ProjectTrashManagementPage() {
                 <Card
                   styles={{ body: { padding: 0 } }}
                   style={{
-                    borderRadius: 6,
+                    borderRadius: 0,
                     overflow: "hidden",
                     border: "1px solid var(--border-color)",
                     background: "var(--bg-pure-white)",
@@ -622,20 +627,19 @@ export default function ProjectTrashManagementPage() {
                               </div>
                             </div>
                           </header>
+                          <div className="pm2-list-foot">
+                            <div className="pm2-list-foot-row">
+                              <Typography.Paragraph
+                                style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
+                                ellipsis={{ rows: 2 }}
+                              >
+                                {project.description || "No description provided."}
+                              </Typography.Paragraph>
+                            </div>
 
-                          <div style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', alignItems: 'center', borderTop: '1px solid var(--border-slate-200)' }}>
-                            <Typography.Paragraph
-                              style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
-                              ellipsis={{ rows: 2 }}
-                            >
-                              {project.description || "No description provided."}
-                            </Typography.Paragraph>
-                          </div>
-
-                          <div className="pm2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div className="pm2-list-foot-inline" style={{ display: 'flex', gap: 20 }}>
-                              <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>MANAGER</span>
+                            <div className="pm2-list-foot-row" >
+                              <span className="pm2-list-foot-item" >
+                                <span className="pm2-list-foot-key">Manager:</span>
                                 <Avatar size={18} src={pm?.avatarUrl} style={{ fontSize: 9, background: '#e2e8f0', color: '#64748b' }}>
                                   {pmFullName.charAt(0)}
                                 </Avatar>
@@ -643,47 +647,45 @@ export default function ProjectTrashManagementPage() {
                                   {pmFullName.split(' ')[0]}
                                 </span>
                               </span>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <Popconfirm
-                                title="Restore project?"
-                                description="This will restore the project back to active status."
-                                onConfirm={() => restoreProject.mutate(project.id)}
-                                okText="Yes, restore"
-                                cancelText="Cancel"
-                                okButtonProps={{ loading: restoreProject.isPending }}
-                              >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<UndoOutlined />}
-                                  loading={restoreProject.isPending}
-                                  className="action-btn restore"
-                                  style={{ color: '#10b981' }}
+                              <span className="pm2-list-foot-div"></span>
+                              <span className="pm2-list-foot-item" style={{ gap: 8 }}>
+                                <Popconfirm
+                                  title="Restore project?"
+                                  description="This will restore the project back to active status."
+                                  onConfirm={() => restoreProject.mutate(project.id)}
+                                  okText="Yes, restore"
+                                  cancelText="Cancel"
+                                  okButtonProps={{ loading: restoreProject.isPending }}
                                 >
-                                  Restore
-                                </Button>
-                              </Popconfirm>
-                              <Popconfirm
-                                title="Permanently delete project?"
-                                description="This action cannot be undone."
-                                onConfirm={() => permanentDelete.mutate(project.id)}
-                                okText="Yes, purge"
-                                cancelText="Cancel"
-                                okButtonProps={{ danger: true, loading: permanentDelete.isPending }}
-                              >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  danger
-                                  icon={<DeleteOutlined />}
-                                  loading={permanentDelete.isPending}
-                                  className="action-btn purge"
-                                  style={{ color: '#ff4d4f' }}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="pc-view-btn"
+                                    style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}
+                                  >
+                                    <UndoOutlined />
+                                    Restore
+                                  </button>
+                                </Popconfirm>
+                                <Popconfirm
+                                  title="Permanently delete project?"
+                                  description="This action cannot be undone."
+                                  onConfirm={() => permanentDelete.mutate(project.id)}
+                                  okText="Yes, purge"
+                                  cancelText="Cancel"
+                                  okButtonProps={{ danger: true, loading: permanentDelete.isPending }}
                                 >
-                                  Purge
-                                </Button>
-                              </Popconfirm>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="pc-view-btn"
+                                    style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: 4 }}
+                                  >
+                                    <DeleteOutlined />
+                                    Purge
+                                  </button>
+                                </Popconfirm>
+                              </span>
                             </div>
                           </div>
                         </article>
@@ -859,6 +861,11 @@ export default function ProjectTrashManagementPage() {
           font-size: 13px !important;
           padding: 8px !important;
           
+        }
+
+        .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important; 
+          padding: 6.5px 10px !important;
         }
       `}</style>
     </div>

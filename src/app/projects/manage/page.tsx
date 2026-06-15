@@ -76,6 +76,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
 import { ProjectFormDrawer } from "@/components/projects/ProjectFormDrawer";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
   const min = Math.min(...data);
@@ -132,7 +133,7 @@ interface Member {
   value: string;
   label: string;
   position: string;
-
+  avatarUrl?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -215,7 +216,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
-  const { notification, message } = App.useApp();
+  const { notification, message, modal } = App.useApp();
   const [form] = Form.useForm();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
@@ -390,7 +391,7 @@ const ProjectsManageContent: React.FC = () => {
   };
 
   // Handle status filter
-  const handleStatusFilter = (status: string) => {
+  const handleStatusFilter = (status: string | null) => {
     setFilters((prev) => ({
       ...prev,
       status: status || undefined,
@@ -399,7 +400,7 @@ const ProjectsManageContent: React.FC = () => {
   };
 
   // Handle project manager filter
-  const handleProjectManagerFilter = (projectManager: string) => {
+  const handleProjectManagerFilter = (projectManager: string | null) => {
     setFilters((prev) => ({
       ...prev,
       projectManagerId: projectManager || undefined,
@@ -480,20 +481,19 @@ const ProjectsManageContent: React.FC = () => {
     {
       title: "Project",
       key: "project",
-      width: 250,
+      width: 240,
       render: (_: any, record: any) => (
         <Space size={12}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "var(--bg-pure-white)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            border: "1px solid var(--border-color)"
+            width: '24px', height: '24px', borderRadius: '6px', flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6',
+            background: 'var(--bg-blue-50)',
           }}>
-            <ProjectOutlined style={{ color: "#1677ff", fontSize: 16 }} />
+            <ProjectOutlined style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#3B82F6", background: "var(--bg-blue-50)" }} />
           </div>
           <div>
             <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
-            <div style={{ fontSize: 12, color: "#8c8c8c" }}>{record.code}</div>
+            <div style={{ fontSize: 10, color: "var(--text-slate-600)" }}>{record.code}</div>
           </div>
         </Space>
       ),
@@ -502,10 +502,10 @@ const ProjectsManageContent: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 140,
+      width: 120,
       render: (status: any) => (
         <Tag
-          color={getStatusColor(status)}
+          color={getStatusColor(status.toLowerCase())}
           style={{
             borderRadius: 6,
             padding: "2px 10px",
@@ -527,17 +527,17 @@ const ProjectsManageContent: React.FC = () => {
       render: (_: any, record: any) => (
         <Space size={8}>
           <Avatar
-            size="small"
+            size='small'
             src={record?.projectManager?.avatarUrl}
             style={{ backgroundColor: '#3b82f6' }}
           >
             {record?.projectManager?.name.charAt(0)}
           </Avatar>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 13 }}>{record?.projectManager?.name}</div>
-            <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+            <div style={{ fontWeight: 500, fontSize: 12 }}>{record?.projectManager?.name}</div>
+            {/* <div style={{ fontSize: 10, color: "#8c8c8c" }}>
               {renderPosition(record.projectManager?.position)}
-            </div>
+            </div> */}
           </div>
         </Space>
       ),
@@ -560,19 +560,20 @@ const ProjectsManageContent: React.FC = () => {
           const c = clients[0];
           return (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{c.companyName}</div>
-              {c.clientCode && (
+              {c.companyName && <span className="pp-tag pp-tag--blue"><span className="pp-tag-dot" />{c.companyName}</span>}
+              {/* <div style={{ fontSize: 12, fontWeight: 500 }}>{c.companyName}</div> */}
+              {/* {c.clientCode && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     color: "#8c8c8c",
                     fontFamily:
                       "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}
                 >
                   {c.clientCode}
-                </div>
-              )}
+                </div> */}
+              {/* )} */}
             </div>
           );
         }
@@ -604,8 +605,8 @@ const ProjectsManageContent: React.FC = () => {
                   padding: "1px 7px",
                   background: "#f5f3ff",
                   border: "1px solid #ddd6fe",
-                  color: "#6d28d9",
-                  borderRadius: 999,
+                  color: "#3b82f6",
+                  borderRadius: 0,
                 }}
               >
                 +{rest.length} more
@@ -649,78 +650,64 @@ const ProjectsManageContent: React.FC = () => {
       ),
     },
     {
-      title: "Dates",
-      key: "dates",
-      width: 180,
-      render: (_: any, record: any) => (
-        <div style={{ fontSize: 12 }}>
-          <div style={{ marginBottom: 2 }}>
-            <CalendarOutlined style={{ marginRight: 6, color: "var(--primary-color)", fontSize: 11 }} />
-            <Text style={{ fontSize: 12 }}>{dayjs(record?.startDate).format("MMM DD, YYYY")}</Text>
-          </div>
-          {record.endDate && (
-            <div>
-              <CalendarOutlined style={{ marginRight: 6, color: "#8c8c8c", fontSize: 11 }} />
-              <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(record?.endDate).format("MMM DD, YYYY")}</Text>
-            </div>
-          )}
-        </div>
+      title: "Start Date",
+      dataIndex: "startDate",
+      key: "startDate",
+      width: 140,
+      render: (date: string) => (
+        <>
+          <CalendarOutlined
+            style={{
+              marginRight: 6,
+              color: "var(--primary-color)",
+              fontSize: 11,
+            }}
+          />
+          <Text style={{ fontSize: 12 }}>
+            {date ? dayjs(date).format("MMM DD, YYYY") : "-"}
+          </Text>
+        </>
+      ),
+    },
+    {
+      title: "End Date",
+      dataIndex: "endDate",
+      key: "endDate",
+      width: 140,
+      render: (date: string) => (
+        <>
+          <CalendarOutlined
+            style={{
+              marginRight: 6,
+              color: "#8c8c8c",
+              fontSize: 11,
+            }}
+          />
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {date ? dayjs(date).format("MMM DD, YYYY") : "-"}
+          </Text>
+        </>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 100,
       fixed: "right",
       render: (_: any, record: any) => (
-        <Space>
-          <Tooltip title="View">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined style={{ fontSize: 15 }} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/projects/${record.id}/overview`);
-              }}
-            />
-          </Tooltip>
-          {canUpdateProject && (
-            <Tooltip title="Edit">
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined style={{ fontSize: 15 }} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(record);
-                }}
-              />
-            </Tooltip>
-          )}
-          {canDeleteProject && (
-            <Popconfirm
-              title="Delete project?"
-              description="Are you sure you want to delete this project?"
-              onConfirm={(e) => {
-                e?.stopPropagation();
-                handleDelete(record.id);
-              }}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Tooltip title="Delete">
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined style={{ fontSize: 15 }} />}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-        </Space>
+        <Dropdown
+          overlayClassName="pm2-action-pop"
+          menu={actionMenu(record)}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+            style={{ padding: '4px', height: 'auto', minWidth: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -770,6 +757,44 @@ const ProjectsManageContent: React.FC = () => {
       </span>
     </div>
   );
+
+  const actionMenu = (project: any) => ({
+    items: [
+      {
+        key: 'view',
+        label: menuLabel('View project', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      },
+      ...(canUpdateProject ? [{
+        key: 'edit',
+        label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
+      }] : []),
+      ...(canDeleteProject ? [
+        { type: 'divider' as const },
+        {
+          key: 'delete',
+          danger: true,
+          label: menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+        }
+      ] : [])
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent.stopPropagation();
+      if (key === 'view') {
+        router.push(`/projects/${project.id}/overview`);
+      } else if (key === 'edit') {
+        handleEdit(project);
+      } else if (key === 'delete') {
+        modal.confirm({
+          title: 'Delete Project',
+          content: 'Are you sure you want to delete this project? This action cannot be undone.',
+          okText: 'Delete',
+          okType: 'danger',
+          cancelText: 'Cancel',
+          onOk: () => handleDelete(project.id),
+        });
+      }
+    }
+  });
 
   return (
     <MainLayout noPadding>
@@ -845,45 +870,38 @@ const ProjectsManageContent: React.FC = () => {
                 <div className="pm2-side-group" style={{ marginTop: 22 }}>
                   <div className="pm2-side-label">Filters</div>
                   <div className="pm2-side-filters flex flex-col gap-2">
-                    <Select
+                    <SearchableDropdown
+                      className="pm2-side-filter-select"
                       placeholder="Status"
-                      value={filters.status}
-                      onChange={handleStatusFilter}
-                      style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
-                      allowClear
-                      styles={{ popup: { root: { borderRadius: "6px !important" } } }}
-                      className="pm2-side-filter-select"
-                    >
-                      <Option value="planning">Planning</Option>
-                      <Option value="active">Active</Option>
-                      <Option value="on-hold">On Hold</Option>
-                      <Option value="completed">Completed</Option>
-                      <Option value="cancelled">Cancelled</Option>
-                    </Select>
+                      searchPlaceholder="Search statuses"
+                      itemNoun="statuses"
+                      value={filters.status || undefined}
+                      onChange={(v) => handleStatusFilter(v ?? null)}
+                      options={[
+                        { label: 'Planning', value: 'planning' },
+                        { label: 'Active', value: 'active' },
+                        { label: 'On Hold', value: 'on-hold' },
+                        { label: 'Completed', value: 'completed' },
+                        { label: 'Cancelled', value: 'cancelled' },
+                      ]}
+                      width="100%"
+                    />
 
-                    <Select
-                      placeholder="Project Manager"
-                      value={filters.projectManagerId}
-                      onChange={handleProjectManagerFilter}
-                      style={{ width: '100%', height: 35, borderRadius: "6px !important" }}
+                    <SearchableDropdown
                       className="pm2-side-filter-select"
-                      allowClear
-                      showSearch
-                      styles={{ popup: { root: { borderRadius: "6px !important" } } }}
-                      filterOption={(input, option) => {
-                        const member = members.find((m) => m.value === option?.value);
-                        return member
-                          ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
-                          String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
-                          : false;
-                      }}
-                    >
-                      {members.map((member) => (
-                        <Option key={member.value} value={member.value}>
-                          {member.label}
-                        </Option>
-                      ))}
-                    </Select>
+                      placeholder="Project Manager"
+                      searchPlaceholder="Search managers"
+                      itemNoun="managers"
+                      value={filters.projectManagerId || undefined}
+                      onChange={(v) => handleProjectManagerFilter(v ?? null)}
+                      options={members.map((member) => ({
+                        label: member.label,
+                        value: member.value,
+                        description: member.position,
+                        avatarUrl: member.avatarUrl,
+                      }))}
+                      width="100%"
+                    />
 
                     <DatePicker.RangePicker
                       className="premium-range-picker"
@@ -1062,7 +1080,7 @@ const ProjectsManageContent: React.FC = () => {
               </div>
 
               <div className="pm2-main-content">
-                <div className="pm2-list-area" style={{ padding: "0 0px 10px" }}>
+                <div className="pm2-list-area" >
                   {/* Projects Card View - DASHBOARD STYLE */}
                   {viewMode === "card" ? (
                     projects.length === 0 && !loading ? (
@@ -1143,12 +1161,12 @@ const ProjectsManageContent: React.FC = () => {
                                       <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                      <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      <span className="pm2-title">
                                         {project.name}
                                       </span>
-                                      <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
-                                        {project.code || `#${project.id.slice(0, 8)}`}
+                                      <span className="pm2-project-line" >
+                                        <span className="pm2-project-key">Code:</span>
+                                        <span className="pm2-project-value">{project.code || `#${project.id.slice(0, 8)}`}</span>
                                         <span
                                           className="pm2-list-status"
                                           style={{
@@ -1167,29 +1185,7 @@ const ProjectsManageContent: React.FC = () => {
                                     <div className="pm2-list-more" onClick={e => e.stopPropagation()}>
                                       <Dropdown
                                         overlayClassName="pm2-action-pop"
-                                        menu={{
-                                          items: [
-                                            {
-                                              key: 'view',
-                                              label: menuLabel('View project', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
-                                              onClick: () => router.push(`/projects/${project.id}/overview`)
-                                            },
-                                            ...(canUpdateProject ? [{
-                                              key: 'edit',
-                                              label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                                              onClick: () => handleEdit(project)
-                                            }] : []),
-                                            ...(canDeleteProject ? [
-                                              { type: 'divider' as const },
-                                              {
-                                                key: 'delete',
-                                                danger: true,
-                                                label: menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
-                                                onClick: () => handleDelete(project.id)
-                                              }
-                                            ] : [])
-                                          ]
-                                        }}
+                                        menu={actionMenu(project)}
                                         trigger={['click']}
                                         placement="bottomRight"
                                       >
@@ -1203,19 +1199,19 @@ const ProjectsManageContent: React.FC = () => {
                                   </div>
                                 </header>
 
-                                <div style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', alignItems: 'center', borderTop: '1px solid var(--border-slate-200)' }}>
-                                  <Typography.Paragraph
-                                    style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
-                                    ellipsis={{ rows: 2 }}
-                                  >
-                                    {project.description || "No description provided."}
-                                  </Typography.Paragraph>
-                                </div>
+                                <div className="pm2-list-foot">
+                                  <div className="pm2-list-foot-row">
+                                    <Typography.Paragraph
+                                      style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
+                                      ellipsis={{ rows: 2 }}
+                                    >
+                                      {project.description || "No description provided."}
+                                    </Typography.Paragraph>
+                                  </div>
 
-                                <div className="pm2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
-                                  <div className="pm2-list-foot-inline" style={{ display: 'flex', gap: 20 }}>
-                                    <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>MANAGER</span>
+                                  <div className="pm2-list-foot-row">
+                                    <span className="pm2-list-foot-item">
+                                      <span className="pm2-list-foot-key" >Manager:</span>
                                       <Avatar size={18} src={pm?.avatarUrl} style={{ fontSize: 9, background: '#e2e8f0', color: '#64748b' }}>
                                         {pmFullName.charAt(0)}
                                       </Avatar>
@@ -1223,14 +1219,16 @@ const ProjectsManageContent: React.FC = () => {
                                         {pmFullName.split(' ')[0]}
                                       </span>
                                     </span>
+                                    <span className="pm2-list-foot-div"></span>
                                     <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>MEMBERS</span>
+                                      <span className="pm2-list-foot-key" >Members:</span>
                                       <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                                         {memberCount}
                                       </span>
                                     </span>
+                                    <span className="pm2-list-foot-div"></span>
                                     <span className="pm2-list-foot-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span className="pm2-list-foot-label" style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>TIMELINE</span>
+                                      <span className="pm2-list-foot-key" >Timeline:</span>
                                       <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                                         {progress}%
                                       </span>
@@ -1244,7 +1242,7 @@ const ProjectsManageContent: React.FC = () => {
                     )
                   ) : (
                     /* ===== TABLE VIEW ===== */
-                    <Card size="small" style={{ borderRadius: 0, overflow: "hidden" }} bodyStyle={{ padding: 0 }}>
+                    <div className="pm-table-wrap">
                       <Table
                         size="small"
                         className="premium-table"
@@ -1261,7 +1259,7 @@ const ProjectsManageContent: React.FC = () => {
                           },
                         })}
                       />
-                    </Card>
+                    </div>
                   )}
                   <ProjectFormDrawer
                     visible={drawerVisible}
@@ -1445,12 +1443,12 @@ const ProjectsManageContent: React.FC = () => {
         /* ── Action Menu Dropdown (Premium Style) ────────────────────────────────── */
         .pm2-action-pop .ant-dropdown-menu {
           padding: 6px !important;
-          border-radius: 12px !important;
+          border-radius: 0px !important;
           box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04) !important;
           border: 1px solid var(--border-slate-200) !important;
         }
         .pm2-action-pop .ant-dropdown-menu-item {
-          border-radius: 8px !important;
+          border-radius: 0px !important;
           padding: 0 !important;
           margin-bottom: 2px !important;
           transition: background .12s ease;
@@ -1904,8 +1902,8 @@ const ProjectsManageContent: React.FC = () => {
         
         .pm2-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
           padding-top: 10px;
         }
         
@@ -1986,8 +1984,8 @@ const ProjectsManageContent: React.FC = () => {
           border-color: #1f2937 !important;
         }
         .pm2-list-card:hover {
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-          border-color: transparent !important;
+          box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+          border-color: #cbd5e1 !important;
         }
         [data-theme="dark"] .pm2-list-card:hover {
           background: #1c232e !important;
@@ -2142,14 +2140,29 @@ const ProjectsManageContent: React.FC = () => {
           z-index: 1;
           line-height: 1;
         }
+        .pm2-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.01em;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          margin-bottom: 2px;
+        }
+        .pm2-project-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pm2-project-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pm2-project-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pm2-list-status {
           display: inline-flex;
           align-items: center;
           gap: 5px;
           padding: 2px 9px;
-          border-radius: 999px;
+          border-radius: 0px;
           border: 1px solid;
-          font-size: 10.5px;
+          font-size: 9px;
           font-weight: 700;
           letter-spacing: 0.01em;
         }
@@ -2277,18 +2290,12 @@ const ProjectsManageContent: React.FC = () => {
           white-space: nowrap;
         }
 
-        /* Footer */
-        .pm2-list-foot {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding-top: 4px;
-          border-top: 1px solid var(--border-slate-100);
-        }
-        [data-theme="dark"] .pm2-list-foot {
-          border-top-color: #1f2937 !important;
-        }
+        .pm2-list-foot { display: flex !important; flex-direction: column !important; padding: 0; border-top: 1px solid var(--border-slate-200) !important; background: var(--bg-slate-50) !important; margin-top: auto !important; }
+        .pm2-list-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pm2-list-foot-row + .pm2-list-foot-row { border-top: 1px solid var(--border-slate-200) !important; }
+        .pm2-list-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pm2-list-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pm2-list-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
 
         /* Divider between footer and the inline Manage-Tickets panel */
         .pm2-list-divider {
@@ -2307,28 +2314,28 @@ const ProjectsManageContent: React.FC = () => {
           flex-wrap: wrap;
           min-width: 0;
         }
-        .pm2-list-foot-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 11.5px;
-          font-weight: 500;
-          color: var(--text-slate-500);
-        }
-        .pm2-list-foot-item b {
-          color: var(--text-slate-800);
-          font-weight: 700;
-        }
+        // .pm2-list-foot-item {
+        //   display: inline-flex;
+        //   align-items: center;
+        //   gap: 5px;
+        //   font-size: 11.5px;
+        //   font-weight: 500;
+        //   color: var(--text-slate-500);
+        // }
+        // .pm2-list-foot-item b {
+        //   color: var(--text-slate-800);
+        //   font-weight: 700;
+        // }
         [data-theme="dark"] .pm2-list-foot-item b {
           color: #e2e8f0 !important;
         }
-        .pm2-list-foot-label {
-          font-size: 10px;
-          font-weight: 800;
-          color: var(--text-slate-400);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
+        // .pm2-list-foot-label {
+        //   font-size: 10px;
+        //   font-weight: 800;
+        //   color: var(--text-slate-400);
+        //   text-transform: uppercase;
+        //   letter-spacing: 0.08em;
+        // }
         .pm2-list-foot-div {
           width: 1px;
           height: 12px;
@@ -2624,18 +2631,21 @@ const ProjectsManageContent: React.FC = () => {
           }
         }
         /* ── Premium Table CSS ───────────────────────────────────── */
+        .pm-table-wrap{
+        background: var(--bg-pure-white); 
+        border: 1px solid var(--border-slate-200);
+        border-radius: 0; 
+        overflow: hidden;
+        margin-top:10px;
+        }
         .premium-table .ant-table {
           background: transparent !important;
         }
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc;
-          border-bottom: 1px solid #e2e8f0;
-          color: #64748b;
-          font-weight: 600;
-          font-size: 11.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 6px 16px !important;
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
         }
         .premium-table .ant-table-thead > tr > th::before {
           display: none;
@@ -2646,15 +2656,14 @@ const ProjectsManageContent: React.FC = () => {
           color: #94a3b8;
         }
         .premium-table .ant-table-tbody > tr > td {
-          padding: 6px 16px !important;
-          border-bottom: 1px solid #f1f5f9;
-          transition: background-color 0.2s ease;
+          border-bottom: 1px solid var(--border-slate-100) !important; 
+          padding: 6.5px 10px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
           border-bottom-color: #1e293b;
         }
         .premium-table .ant-table-row:hover > td {
-          background: #f8fafc;
+           background: var(--bg-slate-50) !important;
         }
         [data-theme='dark'] .premium-table .ant-table-row:hover > td {
           background: rgba(255, 255, 255, 0.02);
@@ -2741,6 +2750,13 @@ const ProjectsManageContent: React.FC = () => {
           border: 1px solid rgba(148, 163, 184, 0.2);
         }
 
+        .pp-tag {
+            display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+            border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap;
+          }
+          .pp-tag--blue { background: var(--bg-blue-50); color: #3B82F6; }
+          .pp-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
         /* ── Status Cards ────────────────────────────────────────── */
         .pm2-stat-cards-grid {
           display: grid;
@@ -2760,7 +2776,7 @@ const ProjectsManageContent: React.FC = () => {
         }
         .pm2-stat-card {
           background: #ffffff;
-          border-radius: 6px;
+          border-radius: 0px;
           padding: 12px 14px;
           border: 1px solid var(--border-slate-200);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -2773,14 +2789,6 @@ const ProjectsManageContent: React.FC = () => {
           background: rgba(255, 255, 255, 0.03);
           border-color: rgba(255, 255, 255, 0.08);
           box-shadow: none;
-        }
-        .pm2-stat-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
-          border-color: var(--border-blue-300);
-        }
-        [data-theme="dark"] .pm2-stat-card:hover {
-          border-color: rgba(255, 255, 255, 0.15);
         }
         .pm2-stat-top {
           display: flex;
@@ -2823,7 +2831,9 @@ const ProjectsManageContent: React.FC = () => {
         }
         .pm2-stat-value-wrap {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
+          align-items: baseline;
+          gap: 6px;
         }
         .pm2-stat-value {
           font-size: 24px;

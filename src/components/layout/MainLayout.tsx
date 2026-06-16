@@ -23,7 +23,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, noPadding }: MainLayoutProps) {
   const { token } = theme.useToken();
-  const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission } = useAuth();
+  const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission, canAccess, canAccessAny } = useAuth();
   const { notification } = AntApp.useApp();
   const { socket } = useSocket();
 
@@ -50,8 +50,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
         ? true
         : foundModule.requiredPermission
-          ? hasPermission(foundModule.requiredPermission)
-          : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
+          ? canAccess(foundModule.requiredPermission)
+          : foundModule.requiredAnyPermission ? canAccessAny(...foundModule.requiredAnyPermission) : true;
 
       if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
         router.push("/dashboard");
@@ -65,8 +65,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
               ? true
               : item.requiredPermission
-                ? hasPermission(item.requiredPermission)
-                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+                ? canAccess(item.requiredPermission)
+                : item.requiredAnyPermission ? canAccessAny(...item.requiredAnyPermission) : true;
 
             if (!itemAccess) return false;
           }
@@ -87,7 +87,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        if (!canAccess(foundStandalone.requiredPermission)) {
           router.push("/dashboard");
           return;
         }
@@ -182,8 +182,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
         ? true
         : foundModule.requiredPermission
-          ? hasPermission(foundModule.requiredPermission)
-          : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
+          ? canAccess(foundModule.requiredPermission)
+          : foundModule.requiredAnyPermission ? canAccessAny(...foundModule.requiredAnyPermission) : true;
 
       if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
         isAuthorized = false;
@@ -196,8 +196,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
               ? true
               : item.requiredPermission
-                ? hasPermission(item.requiredPermission)
-                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+                ? canAccess(item.requiredPermission)
+                : item.requiredAnyPermission ? canAccessAny(...item.requiredAnyPermission) : true;
 
             if (!itemAccess) return false;
           }
@@ -215,7 +215,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        if (!canAccess(foundStandalone.requiredPermission)) {
           isAuthorized = false;
         }
       }

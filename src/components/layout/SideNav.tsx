@@ -20,7 +20,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
-    const { hasPermission, hasAnyPermission } = useAuth();
+    const { hasPermission, hasAnyPermission, planAllows } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
@@ -32,14 +32,14 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 // No permission requirement = always visible
                 if (!item.requiredPermission && !item.requiredAnyPermission) return true;
 
-                // Check single permission
+                // Visible only if RBAC permits AND the tenant's plan includes it (intersection).
                 if (item.requiredPermission) {
-                    return hasPermission(item.requiredPermission);
+                    return hasPermission(item.requiredPermission) && planAllows(item.requiredPermission);
                 }
 
-                // Check any of multiple permissions
+                // Any-of: at least one permission must be both RBAC-permitted and plan-allowed.
                 if (item.requiredAnyPermission) {
-                    return hasAnyPermission(...item.requiredAnyPermission);
+                    return item.requiredAnyPermission.some((p) => hasPermission(p) && planAllows(p));
                 }
 
                 return false;

@@ -61,6 +61,18 @@ interface User {
   employee_code?: string | null;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
+  /** Tenant plan-based access (modules/functionalities the plan includes). */
+  planAccess?: PlanAccess;
+}
+
+interface PlanAccess {
+  /** true = plan grants everything (subject to RBAC). */
+  full: boolean;
+  /** allowed zukov resources (module-level). */
+  resources: string[];
+  /** allowed zukov permission codes (functionality-level). */
+  permissions: string[];
+  credits: number;
 }
 
 interface AuthContextType {
@@ -78,6 +90,12 @@ interface AuthContextType {
   hasAllPermissions: (...permissions: string[]) => boolean;
   /** Returns true if the user has ANY of the given permissions */
   hasAnyPermission: (...permissions: string[]) => boolean;
+  /** Returns true if the tenant's plan includes the given permission (plan-layer gate). */
+  planAllows: (permission: string) => boolean;
+  /** RBAC ∩ plan: user is permitted AND the plan includes it. */
+  canAccess: (permission: string) => boolean;
+  /** RBAC ∩ plan for any of the given permissions. */
+  canAccessAny: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -144,6 +162,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
+        planAccess: (response.user as any).planAccess,
       };
 
       setUser(userData);
@@ -253,6 +272,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,
         permissions: (userProfile as any).permissions ?? [],
+        planAccess: (userProfile as any).planAccess,
       };
 
       setUser(userData);
@@ -313,6 +333,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return permissions.some((p) => user.permissions.includes(p));
   };
 
+  // Plan-layer gate. Fail-open: super_admin or a tenant with no/full plan → allow.
+  const planAllows = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    const pa = user.planAccess;
+    if (!pa || pa.full) return true;
+    return pa.permissions.includes(permission);
+  };
+
+  const canAccess = (permission: string): boolean =>
+    hasPermission(permission) && planAllows(permission);
+
+  const canAccessAny = (...permissions: string[]): boolean =>
+    permissions.some((p) => hasPermission(p) && planAllows(p));
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -325,6 +360,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     hasPermission,
     hasAllPermissions,
     hasAnyPermission,
+    planAllows,
+    canAccess,
+    canAccessAny,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

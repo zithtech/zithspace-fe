@@ -82,7 +82,7 @@ export default function TopNav({
   const pathname = usePathname();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasPermission, hasAnyPermission, canAccess, canAccessAny } = useAuth();
   const {
     canReadMail,
     canReadCalendar,
@@ -243,11 +243,11 @@ export default function TopNav({
   const isMobile = useIsBreakpoint("max", 790);
   const isSmallMobile = !screens.sm;
 
-  // Filter modules by permission
+  // Filter modules by permission ∩ plan
   const visibleModules = NAVIGATION_CONFIG.filter(module => {
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
-    if (module.requiredPermission) return hasPermission(module.requiredPermission);
-    if (module.requiredAnyPermission) return hasAnyPermission(...module.requiredAnyPermission);
+    if (module.requiredPermission) return canAccess(module.requiredPermission);
+    if (module.requiredAnyPermission) return canAccessAny(...module.requiredAnyPermission);
     return false;
   });
 
@@ -255,9 +255,9 @@ export default function TopNav({
     for (const item of items) {
       let hasItemPermission = true;
       if (item.requiredPermission) {
-        hasItemPermission = hasPermission(item.requiredPermission);
+        hasItemPermission = canAccess(item.requiredPermission);
       } else if (item.requiredAnyPermission) {
-        hasItemPermission = hasAnyPermission(...item.requiredAnyPermission);
+        hasItemPermission = canAccessAny(...item.requiredAnyPermission);
       }
 
       if (!hasItemPermission) {

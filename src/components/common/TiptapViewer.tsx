@@ -17,7 +17,7 @@ interface TiptapViewerProps {
 
 export default function TiptapViewer({
   content,
-  minHeight = 100,
+  minHeight = 0,
 }: TiptapViewerProps) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -53,7 +53,7 @@ export default function TiptapViewer({
     editorProps: {
       attributes: {
         class: "tiptap-viewer-content",
-        style: `min-height: ${minHeight}px;`,
+        style: minHeight > 0 ? `min-height: ${minHeight}px;` : "",
       },
     },
   });

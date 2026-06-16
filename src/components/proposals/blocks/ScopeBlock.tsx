@@ -40,7 +40,7 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
   const termsToRender = terms.length > 0 ? terms : ghostTerms.map((t, i) => ({ id: `ghost-t-${i}`, ...t, _ghost: true }));
 
   return (
-    <div style={{ padding: '40px' }}>
+    <div style={{ padding: '16px 24px' }}>
       {isEmpty && <BlockGhostHint />}
 
       <Title
@@ -87,10 +87,19 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
             </div>
 
             <div style={{ paddingLeft: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
-                <CheckCircleOutlined style={{ color: '#10b981', marginTop: '6px', fontSize: '1.2rem' }} />
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '16px',
+                marginBottom: '24px',
+                background: 'rgba(16, 185, 129, 0.05)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                borderLeft: '4px solid #10b981'
+              }}>
+                <CheckCircleOutlined style={{ color: '#10b981', marginTop: '4px', fontSize: '1.2rem' }} />
                 <div style={{ flex: 1 }}>
-                  <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '8px' }}>Major Deliverables</Text>
+                  <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '4px' }}>Major Deliverables</Text>
                   {m.deliverables ? (
                     <Text style={{ color: m._ghost ? 'var(--text-slate-400)' : 'var(--text-secondary)', fontStyle: m._ghost ? 'italic' : 'normal', display: 'block', lineHeight: 1.8, fontSize: '1rem' }}>{m.deliverables}</Text>
                   ) : (
@@ -303,29 +312,19 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
               border: '1px solid var(--border-color)',
               borderLeft: `4px solid ${term.color || 'var(--border-color)'}`
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={{ ...labelStyle, flex: 1 }}>Boundary Details</span>
-                    <AIEnhanceButton 
-                      originalData={term} 
-                      blockType="scope (boundary)" 
-                      onApply={(newTerm) => {
-                        const newTerms = [...data.terms];
-                        newTerms[index] = { ...newTerm, id: term.id };
-                        handleUpdate({ terms: newTerms });
-                      }} 
-                    />
-                  </div>
-                  <Input
-                    placeholder="e.g. Exclusions"
-                    value={term.title}
-                    onChange={(e) => {
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                  Boundary Condition
+                </Text>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <AIEnhanceButton 
+                    originalData={term} 
+                    blockType="scope (boundary)" 
+                    onApply={(newTerm) => {
                       const newTerms = [...data.terms];
-                      newTerms[index] = { ...term, title: e.target.value };
+                      newTerms[index] = { ...newTerm, id: term.id };
                       handleUpdate({ terms: newTerms });
-                    }}
-                    style={{ ...inputStyle, flex: 1, marginBottom: 8 }}
+                    }} 
                   />
                   <ColorPicker
                     value={term.color || '#64748b'}
@@ -335,21 +334,35 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                       handleUpdate({ terms: newTerms });
                     }}
                   />
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      const newTerms = [...data.terms];
+                      newTerms.splice(index, 1);
+                      handleUpdate({ terms: newTerms });
+                    }}
+                    style={{ height: '24px', width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
                 </div>
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
+              </div>
+
+              <Form.Item label={<span style={labelStyle}>Boundary Title</span>} style={{ marginBottom: 12 }}>
+                <Input
+                  placeholder="e.g. Exclusions"
+                  variant="filled"
+                  style={inputStyle}
+                  value={term.title}
+                  onChange={(e) => {
                     const newTerms = [...data.terms];
-                    newTerms.splice(index, 1);
+                    newTerms[index] = { ...term, title: e.target.value };
                     handleUpdate({ terms: newTerms });
                   }}
                 />
-              </div>
+              </Form.Item>
 
-              <div>
-                <span style={{ ...labelStyle, flex: 1, display: 'block' }}>Description Details</span>
+              <Form.Item label={<span style={labelStyle}>Description Details</span>} style={{ marginBottom: 0 }}>
                 <TiptapEditor
                   content={term.description || ''}
                   onChange={(html) => {
@@ -359,18 +372,18 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                   }}
                   minHeight={150}
                 />
-              </div>
+              </Form.Item>
             </div>
           ))}
-          <Button
-            type="dashed"
-            onClick={() => handleUpdate({ terms: [...(data.terms || []), { id: nanoid(), title: '', description: '', color: '#64748b' }] })}
-            block icon={<PlusOutlined />}
-            style={{ borderRadius: '12px', height: '40px' }}
-          >
-            Add Boundary Condition
-          </Button>
         </div>
+        <Button
+          type="dashed"
+          onClick={() => handleUpdate({ terms: [...(data.terms || []), { id: nanoid(), title: '', description: '', color: '#64748b' }] })}
+          block icon={<PlusOutlined />}
+          style={{ borderRadius: '12px', height: '40px' }}
+        >
+          Add Boundary Condition
+        </Button>
       </div>
     </Form>
   );

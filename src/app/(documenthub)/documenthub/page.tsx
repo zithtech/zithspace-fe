@@ -1935,7 +1935,7 @@ const DocumentHubPage = () => {
                 className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
                 style={{
                   display: 'flex', flexDirection: 'column',
-                  border: '1px solid var(--border-slate-100)',
+                  border: '1px solid var(--border-slate-200)',
                   borderRadius: '0px',
                   background: 'var(--bg-pure-white)',
                   transition: 'all 0.2s',
@@ -1945,8 +1945,8 @@ const DocumentHubPage = () => {
               >
                 {/* Top Section */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', flex: 1 }}>
-                  <div className="flex items-center gap-4">
-                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
                       <Checkbox
                         checked={selected}
                         onChange={(e) =>
@@ -1964,11 +1964,9 @@ const DocumentHubPage = () => {
                       </button>
                     </div>
                     <div
+                      className="dh-avatar"
                       style={{
-                        width: 40, height: 40, borderRadius: 6,
-                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from, color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 600, fontSize: 16
+                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from
                       }}
                     >
                       {hub.name.charAt(0).toUpperCase()}
@@ -1978,7 +1976,7 @@ const DocumentHubPage = () => {
                         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-slate-900)' }}>{hub.name}</span>
                         {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
                       </div>
-                      <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                      <span style={{ color: 'var(--text-slate-400)', fontWeight: 600, flexShrink: 0 }}>
                         {docCount} {docCount === 1 ? 'doc' : 'docs'} · Updated {updatedRel}
                       </span>
                     </div>
@@ -2032,64 +2030,60 @@ const DocumentHubPage = () => {
                 </div>
 
                 {/* Middle Section */}
-                <div style={{
-                  padding: '8px 16px',
-                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
-                  borderTop: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
-                  borderBottom: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
-                  display: 'flex', alignItems: 'center', gap: '16px',
-                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
-                }}>
-                  <span className="flex items-center gap-2">
-                    Created by
-                    <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
-                      {hub.createdBy?.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <span style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>{hub.createdBy?.name || 'Unknown'}</span>
-                  </span>
-                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
-                  <span>Created {format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
-                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
-                  <span>Updated {format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
-                </div>
+                <div className='dh-foot'>
+                  <div className="dh-foot-row">
+                    <span className='dh-foot-item'>
+                      <span className="dh-foot-key">Created by</span>
+                      <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
+                        {hub.createdBy?.name?.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <span className="dh-foot-val">{hub.createdBy?.name || 'Unknown'}</span>
+                    </span>
+                    <span className="dh-foot-div" />
+                    <span className="dh-foot-item">
+                      <span className="dh-foot-key">Created</span>
+                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
+                    </span>
+                    <span className="dh-foot-div" />
+                    <span className="dh-foot-item">
+                      <span className="dh-foot-key">Updated</span>
+                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
+                    </span>
+                  </div>
 
-                {/* Bottom Section */}
-                <div style={{
-                  padding: '8px 16px',
-                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
-                  display: 'flex', alignItems: 'center', gap: '16px',
-                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
-                }}>
-                  <span className="flex items-center gap-2">
-                    Project:
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <InlineProjectSelector
-                        record={hub}
-                        projects={projects}
-                        projectsLoading={projectsLoading}
-                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                        user={user}
-                      />
-                    </div>
-                  </span>
-                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
-                  <span className="flex items-center gap-2">
-                    Ticket:
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <InlineTicketSelector
-                        record={hub}
-                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                        user={user}
-                      />
-                    </div>
-                  </span>
-                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
-                  <span className="flex items-center gap-2">
-                    Visibility:
-                    <div onClick={(e) => e.stopPropagation()}>
-                      {renderVisibilityCell(hub)}
-                    </div>
-                  </span>
+                  {/* Bottom Section */}
+                  <div className='dh-foot-row'>
+                    <span className="dh-foot-item">
+                      <span className="dh-foot-key">Project:</span>
+                      <div onClick={(e) => e.stopPropagation()} >
+                        <InlineProjectSelector
+                          record={hub}
+                          projects={projects}
+                          projectsLoading={projectsLoading}
+                          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                          user={user}
+                        />
+                      </div>
+                    </span>
+                    <span className='dh-foot-div' />
+                    <span className="dh-foot-item">
+                      <span className="dh-foot-key">Ticket:</span>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <InlineTicketSelector
+                          record={hub}
+                          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                          user={user}
+                        />
+                      </div>
+                    </span>
+                    <span className='dh-foot-div' />
+                    <span className="dh-foot-item">
+                      <span className="dh-foot-key">Visibility:</span>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        {renderVisibilityCell(hub)}
+                      </div>
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -4162,7 +4156,20 @@ const DocumentHubPage = () => {
           animation: dh-new-pulse 2s ease-in-out infinite;
           flex-shrink: 0;
         }
-        @keyframes dh-new-pulse {
+
+        .dh-avatar {
+            width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 800; font-size: 12px;
+          }
+
+         .dh-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+         .dh-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+         .dh-foot-row + .dh-foot-row { border-top: 1px solid var(--border-slate-200); }
+         .dh-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+         .dh-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+         .dh-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+         @keyframes dh-new-pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
           50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
         }

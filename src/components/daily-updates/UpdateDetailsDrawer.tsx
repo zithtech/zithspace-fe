@@ -34,20 +34,20 @@ interface UpdateDetailsDrawerProps {
 }
 
 const moodConfig: Record<string, { emoji: string; label: string; color: string; bg: string; border: string }> = {
-  happy:    { emoji: "😊", label: "Happy",    color: "#a16207", bg: "#fef9c3", border: "#fde68a" },
-  neutral:  { emoji: "😐", label: "Neutral",  color: "var(--text-slate-700)", bg: "var(--bg-slate-50)", border: "var(--border-slate-200)" },
-  stressed: { emoji: "😰", label: "Stressed", color: "#9a3412", bg: "#ffedd5", border: "#fed7aa" },
-  blocked:  { emoji: "🚫", label: "Blocked",  color: "#991b1b", bg: "#fee2e2", border: "#fca5a5" },
+  happy:    { emoji: "😊", label: "Happy",    color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)" },
+  neutral:  { emoji: "😐", label: "Neutral",  color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)" },
+  stressed: { emoji: "😰", label: "Stressed", color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)" },
+  blocked:  { emoji: "🚫", label: "Blocked",  color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)" },
 };
 
 const statusConfig: Record<WorkStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  pending:              { label: "Pending",     color: "#475569", bg: "#f1f5f9", border: "#e2e8f0", dot: "#94a3b8" },
-  in_progress:          { label: "In Progress", color: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe", dot: "#3b82f6" },
-  dev_complete:         { label: "Complete",    color: "#166534", bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e" },
-  in_testing:           { label: "Testing",     color: "#9a3412", bg: "#fff7ed", border: "#fed7aa", dot: "#f97316" },
-  pushed_to_staging:    { label: "Staging",     color: "#155e75", bg: "#ecfeff", border: "#a5f3fc", dot: "#06b6d4" },
-  pushed_to_production: { label: "Production",  color: "#6b21a8", bg: "#faf5ff", border: "#e9d5ff", dot: "#a855f7" },
-  completed:            { label: "Completed",   color: "#166534", bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e" },
+  pending:              { label: "Pending",     color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#94a3b8" },
+  in_progress:          { label: "In Progress", color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#3b82f6" },
+  dev_complete:         { label: "Complete",    color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#22c55e" },
+  in_testing:           { label: "Testing",     color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#f97316" },
+  pushed_to_staging:    { label: "Staging",     color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#06b6d4" },
+  pushed_to_production: { label: "Production",  color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#a855f7" },
+  completed:            { label: "Completed",   color: "var(--text-slate-700)", bg: "var(--bg-pure-white)", border: "var(--border-slate-200)", dot: "#22c55e" },
 };
 
 export default function UpdateDetailsDrawer({
@@ -71,7 +71,7 @@ export default function UpdateDetailsDrawer({
       open={open}
       onClose={onClose}
       placement="right"
-      width={680}
+      width={560}
       title={null}
       closable={false}
       styles={{ body: { padding: 0, backgroundColor: "var(--bg-pure-white)" } }}
@@ -204,14 +204,13 @@ export default function UpdateDetailsDrawer({
                   alignItems: "center",
                   gap: 6,
                   padding: "4px 10px",
-                  background: isBOD ? "#fef3c7" : "#dbeafe",
-                  color: isBOD ? "#92400e" : "#1e40af",
-                  borderRadius: 999,
+                  background: "var(--bg-slate-50)",
+                  color: "var(--text-slate-700)",
+                  borderRadius: 6,
                   fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 0.4,
-                  textTransform: "uppercase",
-                  border: `1px solid ${isBOD ? "#fde68a" : "#bfdbfe"}`,
+                  fontWeight: 600,
+                  letterSpacing: 0.2,
+                  border: "1px solid var(--border-slate-200)",
                 }}>
                   <Activity size={11} strokeWidth={2.5} />
                   {update.updateType || "EOD"} Update
@@ -250,10 +249,10 @@ export default function UpdateDetailsDrawer({
                 size={60}
                 src={update.user?.avatarUrl}
                 style={{
-                  background: isBOD ? "#f59e0b" : "#6366f1",
-                  color: "#fff",
+                  background: "var(--bg-slate-100)",
+                  color: "var(--text-slate-600)",
                   fontSize: 22,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   border: "1px solid var(--border-slate-200)",
                   flexShrink: 0,
                 }}
@@ -444,12 +443,12 @@ export default function UpdateDetailsDrawer({
                     alignItems: "center",
                     gap: 5,
                     padding: "5px 11px",
-                    background: "#ecfdf5",
-                    color: "#047857",
-                    borderRadius: 999,
+                    background: "var(--bg-pure-white)",
+                    color: "var(--text-slate-700)",
+                    borderRadius: 6,
                     fontSize: 12,
-                    fontWeight: 700,
-                    border: "1px solid #a7f3d0",
+                    fontWeight: 600,
+                    border: "1px solid var(--border-slate-200)",
                     flexShrink: 0,
                   }}>
                     <Clock size={11} strokeWidth={2.5} />
@@ -619,9 +618,9 @@ function KPICard({
   tone: "blue" | "violet" | "emerald";
 }) {
   const palette = {
-    blue:    { color: "#1d4ed8", iconBg: "#eff6ff" },
-    violet:  { color: "#6d28d9", iconBg: "#f5f3ff" },
-    emerald: { color: "#047857", iconBg: "#ecfdf5" },
+    blue:    { color: "var(--text-slate-500)", iconBg: "var(--bg-slate-50)" },
+    violet:  { color: "var(--text-slate-500)", iconBg: "var(--bg-slate-50)" },
+    emerald: { color: "var(--text-slate-500)", iconBg: "var(--bg-slate-50)" },
   }[tone];
 
   return (

@@ -405,12 +405,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} />
+              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} />
+              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -459,12 +459,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
                 }
               ]}
             >
-              <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
+              <Input placeholder="+91 …" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
-              <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+              <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -485,12 +485,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
-              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} />
+              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
-              <Input placeholder="acme.com" style={{ borderRadius: 8 }} />
+              <Input placeholder="acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -519,10 +519,10 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
           </div>
         </div>
         <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
-          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} />
+          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
-          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} />
+          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
           <Select placeholder="Select pipeline" style={{ borderRadius: 8 }}>
@@ -3982,7 +3982,7 @@ export default function LeadsPage() {
             </div>
           }
         >
-          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form">
+          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
             <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
               <Segmented
@@ -4050,12 +4050,12 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
-                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
+                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -4104,24 +4104,24 @@ export default function LeadsPage() {
                           }
                         ]}
                       >
-                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
+                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
-                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
-                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
-                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -4176,13 +4176,14 @@ export default function LeadsPage() {
                     </div>
                   </div>
                   <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
+                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} autoComplete="off" />
                   </Form.Item>
                   <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
                     <TextArea
                       rows={4}
                       placeholder="Enter the full job description or client request..."
                       style={{ borderRadius: 8 }}
+                      autoComplete="off"
                     />
                   </Form.Item>
                   <Form.Item
@@ -4211,6 +4212,7 @@ export default function LeadsPage() {
                         background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
                         border: "1px solid rgba(99, 102, 241, 0.18)",
                       }}
+                      autoComplete="off"
                     />
                   </Form.Item>
                   <Row gutter={16}>
@@ -4223,22 +4225,22 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={8}>
                       <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
-                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
+                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
-                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
-                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
+                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -4295,7 +4297,7 @@ export default function LeadsPage() {
                     </Col>
                   </Row>
                   <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                    <Input placeholder="https://..." style={{ borderRadius: 8 }} />
+                    <Input placeholder="https://..." style={{ borderRadius: 8 }} autoComplete="off" />
                   </Form.Item>
                   <Row gutter={16}>
                     <Col span={12}>

@@ -35,7 +35,7 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
   const phasesToRender = phases.length > 0 ? phases : ghostPhases;
 
   return (
-    <div style={{ padding: '16px 0' }}>
+    <div style={{ padding: '16px 24px' }}>
       {isEmpty && <BlockGhostHint />}
 
       <Title

@@ -780,7 +780,7 @@ export default function SprintPlanComponent() {
             <div className="sp-sidebar-top">
               <div className="sp-sidebar-brand">
                 <div className="sp-hero-icon-box">
-                  <CalendarOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+                  <CalendarOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                 </div>
                 <div className="min-w-0">
                   <h1 className="sp-sidebar-title">Sprint Plans</h1>
@@ -4512,7 +4512,7 @@ export default function SprintPlanComponent() {
         }
         .sp-shell {
           display: grid;
-          grid-template-columns: 252px minmax(0, 1fr);
+          grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -4569,17 +4569,12 @@ export default function SprintPlanComponent() {
           letter-spacing: 0.07em;
         }
         .sp-hero-icon-box {
-          width: 38px; height: 38px;
-          background: rgba(59, 130, 246, 0.10);
-          border-radius: 10px;
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .sp-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .sp-side-create {
           height: 36px !important;
           border-radius: 6px !important;
@@ -4623,17 +4618,16 @@ export default function SprintPlanComponent() {
         .sp-sidebar-item {
           display: flex;
           align-items: center;
-          gap: 9px;
+          gap: 8px;
           width: 100%;
-          height: 32px;
-          padding: 0 10px;
+          padding: 7px 10px;
           border: none;
           background: transparent;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 13px;
           font-family: inherit;
-          font-weight: 600;
+          font-weight: 500;
           color: var(--text-slate-600);
           text-align: left;
           transition: background 0.15s, color 0.15s;
@@ -6953,10 +6947,7 @@ export default function SprintPlanComponent() {
           background: var(--bg-slate-50) !important;
           border-color: var(--border-slate-200) !important;
         }
-        [data-theme='dark'] .sp-plist-action-btn:hover {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-        }
+        /* removed sp-plist-action-btn:hover override */
 
         .sp-foot-btn {
           display: inline-flex !important;
@@ -6983,22 +6974,16 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-400) !important;
         }
         [data-theme="dark"] .sp-foot-btn {
-          background: #1e293b !important;
-          border-color: #334155 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .sp-foot-btn:hover:not(:disabled) {
-          background: #1c232e !important;
-          border-color: #8b5cf6 !important;
-          color: #8b5cf6 !important;
+          background: var(--bg-pure-white) !important;
+          border-color: var(--border-slate-200) !important;
+          color: var(--text-slate-700) !important;
         }
 
-       .sp-foot-btn-start {
-          background: #ecfdf5 !important;
-          border-color: #a7f3d0 !important;
+        .sp-foot-btn-start {
+          background: var(--bg-green-50, #ecfdf5) !important;
+          border-color: var(--border-green-200, #a7f3d0) !important;
           color: #10b981 !important;
           margin-right: 10px !important;
-
         }
 
         .sp-foot-btn-start:hover:not(:disabled) {
@@ -7007,11 +6992,7 @@ export default function SprintPlanComponent() {
           color: #059669 !important;
         }
 
-        [data-theme="dark"] .sp-foot-btn-start {
-          background: rgba(16, 185, 129, 0.15) !important;
-          border-color: rgba(16, 185, 129, 0.4) !important;
-          color: #34d399 !important;
-        }
+        /* removed sp-foot-btn-start dark override */
 
         .sp-foot-btn-view {
           background: rgba(100, 116, 139, 0.08) !important;
@@ -7025,15 +7006,11 @@ export default function SprintPlanComponent() {
           color: #64748b !important;
         }
 
-        [data-theme="dark"] .sp-foot-btn-view {
-          background: rgba(148, 163, 184, 0.15) !important;
-          border-color: rgba(148, 163, 184, 0.4) !important;
-          color: #94a3b8 !important;
-        }
+        /* removed sp-foot-btn-view dark override */
 
         .sp-foot-btn-complete {
-          background: #eff6ff !important;
-          border-color: #bfdbfe !important;
+          background: var(--bg-blue-50) !important;
+          border-color: var(--border-blue-200, #bfdbfe) !important;
           color: #3b82f6 !important;
           margin-right: 10px !important;
         }
@@ -7044,11 +7021,7 @@ export default function SprintPlanComponent() {
           color: #2563eb !important;
         }
 
-        [data-theme="dark"] .sp-foot-btn-complete {
-          background: rgba(59, 130, 246, 0.15) !important;
-          border-color: rgba(59, 130, 246, 0.4) !important;
-          color: #60a5fa !important;
-        }
+        /* removed sp-foot-btn-complete dark override */
 
         @media (max-width: 900px) {
           .sp-plist-body {

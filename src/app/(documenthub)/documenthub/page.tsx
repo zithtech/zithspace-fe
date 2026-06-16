@@ -2107,7 +2107,7 @@ const DocumentHubPage = () => {
           <div className="dh-sidebar-top">
             <div className="dh-sidebar-brand">
               <div className="dh-hero-icon-box">
-                <FileTextOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+                <FileTextOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">Document Hub</h1>
@@ -3140,9 +3140,7 @@ const DocumentHubPage = () => {
           border: none !important;
           // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
         }
-        [data-theme='dark'] .dh-side-create {
-          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
-        }
+        /* removed dh-side-create dark override */
         .dh-sidebar-scroll {
           flex: 1;
           min-height: 0;
@@ -3179,16 +3177,15 @@ const DocumentHubPage = () => {
         .dh-side-view {
           display: flex;
           align-items: center;
-          gap: 9px;
+          gap: 8px;
           width: 100%;
-          height: 32px;
-          padding: 0 10px;
+          padding: 7px 10px;
           border: none;
           background: transparent;
-          border-radius: 9px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 500;
           color: var(--text-slate-600);
           transition: background 0.15s, color 0.15s;
         }
@@ -3525,11 +3522,7 @@ const DocumentHubPage = () => {
         [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
         [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
         [data-theme="dark"] .dh-side-hub:hover { background: rgba(255, 255, 255, 0.05); }
-        [data-theme="dark"] .dh-mobile-menu-btn {
-          background: var(--bg-slate-50) !important;
-          border-color: var(--border-slate-200) !important;
-          color: var(--text-slate-700) !important;
-        }
+        /* removed dh-mobile-menu-btn dark override */
 
         .premium-table .ant-table-thead > tr > th {
             background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
@@ -3598,17 +3591,12 @@ const DocumentHubPage = () => {
 
         /* Hero icon box (Team-View pattern) */
         .dh-hero-icon-box {
-          width: 38px; height: 38px;
-          background: rgba(59, 130, 246, 0.10);
-          border-radius: 10px;
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .dh-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .dh-pulse-dot {
           width: 6px; height: 6px; border-radius: 9999px;
           background: #10b981;

@@ -807,7 +807,7 @@ const ProjectsManageContent: React.FC = () => {
               <div className="pm2-sidebar-top">
                 <div className="pm2-sidebar-brand">
                   <div className="pm2-hero-icon-box">
-                    <ApartmentOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                    <ApartmentOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                   </div>
                   <div className="min-w-0">
                     <h1 className="pm2-sidebar-title">Projects Management</h1>
@@ -1131,9 +1131,8 @@ const ProjectsManageContent: React.FC = () => {
                                     role="button"
                                     tabIndex={0}
                                     onClick={() => router.push(`/projects/${project.id}/overview`)}
-                                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
                                   >
-                                    <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff' }}>
+                                    <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff', top: "-3px" }}>
                                       <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
@@ -1287,7 +1286,7 @@ const ProjectsManageContent: React.FC = () => {
         }
         .pm2-shell {
           display: grid;
-          grid-template-columns: 252px minmax(0, 1fr);
+          grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -1331,9 +1330,9 @@ const ProjectsManageContent: React.FC = () => {
         .pm2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .pm2-hero-icon-box {
           width: 38px; height: 38px; border-radius: 10px;
-          background: rgba(59, 130, 246, 0.08);
+          background: transparent !important;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
         [data-theme='dark'] .pm2-hero-icon-box {

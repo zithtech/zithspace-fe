@@ -709,7 +709,7 @@ export default function BucketManagementPage() {
             <div className="bh2-sidebar-top">
               <div className="bh2-sidebar-brand">
                 <div className="bh2-hero-icon-box">
-                  <FolderOpenOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                  <FolderOpenOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                 </div>
                 <div className="min-w-0">
                   <h1 className="bh2-sidebar-title">Buckets Hub</h1>
@@ -1510,7 +1510,7 @@ export default function BucketManagementPage() {
         }
         .bh2-shell {
           display: grid;
-          grid-template-columns: 252px minmax(0, 1fr);
+          grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -1560,16 +1560,12 @@ export default function BucketManagementPage() {
           border-bottom-color: #1f2937 !important;
         }
         .bh2-hero-icon-box {
-          width: 38px; height: 38px; border-radius: 10px;
-          background: rgba(59, 130, 246, 0.08);
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .bh2-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
         [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
         .bh2-sidebar-subtitle {
@@ -1610,21 +1606,20 @@ export default function BucketManagementPage() {
         }
 
         .bh2-view-btn {
-          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          display: flex; align-items: center; gap: 8px; padding: 7px 10px;
           border-radius: 8px; background: transparent; border: none; cursor: pointer;
-          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          width: 100%; text-align: left; font-family: inherit; font-size: 13px; font-weight: 500;
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
         [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
         .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
@@ -1634,7 +1629,7 @@ export default function BucketManagementPage() {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
         }
         [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700); }
 
         .bh2-view-label {
           flex: 1;
@@ -2101,7 +2096,7 @@ export default function BucketManagementPage() {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          // padding-top: 10px;
+          padding-bottom: 10px;
         }
         
         .bh2-grid {
@@ -2599,12 +2594,9 @@ export default function BucketManagementPage() {
           opacity: 0.5;
         }
         [data-theme="dark"] .bh2-foot-btn {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-foot-btn:hover:not(:disabled) {
-          background: #1c232e !important;
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-700);
         }
 
         /* Manage Tickets button */
@@ -2635,14 +2627,8 @@ export default function BucketManagementPage() {
           background: #3b82f6 !important;
         }
         [data-theme="dark"] .bh2-manage-btn {
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn:hover {
-          background: #1c232e !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn.active {
-          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
         }
 
         /* Empty */
@@ -2934,34 +2920,20 @@ export default function BucketManagementPage() {
         }
 
         .bmp-project-tag {
-          background: #eff6ff;
-          color: #2563eb;
-        }
-        [data-theme='dark'] .bmp-project-tag {
-          background: rgba(59, 130, 246, 0.15);
-          color: #60a5fa;
+          background: var(--bg-blue-50);
+          color: #3b82f6;
         }
 
         .bmp-tag-public {
-          background: #ecfdf5;
-          color: #059669;
-          border: 1px solid #d1fae5;
-        }
-        [data-theme='dark'] .bmp-tag-public {
-          background: rgba(16, 185, 129, 0.1);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: var(--bg-green-50, #ecfdf5);
+          color: #10b981;
+          border: 1px solid var(--border-green-200, #a7f3d0);
         }
 
         .bmp-tag-private {
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-        }
-        [data-theme='dark'] .bmp-tag-private {
-          background: rgba(148, 163, 184, 0.1);
-          color: #94a3b8;
-          border: 1px solid rgba(148, 163, 184, 0.2);
+          background: var(--bg-slate-50);
+          color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-200);
         }
 
         /* ── Status Cards ────────────────────────────────────────── */

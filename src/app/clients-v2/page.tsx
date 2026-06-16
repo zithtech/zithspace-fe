@@ -69,13 +69,7 @@ const { Title, Text } = Typography;
 /* -------------------------------------------------------------------------- */
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-  "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)",
-  "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)",
-  "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)",
-  "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-  "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-  "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)",
+  "var(--bg-blue-50)"
 ];
 
 const gradientFor = (key?: string) => {
@@ -897,7 +891,7 @@ export default function ClientsV2ListPage() {
                 <div className="bh2-sidebar-top">
                   <div className="bh2-sidebar-brand">
                     <div className="bh2-hero-icon-box">
-                      <Building2 size={18} color="#3b82f6" />
+                      <Building2 size={24} color="var(--text-slate-900)" />
                     </div>
                     <div className="min-w-0">
                       <h1 className="bh2-sidebar-title">Client Management</h1>
@@ -1173,7 +1167,7 @@ export default function ClientsV2ListPage() {
                               type="primary"
                               icon={<Plus size={14} />}
                               onClick={() => router.push("/clients-v2/create")}
-                              style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", border: "none" }}
+                              style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "#3b82f6", border: "none" }}
                             >
                               Create Client
                             </Button>
@@ -1209,7 +1203,6 @@ export default function ClientsV2ListPage() {
                                       router.push(`/clients-v2/${record.id}`);
                                     }
                                   }}
-                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
                                 >
                                   <div className="bh2-list-avatar" style={{ width: 30, height: 30, borderRadius: 6 }}>
                                     <span className="bh2-list-avatar-letter" style={{ fontSize: 12 }}>{initials}</span>
@@ -1540,7 +1533,7 @@ export default function ClientsV2ListPage() {
         }
         .bh2-shell {
           display: grid;
-          grid-template-columns: 252px minmax(0, 1fr);
+          grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -1590,16 +1583,13 @@ export default function ClientsV2ListPage() {
           border-bottom-color: #1f2937 !important;
         }
         .bh2-hero-icon-box {
-          width: 38px; height: 38px; border-radius: 10px;
-          background: rgba(59, 130, 246, 0.08);
+          width: 36px; height: 36px; border-radius: 10px;
+          background: transparent !important;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .bh2-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
         [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
         .bh2-sidebar-subtitle {
@@ -1614,12 +1604,10 @@ export default function ClientsV2ListPage() {
           height: 36px !important;
           border-radius: 6px !important;
           font-weight: 600 !important;
-          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          background: #3b82f6 !important;
           border: none !important;
         }
-        [data-theme="dark"] .bh2-side-create {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-        }
+        /* removed bh2-side-create dark override */
 
         .bh2-sidebar-scroll {
           flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 10px;
@@ -1640,21 +1628,20 @@ export default function ClientsV2ListPage() {
         }
 
         .bh2-view-btn {
-          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
-          border-radius: 6px; background: transparent; border: none; cursor: pointer;
-          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+          border-radius: 8px; background: transparent; border: none; cursor: pointer;
+          width: 100%; text-align: left; font-family: inherit; font-size: 13px; font-weight: 500;
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
-        [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
+        [data-theme='dark'] .bh2-view-btn { color: #f1f5f9; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
         .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
@@ -1664,7 +1651,7 @@ export default function ClientsV2ListPage() {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
         }
         [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700); }
 
         .bh2-view-label {
           flex: 1;
@@ -2082,7 +2069,7 @@ export default function ClientsV2ListPage() {
           justify-content: space-between;
           gap: 12px;
           padding: 10px 24px;
-          margin: auto -24px -32px -20px;
+          margin: auto -24px -12px -20px;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
@@ -2155,7 +2142,7 @@ export default function ClientsV2ListPage() {
         }
         .bh2-list-row {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 14px;
           flex: 1;
           min-width: 0;
@@ -2282,10 +2269,9 @@ export default function ClientsV2ListPage() {
           overflow: hidden;
           background: #3b82f6;
           color: #fff;
+          // top: -6px;
         }
-        [data-theme="dark"] .bh2-list-avatar {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-        }
+        /* removed bh2-list-avatar dark override */
         .bh2-side-clear {
           display: flex;
           align-items: center;
@@ -2563,12 +2549,9 @@ export default function ClientsV2ListPage() {
           opacity: 0.5;
         }
         [data-theme="dark"] .bh2-foot-btn {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-foot-btn:hover:not(:disabled) {
-          background: #1c232e !important;
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-700);
         }
 
         /* Manage Tickets button */
@@ -2599,14 +2582,8 @@ export default function ClientsV2ListPage() {
           background: rgba(59, 130, 246, 0.08);
         }
         [data-theme="dark"] .bh2-manage-btn {
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn:hover {
-          background: #1c232e !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn.active {
-          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
         }
 
         /* Empty */
@@ -3433,10 +3410,7 @@ export default function ClientsV2ListPage() {
               transform: translateY(-1px);
               transition: all .2s ease;
             }
-            [data-theme="dark"] .cm-primary-btn {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-              box-shadow: 0 6px 16px -8px rgba(59, 109, 252, 0.4) !important;
-            }
+            /* removed cm-primary-btn dark override */
 
             /* ---------- Table card ---------- */
             .cm-table-card {
@@ -3507,9 +3481,7 @@ export default function ClientsV2ListPage() {
                           inset 0 1px 0 rgba(255,255,255,0.18);
               flex-shrink: 0;
             }
-            [data-theme="dark"] .cm-avatar {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-            }
+            /* removed cm-avatar dark override */
             .cm-avatar-wrap.is-active .cm-avatar-pulse {
               position: absolute;
               right: -2px;
@@ -3529,7 +3501,7 @@ export default function ClientsV2ListPage() {
               width: 26px; height: 26px;
               border-radius: 50%;
               display: flex; align-items: center; justify-content: center;
-              color: #fff; font-weight: 700; font-size: 10px;
+              color: #3b82f6; font-weight: 700; font-size: 10px;
               flex-shrink: 0;
             }
             .cm-client-name {
@@ -3638,10 +3610,7 @@ export default function ClientsV2ListPage() {
               background: rgba(139, 92, 246, 0.12);
               color: #a78bfa;
             }
-            [data-theme='dark'] .cm-projects-pill.has .cm-projects-ico {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45) !important;
-            }
+            /* removed cm-projects-ico dark override */
             [data-theme='dark'] .cm-projects-ico { background: var(--bg-slate-50); }
 
             .cm-risk-pill {
@@ -3883,9 +3852,7 @@ export default function ClientsV2ListPage() {
               display: flex; align-items: center; justify-content: center;
               background: #3b82f6;
             }
-            [data-theme='dark'] .cm-project-icon {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-            }
+            /* removed cm-project-icon dark override */
             .cm-project-code {
               border: 0 !important;
               background: var(--bg-slate-50) !important;
@@ -3948,10 +3915,7 @@ export default function ClientsV2ListPage() {
               color: #3b82f6;
               margin-bottom: 10px;
             }
-            [data-theme="dark"] .cm-empty-icon {
-              background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 64, 175, 0.15));
-              color: #60a5fa;
-            }
+            /* removed cm-empty-icon dark override */
             .cm-empty-title {
               font-size: 16px;
               font-weight: 700;

@@ -255,8 +255,8 @@ export default function ProjectTrashManagementPage() {
           <aside className="pm2-sidebar">
             <div className="pm2-sidebar-top">
               <div className="pm2-sidebar-brand">
-                <div className="pm2-hero-icon-box" style={{ background: 'rgba(255, 77, 79, 0.08)', borderColor: 'rgba(255, 77, 79, 0.18)' }}>
-                  <InboxOutlined style={{ fontSize: 18, color: '#ff4d4f' }} />
+                <div className="pm2-hero-icon-box">
+                  <InboxOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                 </div>
                 <div className="min-w-0">
                   <h1 className="pm2-sidebar-title">Trash Repository</h1>
@@ -284,9 +284,15 @@ export default function ProjectTrashManagementPage() {
                     borderRadius: 6,
                     fontWeight: 600,
                     height: 36,
-                    backgroundColor: isDark ? 'transparent' : '#fff2f0',
-                    color: '#ff4d4f',
-                    borderColor: isDark ? '#ff4d4f' : 'transparent'
+                    backgroundColor: filteredProjects.length === 0 || isLoading
+                      ? (isDark ? '#1f1f1f' : '#f5f5f5')
+                      : (isDark ? 'transparent' : '#fff2f0'),
+                    color: filteredProjects.length === 0 || isLoading
+                      ? '#8c8c8c'
+                      : '#ff4d4f',
+                    borderColor: filteredProjects.length === 0 || isLoading
+                      ? '#d9d9d9'
+                      : (isDark ? '#ff4d4f' : 'transparent'),
                   }}
                   disabled={filteredProjects.length === 0 || isLoading}
                 >
@@ -590,7 +596,7 @@ export default function ProjectTrashManagementPage() {
                               className="pm2-list-row"
                               style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
                             >
-                              <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff' }}>
+                              <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff', top: '-3px' }}>
                                 <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>

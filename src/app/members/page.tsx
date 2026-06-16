@@ -1772,25 +1772,27 @@ export default function MembersPage() {
                       <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
                         <div className="pc-top">
                           <Avatar
-                            size={34}
+                            size={30}
                             shape="square"
                             src={item.avatarUrl}
                             style={{
                               background: gradientFor(item.id || item.name || "x"),
                               color: "#fff",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              borderRadius: 9,
+                              fontSize: 12,
+                              fontWeight: 800,
+                              borderRadius: 6,
+                              flexShrink: 0,
                             }}
                           >
                             {initialsOf(item.name || '')}
                           </Avatar>
                           <div className="pc-identity-body">
                             <Tooltip title={item.name} placement="topLeft">
-                              <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
+                              <div className="pc-title">{item.name}</div>
                             </Tooltip>
                             <div className="pc-client-line">
-                              <span className="pc-client-val" style={{ fontSize: '11.5px', color: 'var(--text-slate-500)' }}>
+                              <span className="pc-client-key">Position:</span>
+                              <span className="pc-client-val">
                                 {item.position?.title || "—"}
                               </span>
                             </div>
@@ -1808,69 +1810,46 @@ export default function MembersPage() {
                           )}
                         </div>
 
-                        <div className="pc-foot" style={{ height: '80px' }}>
+                        <div className="pc-foot">
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item" style={{ flex: '0 0 auto', maxWidth: '50%' }}>
+                              <span className="pc-foot-key">Reports:</span>
+                              {item.reportsTo && typeof item.reportsTo === 'object' ? (
+                                <>
+                                  <Avatar
+                                    size={16}
+                                    src={(item.reportsTo as any).avatarUrl}
+                                    style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}
+                                  >
+                                    {initialsOf((item.reportsTo as any).name || '')}
+                                  </Avatar>
+                                  <span className="pc-foot-val">{(item.reportsTo as any).name}</span>
+                                </>
+                              ) : <span className="pc-foot-val">—</span>}
+                            </span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0 }}>
+                              <span className="pc-foot-key">Email:</span>
+                              <span className="pc-foot-val" title={item.workEmail || undefined} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.workEmail || "—"}
+                              </span>
+                            </span>
+                          </div>
                           <div className="pc-foot-row">
                             <span className="pc-foot-item">
-                              <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
-                              <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.workEmail || "—"}</span>
-                            </span>
-                            {item.phone && (
-                              <>
-                                <span className="pc-foot-div" />
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
-                                  <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.phone}</span>
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
-                            <span className="pc-foot-item" style={{ display: "flex", gap: 4 }}>
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: roleMeta.bg,
-                                  color: roleMeta.color,
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {roleLabel}
-                              </span>
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: item.isActive ? "rgba(16,185,129,0.10)" : "rgba(248,113,113,0.10)",
-                                  color: item.isActive ? "#10b981" : "#f87171",
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {item.isActive ? "Active" : "Inactive"}
+                              <span className="pc-foot-key">Role:</span>
+                              <span style={{ fontSize: "10px", fontWeight: 700, color: roleMeta.color }}>
+                                {roleLabel.toUpperCase()}
                               </span>
                             </span>
-                            {reportsTo && (
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Reports:</span>
-                                <span className="pc-foot-val" style={{ fontWeight: 600 }}>{reportsTo}</span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Status:</span>
+                              <span style={{ fontSize: "10px", fontWeight: 700, color: item.isActive ? "#10b981" : "#ef4444" }}>
+                                {item.isActive ? "ACTIVE" : "INACTIVE"}
                               </span>
-                            )}
-                            <button
-                              type="button"
-                              className="pc-foot-item pc-view-btn"
-                              onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
-                              style={{ fontSize: '11px' }}
-                            >
-                              <EditOutlined /> Edit
-                            </button>
+                            </span>
+
                           </div>
                         </div>
                       </div>
@@ -2274,11 +2253,12 @@ export default function MembersPage() {
           border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
-          height: 132px;
+          height: auto;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
 
-        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; height: 52px; overflow: hidden; }
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; height: 64px; overflow: hidden; }
         .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
         .pc-actions {
           flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
@@ -2287,9 +2267,10 @@ export default function MembersPage() {
         .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
         .pc-title {
           font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
-          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
         .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); height: 78px; justify-content: center; }
@@ -2297,6 +2278,7 @@ export default function MembersPage() {
         .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
         .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; }
         .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-val { font-size: 11.5px; color: var(--text-slate-700); }
         .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); flex-shrink: 0; }
         .pc-view-btn {
           background: none; border: none; cursor: pointer; padding: 0;

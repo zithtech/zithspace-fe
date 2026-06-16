@@ -1084,14 +1084,14 @@ export default function AccountsPage() {
                                 {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
                               </span>
                             </span>
-                            <span className="pc-foot-div" />
-                            <button
+                            {/* <span className="pc-foot-div" /> */}
+                            {/* <button
                               type="button"
                               className="pc-foot-item pc-view-btn"
                               onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
                             >
                               <EditOutlined /> Edit
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       </div>

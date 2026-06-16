@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import {
   Table,
   Button,
@@ -170,70 +171,37 @@ const StatCard: React.FC<StatCardProps> = ({
   loading,
   chart,
 }) => (
-  <div
-    className="dh-stats-card flex flex-col justify-between p-4 transition-all"
-    style={{
-      border: '1px solid var(--border-slate-200)',
-      background: 'var(--bg-pure-white)',
-      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-      height: 100,
-    }}
-  >
-    <div className="flex items-start justify-between w-full">
-      <div className="flex items-center gap-2">
-        <div style={{
-          color: accent,
-          fontSize: 15,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 26,
-          height: 26,
-          background: `${accent}1c`,
-          borderRadius: 6,
-        }}>
+  <div className="pp-stat-card">
+    <div className="pp-stat-top">
+      <div className="pp-stat-left">
+        <span className="pp-stat-icon" style={{ background: `${accent}1c`, color: accent }}>
           <Icon />
-        </div>
-        <span
-          className="text-[12.5px] font-medium"
-          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
-        >
+        </span>
+        <span className="pp-stat-label">
           {label}
         </span>
       </div>
       {trend && trend.value > 0 && (
         <Tooltip title={trend.label || "Trend"}>
-          <span
-            className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full"
-            style={{
-              color: trend.positive ? '#10b981' : '#ef4444',
-              background: trend.positive ? '#10b9811c' : '#ef44441c'
-            }}
-          >
+          <span className="pp-stat-delta">
             {trend.positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}+{trend.value}
           </span>
         </Tooltip>
       )}
     </div>
 
-    <div className="flex items-end justify-between w-full mt-auto">
-      <div className="flex items-baseline gap-1.5 pb-1">
-        <span
-          className="text-[26px] font-semibold leading-none tracking-tight"
-          style={{ color: 'var(--text-slate-800)' }}
-        >
+    <div className="pp-stat-bottom">
+      <div className="pp-stat-value-wrap">
+        <span className="pp-stat-value">
           {loading ? <Skeleton.Input active size="small" style={{ width: 64, height: 26 }} /> : value}
         </span>
         {subtle && (
-          <span
-            className="text-[11px] font-medium"
-            style={{ color: 'var(--text-slate-400)' }}
-          >
+          <span className="pp-stat-period">
             {subtle}
           </span>
         )}
       </div>
-      <div className="shrink-0 mb-[2px]">
+      <div className="pp-stat-spark">
         {chart}
       </div>
     </div>
@@ -592,22 +560,6 @@ export default function ClientsV2ListPage() {
                   </Tooltip>
                 )}
               </div>
-              {/* <div className="cm-client-meta">
-                <span className="cm-code">{record.clientCode}</span>
-                {record.industry && (
-                  <>
-                    <span className="cm-dot" />
-                    <span>{record.industry}</span>
-                  </>
-                )}
-                {record.country && (
-                  <>
-                    <span className="cm-dot" />
-                    <Globe2 size={11} style={{ marginRight: 2, opacity: 0.7 }} />
-                    <span>{record.country}</span>
-                  </>
-                )}
-              </div> */}
             </div>
           </Space>
         );
@@ -711,7 +663,7 @@ export default function ClientsV2ListPage() {
       title: "Actions",
       key: "actions",
       align: "right" as const,
-      width: 150,
+      width: 75,
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <Dropdown
@@ -946,7 +898,7 @@ export default function ClientsV2ListPage() {
                     </div>
                     <div className="min-w-0">
                       <h1 className="bh2-sidebar-title">Client Management</h1>
-                      <p className="bh2-sidebar-subtitle">Monitor and configure profiles</p>
+                      <p className="bh2-sidebar-subtitle">Monitor and configure</p>
                     </div>
                   </div>
                   {canCreateClient && (
@@ -1030,10 +982,10 @@ export default function ClientsV2ListPage() {
                       {typeFilter && (
                         <button
                           type="button"
-                          className="bh2-side-clear"
+                          className="bh2-sidebar-clear"
                           onClick={() => handleTypeChange(undefined)}
                         >
-                          <X size={12} strokeWidth={2.5} />
+                          <CloseCircleOutlined style={{ fontSize: 12 }} />
                           Clear filters
                         </button>
                       )}
@@ -1046,16 +998,15 @@ export default function ClientsV2ListPage() {
               <main className="bh2-main">
                 {/* Toolbar */}
                 <div className="bh2-toolbar">
-                  <div className="bh2-main-search">
-                    <Input
+                  <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+                    <SearchOutlined className="pp-search-icon" />
+                    <input
+                      className="pp-search"
                       placeholder="Search by name or code…"
-                      prefix={<Search size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                      className="premium-search-input rounded-lg transition-all"
-                      style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
                       value={searchText}
                       onChange={(e) => handleSearch(e.target.value)}
-                      allowClear
                     />
+                    {/* {!searchText && <span className="pp-kbd">⌘K</span>} */}
                   </div>
 
                   <div className="bh2-main-stats">
@@ -1068,41 +1019,20 @@ export default function ClientsV2ListPage() {
                   </div>
 
                   <div className="bh2-main-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                      <Tooltip title="List">
-                        <button
-                          onClick={() => setViewMode('list')}
-                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                          style={{
-                            width: 30, height: 30,
-                            background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
-                            color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
-                            border: 'none', cursor: 'pointer'
-                          }}
-                        >
-                          <ListIcon size={16} style={{ color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                        </button>
-                      </Tooltip>
-                      <Tooltip title="Card">
-                        <button
-                          onClick={() => setViewMode('card')}
-                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                          style={{
-                            width: 30, height: 30,
-                            background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
-                            color: viewMode === 'card' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
-                            border: 'none', cursor: 'pointer'
-                          }}
-                        >
-                          <LayoutGrid size={16} style={{ color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                        </button>
-                      </Tooltip>
+                    <div className="pp-segmented">
+                      <button type="button" className={viewMode === 'card' ? 'is-active' : ''} onClick={() => setViewMode('card')} aria-label="Grid view"><AppstoreOutlined /></button>
+                      <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                     </div>
-                    <Button
-                      icon={<RefreshCw size={14} className={loading ? "animate-spin" : ""} />}
-                      onClick={handleRefresh}
-                      style={{ height: 38, width: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    />
+                    <Tooltip title="Refresh clients">
+                      <button
+                        type="button"
+                        className="pp-ghost-btn"
+                        onClick={handleRefresh}
+                        disabled={loading}
+                      >
+                        <ReloadOutlined spin={loading} />
+                      </button>
+                    </Tooltip>
                     <Button
                       icon={<Download size={14} />}
                       onClick={handleExport}
@@ -1116,9 +1046,9 @@ export default function ClientsV2ListPage() {
 
                 <div className="cm-ambient" style={{ position: 'absolute', top: 56, left: 0, right: 0, height: 320, zIndex: 0 }} />
 
-                <div className="cm-body" style={{ padding: '12px 0px 14px 0px', position: 'relative', zIndex: 1 }}>
+                <div className="cm-body" style={{ padding: '0px 0px 14px 0px', position: 'relative', zIndex: 1 }}>
                   {/* Stat grid */}
-                  <div className="cm-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" style={{ marginBottom: 24, display: 'grid' }}>
+                  <div className="pp-stats">
                     <StatCard
                       label="Total Clients"
                       value={globalStats.totalClients}
@@ -1543,6 +1473,37 @@ export default function ClientsV2ListPage() {
           .pm2-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
           .pm2-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
           .pm2-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .bh2-main-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
           .pm2-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
           .pm2-menu-ic {
             width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
@@ -1600,6 +1561,7 @@ export default function ClientsV2ListPage() {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
+          align-self: flex-start;
           position: sticky;
           top: 0;
           height: calc(100vh - 54px);
@@ -1613,12 +1575,17 @@ export default function ClientsV2ListPage() {
 
         .bh2-sidebar-top { 
           padding: 14px 14px 12px 14px;
-          border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-top {
+        }
+        .bh2-sidebar-brand { 
+          display: flex; align-items: center; gap: 12px; 
+          padding-bottom: 14px; margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        [data-theme="dark"] .bh2-sidebar-brand {
           border-bottom-color: #1f2937 !important;
         }
-        .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .bh2-hero-icon-box {
           width: 38px; height: 38px; border-radius: 10px;
           background: rgba(59, 130, 246, 0.08);
@@ -1632,7 +1599,14 @@ export default function ClientsV2ListPage() {
         }
         .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
         [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
-        .bh2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .bh2-sidebar-subtitle {
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
         .bh2-side-create {
           height: 36px !important;
           border-radius: 6px !important;
@@ -1922,29 +1896,15 @@ export default function ClientsV2ListPage() {
           background: #1f2937 !important;
         }
         .bh2-sidebar-clear {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          width: 100%;
-          margin-top: 6px;
-          padding: 8px;
-          background: transparent;
-          border: 1px dashed var(--border-slate-200);
-          border-radius: 8px;
-          color: var(--text-slate-500);
-          font-size: 11px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: color 0.12s ease, border-color 0.12s ease;
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #ef4444; margin-top: 6px; width: auto; justify-content: flex-start;
         }
         .bh2-sidebar-clear:hover {
-          color: #1d4ed8;
-          border-color: rgba(59, 130, 246, 0.4);
+          opacity: 0.8;
         }
         [data-theme="dark"] .bh2-sidebar-clear {
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
+          color: #ef4444 !important;
         }
 
         /* ── Main toolbar ───────────────────────────────────────── */
@@ -2853,7 +2813,7 @@ export default function ClientsV2ListPage() {
               position: relative;
               margin: 0 -24px;
               background: var(--bg-primary);
-              min-height: calc(100vh - 64px);
+              min-height: calc(100vh - 54px);
             }
             /* Subtle ambient accent — adds depth without glassiness */
             .cm-ambient {
@@ -3057,6 +3017,39 @@ export default function ClientsV2ListPage() {
             }
             .cm-stat-chart {
               opacity: 0.95;
+            }
+
+            /* ── Proposals Status Cards ────────────────────────────────────────── */
+            .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
+            .pp-stat-card {
+              background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+              border-radius: 0; padding: 12px 14px; min-height: 92px;
+              display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+              box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+            }
+            .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+            .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+            .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+            .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+            .pp-stat-delta {
+              display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+              color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+            }
+            .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+            .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+            .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+            .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+            .pp-stat-spark { opacity: 0.95; }
+
+            @media (max-width: 1024px) {
+              .pp-stats {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+              }
+            }
+            @media (max-width: 640px) {
+              .pp-stats {
+                grid-template-columns: 1fr;
+              }
             }
             
             .cm-trend {
@@ -3450,8 +3443,7 @@ export default function ClientsV2ListPage() {
               border-radius: 0;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
-              margin-top: 12px !important;
-              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+              margin-top: 0px !important;
             }
             .cm-table-card .ant-table {
               background: transparent !important;

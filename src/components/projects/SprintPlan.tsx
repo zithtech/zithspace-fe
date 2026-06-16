@@ -58,6 +58,7 @@ import {
   RightOutlined,
   UnorderedListOutlined,
   AppstoreOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -851,7 +852,7 @@ export default function SprintPlanComponent() {
               </div>
 
               {/* Status */}
-              <div className="sp-sidebar-divider" />
+              {/* <div className="sp-sidebar-divider" /> */}
               <div className="sp-sidebar-section">
                 <div className="dh-side-label">STATUS</div>
                 <div className="sp-sidebar-list">
@@ -905,8 +906,7 @@ export default function SprintPlanComponent() {
                       loadData({ search: "", projectId: "", status: "" });
                     }}
                   >
-                    <ReloadOutlined style={{ fontSize: 10 }} />
-                    Clear filters · {activeFilterCount}
+                    <CloseCircleOutlined style={{ fontSize: 12 }} /> Clear filters
                   </button>
                 </>
               )}
@@ -916,72 +916,46 @@ export default function SprintPlanComponent() {
           <main className="sp-main">
             {/* Top bar: search · live stats · view controls */}
             <div className="sp-main-topbar">
-              <div className="sp-main-search">
-                <Input
+              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+                <SearchOutlined className="pp-search-icon" />
+                <input
+                  className="pp-search"
                   placeholder="Search by name, goal, or description..."
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  // suffix={!tableFilters.search ? <span className="sp-search-kbd">⌘K</span> : undefined}
-                  className="premium-search-input transition-all"
-                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38, width: 340 }}
                   value={tableFilters.search}
                   onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
-                  allowClear
                 />
+                {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
               </div>
 
-              <div className="sp-main-stats">
+              <div className="sp-main-stats" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="sp-pulse-dot" />
-                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.active}</span> active cycles
+                  <strong style={{ color: 'var(--text-slate-700)' }}>{metrics.active}</strong> active cycles
                 </span>
-                <span style={{ color: 'var(--text-slate-300)', margin: '0 8px' }}>·</span>
-                <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.planning}</span> in planning</span>
+                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
+                <span><strong style={{ color: 'var(--text-slate-700)' }}>{metrics.planning}</strong> in planning</span>
               </div>
 
-              <div className="sp-main-controls">
-                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                  <Tooltip title="List">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
-                        border: 'none', cursor: 'pointer'
-                      }}
-                    >
-                      <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
-                  <Tooltip title="Calendar">
-                    <button
-                      onClick={() => setViewMode('calendar')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'calendar' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'calendar' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
-                        border: 'none', cursor: 'pointer'
-                      }}
-                    >
-                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'calendar' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
+              <div className="pp-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                <div className="pp-segmented">
+                  <button type="button" className={viewMode === 'calendar' ? 'is-active' : ''} onClick={() => setViewMode('calendar')} aria-label="Calendar view"><AppstoreOutlined /></button>
+                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                 </div>
 
                 <Tooltip title="Refresh">
-                  <Button
-                    icon={<ReloadOutlined spin={isRefreshing} />}
+                  <button
+                    type="button"
+                    className="pp-ghost-btn"
                     onClick={async () => {
                       setIsRefreshing(true);
                       await loadData();
                       setIsRefreshing(false);
                       message.success("Success, Sprint view refreshed");
                     }}
-                    loading={loading && !isRefreshing}
-                    style={{ height: 38, width: 38, borderRadius: 10, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  />
+                    disabled={loading && !isRefreshing}
+                  >
+                    <ReloadOutlined spin={isRefreshing} />
+                  </button>
                 </Tooltip>
 
                 <Select
@@ -990,7 +964,7 @@ export default function SprintPlanComponent() {
                   suffixIcon={<DownOutlined style={{ color: 'var(--text-slate-400)', fontSize: 10 }} />}
                   popupMatchSelectWidth={false}
                   styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
-                  style={{ height: 38, width: 170 }}
+                  style={{ height: 32, width: 170 }}
                   className="sp-premium-select"
                 >
                   <Option value="recent">
@@ -1024,22 +998,22 @@ export default function SprintPlanComponent() {
             {/* Premium KPI Hero Row */}
             <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
               <Col xs={24} sm={12} lg={6}>
-                <div className="sp-stat-card">
-                  <div className="sp-stat-top">
-                    <div className="sp-stat-left">
-                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
                         <RocketOutlined />
                       </span>
-                      <span className="sp-stat-label">Active Cycles</span>
+                      <span className="pp-stat-label">Active Cycles</span>
                     </div>
                     <span className="sp-stat-pulse" />
                   </div>
-                  <div className="sp-stat-bottom">
-                    <div className="sp-stat-value-wrap">
-                      <span className="sp-stat-value">{metrics.active}</span>
-                      <span className="sp-stat-period">in flight</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{metrics.active}</span>
+                      <span className="pp-stat-period">in flight</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.active)} color="#3b82f6" />
                     </div>
                   </div>
@@ -1047,21 +1021,21 @@ export default function SprintPlanComponent() {
               </Col>
 
               <Col xs={24} sm={12} lg={6}>
-                <div className="sp-stat-card">
-                  <div className="sp-stat-top">
-                    <div className="sp-stat-left">
-                      <span className="sp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
                         <PieChartOutlined />
                       </span>
-                      <span className="sp-stat-label">In Planning</span>
+                      <span className="pp-stat-label">In Planning</span>
                     </div>
                   </div>
-                  <div className="sp-stat-bottom">
-                    <div className="sp-stat-value-wrap">
-                      <span className="sp-stat-value">{metrics.planning}</span>
-                      <span className="sp-stat-period">queued</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{metrics.planning}</span>
+                      <span className="pp-stat-period">queued</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.planning)} color="#64748b" />
                     </div>
                   </div>
@@ -1069,21 +1043,21 @@ export default function SprintPlanComponent() {
               </Col>
 
               <Col xs={24} sm={12} lg={6}>
-                <div className="sp-stat-card">
-                  <div className="sp-stat-top">
-                    <div className="sp-stat-left">
-                      <span className="sp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
                         <CheckCircleOutlined />
                       </span>
-                      <span className="sp-stat-label">Shipped</span>
+                      <span className="pp-stat-label">Shipped</span>
                     </div>
                   </div>
-                  <div className="sp-stat-bottom">
-                    <div className="sp-stat-value-wrap">
-                      <span className="sp-stat-value">{metrics.completed}</span>
-                      <span className="sp-stat-period">delivered</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{metrics.completed}</span>
+                      <span className="pp-stat-period">delivered</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.completed)} color="#10b981" />
                     </div>
                   </div>
@@ -1091,21 +1065,21 @@ export default function SprintPlanComponent() {
               </Col>
 
               <Col xs={24} sm={12} lg={6}>
-                <div className="sp-stat-card">
-                  <div className="sp-stat-top">
-                    <div className="sp-stat-left">
-                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
                         <LineChartOutlined />
                       </span>
-                      <span className="sp-stat-label">Avg. Progress</span>
+                      <span className="pp-stat-label">Avg. Progress</span>
                     </div>
                   </div>
-                  <div className="sp-stat-bottom">
-                    <div className="sp-stat-value-wrap">
-                      <span className="sp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
-                      <span className="sp-stat-period">across cycles</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
+                      <span className="pp-stat-period">across cycles</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.avgProgress)} color="#3b82f6" />
                     </div>
                   </div>
@@ -1824,7 +1798,7 @@ export default function SprintPlanComponent() {
             )}
 
             {/* Fixed pagination footer */}
-            {!loading && sortedSprintPlans.length > 0 && (
+            {!loading && sortedSprintPlans.length > 0 && viewMode === 'list' && (
               <div className="sp-card-pagination">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
@@ -2674,6 +2648,60 @@ export default function SprintPlanComponent() {
         />
 
         <style jsx global>{`
+        /* ── Proposals Toolbar Classes ─────────────────────────── */
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+        .pp-ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Stat cards */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-delta {
+          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+          color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+        }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .pp-stat-spark { opacity: 0.95; }
+
         /* ── Header ────────────────────────────────────────────── */
         .sp-header-icon-box {
           width: 38px;
@@ -4510,17 +4538,19 @@ export default function SprintPlanComponent() {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
+          align-self: flex-start;
           z-index: 10;
         }
         .sp-sidebar-top {
           padding: 14px 14px 12px 18px;
-          border-bottom: 1px solid var(--border-slate-200);
         }
         .sp-sidebar-brand {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 12px;
+          padding-bottom: 14px;
+          margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
         }
         .sp-sidebar-title {
           margin: 0;
@@ -4531,10 +4561,12 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-900);
         }
         .sp-sidebar-subtitle {
-          margin: 2px 0 0 0;
-          font-size: 11px;
-          font-weight: 500;
-          color: var(--text-slate-500);
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
         }
         .sp-hero-icon-box {
           width: 38px; height: 38px;
@@ -4690,10 +4722,9 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-500);
           font-variant-numeric: tabular-nums;
           background: var(--bg-slate-50);
-          border-radius: 999px;
+          border-radius: 6px;
           padding: 0 6px;
           line-height: 1.6;
-          border: 1px solid var(--border-slate-200);
           flex-shrink: 0;
         }
         [data-theme='dark'] .sp-sidebar-item-count {
@@ -4702,9 +4733,10 @@ export default function SprintPlanComponent() {
           color: #94a3b8 !important;
         }
         .sp-sidebar-item.active .sp-sidebar-item-count {
-          background: rgba(59,130,246,0.14);
-          border-color: rgba(59,130,246,0.25);
-          color: #1d4ed8;
+          background: rgba(59,130,246,0.14) !important;
+          border-color: rgba(59,130,246,0.25) !important;
+          color: #3b82f6 !important;
+          padding: 1px 7px !important;
         }
         [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-count {
           background: rgba(59,130,246,0.2) !important;
@@ -4754,35 +4786,15 @@ export default function SprintPlanComponent() {
           background: rgba(59,130,246,0.15);
         }
         .sp-sidebar-clear {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          width: 100%;
-          background: transparent;
-          border: 1px dashed var(--border-slate-200);
-          border-radius: 8px;
-          padding: 7px 10px;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-slate-500);
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.15s ease;
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #ef4444; margin-top: 6px;
         }
         .sp-sidebar-clear:hover {
-          color: #3b82f6;
-          border-color: rgba(59,130,246,0.3);
-          background: rgba(59,130,246,0.04);
+          opacity: 0.8;
         }
         [data-theme='dark'] .sp-sidebar-clear {
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
-        }
-        [data-theme='dark'] .sp-sidebar-clear:hover {
-          color: #60a5fa !important;
-          border-color: rgba(59,130,246,0.4) !important;
-          background: rgba(59,130,246,0.08) !important;
+          color: #ef4444 !important;
         }
 
         /* ── Compact metric strip ─────────────────────────────── */

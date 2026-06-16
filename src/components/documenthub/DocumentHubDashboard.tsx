@@ -148,8 +148,8 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 title: 'Total Documents',
                 value: totalDocuments,
                 icon: <FileTextOutlined />,
-                color: '#10B981',
-                tint: 'rgba(16, 185, 129, 0.10)',
+                color: '#64748b',
+                tint: 'rgba(100,116,139,0.10)',
                 trend: days.map((d) => docsByDay[dayKey(d)]),
                 cumulativeTrend: getStylizedTrend('docs', totalDocuments),
             },
@@ -158,8 +158,8 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 title: 'Project Linked',
                 value: projectLinked,
                 icon: <ProjectOutlined />,
-                color: '#8B5CF6',
-                tint: 'rgba(139, 92, 246, 0.10)',
+                color: '#3B82F6',
+                tint: 'rgba(59, 130, 246, 0.10)',
                 trend: days.map((d) => projByDay[dayKey(d)]),
                 cumulativeTrend: getStylizedTrend('projects', projectLinked),
             },
@@ -168,8 +168,8 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 title: 'Contributors',
                 value: uniqueCreators,
                 icon: <TeamOutlined />,
-                color: '#F59E0B',
-                tint: 'rgba(245, 158, 11, 0.10)',
+                color: '#10b981',
+                tint: 'rgba(16,185,129,0.10)',
                 trend: days.map((d) => usersByDay[dayKey(d)]),
                 cumulativeTrend: getStylizedTrend('people', uniqueCreators),
             },
@@ -196,73 +196,48 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     }
 
     return (
-        <div className="dh-stats-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <div className="pp-stats">
             {stats.map((s) => {
                 const delta = s.trend.reduce((a, b) => a + b, 0);
                 return (
                     <div
                         key={s.key}
-                        className="dh-stats-card flex flex-col justify-between p-4 transition-all"
-                        style={{
-                            border: '1px solid var(--border-slate-200)',
-                            background: 'var(--bg-pure-white)',
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                            height: 100,
-                        }}
+                        className="pp-stat-card"
                     >
-                        <div className="flex items-start justify-between w-full">
-                            <div className="flex items-center gap-2">
-                                <div style={{
-                                    color: s.key === 'docs' ? '#10b981' : 'var(--text-slate-400)',
-                                    fontSize: 15,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: s.key === 'docs' ? 26 : 'auto',
-                                    height: s.key === 'docs' ? 26 : 'auto',
-                                    background: s.key === 'docs' ? '#10b9811c' : 'transparent',
-                                    borderRadius: 6,
-                                }}>
+                        <div className="pp-stat-top">
+                            <div className="pp-stat-left">
+                                <div
+                                    className="pp-stat-icon"
+                                    style={{ background: s.tint, color: s.color }}>
                                     {s.icon}
                                 </div>
-                                <span
-                                    className="text-[12.5px] font-medium"
-                                    style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
-                                >
+                                <span className="pp-stat-label">
                                     {s.title}
                                 </span>
                             </div>
                             {delta > 0 && (
-                                <Tooltip title="New this week">
-                                    <span
-                                        className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full"
-                                        style={{
-                                            color: '#10b981',
-                                            background: '#10b9811c'
-                                        }}
-                                    >
-                                        <RiseOutlined style={{ fontSize: 11 }} />+{delta}
-                                    </span>
-                                </Tooltip>
+                                <span
+                                    className="pp-stat-delta"
+                                >
+                                    <RiseOutlined style={{ fontSize: 9 }} />+{delta}
+                                </span>
                             )}
                         </div>
 
-                        <div className="flex items-end justify-between w-full mt-auto">
-                            <div className="flex items-baseline gap-1.5 pb-1">
+                        <div className="pp-stat-bottom">
+                            <div className="pp-stat-value-wrap">
                                 <span
-                                    className="text-[26px] font-semibold leading-none tracking-tight"
-                                    style={{ color: 'var(--text-slate-800)' }}
+                                    className="pp-stat-value"
                                 >
                                     {s.value}
                                 </span>
                                 <span
-                                    className="text-[11px] font-medium"
-                                    style={{ color: 'var(--text-slate-400)' }}
+                                    className="pp-stat-period"
                                 >
                                     this week
                                 </span>
                             </div>
-                            <div className="shrink-0 mb-[2px]">
+                            <div className="pp-stat-spark">
                                 <Sparkline
                                     data={s.cumulativeTrend}
                                     color={s.key === 'docs' ? '#10b981' : '#cbd5e1'}
@@ -273,14 +248,27 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 );
             })}
             <style jsx>{`
-                .dh-stats-card:hover {
-                    border-color: var(--border-slate-300, #cbd5e1);
-                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
-                }
-                :global([data-theme='dark']) .dh-stats-card:hover {
-                    background: rgba(255, 255, 255, 0.02);
-                }
-            `}</style>
+            .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+          .pp-stat-card {
+            background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+            border-radius: 0; padding: 12px 14px; min-height: 92px;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          }
+          .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+          .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+          .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+          .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+          .pp-stat-delta {
+            display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+            color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+          }
+          .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+          .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+          .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+          .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+          .pp-stat-spark { opacity: 0.95; }
+        `}</style>
         </div>
     );
 };

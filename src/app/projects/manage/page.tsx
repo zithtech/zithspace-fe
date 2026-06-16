@@ -40,12 +40,13 @@ import {
   CalendarOutlined,
   ProjectOutlined,
   AppstoreOutlined,
-  BarsOutlined,
+  UnorderedListOutlined,
   ArrowRightOutlined,
   ApartmentOutlined,
   InfoCircleOutlined,
   CloseOutlined,
   ReloadOutlined,
+  CloseCircleOutlined
 } from "@ant-design/icons";
 import {
   FolderKanban,
@@ -692,7 +693,7 @@ const ProjectsManageContent: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 72,
       fixed: "right",
       render: (_: any, record: any) => (
         <Dropdown
@@ -828,7 +829,7 @@ const ProjectsManageContent: React.FC = () => {
 
               <div className="pm2-sidebar-scroll">
                 {/* Views */}
-                <div className="pm2-side-group" style={{ marginTop: 22 }}>
+                <div className="pm2-side-group" >
                   <div className="pm2-side-label">Views</div>
                   <div className="flex flex-col gap-1">
                     <button
@@ -867,7 +868,7 @@ const ProjectsManageContent: React.FC = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="pm2-side-group" style={{ marginTop: 22 }}>
+                <div className="pm2-side-group" >
                   <div className="pm2-side-label">Filters</div>
                   <div className="pm2-side-filters flex flex-col gap-2">
                     <SearchableDropdown
@@ -914,10 +915,10 @@ const ProjectsManageContent: React.FC = () => {
                     {hasActiveFilters && (
                       <button
                         type="button"
-                        className="pm2-side-clear"
+                        className="pm2-sidebar-clear"
                         onClick={() => setFilters({ page: 1, limit: 10 })}
                       >
-                        <CloseOutlined style={{ fontSize: 10 }} />
+                        <CloseCircleOutlined style={{ fontSize: 12 }} />
                         Clear filters
                       </button>
                     )}
@@ -930,16 +931,15 @@ const ProjectsManageContent: React.FC = () => {
             <main className="pm2-main">
               {/* Toolbar */}
               <div className="pm2-toolbar">
-                <div className="pm2-main-search">
-                  <Input
+                <div className="pp-search-wrap" style={{ maxWidth: 320, flex: 1 }}>
+                  <SearchOutlined className="pp-search-icon" />
+                  <input
+                    className="pp-search"
                     placeholder="Search project name..."
-                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                    className="premium-search-input rounded-lg transition-all"
-                    style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
                     value={filters.search || ""}
                     onChange={(e) => handleSearch(e.target.value)}
-                    allowClear
                   />
+                  {/* {!filters.search && <span className="pp-kbd">⌘K</span>} */}
                 </div>
 
                 <div className="pm2-main-stats">
@@ -950,129 +950,105 @@ const ProjectsManageContent: React.FC = () => {
                 </div>
 
                 <div className="pm2-main-controls">
-                  <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                    <Tooltip title="List">
-                      <button
-                        onClick={() => setViewMode('table')}
-                        className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                        style={{
-                          width: 30, height: 30,
-                          background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
-                          color: viewMode === 'table' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                        }}
-                      >
-                        <BarsOutlined style={{ fontSize: 16, color: viewMode === 'table' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                      </button>
-                    </Tooltip>
-                    <Tooltip title="Cards">
-                      <button
-                        onClick={() => setViewMode('card')}
-                        className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                        style={{
-                          width: 30, height: 30,
-                          background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
-                          color: viewMode === 'card' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                        }}
-                      >
-                        <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                      </button>
-                    </Tooltip>
+                  <div className="pp-segmented">
+                    <button type="button" className={viewMode === 'card' ? 'is-active' : ''} onClick={() => setViewMode('card')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="List view"><UnorderedListOutlined /></button>
                   </div>
                   <Tooltip title="Refresh projects">
-                    <Button
-                      icon={<ReloadOutlined spin={isRefreshing} />}
+                    <button
+                      type="button"
+                      className="pp-ghost-btn"
                       onClick={async () => {
                         setIsRefreshing(true);
                         await loadProjects();
                         setIsRefreshing(false);
                         message.success("Projects view synchronized");
                       }}
-                      className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                      style={{ height: 38, width: 38 }}
-                      loading={loading}
-                    />
+                      disabled={loading}
+                    >
+                      <ReloadOutlined spin={isRefreshing} />
+                    </button>
                   </Tooltip>
                 </div>
               </div>
 
               {/* Premium KPI Hero Row */}
-              <div className="pm2-stat-cards-grid">
-                <div className="pm2-stat-card">
-                  <div className="pm2-stat-top">
-                    <div className="pm2-stat-left">
-                      <span className="pm2-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
-                        <FolderKanban />
+              <div className="pp-stats">
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <FolderKanban size={14} />
                       </span>
-                      <span className="pm2-stat-label">Total Projects</span>
+                      <span className="pp-stat-label">Total Projects</span>
                     </div>
-                    <span className="pm2-stat-pulse" />
                   </div>
-                  <div className="pm2-stat-bottom">
-                    <div className="pm2-stat-value-wrap">
-                      <span className="pm2-stat-value">{stats.total}</span>
-                      <span className="pm2-stat-period">projects</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{stats.total}</span>
+                      <span className="pp-stat-period">projects</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * (stats.total || 1))} color="#3b82f6" />
                     </div>
                   </div>
                 </div>
 
-                <div className="pm2-stat-card">
-                  <div className="pm2-stat-top">
-                    <div className="pm2-stat-left">
-                      <span className="pm2-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.10)', color: '#10b981' }}>
-                        <Rocket />
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.10)', color: '#10b981' }}>
+                        <Rocket size={14} />
                       </span>
-                      <span className="pm2-stat-label">Active</span>
+                      <span className="pp-stat-label">Active</span>
                     </div>
                   </div>
-                  <div className="pm2-stat-bottom">
-                    <div className="pm2-stat-value-wrap">
-                      <span className="pm2-stat-value">{stats.active}</span>
-                      <span className="pm2-stat-period">projects</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{stats.active}</span>
+                      <span className="pp-stat-period">projects</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.1, 0.3, 0.4, 0.6, 0.8, 1.0].map(r => r * (stats.active || 1))} color="#10b981" />
                     </div>
                   </div>
                 </div>
 
-                <div className="pm2-stat-card">
-                  <div className="pm2-stat-top">
-                    <div className="pm2-stat-left">
-                      <span className="pm2-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
-                        <PauseCircle />
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
+                        <PauseCircle size={14} />
                       </span>
-                      <span className="pm2-stat-label">On Hold</span>
+                      <span className="pp-stat-label">On Hold</span>
                     </div>
                   </div>
-                  <div className="pm2-stat-bottom">
-                    <div className="pm2-stat-value-wrap">
-                      <span className="pm2-stat-value">{stats.onHold}</span>
-                      <span className="pm2-stat-period">projects</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{stats.onHold}</span>
+                      <span className="pp-stat-period">projects</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0].map(r => r * (stats.onHold || 1))} color="#979797" />
                     </div>
                   </div>
                 </div>
 
-                <div className="pm2-stat-card">
-                  <div className="pm2-stat-top">
-                    <div className="pm2-stat-left">
-                      <span className="pm2-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
-                        <CheckCircle2 />
+                <div className="pp-stat-card">
+                  <div className="pp-stat-top">
+                    <div className="pp-stat-left">
+                      <span className="pp-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
+                        <CheckCircle2 size={14} />
                       </span>
-                      <span className="pm2-stat-label">Completed</span>
+                      <span className="pp-stat-label">Completed</span>
                     </div>
                   </div>
-                  <div className="pm2-stat-bottom">
-                    <div className="pm2-stat-value-wrap">
-                      <span className="pm2-stat-value">{stats.completed}</span>
-                      <span className="pm2-stat-period">projects</span>
+                  <div className="pp-stat-bottom">
+                    <div className="pp-stat-value-wrap">
+                      <span className="pp-stat-value">{stats.completed}</span>
+                      <span className="pp-stat-period">projects</span>
                     </div>
-                    <div className="shrink-0 mb-[2px] ml-auto">
+                    <div className="pp-stat-spark">
                       <Sparkline data={[0.0, 0.15, 0.3, 0.45, 0.65, 0.8, 1.0].map(r => r * (stats.completed || 1))} color="#3b82f6" />
                     </div>
                   </div>
@@ -1348,7 +1324,6 @@ const ProjectsManageContent: React.FC = () => {
 
         .pm2-sidebar-top { 
           padding: 14px 14px 12px 14px; 
-          border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .pm2-sidebar-top {
           border-bottom-color: #1f2937 !important;
@@ -1367,7 +1342,14 @@ const ProjectsManageContent: React.FC = () => {
         }
         .pm2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
         
-        .pm2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .pm2-sidebar-subtitle {
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
         .pm2-side-create {
           height: 36px !important;
           border-radius: 6px !important;
@@ -1828,6 +1810,35 @@ const ProjectsManageContent: React.FC = () => {
           align-items: center;
           gap: 8px;
         }
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
         .pm2-vis-badge {
           width: 22px;
           height: 22px;
@@ -1912,14 +1923,14 @@ const ProjectsManageContent: React.FC = () => {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          padding-top: 10px;
+          // padding-top: 10px;
         }
         
         .pm2-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 8px;
-          padding-top: 10px;
+          // padding-top: 10px;
         }
         
         @media (max-width: 1300px) {
@@ -2651,7 +2662,7 @@ const ProjectsManageContent: React.FC = () => {
         border: 1px solid var(--border-slate-200);
         border-radius: 0; 
         overflow: hidden;
-        margin-top:10px;
+        margin-top: 0px !important; 
         }
         .premium-table .ant-table {
           background: transparent !important;
@@ -2771,14 +2782,6 @@ const ProjectsManageContent: React.FC = () => {
           }
           .pp-tag--blue { background: var(--bg-blue-50); color: #3B82F6; }
           .pp-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-
-        /* ── Status Cards ────────────────────────────────────────── */
-        .pm2-stat-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          margin: 16px 0 8px 0;
-        }
         @media (max-width: 1024px) {
           .pm2-stat-cards-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2862,6 +2865,38 @@ const ProjectsManageContent: React.FC = () => {
           margin-top: 2px;
         }
 
+        /* ── Proposals Status Cards ────────────────────────────────────────── */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-delta {
+          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+          color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+        }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .pp-stat-spark { opacity: 0.95; }
+
+        @media (max-width: 1024px) {
+          .pp-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 640px) {
+          .pp-stats {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
       </div>
     </MainLayout>

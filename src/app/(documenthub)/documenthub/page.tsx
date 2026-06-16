@@ -2040,12 +2040,12 @@ const DocumentHubPage = () => {
                     <span className="dh-foot-div" />
                     <span className="dh-foot-item">
                       <span className="dh-foot-key">Created</span>
-                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
+                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy · h:mm a")}</span>
                     </span>
                     <span className="dh-foot-div" />
                     <span className="dh-foot-item">
                       <span className="dh-foot-key">Updated</span>
-                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
+                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy · h:mm a")}</span>
                     </span>
                   </div>
 
@@ -3098,7 +3098,7 @@ const DocumentHubPage = () => {
           top: 0;
           align-self: flex-start;
           height: calc(100vh - 54px);
-          width: 252px;
+          width: 240px;
           flex-shrink: 0;
           display: flex;
           flex-direction: column;

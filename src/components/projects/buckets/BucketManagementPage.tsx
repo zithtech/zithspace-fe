@@ -51,7 +51,8 @@ import {
   CalendarOutlined,
   UserOutlined,
   TagOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  RocketOutlined
 } from "@ant-design/icons";
 import {
   useBuckets,
@@ -169,6 +170,16 @@ const ColumnTitle: React.FC<{
     </span>
   );
 };
+
+const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
 
 export default function BucketManagementPage() {
   const { message } = App.useApp();
@@ -518,7 +529,7 @@ export default function BucketManagementPage() {
                 {ownerInitials}
               </Avatar>
             )}
-            <span className="text-[12.5px] bmp-table-text-primary truncate">{ownerName}</span>
+            <span className="text-[12.5px] bmp-table-text-primary truncate">{ownerName.split(" ")[0]}</span>
           </div>
         );
       },
@@ -543,8 +554,8 @@ export default function BucketManagementPage() {
       width: 100,
       fixed: "right",
       render: (_, record) => (
-        <div className="flex items-center justify-start pr-2 gap-1" onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="View tickets">
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="View Bucket">
             <Button
               type="text"
               size="small"
@@ -553,54 +564,34 @@ export default function BucketManagementPage() {
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
             />
           </Tooltip>
-          {canUpdateTicketBucket && (
-            <Tooltip title="Configure bucket">
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              />
-            </Tooltip>
-          )}
           <Dropdown
             trigger={["click"]}
             placement="bottomRight"
+            overlayClassName="pp-action-pop"
             menu={{
               items: [
                 {
-                  key: "move-backlog",
-                  icon: <RollbackOutlined style={{ color: "#64748b" }} />,
-                  label: "Move to Backlog",
-                  disabled: (record._count?.tickets || 0) === 0,
-                  onClick: () => {
-                    import("antd").then(({ Modal }) => {
-                      Modal.confirm({
-                        title: "Move to backlog",
-                        content: "Move all tickets back to backlog?",
-                        onOk: () => {
-                          moveBucketToBacklog.mutate(record.id, {
-                            onSuccess: (result) => {
-                              if (result.movedCount > 0)
-                                message.success("Tickets removed from sprint");
-                              else message.info("This bucket has no tickets to move");
-                            },
-                            onError: (err: any) =>
-                              message.error(err.message || "Movement failed"),
-                          });
-                        },
-                      });
-                    });
-                  },
+                  key: "view",
+                  label: menuLabel("View bucket", "Open bucket details", <EyeOutlined />, "#3b82f6", "rgba(59,130,246,0.12)"),
+                  onClick: () => handleView(record.id),
                 },
+                ...(canUpdateTicketBucket
+                  ? [
+                    {
+                      key: "edit",
+                      label: menuLabel("Configure", "Edit bucket settings", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
+                      onClick: () => handleEdit(record),
+                    },
+                  ]
+                  : []),
+                { type: "divider" as const },
                 {
                   key: "move-sprint",
                   label: (
                     <div onClick={(e) => e.stopPropagation()}>
                       <MoveToSprintAction
                         bucket={record}
-                        asMenuItem
+                        customTrigger={menuLabel("Move to Sprint", "Move tickets to sprint", <RocketOutlined />, "#8b5cf6", "rgba(139,92,246,0.12)")}
                         onMove={(sprintId) =>
                           moveBucketToSprint.mutate(
                             { bucketId: record.id, sprintId },
@@ -624,13 +615,37 @@ export default function BucketManagementPage() {
                     </div>
                   ),
                 },
+                {
+                  key: "move-backlog",
+                  label: menuLabel("Move to Backlog", "Move all tickets back", <RollbackOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
+                  disabled: (record._count?.tickets || 0) === 0,
+                  onClick: () => {
+                    import("antd").then(({ Modal }) => {
+                      Modal.confirm({
+                        title: "Move to backlog",
+                        content: "Move all tickets back to backlog?",
+                        onOk: () => {
+                          moveBucketToBacklog.mutate(record.id, {
+                            onSuccess: (result) => {
+                              if (result.movedCount > 0)
+                                message.success("Tickets removed from sprint");
+                              else message.info("This bucket has no tickets to move");
+                            },
+                            onError: (err: any) =>
+                              message.error(err.message || "Movement failed"),
+                          });
+                        },
+                      });
+                    });
+                  },
+                },
                 ...(canDeleteTicketBucket
                   ? [
                     { type: "divider" as const },
                     {
                       key: "delete",
-                      icon: <DeleteOutlined style={{ color: "#ef4444" }} />,
-                      label: <span className="text-red-500">Delete bucket</span>,
+                      danger: true,
+                      label: menuLabel("Delete bucket", "Remove this bucket", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
                       onClick: () => handleDelete(record.id),
                     },
                   ]
@@ -1004,7 +1019,7 @@ export default function BucketManagementPage() {
               <div className="pp-stat-card">
                 <div className="pp-stat-top">
                   <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                    <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
                       <GlobalOutlined />
                     </span>
                     <span className="pp-stat-label">Public Hubs</span>
@@ -1016,7 +1031,7 @@ export default function BucketManagementPage() {
                     <span className="pp-stat-period">shared</span>
                   </div>
                   <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.public)} color="#10b981" />
+                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.public)} color="#3b82f6" />
                   </div>
                 </div>
               </div>
@@ -1024,7 +1039,7 @@ export default function BucketManagementPage() {
               <div className="pp-stat-card">
                 <div className="pp-stat-top">
                   <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(139,92,246,0.10)', color: '#8b5cf6' }}>
+                    <span className="pp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
                       <FileTextOutlined />
                     </span>
                     <span className="pp-stat-label">Total Tickets</span>
@@ -1036,7 +1051,7 @@ export default function BucketManagementPage() {
                     <span className="pp-stat-period">items stored</span>
                   </div>
                   <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.tickets)} color="#8b5cf6" />
+                    <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.tickets)} color="#10b981" />
                   </div>
                 </div>
               </div>
@@ -1513,7 +1528,7 @@ export default function BucketManagementPage() {
 
         /* ── Sidebar ─────────────────────────────────────────────── */
         .bh2-sidebar {
-          width: 252px;
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
           display: flex;
@@ -2522,6 +2537,33 @@ export default function BucketManagementPage() {
           gap: 2px;
           flex-shrink: 0;
         }
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
         .bh2-list-action-btn {
           width: 28px;
           height: 28px;
@@ -2573,7 +2615,7 @@ export default function BucketManagementPage() {
           padding: 5px 11px;
           background: transparent;
           border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
+          border-radius: 6px;
           color: var(--text-slate-600);
           font-family: inherit;
           font-size: 11px;

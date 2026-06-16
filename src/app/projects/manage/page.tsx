@@ -1305,7 +1305,7 @@ const ProjectsManageContent: React.FC = () => {
 
         /* ── Sidebar ─────────────────────────────────────────────── */
         .pm2-sidebar {
-          width: 252px;
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
           display: flex;

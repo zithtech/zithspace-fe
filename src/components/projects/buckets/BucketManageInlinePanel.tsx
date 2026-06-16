@@ -589,26 +589,6 @@ export function BucketManageInlinePanel({
                             {t.title}
                           </span>
                           <span className="bmp-ticket-meta">
-                            {prioCfg && (
-                              <span
-                                className="bmp-ticket-prio"
-                                style={{ background: prioCfg.bg, borderColor: prioCfg.border, color: prioCfg.color }}
-                              >
-                                <FlagOutlined style={{ fontSize: 8 }} />
-                                {t.priority}
-                              </span>
-                            )}
-                            <span
-                              className="bmp-ticket-status"
-                              style={{
-                                background: statusCfg.bg,
-                                borderColor: statusCfg.border,
-                                color: statusCfg.color,
-                              }}
-                            >
-                              <span className="bmp-ticket-status-dot" style={{ background: statusCfg.color }} />
-                              {statusCfg.label}
-                            </span>
                             {t.assignee ? (
                               <Tooltip title={t.assignee.workEmail || t.assignee.name}>
                                 <span className="bmp-ticket-assignee">
@@ -641,6 +621,26 @@ export function BucketManageInlinePanel({
                                 </span>
                               </span>
                             )}
+                            {prioCfg && (
+                              <span
+                                className="bmp-ticket-prio"
+                                style={{ background: prioCfg.bg, borderColor: prioCfg.border, color: prioCfg.color }}
+                              >
+                                <FlagOutlined style={{ fontSize: 8 }} />
+                                {t.priority}
+                              </span>
+                            )}
+                            <span
+                              className="bmp-ticket-status"
+                              style={{
+                                background: statusCfg.bg,
+                                borderColor: statusCfg.border,
+                                color: statusCfg.color,
+                              }}
+                            >
+                              <span className="bmp-ticket-status-dot" style={{ background: statusCfg.color }} />
+                              {statusCfg.label}
+                            </span>
                             <span className="bmp-ticket-eye">
                               <EyeOutlined style={{ fontSize: 12 }} />
                             </span>

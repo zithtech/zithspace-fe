@@ -175,7 +175,7 @@ const StatCard: React.FC<StatCardProps> = ({
     <div className="pp-stat-top">
       <div className="pp-stat-left">
         <span className="pp-stat-icon" style={{ background: `${accent}1c`, color: accent }}>
-          <Icon />
+          <Icon size={14} />
         </span>
         <span className="pp-stat-label">
           {label}
@@ -727,28 +727,29 @@ export default function ClientsV2ListPage() {
             />
           </div>
         ) : (
-          <div className="cm-project-grid">
+          <div className="cm-project-list">
             {projects.map((p: any) => (
-              <div key={p.id} className="cm-project-card">
-                <div className="cm-project-top">
-                  <div className="cm-project-icon">
-                    <Briefcase size={14} color="#fff" />
-                  </div>
-                  <Tag className="cm-project-code">{p.code}</Tag>
+              <div
+                key={p.id}
+                className="cm-project-row"
+                onClick={() => router.push(`/clients-v2/${record.id}?tab=projects`)}
+              >
+                <div className="cm-project-row-left">
+                  <span className="cm-project-row-code">{p.code}</span>
+                  <span className="cm-project-row-title" title={p.name}>{p.name}</span>
                 </div>
-                <Text strong className="cm-project-name">{p.name}</Text>
-                <div className="cm-project-stats">
-                  <div>
-                    <Text className="cm-project-stat-label">Budget</Text>
-                    <Text strong className="cm-project-stat-value" style={{ color: "#059669" }}>
+                <div className="cm-project-row-right">
+                  <div className="cm-project-row-stat">
+                    <span className="cm-project-row-label">Budget</span>
+                    <span className="cm-project-row-val" style={{ color: "#059669" }}>
                       {p.budget ? formatCurrency(p.budget) : "—"}
-                    </Text>
+                    </span>
                   </div>
-                  <div>
-                    <Text className="cm-project-stat-label">Manager</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      {p.projectManager ? (
-                        p.projectManager.avatarUrl ? (
+                  <div className="cm-project-row-stat">
+                    <span className="cm-project-row-label">Manager</span>
+                    {p.projectManager ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {p.projectManager.avatarUrl ? (
                           <img
                             src={p.projectManager.avatarUrl}
                             alt={p.projectManager.name}
@@ -772,29 +773,31 @@ export default function ClientsV2ListPage() {
                           >
                             {((p.projectManager.name || "?")[0]).toUpperCase()}
                           </div>
-                        )
-                      ) : null}
-                      <Text strong className="cm-project-stat-value">
-                        {p.projectManager?.name || "—"}
-                      </Text>
-                    </div>
+                        )}
+                        <span className="cm-project-row-val">
+                          {p.projectManager.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="cm-project-row-val" style={{ color: "var(--text-slate-500)" }}>—</span>
+                    )}
                   </div>
-                  <div>
-                    <Text className="cm-project-stat-label">Tickets</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <div className="cm-project-row-stat">
+                    <span className="cm-project-row-label">Tickets</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <CheckCircle2 size={13} color="var(--text-slate-400)" />
-                      <Text strong className="cm-project-stat-value">
+                      <span className="cm-project-row-val">
                         {p._count?.tickets || p.totalTickets || 0}
-                      </Text>
+                      </span>
                     </div>
                   </div>
-                  <div>
-                    <Text className="cm-project-stat-label">Members</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <div className="cm-project-row-stat cm-project-row-members">
+                    <span className="cm-project-row-label">Members</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Users size={13} color="var(--text-slate-400)" />
-                      <Text strong className="cm-project-stat-value">
+                      <span className="cm-project-row-val">
                         {p._count?.members || 0}
-                      </Text>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1037,7 +1040,7 @@ export default function ClientsV2ListPage() {
                       icon={<Download size={14} />}
                       onClick={handleExport}
                       loading={loading}
-                      style={{ height: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)' }}
+                      style={{ height: 32, borderRadius: 6, borderColor: 'var(--border-slate-200)' }}
                     >
                       Export
                     </Button>
@@ -1373,10 +1376,10 @@ export default function ClientsV2ListPage() {
                                     <span style={{ fontWeight: 600 }}>{fullName}</span>
                                   </span>
 
-                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
+                                  <span className="bh2-list-foot-div" />
 
                                   <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation</span>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation:</span>
                                     <span style={{ fontWeight: 600, marginLeft: 5 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</span>
                                   </span>
                                 </div>
@@ -1395,7 +1398,7 @@ export default function ClientsV2ListPage() {
                                     </span>
                                   </span>
 
-                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
+                                  <span className="bh2-list-foot-div" style={{ display: 'inline-block', width: 1, height: 12, background: 'var(--border-slate-300)', margin: '0 4px' }} />
 
                                   <button
                                     type="button"
@@ -1555,7 +1558,7 @@ export default function ClientsV2ListPage() {
 
         /* ── Sidebar ─────────────────────────────────────────────── */
         .bh2-sidebar {
-          width: 252px;
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
           display: flex;
@@ -2514,9 +2517,7 @@ export default function ClientsV2ListPage() {
           letter-spacing: 0.08em;
         }
         .bh2-list-foot-div {
-          width: 1px;
-          height: 12px;
-          background: var(--border-slate-200);
+          width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1);
         }
         [data-theme="dark"] .bh2-list-foot-div {
           background: #2d3748 !important;
@@ -2578,7 +2579,7 @@ export default function ClientsV2ListPage() {
           padding: 5px 11px;
           background: #4f689426;
           border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
+          border-radius: 6px;
           color: var(--text-slate-600);
           font-family: inherit;
           font-size: 11px;
@@ -3722,9 +3723,18 @@ export default function ClientsV2ListPage() {
               color: var(--text-blue-700);
               border-color: var(--border-blue-200);
             }
-            .cm-expand-btn.open { transform: rotate(90deg); background: #3b82f6; color: #fff; border-color: transparent; }
-            [data-theme='dark'] .cm-expand-btn.open { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important; }
+            .cm-expand-btn.open {
+              transform: rotate(90deg);
+              background: #d1d5db;
+              color: #1f2937;
+              border-color: #9ca3af;
+            }
 
+            [data-theme='dark'] .cm-expand-btn.open {
+              background: rgba(51, 65, 85, 0.6) !important;
+              color: #f1f5f9 !important;
+              border-color: rgba(100, 116, 139, 0.6) !important;
+}
             /* expanded row */
             .cm-expanded-wrap-card {
               padding: 12px 0 0 0 !important;
@@ -3732,11 +3742,12 @@ export default function ClientsV2ListPage() {
               border-bottom: none !important;
             }
             .cm-expanded-wrap {
-              padding: 18px 24px 22px 64px;
+              padding: 18px 24px 22px 34px;
               background:
                 linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 60%),
                 var(--bg-slate-50);
               border-bottom: 1px solid var(--border-slate-100);
+              border-radius: 0px !important;
             }
             .cm-expanded-header {
               display: flex; align-items: center; justify-content: space-between;
@@ -3759,12 +3770,91 @@ export default function ClientsV2ListPage() {
             [data-theme='dark'] .cm-expanded-add {
               color: #a78bfa !important;
             }
-            .cm-project-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-              gap: 12px;
+            .cm-project-list {
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
               padding: 0px 12px;
               margin-bottom: 12px;
+            }
+            .cm-project-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+              padding: 10px 14px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-200);
+              border-radius: 0px;
+              text-align: left;
+              transition: border-color 0.12s ease, background 0.12s ease;
+              cursor: pointer;
+            }
+            .cm-project-row:hover {
+              border-color: #3b82f6;
+              background: rgba(59, 130, 246, 0.04);
+            }
+            [data-theme="dark"] .cm-project-row {
+              background: #1c232e !important;
+              border-color: #2d3748 !important;
+            }
+            [data-theme="dark"] .cm-project-row:hover {
+              background: #0f1419 !important;
+              border-color: #1d4ed8 !important;
+            }
+            .cm-project-row-left {
+              display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
+            }
+            .cm-project-row-right {
+              display: flex; align-items: center; gap: 24px; flex-shrink: 0;
+            }
+            .cm-project-row-stat {
+              display: flex; align-items: center; gap: 6px;
+            }
+            .cm-project-row-label {
+              font-size: 11px; color: var(--text-slate-400); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+            }
+            .cm-project-row-val {
+              font-size: 12.5px; font-weight: 600; color: var(--text-slate-700);
+            }
+            .cm-project-row-code {
+              font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+              font-size: 11px; padding: 2px 8px; background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-200); border-radius: 6px; color: var(--text-slate-500); flex-shrink: 0;
+            }
+            .cm-project-row-title {
+              font-weight: 600; font-size: 13.5px; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            /* Card view specific list sizing to prevent collapse */
+            .cm-expanded-wrap-card .cm-project-row {
+              padding: 6px 10px;
+              gap: 8px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-left {
+              gap: 8px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-right {
+              gap: 12px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-stat {
+              gap: 4px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-label {
+              font-size: 8.5px;
+              text-transform: capitalize;
+            }
+            .cm-expanded-wrap-card .cm-project-row-val {
+              font-size: 10.5px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-code {
+              font-size: 9px;
+              padding: 1px 6px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-title {
+              font-size: 11.5px;
+            }
+            .cm-expanded-wrap-card .cm-project-row-members .cm-project-row-label {
+              display: none !important;
             }
             .cm-project-card {
               background: var(--bg-pure-white);

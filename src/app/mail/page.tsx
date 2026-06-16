@@ -670,7 +670,7 @@ export default function MailPage() {
           background: ${PALETTE.slate50};
         }
         .mail-folder-item.active {
-          background: #eff6ff; /* blue-50 */
+          background: var(--mail-tint-blue);
         }
         .mail-folder-icon {
           font-size: 14px;
@@ -680,7 +680,7 @@ export default function MailPage() {
           color: ${PALETTE.slate500};
         }
         .mail-folder-item.active .mail-folder-icon {
-          color: #3B82F6;
+          color: var(--mail-primary);
         }
         .mail-folder-label {
           flex: 1;
@@ -701,9 +701,9 @@ export default function MailPage() {
           text-align: right;
         }
         .mail-folder-item.active .mail-folder-count {
-          color: #3B82F6;
+          color: var(--mail-primary);
           font-weight: 700;
-          background: rgba(59, 130, 246, 0.12);
+          background: var(--mail-tint-blue);
           border-radius: 6px;
           padding: 1px 7px;
           min-width: 0;

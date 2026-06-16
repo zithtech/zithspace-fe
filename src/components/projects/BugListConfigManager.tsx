@@ -63,29 +63,29 @@ const SECTIONS: {
   accentBg: string;
   accentFg: string;
 }[] = [
-  {
-    key: "severity",
-    title: "Severity",
-    description:
-      "Tenant-scoped severity options. Shown in the Capture Bug dropdown and the bug table.",
-    shortDescription: "Triage levels for the bug list",
-    icon: <ThunderboltFilled />,
-    accent: "#ef4444",
-    accentBg: "rgba(239,68,68,0.10)",
-    accentFg: "#ef4444",
-  },
-  {
-    key: "type",
-    title: "Type",
-    description:
-      "Bug type taxonomy (UI / Functional / API by default — extend as needed).",
-    shortDescription: "Categorize bugs by area",
-    icon: <AppstoreFilled />,
-    accent: "#8b5cf6",
-    accentBg: "rgba(139,92,246,0.12)",
-    accentFg: "#8b5cf6",
-  },
-];
+    {
+      key: "severity",
+      title: "Severity",
+      description:
+        "Tenant-scoped severity options. Shown in the Capture Bug dropdown and the bug table.",
+      shortDescription: "Triage levels for the bug list",
+      icon: <ThunderboltFilled />,
+      accent: "#ef4444",
+      accentBg: "rgba(239,68,68,0.10)",
+      accentFg: "#ef4444",
+    },
+    {
+      key: "type",
+      title: "Type",
+      description:
+        "Bug type taxonomy (UI / Functional / API by default — extend as needed).",
+      shortDescription: "Categorize bugs by area",
+      icon: <AppstoreFilled />,
+      accent: "#8b5cf6",
+      accentBg: "rgba(139,92,246,0.12)",
+      accentFg: "#8b5cf6",
+    },
+  ];
 
 export default function BugListConfigManager() {
   const { theme } = useTheme();
@@ -293,7 +293,7 @@ function ConfigSection({
     {
       title: "Label",
       dataIndex: "label",
-      width: "32%",
+      width: '40%',
       render: (_, row) => (
         <div className="bcm-label-row">
           {showColor && (
@@ -322,7 +322,7 @@ function ConfigSection({
     {
       title: "Key",
       dataIndex: "key",
-      width: 160,
+      width: 120,
       render: (v: string) => <span className="bcm-key-chip">{v}</span>,
     },
     {
@@ -343,7 +343,7 @@ function ConfigSection({
     {
       title: "Active",
       dataIndex: "isActive",
-      width: 90,
+      width: 70,
       align: "center",
       render: (val: boolean, row) => (
         <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canUpdateTicketSetting} />
@@ -594,99 +594,99 @@ function OptionEditor({
                 }
               }}
             >
-            <Form
-              form={form}
-              layout="vertical"
-              requiredMark="optional"
-              onValuesChange={(_, all) => setLabelPreview(all.label || "")}
-            >
-              <Form.Item
-                name="label"
-                label="Label"
-                rules={[{ required: true, message: "Label is required" }]}
+              <Form
+                form={form}
+                layout="vertical"
+                requiredMark="optional"
+                onValuesChange={(_, all) => setLabelPreview(all.label || "")}
               >
-                <Input
-                  placeholder={
-                    editing.kind === "severity"
-                      ? "e.g. Showstopper"
-                      : "e.g. Performance"
-                  }
-                  autoFocus
-                  size="large"
-                />
-              </Form.Item>
-
-              {!isEdit && (
                 <Form.Item
-                  name="key"
-                  label="Key"
-                  extra="Lowercase slug stored on bugs (auto-generated from label if blank). Cannot change later."
+                  name="label"
+                  label="Label"
+                  rules={[{ required: true, message: "Label is required" }]}
                 >
-                  <Input placeholder="auto" />
+                  <Input
+                    placeholder={
+                      editing.kind === "severity"
+                        ? "e.g. Showstopper"
+                        : "e.g. Performance"
+                    }
+                    autoFocus
+                    size="large"
+                  />
                 </Form.Item>
-              )}
-              {isEdit && (
-                <div style={{ marginBottom: 16 }}>
-                  <div className="bcm-field-label">Key</div>
-                  <div style={{ marginTop: 4 }}>
-                    <span className="bcm-key-chip">{editing.option?.key}</span>
-                  </div>
-                </div>
-              )}
 
-              <Form.Item
-                name="description"
-                label="Description"
-                extra="Help your team pick the right value (visible as a tooltip)."
-              >
-                <Input.TextArea
-                  rows={3}
-                  placeholder="Optional — short hint about when to use this"
-                  maxLength={240}
-                  showCount
-                />
-              </Form.Item>
-
-              {showColor && (
-                <>
-                  <Form.Item name="color" label="Color">
-                    <ColorPickerWrapper onChange={(v) => setColorPreview(v)} />
+                {!isEdit && (
+                  <Form.Item
+                    name="key"
+                    label="Key"
+                    extra="Lowercase slug stored on bugs (auto-generated from label if blank). Cannot change later."
+                  >
+                    <Input placeholder="auto" />
                   </Form.Item>
-                  <div className="bcm-color-preview" style={{ marginBottom: 16 }}>
-                    <span
-                      className="bcm-color-preview-swatch"
-                      style={{ background: colorPreview || "var(--bcm-muted-bg)" }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div className="bcm-color-preview-title">Preview</div>
-                      <div className="bcm-color-preview-label">
-                        {colorPreview || "no color set"}
-                      </div>
+                )}
+                {isEdit && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div className="bcm-field-label">Key</div>
+                    <div style={{ marginTop: 4 }}>
+                      <span className="bcm-key-chip">{editing.option?.key}</span>
                     </div>
-                    <Tag
-                      style={{
-                        background: colorPreview ? `${colorPreview}1a` : "transparent",
-                        border: `1px solid ${colorPreview || "var(--bcm-border)"}`,
-                        color: colorPreview || "var(--bcm-text-muted)",
-                        margin: 0,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {labelPreview || "Severity"}
-                    </Tag>
                   </div>
-                </>
-              )}
+                )}
 
-              <Form.Item
-                name="isDefault"
-                label="Default"
-                valuePropName="checked"
-                extra="Pre-selects this option for new bugs."
-              >
-                <Switch />
-              </Form.Item>
-            </Form>
+                <Form.Item
+                  name="description"
+                  label="Description"
+                  extra="Help your team pick the right value (visible as a tooltip)."
+                >
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Optional — short hint about when to use this"
+                    maxLength={240}
+                    showCount
+                  />
+                </Form.Item>
+
+                {showColor && (
+                  <>
+                    <Form.Item name="color" label="Color">
+                      <ColorPickerWrapper onChange={(v) => setColorPreview(v)} />
+                    </Form.Item>
+                    <div className="bcm-color-preview" style={{ marginBottom: 16 }}>
+                      <span
+                        className="bcm-color-preview-swatch"
+                        style={{ background: colorPreview || "var(--bcm-muted-bg)" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div className="bcm-color-preview-title">Preview</div>
+                        <div className="bcm-color-preview-label">
+                          {colorPreview || "no color set"}
+                        </div>
+                      </div>
+                      <Tag
+                        style={{
+                          background: colorPreview ? `${colorPreview}1a` : "transparent",
+                          border: `1px solid ${colorPreview || "var(--bcm-border)"}`,
+                          color: colorPreview || "var(--bcm-text-muted)",
+                          margin: 0,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {labelPreview || "Severity"}
+                      </Tag>
+                    </div>
+                  </>
+                )}
+
+                <Form.Item
+                  name="isDefault"
+                  label="Default"
+                  valuePropName="checked"
+                  extra="Pre-selects this option for new bugs."
+                >
+                  <Switch />
+                </Form.Item>
+              </Form>
             </ConfigProvider>
           </div>
 
@@ -964,7 +964,7 @@ function BcmStyles() {
       .bcm-dark .bcm-table .ant-empty-description { color: var(--bcm-text-muted); }
 
       .bcm-label-row {
-        display: flex; align-items: center; gap: 12px;
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       }
       .bcm-color-swatch {
         width: 14px; height: 14px;
@@ -974,6 +974,7 @@ function BcmStyles() {
       }
       .bcm-label-text {
         font-weight: 600; color: var(--bcm-text); font-size: 13.5px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       .bcm-key-chip {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -993,6 +994,8 @@ function BcmStyles() {
         border-radius: 999px;
         font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
         text-transform: uppercase;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
       .bcm-desc-text { font-size: 12.5px; color: var(--bcm-text-soft); }
       .bcm-empty { padding: 40px 16px; text-align: center; color: var(--bcm-text-muted); }

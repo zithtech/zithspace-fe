@@ -792,11 +792,18 @@ export default function DocumentsTab({
                     className="doc-dragger"
                     fileList={fileList}
                     beforeUpload={(file) => {
+                      const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg'];
+                      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                      if (!allowedExtensions.includes(ext)) {
+                        messageApi.error('File format not supported. Please upload PDF, DOCX, or JPG.');
+                        return Upload.LIST_IGNORE;
+                      }
                       setFileList([{ ...file, originFileObj: file }]);
                       return false;
                     }}
                     onRemove={() => setFileList([])}
                     maxCount={1}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg"
                     showUploadList={false}
                   >
                     <div className="doc-dragger-content">

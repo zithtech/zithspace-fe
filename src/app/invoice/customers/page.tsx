@@ -409,6 +409,7 @@ export default function InvoiceproCustomerPage() {
       title: "",
       key: "action",
       width: 60,
+      fixed: "right" as const,
       align: "center" as const,
       render: (_: any, record: ServiceCustomer) => {
         const menuItems: any[] = [
@@ -912,6 +913,7 @@ export default function InvoiceproCustomerPage() {
                     className: "cursor-pointer",
                   })}
                   className="customers-table"
+                  scroll={{ x: 'max-content' }}
                 />
               </div>
             )}

@@ -136,7 +136,7 @@ export function BucketManageInlinePanel({
     mutationFn: async ({ ticketIds, sprintId }: { ticketIds: string[]; sprintId: string }) => {
       await Promise.all(
         ticketIds.map((id) =>
-          TicketService.updateTicket(id, { releasePlan: sprintId })
+          TicketService.updateTicket(id, { releasePlan: sprintId, bucketId: null })
         )
       );
     },
@@ -154,7 +154,7 @@ export function BucketManageInlinePanel({
     mutationFn: async (ticketIds: string[]) => {
       await Promise.all(
         ticketIds.map((id) =>
-          TicketService.updateTicket(id, { releasePlan: null as any })
+          TicketService.updateTicket(id, { releasePlan: null })
         )
       );
     },

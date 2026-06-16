@@ -53,6 +53,7 @@ export class DailyUpdateService {
     if (filters?.updateType) {
       params.append("updateType", filters.updateType);
     }
+    params.append("_t", Date.now().toString());
 
     return await api.get(`/api/daily-updates/my?${params.toString()}`);
   }

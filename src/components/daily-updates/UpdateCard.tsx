@@ -41,6 +41,7 @@ import {
   DailyStatusUpdate,
   ProjectUpdate,
   formatHours,
+  getStatusConfig,
 } from "@/types/dailyUpdate";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
@@ -70,6 +71,9 @@ export default function UpdateCard({
   const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
   const totalHours = projectUpdates.reduce((sum, p) => sum + (p.hoursWorked || 0), 0);
   const totalTasks = projectUpdates.reduce((sum, p) => sum + (p.tasks?.length || 0), 0);
+  const firstTask = projectUpdates[0]?.tasks?.[0];
+  const status = firstTask?.status || "pending";
+  const statusConfig = getStatusConfig(status);
 
   const isMissed = Boolean(update.is_missed);
   const isEditable = dayjs().diff(dayjs(update.createdAt), "hour") < 24;
@@ -89,208 +93,133 @@ export default function UpdateCard({
     }
   };
 
-
   return (
     <>
       <Badge.Ribbon
         text={update.updateType || "EOD"}
-        color={update.updateType === "BOD" ? "#22c55e" : "#3b82f6"}
+        color="#3b82f6"
         style={{ top: 5, right: -8, fontSize: 10, fontWeight: 700 }}
       >
         <Card
-          hoverable
           onClick={onOpen}
           style={{
-            borderRadius: 16,
+            borderRadius: 0,
             border: "1px solid var(--border-slate-200)",
-            overflow: "hidden",
             background: "var(--bg-pure-white)",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            height: 228,
+            cursor: "pointer",
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            flexShrink: 0
+            transition: "box-shadow .15s ease, border-color .15s ease",
           }}
-          bodyStyle={{ padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
+          bodyStyle={{ padding: 0, display: "flex", flexDirection: "column" }}
           className="premium-update-card"
         >
-          {/* Header Section — fixed height ~62px */}
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-slate-100)", flexShrink: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Space size={8}>
-                <Avatar
-                  size={30}
-                  src={update.user?.avatarUrl}
-                  style={{
-                    backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
-                    color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    flexShrink: 0
-                  }}
-                >
-                  {update.user?.name.charAt(0).toUpperCase()}
-                </Avatar>
-                <div style={{ overflow: "hidden" }}>
-                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
-                    {update.user?.name}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block", maxWidth: 160 }}>
-                    {update.user?.position?.title || "Team Member"}
-                  </Text>
-                </div>
-              </Space>
+          {/* Top Section */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 6, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "var(--text-blue-700)", fontWeight: 800, fontSize: 12,
+              background: "var(--bg-blue-50)"
+            }}>
+              {update.user?.name.charAt(0).toUpperCase()}
+            </div>
 
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-
-                {isMissed && (
-                  <Tag style={{
-                    margin: 0,
-                    borderRadius: 6,
-                    border: "none",
-                    background: "var(--bg-leave)",
-                    color: "var(--text-leave)",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    textTransform: "uppercase"
-                  }}>
-                    Missed
-                  </Tag>
-                )}
-
-                <Dropdown
-                  trigger={["click"]}
-                  menu={{
-                    items: [
-                      ...(user?.id === update.userId ? [{ key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable || !canUpdateDailyUpdate }] : []),
-                      { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true, disabled: !canDeleteDailyUpdate },
-                    ],
-                    onClick: (info) => {
-                      info.domEvent.stopPropagation();
-                      if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
-                      if (info.key === "delete") setIsDeleteModalOpen(true);
-                    },
-                  }}
-                >
-
-
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      cursor: "pointer",
-                      padding: 10,
-                      borderRadius: 6,
-                      color: "var(--text-slate-900)",     // darker → bold feel
-                      fontSize: 18,         // increase size
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--bg-secondary)";
-                      e.currentTarget.style.transform = "scale(1.1)";  // slight zoom
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.transform = "scale(1)";
-                    }}
-                  >
-                    <MoreOutlined />
-                  </div>
-
-                </Dropdown>
-
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 3, flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {update.user?.name}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, minWidth: 0 }}>
+                <span style={{ color: "var(--text-slate-400)", fontWeight: 600, flexShrink: 0 }}>Role:</span>
+                <span style={{ color: "var(--text-slate-700)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{update.user?.position?.title || "Team Member"}</span>
               </div>
             </div>
+
+
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  ...(user?.id === update.userId ? [{ key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable || !canUpdateDailyUpdate }] : []),
+                  { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true, disabled: !canDeleteDailyUpdate },
+                ],
+                onClick: (info) => {
+                  info.domEvent.stopPropagation();
+                  if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
+                  if (info.key === "delete") setIsDeleteModalOpen(true);
+                },
+              }}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  flexShrink: 0, width: 26, height: 26, borderRadius: 6, border: "none", cursor: "pointer",
+                  background: "transparent", color: "var(--text-slate-400)", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.2s",
+                  marginRight: 10
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-slate-100)";
+                  e.currentTarget.style.color = "var(--text-slate-900)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-slate-400)";
+                }}
+              >
+                <MoreOutlined />
+              </button>
+            </Dropdown>
           </div>
 
-          <div style={{ padding: "10px 14px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {/* Quick Stats Row — fixed */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexShrink: 0 }}>
-              <Tag style={{
-                margin: 0,
-                borderRadius: 6,
-                border: "none",
-                background: "var(--bg-sky-50)",
-                color: "var(--text-sky-500)",
-                fontSize: 11,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                lineHeight: "22px"
-              }}>
-                <Clock size={11} /> {formatHours(totalHours)}
-              </Tag>
-              <Tag style={{
-                margin: 0,
-                borderRadius: 6,
-                border: "none",
-                background: "var(--bg-slate-50)",
-                color: "var(--text-slate-600)",
-                fontSize: 11,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                lineHeight: "22px"
-              }}>
-                <ProjectOutlined style={{ fontSize: 11 }} /> {projectUpdates.length} Projects
-              </Tag>
-            </div>
+          {/* Foot Section (slate-50 background, containing both pills and dates) */}
+          <div style={{ display: "flex", flexDirection: "column", padding: 0, borderTop: "1px solid var(--border-slate-200)", background: "var(--bg-slate-50)" }}>
 
-            {/* Work Content Snapshot — strictly 60px, never grows */}
-            <div style={{
-              background: "var(--bg-secondary)",
-              borderRadius: 10,
-              padding: "7px 10px",
-              border: "1px solid var(--border-slate-100)",
-              marginBottom: 8,
-              height: 60,
-              overflow: "hidden",
-              flexShrink: 0
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-                <Activity size={11} color="var(--text-slate-400)" />
-                <Text strong style={{ fontSize: 11, color: "var(--text-slate-600)" }}>Recent Tasks ({totalTasks})</Text>
-              </div>
-              <div style={{ overflow: "hidden" }}>
-                {projectUpdates.slice(0, 1).map((p, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: "var(--text-slate-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, display: "block" }}>
-                      <span style={{ fontWeight: 600 }}>{p.projectName}:</span> {p.tasks?.[0]?.description || p.tasks?.[0]?.ticketNumber || "No tasks listed"}
-                    </span>
-                  </div>
-                ))}
-                {projectUpdates.length > 1 && (
-                  <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 9, display: "block" }}>
-                    + {projectUpdates.length - 1} more projects
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 12px" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-sky-600)", background: "var(--bg-sky-50)", padding: "2px 6px", borderRadius: 4 }}>
+                <Clock size={11} /> <span style={{ opacity: 0.7, fontWeight: 500 }}>Time:</span> {formatHours(totalHours)}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)", background: "var(--bg-slate-50)", padding: "2px 6px", borderRadius: 4 }}>
+                <ProjectOutlined /> <span style={{ opacity: 0.7, fontWeight: 500 }}>{projectUpdates.length === 1 ? "Project:" : "Projects:"}</span> {projectUpdates.length}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4 }}>
+                <span>{statusConfig.icon}</span> <span style={{ opacity: 0.7, fontWeight: 500 }}>Status:</span> {statusConfig.label}
+              </span>
+              {projectUpdates.length > 0 && (
+                <span title={`Tasks: ${projectUpdates[0].tasks?.[0]?.ticketNumber || projectUpdates[0].tasks?.[0]?.description || "No tasks"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <Activity size={11} color="var(--text-slate-400)" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ opacity: 0.7, fontWeight: 500 }}>Tasks ({totalTasks}):</span> {projectUpdates[0].tasks?.[0]?.ticketNumber || projectUpdates[0].tasks?.[0]?.description || "No tasks"}
                   </span>
-                )}
-              </div>
+                </span>
+              )}
             </div>
 
-            {/* Footer Row — fixed */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-slate-100)", paddingTop: 8, flexShrink: 0 }}>
-              <div>
-                <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>
-                  Due Date:{" "}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 12px", borderTop: "1px solid var(--border-slate-200)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)" }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)" }}>Due Date:</span>
+                <span style={{ fontWeight: 600 }}>
                   {update.is_missed && update.missed_updateAt
                     ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
                     : dayjs(update.createdAt).format("DD MMM YYYY")}
-                </Text>
-              </div>
-
-              <div style={{ textAlign: "right" }}>
-                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  Submitted On
-                </Text>
-                <Text style={{ fontSize: 11, color: "var(--text-slate-700)", fontWeight: 700, display: "block" }}>
+                </span>
+              </span>
+              <span style={{ width: 1, height: 11, background: "var(--border-slate-300)" }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)" }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase" }}>Submitted On</span>
+                <span style={{ fontWeight: 700 }}>
                   {dayjs((update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60) ? update.updatedAt : update.createdAt).format("MMM D, h:mm A")}
-                </Text>
-              </div>
+                </span>
+              </span>
+              {isMissed && (
+                <>
+                  <span style={{ width: 1, height: 11, background: "var(--border-slate-300)" }} />
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 19, padding: "0 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, background: "var(--bg-leave)", color: "var(--text-leave)", textTransform: "uppercase" }}>
+                    MISSED
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </Card>

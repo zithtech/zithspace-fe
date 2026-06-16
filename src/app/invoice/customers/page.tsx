@@ -43,6 +43,7 @@ import {
   RefreshCw,
   FileText,
 } from "lucide-react";
+import { ReloadOutlined } from "@ant-design/icons";
 
 import CustomerDrawer from "@/components/customer/CustomerDrawer";
 import CustomerViewDrawer from "@/components/invoice/CustomerViewDrawer";
@@ -89,7 +90,7 @@ export default function InvoiceproCustomerPage() {
   } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
-  const { data: customersData, isLoading, refetch } = useCustomers();
+  const { data: customersData, isLoading, refetch, isFetching } = useCustomers();
   const customers = customersData?.data || [];
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -584,16 +585,20 @@ export default function InvoiceproCustomerPage() {
               />
             </div>
 
-            <Tooltip title="Refresh">
-              <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><RefreshCw size={14} className={isLoading ? "animate-spin" : ""} /></button>
-            </Tooltip>
-
             <div className="pp-topbar-meta">
               <span className="pp-meta-item"><span className="pp-pulse" /><strong>{filteredCustomers.length}</strong> customers</span>
             </div>
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
+                 <button
+                  type="button"
+                  className={viewMode === "table" ? "is-active" : ""}
+                  onClick={() => setViewMode("table")}
+                  aria-label="Table view"
+                >
+                  <List size={14} />
+                </button>
                 <button
                   type="button"
                   className={viewMode === "card" ? "is-active" : ""}
@@ -602,15 +607,11 @@ export default function InvoiceproCustomerPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-                <button
-                  type="button"
-                  className={viewMode === "table" ? "is-active" : ""}
-                  onClick={() => setViewMode("table")}
-                  aria-label="Table view"
-                >
-                  <List size={14} />
-                </button>
+               
               </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
+              </Tooltip>
               {canCreateInvoiceCustomer && (
                 <Button
                   icon={<Import size={13} />}
@@ -1109,7 +1110,20 @@ export default function InvoiceproCustomerPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
-          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
         }
 
         /* ---------------- Sidebar ---------------- */
@@ -1141,13 +1155,14 @@ export default function InvoiceproCustomerPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 12px;
+          color: #fff !important;
         }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;
@@ -1245,7 +1260,7 @@ export default function InvoiceproCustomerPage() {
         .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
         .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
         .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
         .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
         /* Grid view cards (matching accounts dashboard) */

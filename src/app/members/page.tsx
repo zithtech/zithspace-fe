@@ -1185,7 +1185,7 @@ export default function MembersPage() {
             <Text
               strong
               style={{
-                fontSize: 13.5,
+                fontSize: 12.5,
                 color: "var(--text-slate-900)",
                 display: "block",
                 lineHeight: 1.2,
@@ -1216,7 +1216,7 @@ export default function MembersPage() {
           <Tooltip title="Work Email">
             <div
               style={{
-                fontSize: 12.5,
+                fontSize: 11.5,
                 color: "var(--text-slate-900)",
                 display: "flex",
                 alignItems: "center",
@@ -1274,7 +1274,7 @@ export default function MembersPage() {
       key: "position",
       width: 180,
       render: (_, record: Member) => (
-        <Text style={{ fontSize: 12.5, color: "var(--text-slate-700, #475569)", fontWeight: 500 }}>
+        <Text style={{ fontSize: 12, color: "var(--text-slate-700, #475569)", fontWeight: 500 }}>
           {record?.position?.title || "—"}
         </Text>
       ),
@@ -1304,7 +1304,7 @@ export default function MembersPage() {
               borderRadius: 999,
               background: meta.bg,
               color: meta.color,
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: 600,
               letterSpacing: "0.02em",
             }}
@@ -1333,7 +1333,7 @@ export default function MembersPage() {
             ? record.reportsTo.name
             : null;
         if (!reportsTo) {
-          return <Text style={{ fontSize: 12.5, color: "var(--text-slate-400)" }}>—</Text>;
+          return <Text style={{ fontSize: 12, color: "var(--text-slate-400)" }}>—</Text>;
         }
         const reportsToObj = record?.reportsTo && typeof record.reportsTo === "object" ? record.reportsTo : null;
         const avatarUrl = reportsToObj?.avatarUrl;
@@ -1351,7 +1351,7 @@ export default function MembersPage() {
             >
               {initialsOf(reportsTo)}
             </Avatar>
-            <Text style={{ fontSize: 12.5, color: "var(--text-slate-900)" }}>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-900)" }}>
               {reportsTo}
             </Text>
           </div>
@@ -1378,7 +1378,7 @@ export default function MembersPage() {
               borderRadius: 999,
               background: bg,
               color: color,
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: 600,
               letterSpacing: "0.02em",
             }}
@@ -1790,7 +1790,7 @@ export default function MembersPage() {
                               <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
                             </Tooltip>
                             <div className="pc-client-line">
-                              <span className="pc-client-val" style={{ fontSize: '11px', color: 'var(--text-slate-500)' }}>
+                              <span className="pc-client-val" style={{ fontSize: '11.5px', color: 'var(--text-slate-500)' }}>
                                 {item.position?.title || "—"}
                               </span>
                             </div>
@@ -1812,14 +1812,14 @@ export default function MembersPage() {
                           <div className="pc-foot-row">
                             <span className="pc-foot-item">
                               <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
-                              <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.workEmail || "—"}</span>
+                              <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.workEmail || "—"}</span>
                             </span>
                             {item.phone && (
                               <>
                                 <span className="pc-foot-div" />
                                 <span className="pc-foot-item">
                                   <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
-                                  <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.phone}</span>
+                                  <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.phone}</span>
                                 </span>
                               </>
                             )}
@@ -1835,7 +1835,7 @@ export default function MembersPage() {
                                   borderRadius: 999,
                                   background: roleMeta.bg,
                                   color: roleMeta.color,
-                                  fontSize: '10px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                 }}
                               >
@@ -1850,7 +1850,7 @@ export default function MembersPage() {
                                   borderRadius: 999,
                                   background: item.isActive ? "rgba(16,185,129,0.10)" : "rgba(248,113,113,0.10)",
                                   color: item.isActive ? "#10b981" : "#f87171",
-                                  fontSize: '10px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                 }}
                               >
@@ -2015,7 +2015,20 @@ export default function MembersPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 64px);
           background: var(--bg-pure-white);
-          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
         }
 
         /* ---------------- Sidebar ---------------- */
@@ -2047,14 +2060,14 @@ export default function MembersPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 12px;
           color: #fff !important;
         }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;

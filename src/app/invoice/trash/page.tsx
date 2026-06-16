@@ -39,6 +39,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ReloadOutlined } from "@ant-design/icons";
 import isBetween from "dayjs/plugin/isBetween";
 
 import {
@@ -650,9 +651,8 @@ export default function InvoiceTrashPage() {
               <Tooltip title="Refresh">
                 <Button
                   icon={
-                    <RefreshCw
-                      size={13}
-                      className={isFetching ? "animate-spin" : ""}
+                    <ReloadOutlined
+                      spin={isLoading || isFetching}
                     />
                   }
                   onClick={async () => {
@@ -1031,6 +1031,20 @@ export default function InvoiceTrashPage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        .pp-stat-card,
+        .trash-table,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
+        }
         .pp-stat-card {
           background: var(--bg-pure-white, #fff); border: 1px solid var(--border-slate-200, #e2e8f0);
           border-radius: 0; padding: 10px 12px; min-height: 84px;
@@ -1043,7 +1057,7 @@ export default function InvoiceTrashPage() {
         .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-600, #475569); }
         .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
         .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900, #0f172a); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900, #0f172a); letter-spacing: -0.02em; line-height: 1; }
         .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400, #94a3b8); font-weight: 500; }
 
         .trash-table .ant-table-thead > tr > th {

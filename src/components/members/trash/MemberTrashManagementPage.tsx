@@ -307,7 +307,7 @@ export default function MemberTrashManagementPage() {
             <Text
               strong
               style={{
-                fontSize: 13.5,
+                fontSize: 12.5,
                 color: "var(--text-slate-900)",
                 display: "block",
                 lineHeight: 1.2,
@@ -338,7 +338,7 @@ export default function MemberTrashManagementPage() {
           <Tooltip title="Work Email">
             <div
               style={{
-                fontSize: 12.5,
+                fontSize: 11.5,
                 color: "var(--text-slate-900)",
                 display: "flex",
                 alignItems: "center",
@@ -415,7 +415,7 @@ export default function MemberTrashManagementPage() {
               borderRadius: 999,
               background: meta.bg,
               color: meta.color,
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: 600,
               letterSpacing: "0.02em",
             }}
@@ -444,7 +444,7 @@ export default function MemberTrashManagementPage() {
             ? record.reportsTo.name
             : null;
         if (!reportsTo) {
-          return <Text style={{ fontSize: 12.5, color: "var(--text-slate-400)" }}>—</Text>;
+          return <Text style={{ fontSize: 12, color: "var(--text-slate-400)" }}>—</Text>;
         }
         const reportsToObj = record?.reportsTo && typeof record.reportsTo === "object" ? record.reportsTo : null;
         const avatarUrl = reportsToObj?.avatarUrl;
@@ -462,7 +462,7 @@ export default function MemberTrashManagementPage() {
             >
               {initialsOf(reportsTo)}
             </Avatar>
-            <Text style={{ fontSize: 12.5, color: "var(--text-slate-900)" }}>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-900)" }}>
               {reportsTo}
             </Text>
           </div>
@@ -476,7 +476,7 @@ export default function MemberTrashManagementPage() {
       width: 160,
       render: (date: string) => (
         <Tooltip title={dayjs(date).format("YYYY-MM-DD HH:mm:ss")}>
-          <Text style={{ fontSize: 12.5, color: "var(--text-slate-700)", fontWeight: 500 }}>
+          <Text style={{ fontSize: 12, color: "var(--text-slate-700)", fontWeight: 500 }}>
             {dayjs(date).fromNow()}
           </Text>
         </Tooltip>
@@ -888,7 +888,7 @@ export default function MemberTrashManagementPage() {
                             <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
                           </Tooltip>
                           <div className="pc-client-line">
-                            <span className="pc-client-val" style={{ fontSize: '11px', color: 'var(--text-slate-500)' }}>
+                            <span className="pc-client-val" style={{ fontSize: '11.5px', color: 'var(--text-slate-500)' }}>
                               {item.position?.title || "—"}
                             </span>
                           </div>
@@ -899,14 +899,14 @@ export default function MemberTrashManagementPage() {
                         <div className="pc-foot-row">
                           <span className="pc-foot-item">
                             <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
-                            <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.workEmail || "—"}</span>
+                            <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.workEmail || "—"}</span>
                           </span>
                           {item.phone && (
                             <>
                               <span className="pc-foot-div" />
                               <span className="pc-foot-item">
                                 <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
-                                <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.phone}</span>
+                                <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.phone}</span>
                               </span>
                             </>
                           )}
@@ -914,13 +914,13 @@ export default function MemberTrashManagementPage() {
                         <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
                           <span className="pc-foot-item" style={{ color: '#f87171' }}>
                             <span className="pc-foot-key"><DeleteOutlined style={{ marginRight: 2, color: '#f87171' }} /></span>
-                            <span className="pc-foot-val" style={{ fontSize: '11px', fontWeight: 600 }}>
+                            <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
                               Deleted {item.deletedAt ? dayjs(item.deletedAt).fromNow() : '—'}
                             </span>
                             {item.deletedBy && (
                               <>
                                 <span className="pc-foot-div" style={{ backgroundColor: 'rgba(248, 113, 113, 0.2)', height: '10px', margin: '0 6px' }} />
-                                <span className="pc-foot-val" style={{ fontSize: '11px', fontWeight: 600 }}>
+                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
                                   By {item.deletedBy}
                                 </span>
                               </>
@@ -1025,7 +1025,20 @@ export default function MemberTrashManagementPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 64px);
           background: var(--bg-pure-white);
-          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
         }
 
         /* ---------------- Sidebar ---------------- */
@@ -1057,14 +1070,14 @@ export default function MemberTrashManagementPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
-          background: #f87171 !important;
-          border: none !important; box-shadow: none !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
+          background: #fff1f0 !important;
+          border: 1px solid #ffd8d6 !important; box-shadow: none !important;
           margin-bottom: 12px;
-          color: #fff !important;
+          color: #ff4d4f !important;
         }
-        .pp-create-btn:hover { background: #ef4444 !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn:hover { background: #ffccc7 !important; border-color: #ffa39e !important; color: #ff4d4f !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; color: #ff4d4f !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;

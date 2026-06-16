@@ -1605,7 +1605,20 @@ export default function AccountsPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
-          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
         }
 
         /* ---------------- Sidebar ---------------- */
@@ -1637,13 +1650,14 @@ export default function AccountsPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 12px;
+          color: #fff !important;
         }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;
@@ -1777,7 +1791,7 @@ export default function AccountsPage() {
         }
         .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
         .pp-stat-value-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
         .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; white-space: nowrap; }
         .pp-stat-spark { opacity: 0.95; }
 

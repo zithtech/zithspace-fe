@@ -293,7 +293,7 @@ function ConfigSection({
     {
       title: "Label",
       dataIndex: "label",
-      width: '40%',
+      width: 180,
       render: (_, row) => (
         <div className="bcm-label-row">
           {showColor && (
@@ -322,7 +322,7 @@ function ConfigSection({
     {
       title: "Key",
       dataIndex: "key",
-      width: 120,
+      width: 140,
       render: (v: string) => <span className="bcm-key-chip">{v}</span>,
     },
     {
@@ -354,6 +354,7 @@ function ConfigSection({
       key: "actions",
       width: 96,
       align: "right",
+      fixed: 'right',
       render: (_, row) => (
         <div
           className="ant-table-row-actions"
@@ -457,6 +458,7 @@ function ConfigSection({
             columns={columns}
             dataSource={options}
             pagination={false}
+            scroll={{ x: 'max-content' }}
           />
         )}
       </div>
@@ -947,7 +949,7 @@ function BcmStyles() {
         border-bottom: 1px solid var(--bcm-border) !important;
       }
       .bcm-table .ant-table-tbody > tr > td {
-        background: transparent !important;
+        background: var(--bcm-bg) !important;
         border-bottom: 1px solid var(--bcm-border) !important;
         padding: 14px 12px !important;
         vertical-align: middle;
@@ -961,6 +963,7 @@ function BcmStyles() {
       .bcm-dark .bcm-table .ant-btn:hover { color: var(--bcm-text); }
       .bcm-dark .bcm-table .ant-btn-dangerous { color: #ff8a7d; }
       .bcm-dark .bcm-table .ant-switch { background: var(--bcm-border-strong); }
+      .bcm-dark .bcm-table .ant-switch.ant-switch-checked { background: #3b82f6; }
       .bcm-dark .bcm-table .ant-empty-description { color: var(--bcm-text-muted); }
 
       .bcm-label-row {
@@ -1119,7 +1122,7 @@ function BcmStyles() {
         color: var(--bcm-text);
       }
       .bcm-drawer-dark :where(.ant-switch) { background: var(--bcm-border-strong); }
-      .bcm-drawer-dark :where(.ant-switch-checked) { background: #4f46e5; }
+      .bcm-drawer-dark :where(.ant-switch-checked) { background: #3b82f6; }
       .bcm-drawer-dark :where(.ant-btn-default) {
         background: var(--bcm-bg-soft) !important;
         border-color: var(--bcm-border) !important;

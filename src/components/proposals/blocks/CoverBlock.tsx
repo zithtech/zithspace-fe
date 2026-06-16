@@ -66,6 +66,15 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data, isEditor }) => {
           </Text>
           <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px', ...ghostStyle(data.senderName) }}>
             {ghost(data.senderName, 'Your Name')}
+            {data.senderPosition ? (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-slate-500)', marginLeft: '6px' }}>
+                ({data.senderPosition})
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-slate-400)', marginLeft: '6px', fontStyle: 'italic' }}>
+                (Your Position)
+              </span>
+            )}
           </Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
             <Text style={{ color: 'inherit', ...ghostStyle(data.senderEmail) }}>{ghost(data.senderEmail, 'contact@youragency.com')}</Text>
@@ -74,6 +83,9 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data, isEditor }) => {
           </div>
           <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'pre-wrap', marginTop: '4px', ...ghostStyle(data.senderAddress) }}>
             {ghost(data.senderAddress, 'Your business address')}
+          </Text>
+          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block', marginTop: '4px', ...ghostStyle(data.senderWebsite) }}>
+            {ghost(data.senderWebsite, 'yourwebsite.com')}
           </Text>
         </div>
       </div>
@@ -287,6 +299,12 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
           </Form.Item>
           <Form.Item label={<span style={labelStyle}>Your Name</span>} name="senderName" style={{ marginBottom: 8 }}>
             <Input prefix={<UserOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
+          </Form.Item>
+          <Form.Item label={<span style={labelStyle}>Your Position</span>} name="senderPosition" style={{ marginBottom: 8 }}>
+            <Input prefix={<UserOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
+          </Form.Item>
+          <Form.Item label={<span style={labelStyle}>Your Website</span>} name="senderWebsite" style={{ marginBottom: 8 }}>
+            <Input prefix={<GlobalOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
           </Form.Item>
         </Space>
       </div>

@@ -6,6 +6,8 @@ import { ProposalBlock } from '@/store/proposalStore';
 import { useSearchParams } from 'next/navigation';
 import { ProposalService } from '@/services/proposalService';
 
+import { generateCoverHtml, generateTocHtml } from './PdfRenderer';
+
 function PreviewContent() {
   const [blocks, setBlocks] = useState<ProposalBlock[]>([]);
   const searchParams = useSearchParams();
@@ -71,6 +73,10 @@ function PreviewContent() {
     }
   }, [proposalId]);
 
+  const coverBlock = blocks.find(b => b.type === 'cover');
+  const proposalTitle = coverBlock?.data?.title || '';
+  const contentBlocks = blocks.filter(b => b.type !== 'cover');
+
   return (
     <div style={{ width: '100%', height: '100vh', overflowX: 'hidden', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       <style>{`
@@ -80,26 +86,40 @@ function PreviewContent() {
       `}</style>
       <div style={{
         minHeight: '100vh',
-        background: 'var(--bg-secondary)',
+        background: '#eef2f6',
         padding: '32px',
         width: '100%',
         zoom: 0.75,
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        display: 'flex',
+        justifyContent: 'center'
       }}>
-        {blocks.length === 0 ? (
-          <div style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '100px', fontSize: '1.2rem' }}>
-            Document live preview starts here...
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} className="preview-blocks-container">
-            {blocks.map((block) => (
-              <div key={block.id} id={`preview-block-${block.id}`} style={{ scrollMarginTop: '20px' }}>
-                <BlockRenderer type={block.type} data={block.data} />
+        <div style={{ width: '210mm', maxWidth: '100%' }}>
+          {blocks.length === 0 ? (
+            <div style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '100px', fontSize: '1.2rem' }}>
+              Document live preview starts here...
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }} className="preview-blocks-container">
+              {coverBlock && (
+                <div dangerouslySetInnerHTML={{ __html: generateCoverHtml(coverBlock) }} />
+              )}
+              
+              {blocks.length > 1 && (
+                <div dangerouslySetInnerHTML={{ __html: generateTocHtml(blocks, proposalTitle) }} />
+              )}
+
+              <div style={{ background: 'white', padding: '32px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', minHeight: '297mm' }}>
+                {contentBlocks.map((block) => (
+                  <div key={block.id} id={`preview-block-${block.id}`} style={{ scrollMarginTop: '20px', marginBottom: '32px' }}>
+                    <BlockRenderer type={block.type} data={block.data} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

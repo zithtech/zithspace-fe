@@ -568,6 +568,11 @@ const renderBlockContent = (block: any) => {
                 </Text>
                 <Title level={5} style={{ margin: 0, color: "var(--text-primary)", fontSize: 15 }}>
                   {data.senderName}
+                  {hasValue(data.senderPosition) && (
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: "normal", marginLeft: 6 }}>
+                      ({data.senderPosition})
+                    </Text>
+                  )}
                 </Title>
                 {hasValue(data.senderCompany) && (
                   <Text
@@ -585,11 +590,17 @@ const renderBlockContent = (block: any) => {
                     {data.senderAddress}
                   </Text>
                 )}
+                {hasValue(data.senderWebsite) && (
+                  <Text
+                    type="secondary"
+                    style={{ display: "block", marginTop: 2, color: "var(--text-secondary)" }}
+                  >
+                    {data.senderWebsite}
+                  </Text>
+                )}
                 {(hasValue(data.senderEmail) || hasValue(data.senderContact)) && (
                   <Text type="secondary" style={{ display: "block", color: "var(--text-secondary)" }}>
-                    {data.senderEmail}
-                    {hasValue(data.senderEmail) && hasValue(data.senderContact) ? " • " : ""}
-                    {data.senderContact}
+                    {[data.senderEmail, data.senderContact].filter(hasValue).join(" • ")}
                   </Text>
                 )}
               </Col>

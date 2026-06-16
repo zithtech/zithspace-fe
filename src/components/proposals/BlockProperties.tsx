@@ -95,6 +95,8 @@ export const BlockProperties = () => {
                   name: coverBlock?.data?.senderName,
                   contact: coverBlock?.data?.senderContact,
                   email: coverBlock?.data?.senderEmail,
+                  website: coverBlock?.data?.senderWebsite,
+                  position: coverBlock?.data?.senderPosition,
                 }}
                 blockType="branding (agency details)"
                 onApply={(newBrand) =>
@@ -103,6 +105,8 @@ export const BlockProperties = () => {
                     senderName: newBrand.name || coverBlock?.data?.senderName,
                     senderContact: newBrand.contact || coverBlock?.data?.senderContact,
                     senderEmail: newBrand.email || coverBlock?.data?.senderEmail,
+                    senderWebsite: newBrand.website || coverBlock?.data?.senderWebsite,
+                    senderPosition: newBrand.position || coverBlock?.data?.senderPosition,
                   })
                 }
               />
@@ -174,12 +178,30 @@ export const BlockProperties = () => {
 
             <div className="pb-props__brand-contact">
               <div>
-                <SectionLabel>Point of Contact</SectionLabel>
+                <SectionLabel>Website URL</SectionLabel>
                 <Input
-                  placeholder="Name"
-                  value={coverBlock?.data?.senderName}
-                  onChange={(e) => handleUpdateBranding({ senderName: e.target.value })}
+                  placeholder="Website URL"
+                  value={coverBlock?.data?.senderWebsite}
+                  onChange={(e) => handleUpdateBranding({ senderWebsite: e.target.value })}
                 />
+              </div>
+              <div className="pb-props__brand-grid">
+                <div>
+                  <SectionLabel>Point of Contact</SectionLabel>
+                  <Input
+                    placeholder="Name"
+                    value={coverBlock?.data?.senderName}
+                    onChange={(e) => handleUpdateBranding({ senderName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <SectionLabel>Position</SectionLabel>
+                  <Input
+                    placeholder="Position/Role"
+                    value={coverBlock?.data?.senderPosition}
+                    onChange={(e) => handleUpdateBranding({ senderPosition: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="pb-props__brand-grid">
                 <Input

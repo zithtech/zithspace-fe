@@ -27,7 +27,7 @@ interface CoverBlockProps {
   onUpdate?: (data: any) => void;
 }
 
-export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
+export const CoverBlock: React.FC<CoverBlockProps> = ({ data, isEditor }) => {
   const isEmpty = !data.title && !data.projectSummary && !data.clientName && !data.clientCompany && !data.senderName && !data.senderCompany;
   const ghost = (val: string | undefined, fallback: string) => val || fallback;
   const ghostStyle = (val: any): React.CSSProperties =>
@@ -37,10 +37,8 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      padding: '40px',
-      background: 'var(--bg-secondary)',
-      borderRadius: '8px',
-      border: '1px solid var(--border-color)',
+      padding: '16px 24px',
+      background: 'transparent',
     }}>
       {isEmpty && <div style={{ marginBottom: 16 }}><BlockGhostHint /></div>}
 
@@ -68,6 +66,15 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
           </Text>
           <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px', ...ghostStyle(data.senderName) }}>
             {ghost(data.senderName, 'Your Name')}
+            {data.senderPosition ? (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-slate-500)', marginLeft: '6px' }}>
+                ({data.senderPosition})
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-slate-400)', marginLeft: '6px', fontStyle: 'italic' }}>
+                (Your Position)
+              </span>
+            )}
           </Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
             <Text style={{ color: 'inherit', ...ghostStyle(data.senderEmail) }}>{ghost(data.senderEmail, 'contact@youragency.com')}</Text>
@@ -77,23 +84,28 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
           <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'pre-wrap', marginTop: '4px', ...ghostStyle(data.senderAddress) }}>
             {ghost(data.senderAddress, 'Your business address')}
           </Text>
+          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block', marginTop: '4px', ...ghostStyle(data.senderWebsite) }}>
+            {ghost(data.senderWebsite, 'yourwebsite.com')}
+          </Text>
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: (data.projectSummary || isEditor) ? '8px' : '0px' }}>
         <Text style={{ color: 'var(--premium-blue)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Proposal For</Text>
-        <Title level={1} style={{ margin: '4px 0 8px 0', fontSize: '2rem', fontWeight: 800, lineHeight: 1.2, color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.title ? 'normal' : 'italic' }}>
+        <Title level={1} className="pb-cover-title" style={{ margin: '4px 0 2px 0', fontWeight: 800, lineHeight: 1.2, color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.title ? 'normal' : 'italic' }}>
           {data.title || 'Proposal Title'}
         </Title>
-        <div style={{ fontSize: '1rem', maxWidth: '600px', display: 'block', lineHeight: 1.5, color: data.projectSummary ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.projectSummary ? 'normal' : 'italic' }}>
-          {data.projectSummary
-            ? <TiptapViewer content={data.projectSummary} />
-            : 'A short, persuasive summary of what this proposal delivers and why it matters.'}
-        </div>
+        {(data.projectSummary || isEditor) && (
+          <div className="pb-cover-summary" style={{ maxWidth: '600px', display: 'block', lineHeight: 1.5, color: data.projectSummary ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.projectSummary ? 'normal' : 'italic' }}>
+            {data.projectSummary
+              ? <TiptapViewer content={data.projectSummary} />
+              : 'A short, persuasive summary of what this proposal delivers and why it matters.'}
+          </div>
+        )}
       </div>
 
-      <div style={{ marginTop: 'auto' }}>
-        <Divider style={{ margin: '0 0 20px 0' }} />
+      <div style={{ marginTop: '0px' }}>
+        <Divider style={{ margin: '4px 0 12px 0' }} />
         <Row gutter={48}>
           <Col span={14}>
             <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px', fontWeight: 600 }}>Prepared For</Text>
@@ -187,7 +199,7 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, width: '100%' }}>
-            <span style={{ ...labelStyle, flex: 1 }}>Section Details</span>
+            <span style={{ ...labelStyle, flex: 1, display: 'inline-flex', alignItems: 'center' }}>Proposal Title <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span></span>
             <AIEnhanceButton 
               originalData={{ title: data.title, projectSummary: data.projectSummary }} 
               blockType="cover (identity)" 
@@ -219,7 +231,7 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
           <Form.Item label={<span style={labelStyle}>Company Name</span>} name="clientCompany">
             <Input prefix={<BankOutlined style={{ color: 'var(--border-color)' }} />} placeholder="Client Company" variant="filled" style={inputStyle} />
           </Form.Item>
-          <Form.Item label={<span style={labelStyle}>Contact Person</span>} name="clientName">
+          <Form.Item label={<span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center' }}>Contact Person <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span></span>} name="clientName">
             <Input prefix={<UserOutlined style={{ color: 'var(--border-color)' }} />} placeholder="Client Name" variant="filled" style={inputStyle} />
           </Form.Item>
 
@@ -287,6 +299,12 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
           </Form.Item>
           <Form.Item label={<span style={labelStyle}>Your Name</span>} name="senderName" style={{ marginBottom: 8 }}>
             <Input prefix={<UserOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
+          </Form.Item>
+          <Form.Item label={<span style={labelStyle}>Your Position</span>} name="senderPosition" style={{ marginBottom: 8 }}>
+            <Input prefix={<UserOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
+          </Form.Item>
+          <Form.Item label={<span style={labelStyle}>Your Website</span>} name="senderWebsite" style={{ marginBottom: 8 }}>
+            <Input prefix={<GlobalOutlined style={{ color: 'var(--border-color)' }} />} variant="filled" style={inputStyle} disabled />
           </Form.Item>
         </Space>
       </div>

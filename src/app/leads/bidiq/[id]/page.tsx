@@ -37,6 +37,12 @@ import {
   Eye,
   ExternalLink,
   Edit3,
+  Image as ImageIcon,
+  Images,
+  Video,
+  Quote,
+  MousePointerClick,
+  MessageSquare,
 } from "lucide-react";
 import {
   Button,
@@ -82,6 +88,13 @@ export default function BidiqIntelligencePage() {
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposalView, setProposalView] = useState<"preview" | "sections">("preview");
 
+  const ALL_COMPONENTS = ['cover', 'text', 'scope', 'timeline', 'pricing', 'image', 'gallery', 'video', 'quote', 'callout', 'cta', 'signature'];
+  const [selectedComponents, setSelectedComponents] = useState<string[]>(ALL_COMPONENTS);
+
+  const toggleComponent = (id: string) => {
+    setSelectedComponents(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
   const openProposalDrawer = async () => {
     if (!lead?.proposal_id) return;
     setProposalDrawerOpen(true);
@@ -106,6 +119,7 @@ export default function BidiqIntelligencePage() {
       setSelectedOption(null);
       setCustomDates(null);
       setCustomCost(null);
+      setSelectedComponents(ALL_COMPONENTS);
     }, 200);
   };
 
@@ -122,6 +136,7 @@ export default function BidiqIntelligencePage() {
     setSelectedOption(null);
     setCustomDates(null);
     setCustomCost(null);
+    setSelectedComponents(ALL_COMPONENTS);
     setProposalModalOpen(true);
   };
 
@@ -186,9 +201,9 @@ export default function BidiqIntelligencePage() {
 
   const handleConfirmGenerate = async () => {
     if (!selectedOption) return;
-    let payload: { selection: "client" | "custom"; duration?: string; cost?: string | number; startDate?: string; endDate?: string };
+    let payload: { selection: "client" | "custom"; duration?: string; cost?: string | number; startDate?: string; endDate?: string; components?: string[] };
     if (selectedOption === "client") {
-      payload = { selection: "client", duration: lead.duration, cost: lead.budget };
+      payload = { selection: "client", duration: lead.duration, cost: lead.budget, components: selectedComponents };
     } else {
       if (!customDates || customCost === null) return;
       const [start, end] = customDates;
@@ -200,6 +215,7 @@ export default function BidiqIntelligencePage() {
         endDate: end.toISOString(),
         duration: weeks > 0 ? `${weeks} week${weeks > 1 ? "s" : ""}` : `${days} day${days > 1 ? "s" : ""}`,
         cost: customCost,
+        components: selectedComponents
       };
     }
     try {
@@ -962,52 +978,40 @@ export default function BidiqIntelligencePage() {
 
                   {/* What the proposal will include */}
                   <div className="biq-pinfo-caps">
-                    <div className="biq-pinfo-caps-head">What the proposal will include</div>
+                    <div className="biq-pinfo-caps-head">Select components to include</div>
                     <div className="biq-pinfo-caps-grid">
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
-                        <div className="biq-pinfo-cap-icon">
-                          <Briefcase size={14} />
-                        </div>
-                        <div className="biq-pinfo-cap-body">
-                          <span className="biq-pinfo-cap-title">Scope &amp; deliverables</span>
-                          <span className="biq-pinfo-cap-text">
-                            Clear breakdown of what's being built, written in client-ready language.
-                          </span>
-                        </div>
-                      </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
-                        <div className="biq-pinfo-cap-icon">
-                          <Calendar size={14} />
-                        </div>
-                        <div className="biq-pinfo-cap-body">
-                          <span className="biq-pinfo-cap-title">Milestones &amp; timeline</span>
-                          <span className="biq-pinfo-cap-text">
-                            Phased plan with realistic dates derived from the effort baseline.
-                          </span>
-                        </div>
-                      </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
-                        <div className="biq-pinfo-cap-icon">
-                          <DollarSign size={14} />
-                        </div>
-                        <div className="biq-pinfo-cap-body">
-                          <span className="biq-pinfo-cap-title">Pricing &amp; payment terms</span>
-                          <span className="biq-pinfo-cap-text">
-                            Quote with payment schedule, anchored to the chosen duration and cost.
-                          </span>
-                        </div>
-                      </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
-                        <div className="biq-pinfo-cap-icon">
-                          <FileText size={14} />
-                        </div>
-                        <div className="biq-pinfo-cap-body">
-                          <span className="biq-pinfo-cap-title">Personalized pitch</span>
-                          <span className="biq-pinfo-cap-text">
-                            Tailored intro that speaks to this client's signals and the job context.
-                          </span>
-                        </div>
-                      </div>
+                      {[
+                        { id: 'cover', title: 'Cover Page', desc: 'Beautiful branding & title', icon: <FileText size={14} />, color: '#0ea5e9' },
+                        { id: 'text', title: 'Executive Summary', desc: 'Personalized pitch & intro', icon: <FileText size={14} />, color: '#f59e0b' },
+                        { id: 'scope', title: 'Scope of Work', desc: 'Deliverables breakdown', icon: <Briefcase size={14} />, color: '#6366f1' },
+                        { id: 'timeline', title: 'Project Timeline', desc: 'Milestones & dates', icon: <Calendar size={14} />, color: '#8b5cf6' },
+                        { id: 'pricing', title: 'Pricing & Terms', desc: 'Quote & payment schedule', icon: <DollarSign size={14} />, color: '#10b981' },
+                        { id: 'image', title: 'Image', desc: 'Single image block', icon: <ImageIcon size={14} />, color: '#ec4899' },
+                        { id: 'gallery', title: 'Gallery', desc: 'Image grid layout', icon: <Images size={14} />, color: '#d946ef' },
+                        { id: 'video', title: 'Video', desc: 'Video embed link', icon: <Video size={14} />, color: '#ef4444' },
+                        { id: 'quote', title: 'Testimonial', desc: 'Client quote', icon: <Quote size={14} />, color: '#f59e0b' },
+                        { id: 'callout', title: 'Callout', desc: 'Highlighted note', icon: <MessageSquare size={14} />, color: '#3b82f6' },
+                        { id: 'cta', title: 'CTA Button', desc: 'Call to action', icon: <MousePointerClick size={14} />, color: '#8b5cf6' },
+                        { id: 'signature', title: 'Agreement', desc: 'Sign-off section', icon: <ShieldCheck size={14} />, color: '#475569' },
+                      ].map(comp => {
+                        const isSelected = selectedComponents.includes(comp.id);
+                        return (
+                          <div 
+                            key={comp.id}
+                            className="biq-pinfo-cap" 
+                            style={{ ["--cap-accent" as any]: comp.color, cursor: 'pointer', border: isSelected ? `1px solid ${comp.color}` : '1px solid transparent', background: isSelected ? `${comp.color}0a` : '#f8fafc', opacity: isSelected ? 1 : 0.6 }}
+                            onClick={() => toggleComponent(comp.id)}
+                          >
+                            <div className="biq-pinfo-cap-icon" style={{ background: isSelected ? comp.color : '#e2e8f0', color: isSelected ? 'white' : '#94a3b8' }}>
+                              {isSelected ? <CheckCircle2 size={14} /> : comp.icon}
+                            </div>
+                            <div className="biq-pinfo-cap-body">
+                              <span className="biq-pinfo-cap-title">{comp.title}</span>
+                              <span className="biq-pinfo-cap-text">{comp.desc}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </>

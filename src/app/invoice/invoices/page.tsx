@@ -1357,7 +1357,7 @@ export default function InvoiceInvoicesPage() {
                           {initialsOf(companyName)}
                         </div>
                         <div className="pc-identity-body">
-                          <div className="pc-title">
+                          <div className="pc-title" style={{ fontSize: '13px' }}>
                             {record.invoiceNumber}
                           </div>
                           <div className="pc-client-line">
@@ -2523,6 +2523,7 @@ export default function InvoiceInvoicesPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         }
 
         /* ---------------- Sidebar ---------------- */

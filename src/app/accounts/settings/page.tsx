@@ -496,7 +496,7 @@ export default function AccountsSettingsPage() {
                             {initialsOf(category.name)}
                           </div>
                           <div className="pc-identity-body">
-                            <div className="pc-title">{category.name}</div>
+                            <div className="pc-title" style={{ fontSize: '13px' }}>{category.name}</div>
                             <div className="pc-client-line">
                               <span className="pc-client-key">Description:</span>
                               <span className="pc-client-val">
@@ -824,6 +824,7 @@ export default function AccountsSettingsPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         }
 
         /* ---------------- Sidebar ---------------- */

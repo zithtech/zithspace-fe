@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -24,6 +24,7 @@ import {
   Badge,
   Skeleton,
   Segmented,
+  InputNumber,
 } from "antd";
 import {
   PlusOutlined,
@@ -42,6 +43,12 @@ import {
   FilterOutlined,
   CloseOutlined,
   InfoCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  UnorderedListOutlined,
+  AppstoreOutlined,
+  EllipsisOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import {
@@ -54,12 +61,14 @@ import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
 import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
-import { History } from "lucide-react";
+import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -68,26 +77,50 @@ const ROLE_META: Record<
   string,
   { label: string; bg: string; color: string; dot: string }
 > = {
-  super_admin: { label: "Super Admin", bg: "rgba(225,29,72,0.10)", color: "#e11d48", dot: "#e11d48" },
-  admin: { label: "Admin", bg: "rgba(245,158,11,0.12)", color: "#d97706", dot: "#f59e0b" },
-  user: { label: "User", bg: "rgba(16,185,129,0.10)", color: "#059669", dot: "#10b981" },
+  super_admin: { label: "Super Admin", bg: "rgba(16,185,129,0.10)", color: "#10b981", dot: "#10b981" },
+  admin: { label: "Admin", bg: "rgba(100,116,139,0.10)", color: "#64748b", dot: "#64748b" },
+  user: { label: "User", bg: "rgba(59,130,246,0.10)", color: "#3b82f6", dot: "#3b82f6" },
 };
 
 const AVATAR_PALETTE = [
-  ["#6366f1", "#8b5cf6"],
-  ["#0ea5e9", "#06b6d4"],
-  ["#10b981", "#14b8a6"],
-  ["#f59e0b", "#f97316"],
-  ["#ec4899", "#f43f5e"],
-  ["#8b5cf6", "#d946ef"],
+  ["#3b82f6", "#2563eb"], // blue
+  ["#10b981", "#059669"], // green
+  ["#64748b", "#475569"], // grey
+  ["#0284c7", "#0369a1"], // sky blue
+  ["#0d9488", "#0f766e"], // teal/green
+  ["#4b5563", "#374151"], // slate grey
 ];
 
 const gradientFor = (seed: string) => {
-  const idx = Math.abs(
-    seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
-  ) % AVATAR_PALETTE.length;
-  const [a, b] = AVATAR_PALETTE[idx];
-  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+  return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
+};
+
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+  const w = 96;
+  const h = 34;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const stepX = n > 1 ? w / (n - 1) : w;
+  const pts = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - 3 - (v / max) * (h - 8);
+    return [x, y] as const;
+  });
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block', width: '100%', maxWidth: '96px', height: 'auto' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 };
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -160,24 +193,24 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         onClick={() => onChange?.("work")}
         style={{
           padding: "16px",
-          border: value === "work" ? "2px solid #8b5cf6" : "1px solid var(--border-slate-100)",
+          border: value === "work" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
           borderRadius: 12,
-          background: value === "work" ? "rgba(139,92,246,0.03)" : "var(--bg-pure-white)",
+          background: value === "work" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
-          boxShadow: value === "work" ? "0 4px 12px rgba(139,92,246,0.1)" : "none",
+          boxShadow: value === "work" ? "0 4px 12px rgba(59,130,246,0.1)" : "none",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <MailOutlined style={{ color: value === "work" ? "#8b5cf6" : "var(--text-slate-400)" }} />
+            <MailOutlined style={{ color: value === "work" ? "#3b82f6" : "var(--text-slate-400)" }} />
             <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-slate-900)" }}>Work Mail</span>
           </div>
           <span style={{
             width: 16,
             height: 16,
             borderRadius: "50%",
-            border: value === "work" ? "5px solid #8b5cf6" : "1px solid var(--border-slate-300)",
+            border: value === "work" ? "5px solid #3b82f6" : "1px solid var(--border-slate-300)",
             display: "inline-block"
           }} />
         </div>
@@ -190,24 +223,24 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         onClick={() => onChange?.("personal")}
         style={{
           padding: "16px",
-          border: value === "personal" ? "2px solid #8b5cf6" : "1px solid var(--border-slate-100)",
+          border: value === "personal" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
           borderRadius: 12,
-          background: value === "personal" ? "rgba(139,92,246,0.03)" : "var(--bg-pure-white)",
+          background: value === "personal" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
-          boxShadow: value === "personal" ? "0 4px 12px rgba(139,92,246,0.1)" : "none",
+          boxShadow: value === "personal" ? "0 4px 12px rgba(59,130,246,0.1)" : "none",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <MailOutlined style={{ color: value === "personal" ? "#8b5cf6" : "var(--text-slate-400)" }} />
+            <MailOutlined style={{ color: value === "personal" ? "#3b82f6" : "var(--text-slate-400)" }} />
             <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-slate-900)" }}>Personal Mail</span>
           </div>
           <span style={{
             width: 16,
             height: 16,
             borderRadius: "50%",
-            border: value === "personal" ? "5px solid #8b5cf6" : "1px solid var(--border-slate-300)",
+            border: value === "personal" ? "5px solid #3b82f6" : "1px solid var(--border-slate-300)",
             display: "inline-block"
           }} />
         </div>
@@ -284,7 +317,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
         icon: <UserOutlined />,
         title: r.name,
         desc: r.description || "Custom organization role",
-        color: "#6366f1",
+        color: "#3b82f6",
       })),
   ];
 
@@ -315,8 +348,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               width: 36,
               height: 36,
               borderRadius: 9,
-              background: "rgba(139,92,246,0.10)",
-              color: "#8b5cf6",
+              background: "rgba(59,130,246,0.10)",
+              color: "#3b82f6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -398,35 +431,27 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             <Input placeholder="e.g. Jane Doe" />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 14,
-            }}
+          <Form.Item
+            name="workEmail"
+            label="Work email"
+            rules={[
+              { required: true, message: "Please enter work email" },
+              { type: "email", message: "Please enter valid email" },
+            ]}
           >
-            <Form.Item
-              name="workEmail"
-              label="Work email"
-              rules={[
-                { required: true, message: "Please enter work email" },
-                { type: "email", message: "Please enter valid email" },
-              ]}
-            >
-              <Input placeholder="jane@company.com" />
-            </Form.Item>
+            <Input placeholder="jane@company.com" />
+          </Form.Item>
 
-            <Form.Item
-              name="personalEmail"
-              label="Personal email"
-              rules={[
-                { required: true, message: "Please enter personal email" },
-                { type: "email", message: "Please enter valid email" },
-              ]}
-            >
-              <Input placeholder="jane@personal.com" />
-            </Form.Item>
-          </div>
+          <Form.Item
+            name="personalEmail"
+            label="Personal email"
+            rules={[
+              { required: true, message: "Please enter personal email" },
+              { type: "email", message: "Please enter valid email" },
+            ]}
+          >
+            <Input placeholder="jane@personal.com" />
+          </Form.Item>
 
           <Form.Item
             name="phone"
@@ -437,11 +462,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 validator: (_, value) => {
                   if (!value) return Promise.resolve();
                   const digits = value.replace(/\D/g, "");
-                  if (digits.length < 10) {
-                    return Promise.reject(new Error("Phone number must be 10 digit"));
-                  }
-                  if (digits.length > 10) {
-                    return Promise.reject(new Error("Phone number must be 10 digit"));
+                  if (digits.length !== 10) {
+                    return Promise.reject(new Error("Phone number must be exactly 10 digits"));
                   }
                   return Promise.resolve();
                 },
@@ -502,65 +524,57 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 14,
-            }}
-          >
-            {positionType === "grade" ? (
-              <Form.Item
-                name="position"
-                label="Position"
-                rules={[{ required: true, message: "Please select position" }]}
-              >
-                <Select
-                  placeholder="Select position"
-                  loading={positionsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {positions.map((position) => (
-                    <Option key={position.id} value={position.id}>
-                      {position.title}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            ) : (
-              <Form.Item
-                name="positionTitle"
-                label="Position Title"
-                rules={[{ required: true, message: "Please enter position title" }]}
-              >
-                <Input placeholder="e.g. Senior Software Architect" />
-              </Form.Item>
-            )}
-
-            <Form.Item name="reportsTo" label="Reports to">
+          {positionType === "grade" ? (
+            <Form.Item
+              name="position"
+              label="Position"
+              rules={[{ required: true, message: "Please select position" }]}
+            >
               <Select
-                placeholder="Select manager"
+                placeholder="Select position"
+                loading={positionsLoading}
                 showSearch
-                allowClear
                 optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.children ?? "")
-                    .toString()
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
               >
-                {managers
-                  .filter((m) => m.id !== selectedMember?.id)
-                  .map((manager) => (
-                    <Option key={manager.id} value={manager.id}>
-                      {manager.name}
-                    </Option>
-                  ))}
+                {positions.map((position) => (
+                  <Option key={position.id} value={position.id}>
+                    {position.title}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
-          </div>
+          ) : (
+            <Form.Item
+              name="positionTitle"
+              label="Position Title"
+              rules={[{ required: true, message: "Please enter position title" }]}
+            >
+              <Input placeholder="e.g. Senior Software Architect" />
+            </Form.Item>
+          )}
+
+          <Form.Item name="reportsTo" label="Reports to">
+            <Select
+              placeholder="Select manager"
+              showSearch
+              allowClear
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.children ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            >
+              {managers
+                .filter((m) => m.id !== selectedMember?.id)
+                .map((manager) => (
+                  <Option key={manager.id} value={manager.id}>
+                    {manager.name}
+                  </Option>
+                ))}
+            </Select>
+          </Form.Item>
 
           <div style={{ height: 8 }} />
           <SectionLabel>Schedule</SectionLabel>
@@ -581,6 +595,38 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             initialValue={[1, 2, 3, 4, 5]}
           >
             <DayPills />
+          </Form.Item>
+
+          <Form.Item
+            name="isActive"
+            label="Status"
+            initialValue={true}
+            rules={[{ required: true, message: "Please select status" }]}
+          >
+            <Select placeholder="Select status">
+              <Option value={true}>Active</Option>
+              <Option value={false}>Inactive</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="minWorkingHours"
+            label="Minimum Working Hours Per Day"
+            initialValue={6}
+            rules={[
+              { required: true, message: "Please enter minimum working hours" },
+              {
+                validator: (_, value) => {
+                  if (value === undefined || value === null) return Promise.resolve();
+                  if (value < 1 || value > 10) {
+                    return Promise.reject(new Error("Minimum working hours must be between 1 and 10"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
+            <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="e.g. 6" />
           </Form.Item>
 
           {mode === "add" && (
@@ -649,9 +695,9 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             height: 38,
             padding: "0 20px",
             fontWeight: 600,
-            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+            background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
             border: "none",
-            boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
+            boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
           }}
         >
           {mode === "add" ? "Add Member" : "Save Changes"}
@@ -755,6 +801,14 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
+const initialsOf = (name: string) =>
+  (name || '—')
+    .split(' ')
+    .map((s: string) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
 export default function MembersPage() {
   useActivitySource({ section: "ADMIN", module: "Members", page: "MemberList" });
   const { user, isLoading } = useAuth();
@@ -796,14 +850,43 @@ export default function MembersPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
 
+  // Layout and Sidebar view states
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [savedView, setSavedView] = useState<'all' | 'admin' | 'active' | 'inactive'>('all');
+  const [isActiveFilter, setIsActiveFilter] = useState<string | undefined>("all");
+  const [view, setView] = useState<'list' | 'grid'>('list');
+
   const memberStats = React.useMemo(() => {
     return {
-      total: pagination.total,
-      superAdmin: members.filter((m) => m.role === "super_admin").length,
-      admin: members.filter((m) => m.role === "admin").length,
-      user: members.filter((m) => m.role === "user").length,
+      total: allMembers.filter((m) => m.isActive).length,
+      superAdmin: allMembers.filter((m) => m.role === "super_admin" && m.isActive).length,
+      admin: allMembers.filter((m) => m.role === "admin" && m.isActive).length,
+      user: allMembers.filter((m) => m.role === "user" && m.isActive).length,
     };
-  }, [members, pagination.total]);
+  }, [allMembers]);
+
+  const viewCounts = React.useMemo(() => {
+    return {
+      active: allMembers.filter((m) => m.isActive).length,
+      inactive: allMembers.filter((m) => !m.isActive).length,
+      all: allMembers.length,
+      admin: allMembers.filter((m) => (m.role === "admin" || m.role === "super_admin") && m.isActive).length,
+    };
+  }, [allMembers]);
+
+  const getMemberTrend = (role?: string) => {
+    if (allMembers.length === 0) return [0, 0, 0, 0, 0];
+    const months = Array.from({ length: 5 }, (_, i) => dayjs().subtract(4 - i, 'month'));
+    return months.map((m) => {
+      const endOfMonth = m.endOf('month');
+      return allMembers.filter((u) => {
+        const created = dayjs(u.createdAt);
+        const matchesDate = created.isBefore(endOfMonth) || created.isSame(endOfMonth);
+        const matchesRole = role ? u.role === role : true;
+        return matchesDate && matchesRole && u.isActive;
+      }).length;
+    });
+  };
 
   const fetchMembers = async () => {
     try {
@@ -816,6 +899,7 @@ export default function MembersPage() {
         role: roleFilter,
         position: positionFilter,
         reportsToId: reportsToFilter,
+        isActive: isActiveFilter,
       });
 
       setMembers(response.data);
@@ -835,6 +919,15 @@ export default function MembersPage() {
     }
   };
 
+  const fetchAllMembers = async () => {
+    try {
+      const response = await MembersService.getMembers({ limit: 1000, isActive: "all" });
+      setAllMembers(response.data);
+    } catch (error) {
+      console.error("Failed to fetch all members for stats:", error);
+    }
+  };
+
   const fetchManagers = async () => {
     try {
       const managers = await MembersService.getMembersForSelect();
@@ -845,6 +938,7 @@ export default function MembersPage() {
               id: m.value,
               name: m.label,
               position: m.position ? { title: m.position, id: "" } : null,
+              avatarUrl: m.avatarUrl || null,
             }) as Member,
         ),
       );
@@ -880,10 +974,16 @@ export default function MembersPage() {
 
   useEffect(() => {
     if (user) {
-      fetchMembers();
       fetchManagers();
       fetchShifts();
       fetchRoles();
+      fetchAllMembers();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMembers();
     }
   }, [
     user,
@@ -893,7 +993,26 @@ export default function MembersPage() {
     roleFilter,
     positionFilter,
     reportsToFilter,
+    isActiveFilter,
   ]);
+
+  // Sync savedView with filters
+  useEffect(() => {
+    if (savedView === 'active') {
+      setIsActiveFilter("true");
+      setRoleFilter(undefined);
+    } else if (savedView === 'inactive') {
+      setIsActiveFilter("false");
+      setRoleFilter(undefined);
+    } else if (savedView === 'all') {
+      setIsActiveFilter("all");
+      setRoleFilter(undefined);
+    } else if (savedView === 'admin') {
+      setIsActiveFilter("true");
+      setRoleFilter('admin,super_admin');
+    }
+    setPagination(prev => ({ ...prev, current: 1 }));
+  }, [savedView]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -914,6 +1033,7 @@ export default function MembersPage() {
           isActive: values.isActive !== undefined ? values.isActive : true,
           workDays: values.workDays || [1, 2, 3, 4, 5],
           assignedShiftId: values.assignedShift || null,
+          minWorkingHours: values.minWorkingHours !== undefined ? Number(values.minWorkingHours) : 6,
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
         messageApi.success("Member updated successfully");
@@ -930,8 +1050,9 @@ export default function MembersPage() {
           reportsToId: values.reportsTo || null,
           workDays: values.workDays || [1, 2, 3, 4, 5],
           assignedShiftId: values.assignedShift || null,
-          isActive: true,
+          isActive: values.isActive !== undefined ? values.isActive : true,
           sendEmailTo: values.sendEmailTo || "work",
+          minWorkingHours: values.minWorkingHours !== undefined ? Number(values.minWorkingHours) : 6,
         };
         await MembersService.createMember(createPayload);
         messageApi.success("Member created successfully");
@@ -941,6 +1062,7 @@ export default function MembersPage() {
       form.resetFields();
       setSelectedMember(null);
       fetchMembers();
+      fetchAllMembers();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {
@@ -963,6 +1085,7 @@ export default function MembersPage() {
       setIsModalVisible(false);
       setSelectedMember(null);
       fetchMembers();
+      fetchAllMembers();
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
@@ -981,6 +1104,8 @@ export default function MembersPage() {
     form.setFieldsValue({
       sendEmailTo: "work",
       positionType: "grade",
+      isActive: true,
+      minWorkingHours: 6,
     });
     setSelectedMember(null);
     setIsModalVisible(true);
@@ -1008,6 +1133,7 @@ export default function MembersPage() {
         null,
       workDays: (member as any)?.workDays || [1, 2, 3, 4, 5],
       isActive: member?.isActive !== undefined ? member?.isActive : true,
+      minWorkingHours: (member as any)?.minWorkingHours || 6,
     });
     setIsModalVisible(true);
   };
@@ -1040,25 +1166,21 @@ export default function MembersPage() {
       width: 240,
       render: (text: string, record: Member) => (
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Badge
-            dot
-            offset={[-4, 32]}
-            color={record.isActive === false ? "#94a3b8" : "#10b981"}
+          <Avatar
+            size={38}
+            shape="square"
+            src={record.avatarUrl}
+            style={{
+              background: gradientFor(record.id || text || "x"),
+              color: "#fff",
+              fontSize: 14,
+              fontWeight: 700,
+              boxShadow: "0 2px 6px rgba(15,23,42,0.10)",
+              borderRadius: 10,
+            }}
           >
-            <Avatar
-              size={38}
-              src={record.avatarUrl}
-              style={{
-                background: gradientFor(record.id || text || "x"),
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: 700,
-                boxShadow: "0 2px 6px rgba(15,23,42,0.10)",
-              }}
-            >
-              {text?.charAt(0)?.toUpperCase()}
-            </Avatar>
-          </Badge>
+            {initialsOf(text)}
+          </Avatar>
           <div style={{ minWidth: 0 }}>
             <Text
               strong
@@ -1088,22 +1210,47 @@ export default function MembersPage() {
     {
       title: "Contact",
       key: "contact",
-      width: 240,
+      width: 280,
       render: (_, record: Member) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <Tooltip title="Work Email">
-            <Text
+            <div
               style={{
                 fontSize: 12.5,
                 color: "var(--text-slate-900)",
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
+                whiteSpace: "nowrap",
               }}
             >
               <MailOutlined style={{ fontSize: 11, color: "var(--text-slate-400)" }} />
-              {record.workEmail || "—"}
-            </Text>
+              <span>{record.workEmail || "—"}</span>
+              {record.workEmail && (
+                <Tooltip title="Copy Email">
+                  <CopyOutlined
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(record.workEmail);
+                      messageApi.success("Email copied to clipboard");
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      fontSize: 11,
+                      color: "var(--text-slate-400)",
+                      transition: "color 0.2s",
+                      marginLeft: 2,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--text-slate-900)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--text-slate-400)";
+                    }}
+                  />
+                </Tooltip>
+              )}
+            </div>
           </Tooltip>
           {record?.phone && (
             <Text
@@ -1142,9 +1289,9 @@ export default function MembersPage() {
         const rbacRole = record.userRoles?.[0]?.role;
         const label = rbacRole ? rbacRole.name : (ROLE_META[role]?.label || role);
         const meta = ROLE_META[role] || {
-          bg: "rgba(99,102,241,0.10)",
-          color: "#6366f1",
-          dot: "#6366f1",
+          bg: "rgba(59,130,246,0.10)",
+          color: "#3b82f6",
+          dot: "#3b82f6",
         };
 
         return (
@@ -1188,18 +1335,21 @@ export default function MembersPage() {
         if (!reportsTo) {
           return <Text style={{ fontSize: 12.5, color: "var(--text-slate-400)" }}>—</Text>;
         }
+        const reportsToObj = record?.reportsTo && typeof record.reportsTo === "object" ? record.reportsTo : null;
+        const avatarUrl = reportsToObj?.avatarUrl;
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Avatar
               size={22}
+              src={avatarUrl}
               style={{
-                background: gradientFor(reportsTo),
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 600,
+                background: 'rgba(59,130,246,0.10)',
+                color: '#3b82f6',
+                fontSize: 9,
+                fontWeight: 700,
               }}
             >
-              {reportsTo.charAt(0).toUpperCase()}
+              {initialsOf(reportsTo)}
             </Avatar>
             <Text style={{ fontSize: 12.5, color: "var(--text-slate-900)" }}>
               {reportsTo}
@@ -1209,7 +1359,46 @@ export default function MembersPage() {
       },
     },
     {
-      title: "",
+      title: "Status",
+      dataIndex: "isActive",
+      key: "isActive",
+      width: 120,
+      render: (isActive: boolean) => {
+        const bg = isActive ? "rgba(16,185,129,0.10)" : "rgba(239,68,68,0.10)";
+        const color = isActive ? "#10b981" : "#ef4444";
+        const dot = isActive ? "#10b981" : "#ef4444";
+        const label = isActive ? "Active" : "Inactive";
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 999,
+              background: bg,
+              color: color,
+              fontSize: 11.5,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: dot,
+                boxShadow: `0 0 0 2px ${bg}`,
+              }}
+            />
+            {label}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Actions",
       key: "actions",
       width: 64,
       align: "center",
@@ -1259,6 +1448,85 @@ export default function MembersPage() {
 
 
 
+  const sidebarViews = [
+    { key: 'all', label: 'All members', icon: <TeamOutlined />, color: '#3b82f6' },
+    { key: 'active', label: 'Active members', icon: <CheckCircleOutlined style={{ color: '#10b981' }} />, color: '#10b981' },
+    { key: 'inactive', label: 'Inactive members', icon: <CloseCircleOutlined style={{ color: '#ef4444' }} />, color: '#ef4444' },
+    { key: 'admin', label: 'Administrators', icon: <CrownOutlined style={{ color: '#10b981' }} />, color: '#10b981' },
+  ] as const;
+
+  const statCells = useMemo(() => {
+    const totalTrend = getMemberTrend();
+    const superAdminTrend = getMemberTrend('super_admin');
+    const adminTrend = getMemberTrend('admin');
+    const userTrend = getMemberTrend('user');
+
+    return [
+      {
+        key: 'total',
+        title: 'Total Members',
+        value: memberStats.total,
+        icon: <TeamOutlined />,
+        color: '#3b82f6', // Blue
+        tint: 'rgba(59,130,246,0.10)',
+        trend: totalTrend,
+        delta: allMembers.length,
+        deltaLabel: 'members',
+      },
+      {
+        key: 'superAdmin',
+        title: 'Super Admins',
+        value: memberStats.superAdmin,
+        icon: <CrownOutlined />,
+        color: '#10b981', // Green
+        tint: 'rgba(16,185,129,0.10)',
+        trend: superAdminTrend,
+        delta: memberStats.superAdmin,
+        deltaLabel: 'admins',
+      },
+      {
+        key: 'admin',
+        title: 'Team Admins',
+        value: memberStats.admin,
+        icon: <SafetyCertificateOutlined />,
+        color: '#64748b', // Grey
+        tint: 'rgba(100,116,139,0.10)',
+        trend: adminTrend,
+        delta: memberStats.admin,
+        deltaLabel: 'admins',
+      },
+      {
+        key: 'user',
+        title: 'Regular Users',
+        value: memberStats.user,
+        icon: <IdcardOutlined />,
+        color: '#3b82f6', // Blue
+        tint: 'rgba(59,130,246,0.10)',
+        trend: userTrend,
+        delta: memberStats.user,
+        deltaLabel: 'users',
+      },
+    ];
+  }, [memberStats, allMembers]);
+
+  const total = pagination.total;
+  const pageStart = total === 0 ? 0 : (pagination.current - 1) * pagination.pageSize + 1;
+  const pageEnd = Math.min(pagination.current * pagination.pageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / pagination.pageSize));
+
+  const emptyState = (
+    <div className="pp-empty">
+      <div className="pp-empty-orb"><Sparkles size={26} /></div>
+      <div className="pp-empty-title">No members found</div>
+      <div className="pp-empty-sub">Add a member to invite them to the workspace.</div>
+      {(canCreateUser || canManageUsers) && (
+        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={showAddModal} style={{ marginTop: 14 }}>
+          Add Member
+        </Button>
+      )}
+    </div>
+  );
+
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
   }
@@ -1274,221 +1542,58 @@ export default function MembersPage() {
 
   return (
     <MainLayout>
-      <div
-        style={{
-          margin: "0 -24px",
-          background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)",
-        }}
-      >
-        <TimeTrackingHeader
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 1000,
-            background: "var(--bg-pure-white)",
-            padding: "8.5px 32px",
-            borderBottom: "1px solid var(--border-slate-100)",
-            marginBottom: 20,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-          }}
-          icon={<TeamOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />}
-          title="Members Management"
-          description="Directory and access control for all organization members"
-          extra={
-            (canCreateUser || canManageUsers) ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={showAddModal}
-                size="large"
-                style={{
-                  borderRadius: 10,
-                  height: 40,
-                  fontWeight: 600,
-                  padding: "0 18px",
-                  background:
-                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
-                }}
-              >
-                Add Member
-              </Button>
-            ) : null
-          }
-        />
-
-        <div style={{ padding: "8px 32px 32px 32px" }}>
-          {/* Premium stats grid */}
-          <div className="mm-stat-grid">
-            <StatCard
-              label="Total Members"
-              value={memberStats.total}
-              icon={<TeamOutlined />}
-              accent="#6366f1"
-              subtle="Across all roles"
-              loading={loading && memberStats.total === 0}
-              chart={
-                memberStats.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: memberStats.superAdmin,
-                        color: "#e11d48",
-                        label: `${memberStats.superAdmin} super`,
-                      },
-                      {
-                        value: memberStats.admin,
-                        color: "#f59e0b",
-                        label: `${memberStats.admin} admin`,
-                      },
-                      {
-                        value: memberStats.user,
-                        color: "#10b981",
-                        label: `${memberStats.user} user`,
-                      },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Super Admins"
-              value={memberStats.superAdmin}
-              icon={<CrownOutlined />}
-              accent="#e11d48"
-              subtle={
-                memberStats.total > 0
-                  ? `${Math.round((memberStats.superAdmin / memberStats.total) * 100)}% of total`
-                  : "No members"
-              }
-              loading={loading && memberStats.total === 0}
-              chart={
-                memberStats.total > 0 ? (
-                  <div className="mm-progress-row">
-                    <div className="mm-progress-track">
-                      <span
-                        className="mm-progress-fill"
-                        style={{
-                          width: `${(memberStats.superAdmin / memberStats.total) * 100}%`,
-                          background: "linear-gradient(90deg, #e11d48, #f43f5e)",
-                        }}
-                      />
-                    </div>
-                    <span className="mm-progress-label">
-                      {Math.round((memberStats.superAdmin / memberStats.total) * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Team Admins"
-              value={memberStats.admin}
-              icon={<SafetyCertificateOutlined />}
-              accent="#f59e0b"
-              subtle={
-                memberStats.total > 0
-                  ? `${Math.round((memberStats.admin / memberStats.total) * 100)}% of total`
-                  : "No members"
-              }
-              loading={loading && memberStats.total === 0}
-              chart={
-                memberStats.total > 0 ? (
-                  <div className="mm-progress-row">
-                    <div className="mm-progress-track">
-                      <span
-                        className="mm-progress-fill"
-                        style={{
-                          width: `${(memberStats.admin / memberStats.total) * 100}%`,
-                          background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
-                        }}
-                      />
-                    </div>
-                    <span className="mm-progress-label">
-                      {Math.round((memberStats.admin / memberStats.total) * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Regular Users"
-              value={memberStats.user}
-              icon={<IdcardOutlined />}
-              accent="#10b981"
-              subtle={
-                memberStats.total > 0
-                  ? `${Math.round((memberStats.user / memberStats.total) * 100)}% of total`
-                  : "No members"
-              }
-              loading={loading && memberStats.total === 0}
-              chart={
-                memberStats.total > 0 ? (
-                  <div className="mm-progress-row">
-                    <div className="mm-progress-track">
-                      <span
-                        className="mm-progress-fill"
-                        style={{
-                          width: `${(memberStats.user / memberStats.total) * 100}%`,
-                          background: "linear-gradient(90deg, #10b981, #34d399)",
-                        }}
-                      />
-                    </div>
-                    <span className="mm-progress-label">
-                      {Math.round((memberStats.user / memberStats.total) * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
+      <div className="pp-shell">
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="pp-sidebar">
+          <div className="pp-side-head">
+            <div className="pp-side-logo"><TeamOutlined /></div>
+            <div className="pp-side-head-text">
+              <div className="pp-side-title">Members</div>
+              <div className="pp-side-subtitle">Directory & access</div>
+            </div>
           </div>
 
-          {/* Alerts */}
+          {(canCreateUser || canManageUsers) && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="pp-create-btn"
+              onClick={showAddModal}
+              block
+            >
+              Add Member
+            </Button>
+          )}
 
+          <div className="pp-side-scroll">
+            <div className="pp-side-section-label">Views</div>
+            <div className="pp-side-list">
+              {sidebarViews.map((v) => {
+                const active = savedView === v.key;
+                return (
+                  <button
+                    key={v.key}
+                    type="button"
+                    className={`pp-view-item ${active ? 'is-active' : ''}`}
+                    onClick={() => setSavedView(v.key)}
+                  >
+                    <span className="pp-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                    <span className="pp-view-label">{v.label}</span>
+                    <span className="pp-view-count">{viewCounts[v.key]}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Filters + Table */}
-          <Card
-            bordered={false}
-            className="mm-table-card"
-            style={{
-              borderRadius: 14,
-              border: "1px solid var(--border-slate-100)",
-              boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-              background: "var(--bg-pure-white)",
-              overflow: "hidden",
-            }}
-            styles={{ body: { padding: 0 } }}
-          >
-            {/* Toolbar — single row */}
-            <div className="mm-toolbar-v2">
-              <Input
-                placeholder="Search name, email…"
-                prefix={
-                  <SearchOutlined style={{ color: "var(--text-slate-400)", marginRight: 6 }} />
-                }
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="mm-search"
-                allowClear
-              />
-
-              <Select
-                placeholder={
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <UserOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
-                    Role
-                  </span>
-                }
-                value={roleFilter}
-                onChange={setRoleFilter}
-                className="mm-select"
-                allowClear
-                style={{ flex: "1 1 140px", minWidth: 130, maxWidth: 180 }}
+            <div className="pp-side-section-label">Filters</div>
+            <div className="pp-side-filters">
+              <SearchableDropdown
+                className="pp-side-sd"
+                placeholder="Role"
+                searchPlaceholder="Search roles"
+                itemNoun="roles"
+                value={roleFilter ?? undefined}
+                onChange={(v) => setRoleFilter(v ?? undefined)}
                 options={[
                   { value: "super_admin", label: "Super Admin" },
                   { value: "admin", label: "Admin" },
@@ -1497,231 +1602,710 @@ export default function MembersPage() {
                     .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
                     .map((r) => ({ value: r.slug, label: r.name })),
                 ]}
+                width={212}
+                hideAvatar
               />
 
-              <Select
-                placeholder={
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <IdcardOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
-                    Position
-                  </span>
-                }
-                value={positionFilter}
-                onChange={setPositionFilter}
-                className="mm-select"
-                allowClear
-                loading={positionsLoading}
-                showSearch
-                optionFilterProp="label"
-                style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 220 }}
-                options={positions.map((position) => ({
-                  value: position.title,
-                  label: position.title,
+              <SearchableDropdown
+                className="pp-side-sd"
+                placeholder="Position"
+                searchPlaceholder="Search positions"
+                itemNoun="positions"
+                value={positionFilter ?? undefined}
+                onChange={(v) => setPositionFilter(v ?? undefined)}
+                options={positions.map((p) => ({ value: p.title, label: p.title }))}
+                width={212}
+                disabled={positions.length === 0}
+                hideAvatar
+              />
+
+              <SearchableDropdown
+                className="pp-side-sd"
+                placeholder="Reports to"
+                searchPlaceholder="Search managers"
+                itemNoun="managers"
+                value={reportsToFilter ?? undefined}
+                onChange={(v) => setReportsToFilter(v ?? undefined)}
+                options={managers.map((m) => ({
+                  value: m.id,
+                  label: m.name,
+                  avatarUrl: m.avatarUrl || null,
+                  description: m.position?.title || undefined,
                 }))}
+                width={212}
+                disabled={managers.length === 0}
               />
 
-              <Select
-                placeholder={
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <CrownOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
-                    Reports to
-                  </span>
-                }
-                value={reportsToFilter}
-                onChange={setReportsToFilter}
-                className="mm-select"
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                style={{ flex: "1 1 200px", minWidth: 180, maxWidth: 260 }}
-                options={managers.map((manager) => ({
-                  value: manager.id,
-                  label: manager.name,
-                  rich: (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <Avatar
-                        size={22}
-                        style={{
-                          background: gradientFor(manager.id || manager.name),
-                          fontSize: 10,
-                          fontWeight: 600,
-                          color: "#fff",
-                        }}
-                      >
-                        {manager.name?.charAt(0)?.toUpperCase()}
-                      </Avatar>
-                      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                        <span style={{ fontWeight: 600, color: "var(--text-slate-800)", fontSize: 13 }}>
-                          {manager.name}
-                        </span>
-                        {manager.position?.title && (
-                          <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
-                            {manager.position.title}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ),
-                }))}
-                optionRender={(option) => (option.data as any).rich}
-              />
-
-              {hasActiveFilters && (
-                <Tooltip title="Clear all filters">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={handleClearFilters}
-                    className="mm-clear-btn"
-                  >
-                    Reset
-                  </Button>
-                </Tooltip>
+              {(searchTerm || roleFilter || positionFilter || reportsToFilter) && (
+                <button
+                  type="button"
+                  className="pp-clear-filters"
+                  onClick={() => {
+                    handleClearFilters();
+                    setSavedView('all');
+                  }}
+                >
+                  <CloseCircleOutlined /> Clear filters
+                </button>
               )}
-
-              <div className="mm-toolbar-v2__divider" />
-
-              <div className="mm-toolbar-v2__meta">
-                <FilterOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />
-                <Text className="mm-count-text">
-                  <strong>{pagination.total}</strong>{" "}
-                  {pagination.total === 1 ? "member" : "members"}
-                </Text>
-              </div>
             </div>
-
-            {/* Table */}
-            <Table
-              className="mm-table"
-              columns={columns}
-              dataSource={members}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) =>
-                  `${range[0]}–${range[1]} of ${total}`,
-                onChange: (page, pageSize) => {
-                  setPagination((prev) => ({
-                    ...prev,
-                    current: page,
-                    pageSize: pageSize || 10,
-                  }));
-                },
-                style: { padding: "16px 20px" },
-              }}
-              scroll={{ x: 1024 }}
-            />
-          </Card>
-        </div>
-
-        {/* Delete confirmation modal */}
-        <Modal
-          className="mm-modal"
-          title={
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "rgba(225,29,72,0.10)",
-                  color: "#e11d48",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                }}
-              >
-                <DeleteOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                  Delete Member
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                  This action will deactivate the account
-                </div>
-              </div>
-            </div>
-          }
-          open={isModalVisible && modalType === "delete"}
-          onCancel={() => {
-            setIsModalVisible(false);
-            setSelectedMember(null);
-          }}
-          footer={null}
-          width={440}
-          destroyOnClose
-        >
-          <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5 }}>
-            Are you sure you want to delete{" "}
-            <strong style={{ color: "var(--text-slate-900)" }}>
-              {selectedMember?.name}
-            </strong>
-            ? This action will deactivate the member account and revoke their
-            access.
-          </Text>
-          <div style={{ marginTop: 24, textAlign: "right" }}>
-            <Space>
-              <Button onClick={() => setIsModalVisible(false)} style={{ borderRadius: 8 }}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                danger
-                loading={formLoading}
-                onClick={handleDelete}
-                style={{ borderRadius: 8, fontWeight: 600 }}
-              >
-                Delete Member
-              </Button>
-            </Space>
           </div>
-        </Modal>
+        </aside>
 
-        {/* Add / Edit Drawer */}
-        <Drawer
-          className="mm-drawer"
-          width={560}
-          open={isModalVisible && modalType !== "delete"}
+        {/* ============================ MAIN ============================ */}
+        <main className="pp-main">
+          {/* Top search & views bar */}
+          <div className="pp-topbar">
+            <div className="pp-search-wrap">
+              <SearchOutlined className="pp-search-icon" />
+              <input
+                className="pp-search"
+                placeholder="Search name, position, email…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="pp-topbar-meta">
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{pagination.total}</strong> members</span>
+            </div>
+
+            <div className="pp-topbar-actions">
+              <div className="pp-segmented">
+                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+              </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={() => { fetchMembers(); fetchAllMembers(); }}><ReloadOutlined spin={loading} /></button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="pp-divider" />
+
+          {/* Stats Cards */}
+          <div className="pp-stats">
+            {statCells.map((s) => (
+              <div key={s.key} className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
+                    <span className="pp-stat-label">{s.title}</span>
+                  </div>
+                  {s.delta > 0 && (
+                    <span className="pp-stat-delta" style={{ color: s.color, background: s.tint }}>
+                      +{s.delta} {s.deltaLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{s.value}</span>
+                    <span className="pp-stat-period">monthly trend</span>
+                  </div>
+                  <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Main Body */}
+          <div className="pp-body">
+            {view === 'list' ? (
+              <div className="pp-table-wrap">
+                <Table
+                  className="pp-table"
+                  columns={columns}
+                  dataSource={members}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                  scroll={{ x: 1024 }}
+                  locale={{ emptyText: emptyState }}
+                />
+              </div>
+            ) : (
+              <div className="pp-grid">
+                {loading && members.length === 0 ? (
+                  <div className="pp-grid-loading">Loading…</div>
+                ) : members.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                ) : (
+                  members.map((item) => {
+                    const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
+                    const rbacRole = (item as any).userRoles?.[0]?.role;
+                    const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);
+                    const roleMeta = ROLE_META[item.role] || {
+                      bg: "rgba(59,130,246,0.10)",
+                      color: "#3b82f6",
+                      dot: "#3b82f6",
+                    };
+                    const menuItems = [];
+                    if (canUpdateUser || canManageUsers) {
+                      menuItems.push({
+                        key: "edit",
+                        icon: <EditOutlined />,
+                        label: "Edit member",
+                        onClick: () => showEditModal(item),
+                      });
+                    }
+                    if (canDeleteUser || canManageUsers) {
+                      menuItems.push({
+                        key: "delete",
+                        icon: <DeleteOutlined />,
+                        label: "Delete member",
+                        danger: true,
+                        onClick: () => showDeleteModal(item),
+                      });
+                    }
+
+                    const dropdownMenu = {
+                      items: menuItems,
+                      onClick: ({ key, domEvent }: any) => {
+                        domEvent.stopPropagation();
+                        if (key === 'edit') showEditModal(item);
+                        else if (key === 'delete') showDeleteModal(item);
+                      }
+                    };
+
+                    return (
+                      <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
+                        <div className="pc-top">
+                          <Avatar
+                            size={34}
+                            shape="square"
+                            src={item.avatarUrl}
+                            style={{
+                              background: gradientFor(item.id || item.name || "x"),
+                              color: "#fff",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              borderRadius: 9,
+                            }}
+                          >
+                            {initialsOf(item.name || '')}
+                          </Avatar>
+                          <div className="pc-identity-body">
+                            <Tooltip title={item.name} placement="topLeft">
+                              <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
+                            </Tooltip>
+                            <div className="pc-client-line">
+                              <span className="pc-client-val" style={{ fontSize: '11px', color: 'var(--text-slate-500)' }}>
+                                {item.position?.title || "—"}
+                              </span>
+                            </div>
+                          </div>
+                          {menuItems.length > 0 && (
+                            <Dropdown
+                              menu={dropdownMenu}
+                              trigger={['click']}
+                              placement="bottomRight"
+                            >
+                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
+                          )}
+                        </div>
+
+                        <div className="pc-foot" style={{ height: '80px' }}>
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
+                              <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.workEmail || "—"}</span>
+                            </span>
+                            {item.phone && (
+                              <>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
+                                  <span className="pc-foot-val" style={{ fontSize: '11px' }}>{item.phone}</span>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
+                            <span className="pc-foot-item" style={{ display: "flex", gap: 4 }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: roleMeta.bg,
+                                  color: roleMeta.color,
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {roleLabel}
+                              </span>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: item.isActive ? "rgba(16,185,129,0.10)" : "rgba(248,113,113,0.10)",
+                                  color: item.isActive ? "#10b981" : "#f87171",
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {item.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </span>
+                            {reportsTo && (
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Reports:</span>
+                                <span className="pc-foot-val" style={{ fontWeight: 600 }}>{reportsTo}</span>
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="pc-foot-item pc-view-btn"
+                              onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
+                              style={{ fontSize: '11px' }}
+                            >
+                              <EditOutlined /> Edit
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sticky footer pagination */}
+          {total > 0 && (
+            <div className="pp-footer pp-footer--sticky">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={pagination.current <= 1} onClick={() => setPagination(p => ({ ...p, current: Math.max(1, p.current - 1) }))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, pagination.current - 3), Math.max(0, pagination.current - 3) + 5).map((p) => (
+                  <button key={p} type="button" className={`pp-pager-num ${p === pagination.current ? 'is-active' : ''}`} onClick={() => setPagination(prev => ({ ...prev, current: p }))}>{p}</button>
+                ))}
+                <button type="button" className="pp-pager-btn" disabled={pagination.current >= pageCount} onClick={() => setPagination(p => ({ ...p, current: Math.min(pageCount, p.current + 1) }))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pagination.pageSize}
+                  onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
+                  options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        className="mm-modal"
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "rgba(225,29,72,0.10)",
+                color: "#e11d48",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+              }}
+            >
+              <DeleteOutlined />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                Delete Member
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                This action will deactivate the account
+              </div>
+            </div>
+          </div>
+        }
+        open={isModalVisible && modalType === "delete"}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setSelectedMember(null);
+        }}
+        footer={null}
+        width={440}
+        destroyOnClose
+      >
+        <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5 }}>
+          Are you sure you want to delete{" "}
+          <strong style={{ color: "var(--text-slate-900)" }}>
+            {selectedMember?.name}
+          </strong>
+          ? This action will deactivate the member account and revoke their
+          access.
+        </Text>
+        <div style={{ marginTop: 24, textAlign: "right" }}>
+          <Space>
+            <Button onClick={() => setIsModalVisible(false)} style={{ borderRadius: 8 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              danger
+              loading={formLoading}
+              onClick={handleDelete}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+            >
+              Delete Member
+            </Button>
+          </Space>
+        </div>
+      </Modal>
+
+      {/* Add / Edit Drawer */}
+      <Drawer
+        className="mm-drawer"
+        width={460}
+        open={isModalVisible && modalType !== "delete"}
+        onClose={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+          setSelectedMember(null);
+        }}
+        closable={false}
+        destroyOnClose
+        styles={{
+          body: { padding: 0, background: "var(--bg-pure-white)" },
+          header: { display: "none" },
+          content: { background: "var(--bg-pure-white)" },
+        }}
+        footer={null}
+      >
+        <MemberDrawerContent
+          mode={modalType as "add" | "edit"}
+          selectedMember={selectedMember}
+          form={form}
+          formLoading={formLoading}
           onClose={() => {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedMember(null);
           }}
-          closable={false}
-          destroyOnClose
-          styles={{
-            body: { padding: 0, background: "var(--bg-pure-white)" },
-            header: { display: "none" },
-            content: { background: "var(--bg-pure-white)" },
-          }}
-          footer={null}
-        >
-          <MemberDrawerContent
-            mode={modalType as "add" | "edit"}
-            selectedMember={selectedMember}
-            form={form}
-            formLoading={formLoading}
-            onClose={() => {
-              setIsModalVisible(false);
-              form.resetFields();
-              setSelectedMember(null);
-            }}
-            onSubmit={handleSubmit}
-            positions={positions}
-            positionsLoading={positionsLoading}
-            managers={managers}
-            shifts={shifts}
-            availableRoles={availableRoles}
-          />
-        </Drawer>
+          onSubmit={handleSubmit}
+          positions={positions}
+          positionsLoading={positionsLoading}
+          managers={managers}
+          shifts={shifts}
+          availableRoles={availableRoles}
+        />
+      </Drawer>
 
-      </div>
+      <style jsx global>{`
+        .pp-shell {
+          display: flex;
+          margin: 0 -24px;
+          min-height: calc(100vh - 64px);
+          background: var(--bg-pure-white);
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        }
+
+        /* ---------------- Sidebar ---------------- */
+        .pp-sidebar {
+          width: 264px;
+          flex-shrink: 0;
+          border-right: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+          padding: 14px 14px 0 38px;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 64px);
+          z-index: 31;
+        }
+        .pp-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .pp-side-logo {
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .pp-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .pp-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+        }
+        .pp-create-btn {
+          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          background: #3B82F6 !important;
+          border: none !important; box-shadow: none !important;
+          margin-bottom: 12px;
+          color: #fff !important;
+        }
+        .pp-create-btn:hover { background: #2563EB !important; }
+        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-side-scroll {
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: hidden;
+          margin: 0;
+          padding: 0;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .pp-side-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .pp-side-section-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        }
+        .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
+        .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
+        .pp-view-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+          cursor: pointer; transition: background .12s ease; text-align: left;
+        }
+        .pp-view-item:hover { background: var(--bg-slate-50); }
+        .pp-view-item.is-active { background: var(--bg-blue-50); }
+        .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .pp-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+        .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        .pp-view-count {
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+          min-width: 18px; text-align: right;
+        }
+        .pp-view-item.is-active .pp-view-count {
+          color: #3B82F6; font-weight: 700;
+          background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+        }
+        .pp-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+        .pp-side-sd { border-radius: 8px !important; }
+        .pp-side-sd.sd-trigger,
+        .pp-side-sd.sd-trigger.is-compact { height: 35px !important; border-radius: 8px !important; }
+        .pp-side-select .ant-select-selector {
+          border-radius: 8px !important; border-color: var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .pp-side-select { width: 100%; }
+        .pp-side-select .ant-select-selector { height: 35px !important; padding: 0 12px !important; display: flex; align-items: center; }
+        .pp-side-select .ant-select-selection-placeholder,
+        .pp-side-select .ant-select-selection-item { font-size: 13px; line-height: 33px !important; }
+        .pp-clear-filters {
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #64748b;
+        }
+        .pp-clear-filters:hover { color: #3b82f6; }
+
+        /* ---------------- Main ---------------- */
+        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-search-wrap {
+          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900);
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .pp-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-meta-dot { color: var(--text-slate-300); }
+        .pp-pulse {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          margin-right: 5px;
+          position: relative;
+          vertical-align: middle;
+        }
+        .pp-pulse::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          border-radius: 50%;
+          background: inherit;
+          animation: pp-pulse-ping 2s infinite ease-out;
+        }
+        @keyframes pp-pulse-ping {
+          0% {
+            transform: scale(1);
+            opacity: 0.85;
+          }
+          100% {
+            transform: scale(2.8);
+            opacity: 0;
+          }
+        }
+        .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+
+        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+
+        /* Stat cards */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); line-height: 1.25; }
+        .pp-stat-delta {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          font-size: 10.5px;
+          font-weight: 700;
+          border-radius: 6px;
+          padding: 1px 6px;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+
+        /* Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
+        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-tbody > tr { cursor: pointer; }
+
+        /* Footer + pager */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+        }
+        .pp-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          margin: 8px -32px 0 -20px;
+          padding: 0 32px 0 20px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 45px;
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        /* Empty + grid */
+        .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+        .pp-empty-orb {
+          width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+          background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
+        }
+        .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+        .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+        .pp-btn-primary {
+          background: #3B82F6 !important; border: none !important;
+          border-radius: 8px !important; font-weight: 600 !important;
+        }
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+          height: 132px;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; height: 52px; overflow: hidden; }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); height: 78px; justify-content: center; }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; padding: 6px 12px; overflow: hidden; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); flex-shrink: 0; }
+        .pc-view-btn {
+          background: none; border: none; cursor: pointer; padding: 0;
+          color: #3B82F6; font-weight: 700; font-size: 11.5px;
+        }
+        .pc-view-btn .anticon { font-size: 12px; }
+        .pc-view-btn:hover { text-decoration: underline; }
+
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 1250px) {
+          .pp-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .pp-stats { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 820px) {
+          .pp-sidebar { display: none; }
+          .pp-topbar-meta { display: none; }
+        }
+      `}</style>
     </MainLayout>
   );
 }

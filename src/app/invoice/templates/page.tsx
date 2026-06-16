@@ -600,7 +600,7 @@ export default function InvoiceTemplatePage() {
                           <FileText size={14} style={{ color: "#fff" }} />
                         </div>
                         <div className="pc-identity-body">
-                          <div className="pc-title">
+                          <div className="pc-title" style={{ fontSize: '13px' }}>
                             {template.name}
                             {template.isDefault && (
                               <Star
@@ -922,6 +922,7 @@ export default function InvoiceTemplatePage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         }
 
         /* ---------------- Sidebar ---------------- */

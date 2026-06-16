@@ -465,7 +465,10 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "progress",
       width: 200,
       render: (_: any, record: any) => {
-        const targetSeconds = 6 * 3600; // 6 hours
+        // Find matching member in useMembers data to get custom minWorkingHours
+        const matchedMember = members.find((m: any) => m.value === record.user?.id);
+        const goalHours = matchedMember?.minWorkingHours ?? 6;
+        const targetSeconds = goalHours * 3600;
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
@@ -488,7 +491,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           >
             <div style={{ width: '100%', cursor: 'help' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h`}</Text>
+                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
                 <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 6, background: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-divider)' }}>

@@ -759,7 +759,7 @@ export default function InvoiceproCustomerPage() {
                           {initialsOf(customer.companyName)}
                         </div>
                         <div className="pc-identity-body">
-                          <div className="pc-title">{customer.companyName}</div>
+                          <div className="pc-title" style={{ fontSize: '13px' }}>{customer.companyName}</div>
                           <div className="pc-client-line">
                             <span className="pc-client-key">Tax ID:</span>
                             <span className="pc-client-val">
@@ -1109,6 +1109,7 @@ export default function InvoiceproCustomerPage() {
           margin: 0 -24px;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         }
 
         /* ---------------- Sidebar ---------------- */

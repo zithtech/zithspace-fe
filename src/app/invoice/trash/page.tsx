@@ -591,6 +591,9 @@ export default function InvoiceTrashPage() {
           margin: "0 -24px",
           background: "var(--customers-page-bg)",
           minHeight: "calc(100vh - 54px)",
+          display: "flex",
+          flexDirection: "column",
+          fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
         }}
       >
         {/* TOP BAR */}
@@ -683,7 +686,7 @@ export default function InvoiceTrashPage() {
           </div>
         </div>
 
-        <div className="px-6 pt-4 pb-8">
+        <div className="px-6 pt-4 pb-8" style={{ flex: "1 0 auto" }}>
           <div className="mx-auto max-w-[1600px]">
             {/* STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">

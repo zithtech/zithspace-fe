@@ -964,7 +964,7 @@ export default function InvoiceSettingPage() {
                               )}
                             </div>
                             <div className="pc-identity-body">
-                              <div className="pc-title">
+                              <div className="pc-title" style={{ fontSize: '13px' }}>
                                 {setting.general?.companyName || "Unnamed profile"}
                               </div>
                               <div className="pc-client-line">
@@ -2019,7 +2019,7 @@ export default function InvoiceSettingPage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); }
+        .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif; }
         .pp-sidebar { width: 264px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; padding: 14px 14px 0 38px; position: sticky; top: 0; height: calc(100vh - 54px); z-index: 31; }
         .pp-side-head { display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
         .pp-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-slate-900); }

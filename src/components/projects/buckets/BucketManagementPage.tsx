@@ -50,7 +50,9 @@ import {
   ClockCircleOutlined,
   CalendarOutlined,
   UserOutlined,
-  TagOutlined
+  TagOutlined,
+  CloseCircleOutlined,
+  RocketOutlined
 } from "@ant-design/icons";
 import {
   useBuckets,
@@ -168,6 +170,16 @@ const ColumnTitle: React.FC<{
     </span>
   );
 };
+
+const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
 
 export default function BucketManagementPage() {
   const { message } = App.useApp();
@@ -517,7 +529,7 @@ export default function BucketManagementPage() {
                 {ownerInitials}
               </Avatar>
             )}
-            <span className="text-[12.5px] bmp-table-text-primary truncate">{ownerName}</span>
+            <span className="text-[12.5px] bmp-table-text-primary truncate">{ownerName.split(" ")[0]}</span>
           </div>
         );
       },
@@ -542,8 +554,8 @@ export default function BucketManagementPage() {
       width: 100,
       fixed: "right",
       render: (_, record) => (
-        <div className="flex items-center justify-start pr-2 gap-1" onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="View tickets">
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="View Bucket">
             <Button
               type="text"
               size="small"
@@ -552,54 +564,34 @@ export default function BucketManagementPage() {
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
             />
           </Tooltip>
-          {canUpdateTicketBucket && (
-            <Tooltip title="Configure bucket">
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              />
-            </Tooltip>
-          )}
           <Dropdown
             trigger={["click"]}
             placement="bottomRight"
+            overlayClassName="pp-action-pop"
             menu={{
               items: [
                 {
-                  key: "move-backlog",
-                  icon: <RollbackOutlined style={{ color: "#64748b" }} />,
-                  label: "Move to Backlog",
-                  disabled: (record._count?.tickets || 0) === 0,
-                  onClick: () => {
-                    import("antd").then(({ Modal }) => {
-                      Modal.confirm({
-                        title: "Move to backlog",
-                        content: "Move all tickets back to backlog?",
-                        onOk: () => {
-                          moveBucketToBacklog.mutate(record.id, {
-                            onSuccess: (result) => {
-                              if (result.movedCount > 0)
-                                message.success("Tickets removed from sprint");
-                              else message.info("This bucket has no tickets to move");
-                            },
-                            onError: (err: any) =>
-                              message.error(err.message || "Movement failed"),
-                          });
-                        },
-                      });
-                    });
-                  },
+                  key: "view",
+                  label: menuLabel("View bucket", "Open bucket details", <EyeOutlined />, "#3b82f6", "rgba(59,130,246,0.12)"),
+                  onClick: () => handleView(record.id),
                 },
+                ...(canUpdateTicketBucket
+                  ? [
+                    {
+                      key: "edit",
+                      label: menuLabel("Configure", "Edit bucket settings", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
+                      onClick: () => handleEdit(record),
+                    },
+                  ]
+                  : []),
+                { type: "divider" as const },
                 {
                   key: "move-sprint",
                   label: (
                     <div onClick={(e) => e.stopPropagation()}>
                       <MoveToSprintAction
                         bucket={record}
-                        asMenuItem
+                        customTrigger={menuLabel("Move to Sprint", "Move tickets to sprint", <RocketOutlined />, "#8b5cf6", "rgba(139,92,246,0.12)")}
                         onMove={(sprintId) =>
                           moveBucketToSprint.mutate(
                             { bucketId: record.id, sprintId },
@@ -623,13 +615,37 @@ export default function BucketManagementPage() {
                     </div>
                   ),
                 },
+                {
+                  key: "move-backlog",
+                  label: menuLabel("Move to Backlog", "Move all tickets back", <RollbackOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
+                  disabled: (record._count?.tickets || 0) === 0,
+                  onClick: () => {
+                    import("antd").then(({ Modal }) => {
+                      Modal.confirm({
+                        title: "Move to backlog",
+                        content: "Move all tickets back to backlog?",
+                        onOk: () => {
+                          moveBucketToBacklog.mutate(record.id, {
+                            onSuccess: (result) => {
+                              if (result.movedCount > 0)
+                                message.success("Tickets removed from sprint");
+                              else message.info("This bucket has no tickets to move");
+                            },
+                            onError: (err: any) =>
+                              message.error(err.message || "Movement failed"),
+                          });
+                        },
+                      });
+                    });
+                  },
+                },
                 ...(canDeleteTicketBucket
                   ? [
                     { type: "divider" as const },
                     {
                       key: "delete",
-                      icon: <DeleteOutlined style={{ color: "#ef4444" }} />,
-                      label: <span className="text-red-500">Delete bucket</span>,
+                      danger: true,
+                      label: menuLabel("Delete bucket", "Remove this bucket", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
                       onClick: () => handleDelete(record.id),
                     },
                   ]
@@ -651,7 +667,7 @@ export default function BucketManagementPage() {
 
   const renderTable = () => {
     return (
-      <div className="dh-table-shell mt-3" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", overflow: "hidden" }}>
+      <div className="bh2-table-shell">
         <Table
           columns={columns}
           dataSource={pagedBuckets}
@@ -693,11 +709,11 @@ export default function BucketManagementPage() {
             <div className="bh2-sidebar-top">
               <div className="bh2-sidebar-brand">
                 <div className="bh2-hero-icon-box">
-                  <FolderOpenOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                  <FolderOpenOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                 </div>
                 <div className="min-w-0">
                   <h1 className="bh2-sidebar-title">Buckets Hub</h1>
-                  <p className="bh2-sidebar-subtitle">Strategic task organization</p>
+                  <p className="bh2-sidebar-subtitle"> Task organization</p>
                 </div>
               </div>
               {canCreateTicketBucket && (
@@ -776,14 +792,14 @@ export default function BucketManagementPage() {
                   {(visibilityFilter !== "all" || ownerFilter || (dateRange && (dateRange[0] || dateRange[1]))) && (
                     <button
                       type="button"
-                      className="bh2-side-clear"
+                      className="bh2-sidebar-clear"
                       onClick={() => {
                         setVisibilityFilter("all");
                         setOwnerFilter(null);
                         setDateRange(null);
                       }}
                     >
-                      <CloseOutlined style={{ fontSize: 10 }} />
+                      <CloseCircleOutlined style={{ fontSize: 12 }} />
                       Clear filters
                     </button>
                   )}
@@ -808,66 +824,66 @@ export default function BucketManagementPage() {
                   {projectOrder
                     .slice(0, showAllProjects ? projectOrder.length : 5)
                     .map((proj, i) => {
-                    const group = bucketsByProject.get(proj.key);
-                    const buckets = group?.buckets || [];
-                    const isExpanded = expandedProjects.has(proj.key);
-                    const isActive = selectedProjectKey === proj.key;
-                    const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
-                    const initial = proj.name.charAt(0).toUpperCase();
-                    return (
-                      <React.Fragment key={proj.key}>
-                        <div className={`bh2-sidebar-proj-row ${isActive ? "active" : ""}`}>
-                          <button
-                            className="bh2-sidebar-proj-toggle"
-                            onClick={() => toggleProject(proj.key)}
-                            aria-label={isExpanded ? "Collapse" : "Expand"}
-                          >
-                            {isExpanded ? (
-                              <DownOutlined style={{ fontSize: 8 }} />
-                            ) : (
-                              <RightOutlined style={{ fontSize: 8 }} />
-                            )}
-                          </button>
-                          <button
-                            className="bh2-sidebar-proj-main"
-                            onClick={() =>
-                              setSelectedProjectKey((prev) => (prev === proj.key ? null : proj.key))
-                            }
-                            title={proj.name}
-                          >
-                            <span className="bh2-view-icon" style={{ color }}>
-                              <ProjectOutlined />
-                            </span>
-                            <span className="bh2-view-label">{proj.name}</span>
-                            <span className="bh2-view-count">{buckets.length}</span>
-                          </button>
-                        </div>
-                        {isExpanded && (
-                          <div className="bh2-sidebar-children">
-                            {buckets.length === 0 ? (
-                              <div className="bh2-sidebar-empty-mini">No buckets</div>
-                            ) : (
-                              buckets.map((b) => (
-                                <button
-                                  key={b.id}
-                                  className="bh2-sidebar-bucket"
-                                  onClick={() => handleView(b.id)}
-                                  title={b.name}
-                                >
-                                  <span
-                                    className="bh2-sidebar-bucket-dot"
-                                    style={{ background: b.color || PALETTE_FALLBACK }}
-                                  />
-                                  <span className="bh2-sidebar-bucket-label">{b.name}</span>
-                                  <span className="bh2-sidebar-bucket-count">{b._count?.tickets || 0}</span>
-                                </button>
-                              ))
-                            )}
+                      const group = bucketsByProject.get(proj.key);
+                      const buckets = group?.buckets || [];
+                      const isExpanded = expandedProjects.has(proj.key);
+                      const isActive = selectedProjectKey === proj.key;
+                      const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                      const initial = proj.name.charAt(0).toUpperCase();
+                      return (
+                        <React.Fragment key={proj.key}>
+                          <div className={`bh2-sidebar-proj-row ${isActive ? "active" : ""}`}>
+                            <button
+                              className="bh2-sidebar-proj-toggle"
+                              onClick={() => toggleProject(proj.key)}
+                              aria-label={isExpanded ? "Collapse" : "Expand"}
+                            >
+                              {isExpanded ? (
+                                <DownOutlined style={{ fontSize: 8 }} />
+                              ) : (
+                                <RightOutlined style={{ fontSize: 8 }} />
+                              )}
+                            </button>
+                            <button
+                              className="bh2-sidebar-proj-main"
+                              onClick={() =>
+                                setSelectedProjectKey((prev) => (prev === proj.key ? null : proj.key))
+                              }
+                              title={proj.name}
+                            >
+                              <span className="bh2-view-icon" style={{ color }}>
+                                <ProjectOutlined />
+                              </span>
+                              <span className="bh2-view-label">{proj.name}</span>
+                              <span className="bh2-view-count">{buckets.length}</span>
+                            </button>
                           </div>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                          {isExpanded && (
+                            <div className="bh2-sidebar-children">
+                              {buckets.length === 0 ? (
+                                <div className="bh2-sidebar-empty-mini">No buckets</div>
+                              ) : (
+                                buckets.map((b) => (
+                                  <button
+                                    key={b.id}
+                                    className="bh2-sidebar-bucket"
+                                    onClick={() => handleView(b.id)}
+                                    title={b.name}
+                                  >
+                                    <span
+                                      className="bh2-sidebar-bucket-dot"
+                                      style={{ background: b.color || PALETTE_FALLBACK }}
+                                    />
+                                    <span className="bh2-sidebar-bucket-label">{b.name}</span>
+                                    <span className="bh2-sidebar-bucket-count">{b._count?.tickets || 0}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
 
                   {projectOrder.length > 5 && (
                     <button
@@ -910,8 +926,8 @@ export default function BucketManagementPage() {
 
               {activeFilterCount > 0 && (
                 <button className="bh2-sidebar-clear" onClick={resetFilters}>
-                  <ReloadOutlined style={{ fontSize: 10 }} />
-                  Clear filters · {activeFilterCount}
+                  <CloseCircleOutlined style={{ fontSize: 12 }} />
+                  Clear filters
                 </button>
               )}
             </div>
@@ -921,17 +937,15 @@ export default function BucketManagementPage() {
           <main className="bh2-main">
             {/* Toolbar */}
             <div className="bh2-toolbar">
-              <div className="bh2-main-search">
-                <Input
+              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+                <SearchOutlined className="pp-search-icon" />
+                <input
+                  className="pp-search"
                   placeholder="Search bucket name or description"
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  // suffix={!searchQuery ? <span className="bh2-search-kbd">⌘K</span> : undefined}
-                  className="premium-search-input rounded-lg transition-all"
-                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  allowClear
                 />
+                {/* {!searchQuery && <span className="pp-kbd">⌘K</span>} */}
               </div>
 
               <div className="bh2-main-stats">
@@ -942,125 +956,102 @@ export default function BucketManagementPage() {
               </div>
 
               <div className="bh2-main-controls">
-                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                  <Tooltip title="List">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'list' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                      }}
-                    >
-                      <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
-                  <Tooltip title="Cards">
-                    <button
-                      onClick={() => setViewMode('cards')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'cards' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'cards' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                      }}
-                    >
-                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'cards' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
+                <div className="pp-segmented">
+                  <button type="button" className={viewMode === 'cards' ? 'is-active' : ''} onClick={() => setViewMode('cards')} aria-label="Grid view"><AppstoreOutlined /></button>
+                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                 </div>
                 <Tooltip title="Refresh buckets">
-                  <Button
-                    icon={<ReloadOutlined spin={isRefreshing} />}
+                  <button
+                    type="button"
+                    className="pp-ghost-btn"
                     onClick={handleRefresh}
-                    className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                    style={{ height: 38, width: 38 }}
-                    loading={isLoading && !isRefreshing}
-                  />
+                    disabled={isLoading && !isRefreshing}
+                  >
+                    <ReloadOutlined spin={isRefreshing} />
+                  </button>
                 </Tooltip>
               </div>
             </div>
 
             {/* Premium KPI Hero Row */}
-            <div className="bh2-stat-cards-grid">
-              <div className="bh2-stat-card">
-                <div className="bh2-stat-top">
-                  <div className="bh2-stat-left">
-                    <span className="bh2-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+            <div className="pp-stats">
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
                       <FolderOpenOutlined />
                     </span>
-                    <span className="bh2-stat-label">Total Hubs</span>
+                    <span className="pp-stat-label">Total Hubs</span>
                   </div>
                   <span className="bh2-stat-pulse" />
                 </div>
-                <div className="bh2-stat-bottom">
-                  <div className="bh2-stat-value-wrap">
-                    <span className="bh2-stat-value">{metrics.total}</span>
-                    <span className="bh2-stat-period">hubs</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{metrics.total}</span>
+                    <span className="pp-stat-period">hubs</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.total)} color="#3b82f6" />
                   </div>
                 </div>
               </div>
 
-              <div className="bh2-stat-card">
-                <div className="bh2-stat-top">
-                  <div className="bh2-stat-left">
-                    <span className="bh2-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
                       <LockOutlined />
                     </span>
-                    <span className="bh2-stat-label">Private Hubs</span>
+                    <span className="pp-stat-label">Private Hubs</span>
                   </div>
                 </div>
-                <div className="bh2-stat-bottom">
-                  <div className="bh2-stat-value-wrap">
-                    <span className="bh2-stat-value">{metrics.private}</span>
-                    <span className="bh2-stat-period">restricted</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{metrics.private}</span>
+                    <span className="pp-stat-period">restricted</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.private)} color="#64748b" />
                   </div>
                 </div>
               </div>
 
-              <div className="bh2-stat-card">
-                <div className="bh2-stat-top">
-                  <div className="bh2-stat-left">
-                    <span className="bh2-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
                       <GlobalOutlined />
                     </span>
-                    <span className="bh2-stat-label">Public Hubs</span>
+                    <span className="pp-stat-label">Public Hubs</span>
                   </div>
                 </div>
-                <div className="bh2-stat-bottom">
-                  <div className="bh2-stat-value-wrap">
-                    <span className="bh2-stat-value">{metrics.public}</span>
-                    <span className="bh2-stat-period">shared</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{metrics.public}</span>
+                    <span className="pp-stat-period">shared</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
-                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.public)} color="#10b981" />
+                  <div className="pp-stat-spark">
+                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.public)} color="#3b82f6" />
                   </div>
                 </div>
               </div>
 
-              <div className="bh2-stat-card">
-                <div className="bh2-stat-top">
-                  <div className="bh2-stat-left">
-                    <span className="bh2-stat-icon" style={{ background: 'rgba(139,92,246,0.10)', color: '#8b5cf6' }}>
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
                       <FileTextOutlined />
                     </span>
-                    <span className="bh2-stat-label">Total Tickets</span>
+                    <span className="pp-stat-label">Total Tickets</span>
                   </div>
                 </div>
-                <div className="bh2-stat-bottom">
-                  <div className="bh2-stat-value-wrap">
-                    <span className="bh2-stat-value">{metrics.tickets}</span>
-                    <span className="bh2-stat-period">items stored</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{metrics.tickets}</span>
+                    <span className="pp-stat-period">items stored</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
-                    <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.tickets)} color="#8b5cf6" />
+                  <div className="pp-stat-spark">
+                    <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.tickets)} color="#10b981" />
                   </div>
                 </div>
               </div>
@@ -1519,7 +1510,7 @@ export default function BucketManagementPage() {
         }
         .bh2-shell {
           display: grid;
-          grid-template-columns: 252px minmax(0, 1fr);
+          grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -1537,12 +1528,13 @@ export default function BucketManagementPage() {
 
         /* ── Sidebar ─────────────────────────────────────────────── */
         .bh2-sidebar {
-          width: 252px;
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
+          align-self: flex-start;
           position: sticky;
           top: 0;
           height: calc(100vh - 54px);
@@ -1556,26 +1548,34 @@ export default function BucketManagementPage() {
 
         .bh2-sidebar-top { 
           padding: 14px 14px 12px 14px; 
-          border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-top {
+        }
+        .bh2-sidebar-brand { 
+          display: flex; align-items: center; gap: 12px; 
+          padding-bottom: 14px; margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        [data-theme="dark"] .bh2-sidebar-brand {
           border-bottom-color: #1f2937 !important;
         }
-        .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .bh2-hero-icon-box {
-          width: 38px; height: 38px; border-radius: 10px;
-          background: rgba(59, 130, 246, 0.08);
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .bh2-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
         [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
-        .bh2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .bh2-sidebar-subtitle {
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
         .bh2-side-create {
           height: 36px !important;
           border-radius: 6px !important;
@@ -1606,31 +1606,30 @@ export default function BucketManagementPage() {
         }
 
         .bh2-view-btn {
-          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          display: flex; align-items: center; gap: 8px; padding: 7px 10px;
           border-radius: 8px; background: transparent; border: none; cursor: pointer;
-          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          width: 100%; text-align: left; font-family: inherit; font-size: 13px; font-weight: 500;
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
         [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
         .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 6px;
         }
         .bh2-view-btn.active .bh2-view-count {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
         }
         [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700); }
 
         .bh2-view-label {
           flex: 1;
@@ -1903,29 +1902,15 @@ export default function BucketManagementPage() {
           background: #1f2937 !important;
         }
         .bh2-sidebar-clear {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          width: 100%;
-          margin-top: 6px;
-          padding: 8px;
-          background: transparent;
-          border: 1px dashed var(--border-slate-200);
-          border-radius: 8px;
-          color: var(--text-slate-500);
-          font-size: 11px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: color 0.12s ease, border-color 0.12s ease;
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #ef4444; margin-top: 6px; width: auto; justify-content: flex-start;
         }
         .bh2-sidebar-clear:hover {
-          color: #1d4ed8;
-          border-color: rgba(59, 130, 246, 0.4);
+          opacity: 0.8;
         }
         [data-theme="dark"] .bh2-sidebar-clear {
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
+          color: #ef4444 !important;
         }
 
         /* ── Main toolbar ───────────────────────────────────────── */
@@ -2011,6 +1996,35 @@ export default function BucketManagementPage() {
           border-color: rgba(245, 158, 11, 0.25);
           color: #b45309;
         }
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
         /* RangePicker — match the SearchableDropdown trigger height/border */
         .bh2-range-picker {
           height: 32px !important;
@@ -2034,6 +2048,12 @@ export default function BucketManagementPage() {
           align-items: center;
           justify-content: center;
         }
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
         .bh2-toolbar-chip {
           font-size: 10.5px;
           font-weight: 700;
@@ -2076,7 +2096,7 @@ export default function BucketManagementPage() {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          padding-top: 10px;
+          padding-bottom: 10px;
         }
         
         .bh2-grid {
@@ -2084,6 +2104,10 @@ export default function BucketManagementPage() {
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
           padding-top: 10px;
+        }
+
+        .bh2-table-shell {
+       background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden;
         }
         
         @media (max-width: 1200px) {
@@ -2508,6 +2532,33 @@ export default function BucketManagementPage() {
           gap: 2px;
           flex-shrink: 0;
         }
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
         .bh2-list-action-btn {
           width: 28px;
           height: 28px;
@@ -2543,12 +2594,9 @@ export default function BucketManagementPage() {
           opacity: 0.5;
         }
         [data-theme="dark"] .bh2-foot-btn {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-foot-btn:hover:not(:disabled) {
-          background: #1c232e !important;
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-700);
         }
 
         /* Manage Tickets button */
@@ -2559,7 +2607,7 @@ export default function BucketManagementPage() {
           padding: 5px 11px;
           background: transparent;
           border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
+          border-radius: 6px;
           color: var(--text-slate-600);
           font-family: inherit;
           font-size: 11px;
@@ -2579,14 +2627,8 @@ export default function BucketManagementPage() {
           background: #3b82f6 !important;
         }
         [data-theme="dark"] .bh2-manage-btn {
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn:hover {
-          background: #1c232e !important;
-        }
-        [data-theme="dark"] .bh2-manage-btn.active {
-          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
         }
 
         /* Empty */
@@ -2793,15 +2835,16 @@ export default function BucketManagementPage() {
           background: transparent !important;
         }
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          border-bottom: 1px solid #e2e8f0 !important;
-          color: #64748b !important;
-          font-weight: 600 !important;
-          font-size: 11.5px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          padding: 6px 10px !important;
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
         }
+             .premium-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+          .premium-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+          .premium-table .ant-table-tbody > tr.premium-row:hover > td { background: var(--bg-slate-50) !important; }
+          .premium-table .ant-table-tbody > tr.premium-row { cursor: pointer; }
+          .premium-table .ant-table-selection-column { padding-inline: 6px !important; }
         .premium-table .ant-table-thead > tr > th::before {
           display: none;
         }
@@ -2810,20 +2853,13 @@ export default function BucketManagementPage() {
           border-bottom-color: #334155 !important;
           color: #94a3b8 !important;
         }
-        .premium-table .ant-table-tbody > tr > td {
-          padding: 6.5px 10px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
-          transition: background-color 0.2s ease !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
-          border-bottom-color: #1e293b !important;  
-        }
-        .premium-table .ant-table-row:hover > td {
-          background: #f8fafc !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
-          background: rgba(255, 255, 255, 0.02);
-        }
+  
+        // .premium-table .ant-table-row:hover > td {
+        //   background: #f8fafc !important;
+        // }
+        // [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+        //   background: rgba(255, 255, 255, 0.02);
+        // }
         .premium-table .ant-table-row-expand-icon-cell {
           padding: 0 4px !important;
         }
@@ -2884,34 +2920,20 @@ export default function BucketManagementPage() {
         }
 
         .bmp-project-tag {
-          background: #eff6ff;
-          color: #2563eb;
-        }
-        [data-theme='dark'] .bmp-project-tag {
-          background: rgba(59, 130, 246, 0.15);
-          color: #60a5fa;
+          background: var(--bg-blue-50);
+          color: #3b82f6;
         }
 
         .bmp-tag-public {
-          background: #ecfdf5;
-          color: #059669;
-          border: 1px solid #d1fae5;
-        }
-        [data-theme='dark'] .bmp-tag-public {
-          background: rgba(16, 185, 129, 0.1);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: var(--bg-green-50, #ecfdf5);
+          color: #10b981;
+          border: 1px solid var(--border-green-200, #a7f3d0);
         }
 
         .bmp-tag-private {
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-        }
-        [data-theme='dark'] .bmp-tag-private {
-          background: rgba(148, 163, 184, 0.1);
-          color: #94a3b8;
-          border: 1px solid rgba(148, 163, 184, 0.2);
+          background: var(--bg-slate-50);
+          color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-200);
         }
 
         /* ── Status Cards ────────────────────────────────────────── */
@@ -3006,6 +3028,38 @@ export default function BucketManagementPage() {
           color: var(--text-slate-400);
         }
 
+        /* ── Proposals Status Cards ────────────────────────────────────────── */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-delta {
+          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+          color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+        }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .pp-stat-spark { opacity: 0.95; }
+
+        @media (max-width: 1024px) {
+          .pp-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 640px) {
+          .pp-stats {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
   );

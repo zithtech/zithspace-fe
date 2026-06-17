@@ -33,6 +33,10 @@ import {
   EditOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
+import { ExternalLink, FileText, X } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { hivebugStyles } from '@/components/projects/bug-list/hivebug-styles';
+
 import { api } from '@/lib/axios';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
@@ -134,6 +138,8 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
   const [loadingEdit, setLoadingEdit] = useState(false); // escalation data loading
   const [submitting, setSubmitting] = useState(false);
   const { message } = App.useApp();
+  const { theme } = useTheme();
+  const [previewFile, setPreviewFile] = useState<any>(null);
 
   const isEditMode = !!editingId;
 
@@ -343,6 +349,33 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
       pendingTicketIds.current = null;
     }
 
+    if (editData.document_url) {
+      try {
+        const urls = JSON.parse(editData.document_url);
+        if (Array.isArray(urls)) {
+          const initialFileList = urls.map((url, index) => {
+            let fileName = url.split('/').pop() || `Attachment ${index + 1}`;
+            
+            // Remove the 12-character nanoid prefix if it exists
+            const match = fileName.match(/^[\w-]{12}_(.+)$/);
+            if (match) {
+              fileName = match[1];
+            }
+
+            return {
+              uid: `existing-${index}`,
+              name: fileName,
+              status: 'done',
+              url: url,
+            };
+          });
+          setFileList(initialFileList);
+        }
+      } catch (e) {
+        console.error("Failed to parse document_url", e);
+      }
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEditMode, editData, categories, priorities, statuses, members]);
 
@@ -391,6 +424,21 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
     setSubmitting(true);
     try {
       if (isEditMode && editingId) {
+        const newFiles = fileList.filter(f => f.originFileObj);
+        const existingUrls = fileList.filter(f => !f.originFileObj && f.url).map(f => f.url);
+
+        const filePromises = newFiles.map(
+          (fileItem) =>
+            new Promise<{ fileName: string; fileBase64: string }>((resolve, reject) => {
+              const file = fileItem.originFileObj;
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = () => resolve({ fileName: file.name, fileBase64: reader.result as string });
+              reader.onerror = reject;
+            }),
+        );
+        const attachments = await Promise.all(filePromises);
+
         await EscalationServiceV2.updateEscalation(editingId, {
           subject: values.subject,
           description: values.description,
@@ -399,6 +447,8 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
           projectId: values.projectId,
           targetMemberIds: values.targetUsers,
           ticketIds: values.ticketIds || [],
+          attachments: attachments.length > 0 ? attachments : undefined,
+          existingUrls: existingUrls.length > 0 ? existingUrls : undefined,
         });
         notify('success', 'Escalation Updated', 'The escalation has been successfully updated.');
       } else {
@@ -451,6 +501,8 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
 
   /* ── Render ─────────────────────────────────────────────────────────── */
   return (
+    <>
+    <style>{hivebugStyles}</style>
     <Drawer
       className="ced-drawer"
       placement="right"
@@ -748,10 +800,9 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
             />
           </Form.Item>
 
-          {/* ── Section 3: Evidence (create mode only) ──────────────── */}
-          {!isEditMode && (
-            <>
-              <SectionHeader
+          {/* ── Section 3: Evidence ──────────────── */}
+          <>
+            <SectionHeader
                 step={3}
                 done={fileList.length > 0}
                 icon={<PaperClipOutlined />}
@@ -763,6 +814,16 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                 listType="picture"
                 fileList={fileList}
                 onChange={({ fileList: fl }) => setFileList(fl)}
+                onPreview={async (file) => {
+                  if (!file.url && !file.preview && file.originFileObj) {
+                    file.preview = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file.originFileObj as Blob);
+                      reader.onload = () => resolve(reader.result as string);
+                    });
+                  }
+                  setPreviewFile(file);
+                }}
                 beforeUpload={() => false}
                 className="ced-dragger"
               >
@@ -777,11 +838,139 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                 </p>
               </Upload.Dragger>
             </>
-          )}
         </Form>
       </div>
     </Drawer>
+
+    <Drawer
+      placement="left"
+      width={700}
+      closable={false}
+      title={null}
+      footer={null}
+      mask={false}
+      open={!!previewFile}
+      onClose={() => setPreviewFile(null)}
+      className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
+      styles={{
+        body: { padding: 0, height: '100%' }
+      }}
+    >
+      {previewFile && (
+        (() => {
+          const displayUrl = (() => {
+            let url = previewFile.url || previewFile.preview || "";
+            if (url.includes("r2.cloudflarestorage.com")) {
+              url = url.replace(
+                /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+              );
+            }
+            if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+              url = url.replace(".r2.dev", ".r2.dev/");
+            }
+            return url;
+          })();
+
+          const fileType = previewFile.type || (previewFile.name ? previewFile.name.split('.').pop()?.toLowerCase() : '');
+
+          return (
+            <div className="hb-preview-shell">
+              <div className="hb-preview-header">
+                <div className="hb-preview-fileinfo">
+                  <FileText size={16} className="hb-preview-icon" />
+                  <div className="hb-preview-meta">
+                    <div className="hb-preview-filename">{previewFile.name}</div>
+                    <div className="hb-preview-filesize">
+                      {previewFile.size ? formatBytes(previewFile.size) : fileType}
+                    </div>
+                  </div>
+                </div>
+                <div className="hb-preview-actions">
+                  <button
+                    className="hb-preview-btn"
+                    onClick={() => {
+                      if (displayUrl) window.open(displayUrl, '_blank');
+                    }}
+                    title="Open in new tab"
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                  <button
+                    className="hb-preview-close"
+                    onClick={() => setPreviewFile(null)}
+                    aria-label="Close preview"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="hb-preview-body">
+                {(() => {
+                  const isImage =
+                    fileType?.startsWith("image/") ||
+                    displayUrl.startsWith("data:image/") ||
+                    /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl);
+
+                  const isVideo =
+                    fileType?.startsWith("video/") ||
+                    /\.(mp4|webm|ogg|mov)/i.test(displayUrl);
+
+                  const isPdf =
+                    fileType === "application/pdf" ||
+                    /\.pdf/i.test(displayUrl) || fileType === "pdf";
+
+                  if (!displayUrl) return <div className="hb-preview-error">No preview available</div>;
+
+                  if (isImage) {
+                    return (
+                      <div className="hb-preview-media-container">
+                        <img src={displayUrl} alt={previewFile.name} className="hb-preview-image" />
+                      </div>
+                    );
+                  }
+                  if (isVideo) {
+                    return (
+                      <div className="hb-preview-media-container">
+                        <video src={displayUrl} controls className="hb-preview-video" />
+                      </div>
+                    );
+                  }
+                  if (isPdf) {
+                    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(displayUrl)}&embedded=true`;
+                    return <iframe src={googleDocsUrl} className="hb-preview-iframe" title="PDF Preview" />;
+                  }
+
+                  return (
+                    <div className="hb-preview-fallback">
+                      <FileText size={48} />
+                      <p>Preview not available for this file type</p>
+                      <button
+                        className="hb-cbd-primary"
+                        onClick={() => {
+                          if (displayUrl) window.open(displayUrl, '_blank');
+                        }}
+                      >
+                        Download File
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          );
+        })()
+      )}
+    </Drawer>
+    </>
   );
 };
+
+function formatBytes(bytes: number) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 export default CreateEscalationDrawer;

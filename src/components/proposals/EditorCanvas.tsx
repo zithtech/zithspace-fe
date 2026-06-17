@@ -3,31 +3,39 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useProposalStore, ProposalBlock } from '@/store/proposalStore';
 import { BlockRenderer } from './blocks';
-import { DragOutlined, DeleteOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
+import { HolderOutlined, DeleteOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useDroppable } from '@dnd-kit/core';
 import { Sparkles } from 'lucide-react';
 import { getBlockStatus, STATUS_LABEL } from './blockStatus';
 import { resolveTheme, resolveFont } from './themePresets';
 
+// Only composed components edit in place on the canvas; text/section and the
+// structured blocks are edited in the right-side properties panel.
+const INLINE_TYPES = ['component'];
+
 const InterBlockInserter = ({ index }: { index: number }) => {
   const addBlock = useProposalStore((state) => state.addBlock);
+  // Only the centered pill is clickable — the rest of the strip passes clicks
+  // through (pointer-events: none in CSS) so it never covers an adjacent
+  // block's toolbar (drag/status/delete).
   return (
-    <div
-      className="pb-inserter-slot"
-      onClick={(e) => {
-        e.stopPropagation();
-        addBlock('section', index);
-      }}
-    >
-      <div className="pb-block-inserter">
+    <div className="pb-inserter-slot">
+      <button
+        type="button"
+        className="pb-block-inserter"
+        onClick={(e) => {
+          e.stopPropagation();
+          addBlock('section', index);
+        }}
+      >
         <PlusOutlined style={{ fontSize: 9 }} />
         <span>Add Section</span>
-      </div>
+      </button>
     </div>
   );
 };
 
-const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove }: any) => {
+const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, onUpdate, onAddBelow }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const [isHovered, setIsHovered] = React.useState(false);
   const status = getBlockStatus({ id, type, data } as ProposalBlock);
@@ -57,17 +65,23 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove }: any) =
       {/* Floating toolbar */}
       {(isSelected || isHovered) && (
         <div className="pb-floating-toolbar">
-          <div {...attributes} {...listeners} className="pb-tb-btn">
-            <DragOutlined style={{ fontSize: 11 }} />
+          <div {...attributes} {...listeners} className="pb-tb-btn pb-tb-grip" title="Drag to reorder">
+            <HolderOutlined style={{ fontSize: 12 }} />
             <span>{type.toUpperCase()}</span>
           </div>
           <span className={`pb-tb-status pb-tb-status--${status}`} title={STATUS_LABEL[status]}>
             <span className="pb-tb-status__dot" />
             <span className="pb-tb-status__label">{STATUS_LABEL[status]}</span>
           </span>
-          <div className="pb-tb-btn pb-tb-btn--danger" onClick={(e) => { e.stopPropagation(); onRemove(id); }}>
-            <DeleteOutlined style={{ fontSize: 11 }} />
-          </div>
+          <span className="pb-tb-sep" />
+          <button
+            type="button"
+            className="pb-tb-btn pb-tb-btn--danger"
+            title="Delete this section"
+            onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+          >
+            <DeleteOutlined style={{ fontSize: 12 }} />
+          </button>
         </div>
       )}
 
@@ -75,14 +89,14 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove }: any) =
         className="pb-block-content"
         style={{ padding: 0, userSelect: 'text' }}
       >
-        <BlockRenderer type={type} data={data} />
+        <BlockRenderer type={type} data={data} editable={INLINE_TYPES.includes(type)} onChange={onUpdate} />
       </div>
     </div>
   );
 };
 
 export const EditorCanvas = () => {
-  const { blocks, selectedBlockId, setSelectedBlockId, removeBlock, documentTheme } = useProposalStore();
+  const { blocks, selectedBlockId, setSelectedBlockId, removeBlock, updateBlock, documentTheme } = useProposalStore();
   const { setNodeRef } = useDroppable({ id: 'canvas-droppable' });
 
   const theme = resolveTheme(documentTheme.themeId);
@@ -139,6 +153,8 @@ export const EditorCanvas = () => {
                   isSelected={selectedBlockId === block.id}
                   onClick={() => setSelectedBlockId(block.id)}
                   onRemove={removeBlock}
+                  onUpdate={(patch: any) => updateBlock(block.id, patch)}
+                  onAddBelow={() => useProposalStore.getState().addBlock('section', index + 1)}
                 />
                 {index < blocks.length - 1 && (
                   <InterBlockInserter index={index + 1} />

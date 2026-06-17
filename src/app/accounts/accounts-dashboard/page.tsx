@@ -635,7 +635,7 @@ export default function AccountsPage() {
       title: 'CATEGORY',
       dataIndex: 'category',
       key: 'category',
-      width: 160,
+      width: 200,
       render: (category: string, record: Transaction) => {
         const isCredit = record.type === 'credit';
         const color = isCredit ? '#10b981' : '#64748b';
@@ -1030,7 +1030,7 @@ export default function AccountsPage() {
                           </div>
                           <div className="pc-identity-body">
                             <Tooltip title={item.description} placement="topLeft">
-                              <div className="pc-title">{item.description}</div>
+                              <div className="pc-title" style={{ fontSize: '13px' }}>{item.description}</div>
                             </Tooltip>
                             <div className="pc-client-line">
                               <span className="pc-client-key">Category:</span>
@@ -1084,14 +1084,14 @@ export default function AccountsPage() {
                                 {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
                               </span>
                             </span>
-                            <span className="pc-foot-div" />
-                            <button
+                            {/* <span className="pc-foot-div" /> */}
+                            {/* <button
                               type="button"
                               className="pc-foot-item pc-view-btn"
                               onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
                             >
                               <EditOutlined /> Edit
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       </div>
@@ -1606,6 +1606,20 @@ export default function AccountsPage() {
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
+        }
 
         /* ---------------- Sidebar ---------------- */
         .pp-sidebar {
@@ -1636,13 +1650,14 @@ export default function AccountsPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 12px;
+          color: #fff !important;
         }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;
@@ -1775,9 +1790,9 @@ export default function AccountsPage() {
           border-radius: 6px; padding: 1px 6px;
         }
         .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .pp-stat-value-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; white-space: nowrap; }
         .pp-stat-spark { opacity: 0.95; }
 
         /* Table */
@@ -1881,7 +1896,7 @@ export default function AccountsPage() {
         }
         .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
         .pc-title {
-          font-size: 11.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }

@@ -181,6 +181,7 @@ export default function BucketManagementPage() {
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityKey>("all");
   const [selectedProjectKey, setSelectedProjectKey] = useState<string | null>(null);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [showAllProjects, setShowAllProjects] = useState(false);
   const [defaultExpandSet, setDefaultExpandSet] = useState(false);
   const [sizeFilter, setSizeFilter] = useState<SizeKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -441,17 +442,6 @@ export default function BucketManagementPage() {
                   </Tooltip>
                 )}
               </span>
-              <div className="flex items-center gap-2 mt-0.5">
-                {record.isShared ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-semibold bmp-tag-public">
-                    <GlobalOutlined /> Public
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-semibold bmp-tag-private">
-                    <LockOutlined /> Private
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         );
@@ -472,6 +462,22 @@ export default function BucketManagementPage() {
           );
         }
         return <span className="text-[12.5px] text-slate-400 italic">Cross-Project</span>;
+      },
+    },
+    {
+      title: <ColumnTitle icon={<GlobalOutlined />} label="Visibility" />,
+      key: "visibility",
+      width: 100,
+      render: (_, record) => {
+        return record.isShared ? (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bmp-tag-public">
+            <GlobalOutlined /> Public
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bmp-tag-private">
+            <LockOutlined /> Private
+          </span>
+        );
       },
     },
     {
@@ -505,9 +511,9 @@ export default function BucketManagementPage() {
         return (
           <div className="flex items-center gap-2">
             {owner.avatarUrl ? (
-              <Avatar src={owner.avatarUrl} size={26} className="shrink-0 bmp-owner-avatar font-semibold text-[4px]" />
+              <Avatar src={owner.avatarUrl} size={22} className="shrink-0 bmp-owner-avatar font-semibold text-[10px]" />
             ) : (
-              <Avatar size={26} className="shrink-0 bmp-owner-avatar font-semibold text-[4px]">
+              <Avatar size={22} className="shrink-0 bmp-owner-avatar font-semibold text-[10px]">
                 {ownerInitials}
               </Avatar>
             )}
@@ -534,6 +540,7 @@ export default function BucketManagementPage() {
       title: <ColumnTitle label="Actions" />,
       key: "actions",
       width: 100,
+      fixed: "right",
       render: (_, record) => (
         <div className="flex items-center justify-start pr-2 gap-1" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="View tickets">
@@ -650,6 +657,7 @@ export default function BucketManagementPage() {
           dataSource={pagedBuckets}
           rowKey="id"
           pagination={false}
+          scroll={{ x: 800 }}
           className="premium-table dh-table"
           tableLayout="fixed"
           expandedRowRender={(record) => (
@@ -797,7 +805,9 @@ export default function BucketManagementPage() {
                     <span className="bh2-view-count">{allBuckets.length}</span>
                   </button>
 
-                  {projectOrder.map((proj, i) => {
+                  {projectOrder
+                    .slice(0, showAllProjects ? projectOrder.length : 5)
+                    .map((proj, i) => {
                     const group = bucketsByProject.get(proj.key);
                     const buckets = group?.buckets || [];
                     const isExpanded = expandedProjects.has(proj.key);
@@ -858,6 +868,15 @@ export default function BucketManagementPage() {
                       </React.Fragment>
                     );
                   })}
+
+                  {projectOrder.length > 5 && (
+                    <button
+                      className="bh2-sidebar-proj-more"
+                      onClick={() => setShowAllProjects(!showAllProjects)}
+                    >
+                      {showAllProjects ? "Show less" : `Show ${projectOrder.length - 5} more`}
+                    </button>
+                  )}
 
                   {projectOrder.length === 0 && !isLoading && (
                     <div className="bh2-sidebar-empty">No projects yet</div>
@@ -1142,34 +1161,30 @@ export default function BucketManagementPage() {
                               <span className="bh2-list-avatar-letter">{initial}</span>
                             </div>
 
-                            <div className="bh2-list-row-segments">
-                              <span className="bh2-list-seg bh2-list-seg-project">
-                                <span className="bh2-list-seg-label">Project:</span>
-                                {bucket.project ? (
-                                  <span className="bh2-list-seg-value" title={bucket.project.name}>
-                                    <span className="bh2-list-seg-dot" style={{ background: accent }} />
-                                    {bucket.project.name}
+                            <div className="bh2-list-row-segments" style={{ alignItems: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0, marginTop: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span className="bh2-list-seg-name" title={bucket.name}>
+                                    {bucket.name}
+                                    {bucket.userRole === "owner" && (
+                                      <Tooltip title="You own this hub">
+                                        <CrownOutlined style={{ fontSize: 11, marginLeft: 6, color: "#f59e0b" }} />
+                                      </Tooltip>
+                                    )}
                                   </span>
-                                ) : (
-                                  <span className="bh2-list-seg-value muted">Cross-Project</span>
-                                )}
-                              </span>
-
-                              <span className="bh2-list-row-div" />
-
-                              <span className="bh2-list-seg bh2-list-seg-bucket">
-                                <span className="bh2-list-seg-label">Bucket:</span>
-                                <span className="bh2-list-seg-name" title={bucket.name}>
-                                  {bucket.name}
-                                  {bucket.userRole === "owner" && (
-                                    <Tooltip title="You own this hub">
-                                      <CrownOutlined style={{ fontSize: 11, marginLeft: 6, color: "#f59e0b" }} />
-                                    </Tooltip>
+                                </div>
+                                <span className="bh2-list-seg bh2-list-seg-project">
+                                  <span className="bh2-list-seg-label">Project:</span>
+                                  {bucket.project ? (
+                                    <span className="bh2-list-seg-value" title={bucket.project.name}>
+                                      <span className="bh2-list-seg-dot" style={{ background: accent }} />
+                                      {bucket.project.name}
+                                    </span>
+                                  ) : (
+                                    <span className="bh2-list-seg-value muted">Cross-Project</span>
                                   )}
                                 </span>
-                              </span>
-
-                              <span className="bh2-list-row-div" />
+                              </div>
 
                               {bucket.isShared ? (
                                 <span
@@ -1540,7 +1555,7 @@ export default function BucketManagementPage() {
         }
 
         .bh2-sidebar-top { 
-          padding: 14px 14px 12px 18px; 
+          padding: 14px 14px 12px 14px; 
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-top {
@@ -1570,7 +1585,14 @@ export default function BucketManagementPage() {
         }
 
         .bh2-sidebar-scroll {
-          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 10px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .bh2-sidebar-scroll::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
 
         .bh2-side-group { margin-bottom: 22px; }
@@ -1590,15 +1612,15 @@ export default function BucketManagementPage() {
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
         [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
-        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
@@ -1624,12 +1646,24 @@ export default function BucketManagementPage() {
         .bh2-sidebar-item.active {
           background: rgba(59, 130, 246, 0.08);
           border-color: rgba(59, 130, 246, 0.2);
-          color: #1d4ed8;
+          color: var(--text-slate-900);
+          font-weight: 600;
+        }
+        .bh2-sidebar-item.active .bh2-sidebar-item-icon,
+        .bh2-sidebar-item.active .bh2-sidebar-item-dot {
+          color: #3b82f6 !important;
+          border-color: #3b82f6 !important;
         }
         [data-theme="dark"] .bh2-sidebar-item.active {
           background: rgba(59, 130, 246, 0.18) !important;
           border-color: rgba(59, 130, 246, 0.32) !important;
+          color: #f1f5f9 !important;
+          font-weight: 600 !important;
+        }
+        [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-icon,
+        [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-dot {
           color: #60a5fa !important;
+          border-color: #60a5fa !important;
         }
         .bh2-sidebar-item-icon {
           width: 22px;
@@ -1757,10 +1791,12 @@ export default function BucketManagementPage() {
           color: #cbd5e1 !important;
         }
         .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
-          color: #1d4ed8;
+          color: var(--text-slate-900);
+          font-weight: 600;
         }
         [data-theme="dark"] .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
-          color: #60a5fa !important;
+          color: #f1f5f9 !important;
+          font-weight: 600 !important;
         }
 
         /* Nested buckets under project */
@@ -1822,6 +1858,30 @@ export default function BucketManagementPage() {
           color: var(--text-slate-400);
           font-variant-numeric: tabular-nums;
           flex-shrink: 0;
+        }
+        .bh2-sidebar-proj-more {
+          background: transparent;
+          border: none;
+          padding: 6px 8px;
+          margin: 4px 8px 0;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-blue-600);
+          text-align: left;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.2s;
+        }
+        .bh2-sidebar-proj-more:hover {
+          background: var(--bg-blue-50);
+          color: var(--text-blue-700);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-more {
+          color: var(--text-blue-500);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-more:hover {
+          background: rgba(59, 130, 246, 0.1);
+          color: var(--text-blue-400);
         }
         .bh2-sidebar-empty-mini {
           padding: 6px 8px;
@@ -2086,10 +2146,10 @@ export default function BucketManagementPage() {
              land its top 120px below the viewport so it clears the sticky
              page header (~52px) + sticky toolbar (~60px). */
           scroll-margin-top: 120px;
-          padding: 10px 14px 10px 16px;
+          padding: 2px 16px 6px 16px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
           overflow: hidden;
           transition: border-color 0.2s ease, background 0.2s ease;
         }
@@ -2163,10 +2223,10 @@ export default function BucketManagementPage() {
         }
         .bh2-list-seg-label {
           font-size: 10px;
-          font-weight: 800;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+          font-weight: 600;
+          color: var(--text-slate-400);
+          text-transform: capitalize;
+          letter-spacing: 0.05em;
         }
         [data-theme="dark"] .bh2-list-seg-label {
           color: #94a3b8 !important;
@@ -2175,10 +2235,10 @@ export default function BucketManagementPage() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-size: 13px;
-          font-weight: 700;
+          font-size: 12px;
+          font-weight: 600;
           color: var(--text-slate-700);
-          letter-spacing: -0.005em;
+          letter-spacing: -0.01em;
           max-width: 200px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -2201,10 +2261,10 @@ export default function BucketManagementPage() {
         .bh2-list-seg-name {
           flex: 1;
           min-width: 0;
-          font-size: 13.5px;
-          font-weight: 800;
+          font-size: 13px;
+          font-weight: 700;
           color: var(--text-slate-900);
-          letter-spacing: -0.025em;
+          letter-spacing: -0.01em;
           line-height: 1.25;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -2557,9 +2617,9 @@ export default function BucketManagementPage() {
           .bh2-shell {
             grid-template-columns: 240px minmax(0, 1fr);
           }
-          .bh2-sidebar {
-            padding: 12px 8px 14px 14px;
-          }
+          // .bh2-sidebar {
+          //   padding: 12px 8px 14px 10px;
+          // }
           .bh2-search-box {
             width: 220px;
           }
@@ -2597,7 +2657,7 @@ export default function BucketManagementPage() {
             top: 0;
             height: auto;
             max-height: 320px;
-            padding: 10px 16px 12px;
+            padding: 10px 14px 10px;
             border-right: none;
             border-bottom: 1px solid var(--border-slate-200);
           }
@@ -2733,33 +2793,33 @@ export default function BucketManagementPage() {
           background: transparent !important;
         }
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc;
-          border-bottom: 1px solid #e2e8f0;
-          color: #64748b;
-          font-weight: 600;
-          font-size: 11.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 12px 16px;
+          background: #f8fafc !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11.5px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          padding: 6px 10px !important;
         }
         .premium-table .ant-table-thead > tr > th::before {
           display: none;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
           background: #1e293b;
-          border-bottom-color: #334155;
-          color: #94a3b8;
+          border-bottom-color: #334155 !important;
+          color: #94a3b8 !important;
         }
         .premium-table .ant-table-tbody > tr > td {
-          padding: 14px 16px;
-          border-bottom: 1px solid #f1f5f9;
-          transition: background-color 0.2s ease;
+          padding: 6.5px 10px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          transition: background-color 0.2s ease !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
-          border-bottom-color: #1e293b;
+          border-bottom-color: #1e293b !important;  
         }
         .premium-table .ant-table-row:hover > td {
-          background: #f8fafc;
+          background: #f8fafc !important;
         }
         [data-theme='dark'] .premium-table .ant-table-row:hover > td {
           background: rgba(255, 255, 255, 0.02);
@@ -2789,8 +2849,8 @@ export default function BucketManagementPage() {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          width: 30px;
-          height: 30px;
+          width: 26px;
+          height: 26px;
           border-radius: 8px;
           background: #3b82f6;
           color: #ffffff;
@@ -2802,6 +2862,14 @@ export default function BucketManagementPage() {
         .bmp-owner-avatar {
           background: #3b82f6 !important;
           color: #ffffff !important;
+        }
+        .bmp-owner-avatar .ant-avatar-string {
+          font-size: 10px !important;
+          position: absolute !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) scale(1) !important;
+          line-height: 1 !important;
         }
         [data-theme='dark'] .bmp-owner-avatar {
           background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
@@ -2864,15 +2932,10 @@ export default function BucketManagementPage() {
           }
         }
         .bh2-stat-card {
-          background: #ffffff;
-          border-radius: 6px;
-          padding: 12px 14px;
-          border: 1px solid var(--border-slate-200);
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          transition: all 0.2s ease;
+       background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+            border-radius: 0; padding: 12px 14px; min-height: 92px;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
         }
         [data-theme="dark"] .bh2-stat-card {
           background: rgba(255, 255, 255, 0.03);
@@ -2928,7 +2991,8 @@ export default function BucketManagementPage() {
         }
         .bh2-stat-value-wrap {
           display: flex;
-          flex-direction: column;
+          align-items: baseline;
+          gap: 8px;
         }
         .bh2-stat-value {
           font-size: 24px;
@@ -2937,9 +3001,9 @@ export default function BucketManagementPage() {
           line-height: 1.1;
         }
         .bh2-stat-period {
-          font-size: 12px;
+          font-size: 13px;
+          font-weight: 600;
           color: var(--text-slate-400);
-          margin-top: 2px;
         }
 
       `}</style>

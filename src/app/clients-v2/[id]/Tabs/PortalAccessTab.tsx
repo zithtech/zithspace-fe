@@ -8,11 +8,11 @@ import {
   Input,
   Select,
   Popconfirm,
-  message,
   Tooltip,
   Empty,
   Table,
   Dropdown,
+  App,
 } from "antd";
 import {
   KeyRound,
@@ -140,7 +140,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     tempPassword: string;
     emailSent: boolean;
   } | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi, modal } = App.useApp();
 
   const contactOptions = useMemo(() => {
     const taken = new Set(users.map((u) => u.contactId).filter(Boolean));
@@ -462,7 +462,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
 
         const handleMenuClick = ({ key }: { key: string }) => {
           if (key === "reset") {
-            Modal.confirm({
+            modal.confirm({
               title: "Reset password?",
               content: `A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`,
               okText: "Reset & email",
@@ -473,7 +473,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           } else if (key === "disable" || key === "enable") {
             handleToggleStatus(record);
           } else if (key === "remove") {
-            Modal.confirm({
+            modal.confirm({
               title: "Remove portal access?",
               content: "This permanently deletes the login. The client contact will not be removed.",
               okText: "Remove",
@@ -512,7 +512,6 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
 
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
-      {contextHolder}
 
       {/* ---------------- Header card ---------------- */}
       <div className="portal-access-header-wrap" style={{ margin: "0 -32px" }}>

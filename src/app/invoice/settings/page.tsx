@@ -4,6 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { ReloadOutlined } from "@ant-design/icons";
 import {
   Typography,
   Button,
@@ -142,7 +143,7 @@ export default function InvoiceSettingPage() {
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceSettingsView" });
 
   const [mode, setMode] = useState<"view" | "create">("view");
-  const { data: savedSettingsData, isLoading, isError, error, refetch } =
+  const { data: savedSettingsData, isLoading, isError, error, refetch, isFetching } =
     useSettingsProfiles();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -545,6 +546,14 @@ export default function InvoiceSettingPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
+                 <button
+                  type="button"
+                  className={viewMode === "table" ? "is-active" : ""}
+                  onClick={() => setViewMode("table")}
+                  aria-label="Table view"
+                >
+                  <List size={14} />
+                </button>
                 <button
                   type="button"
                   className={viewMode === "card" ? "is-active" : ""}
@@ -553,15 +562,11 @@ export default function InvoiceSettingPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-                <button
-                  type="button"
-                  className={viewMode === "table" ? "is-active" : ""}
-                  onClick={() => setViewMode("table")}
-                  aria-label="Table view"
-                >
-                  <List size={14} />
-                </button>
+               
               </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
+              </Tooltip>
             </div>
           </div>
           <div className="pp-divider" />
@@ -964,7 +969,7 @@ export default function InvoiceSettingPage() {
                               )}
                             </div>
                             <div className="pc-identity-body">
-                              <div className="pc-title">
+                              <div className="pc-title" style={{ fontSize: '13px' }}>
                                 {setting.general?.companyName || "Unnamed profile"}
                               </div>
                               <div className="pc-client-line">
@@ -2020,15 +2025,29 @@ export default function InvoiceSettingPage() {
       <style dangerouslySetInnerHTML={{
         __html: `
         .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
+        }
         .pp-sidebar { width: 264px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; padding: 14px 14px 0 38px; position: sticky; top: 0; height: calc(100vh - 54px); z-index: 31; }
         .pp-side-head { display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
         .pp-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-slate-900); }
         .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
         .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
         .pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.07em; }
-        .pp-create-btn { height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 12px; }
+        .pp-create-btn { height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 12px; }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
         .pp-side-scroll::-webkit-scrollbar { display: none; }
         .pp-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px; }
@@ -2064,7 +2083,7 @@ export default function InvoiceSettingPage() {
         .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
         .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
         .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
         .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
         .profile-card { display: flex; flex-direction: column; }
         .profile-card:hover { border-color: #93c5fd !important; box-shadow: 0 0 0 3px rgba(96,165,250,0.10), 0 4px 12px -2px rgba(15,23,42,0.06); }

@@ -3305,14 +3305,14 @@ select:-webkit-autofill:focus {
 }
 
 .squad-card-v2__footer .ant-btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .squad-card-v2__footer .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 .squad-card-v2__footer .ant-btn-default {
@@ -3828,9 +3828,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -4661,6 +4661,15 @@ select:-webkit-autofill:focus {
 }
 
 /* Table polish — rows */
+.premium-table .ant-table,
+.premium-table .ant-table-container,
+.premium-table .ant-table-thead>tr>th,
+.saas-table .ant-table,
+.saas-table .ant-table-container,
+.saas-table .ant-table-thead>tr>th {
+  border-radius: 0 !important;
+}
+
 .premium-table .ant-table-thead>tr>th {
   background: var(--bg-slate-50) !important;
   color: var(--text-slate-500) !important;
@@ -4716,6 +4725,11 @@ select:-webkit-autofill:focus {
 
 [data-theme='dark'] .premium-table .ant-table-thead>tr>th {
   background: var(--bg-pure-white) !important;
+}
+
+[data-theme='dark'] .premium-table .ant-table,
+[data-theme='dark'] .saas-table .ant-table {
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {
@@ -17917,9 +17931,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -18593,15 +18607,15 @@ select:-webkit-autofill:focus {
 .ced-hero__icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ef4444, #f97316);
+  border-radius: 0;
+  background: #3B82F6;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
-  box-shadow: 0 8px 18px -8px rgba(239, 68, 68, 0.55);
+  box-shadow: none;
 }
 
 .ced-hero__text {
@@ -18627,7 +18641,7 @@ select:-webkit-autofill:focus {
 .ced-hero__close {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--bg-slate-50);
   border: 1px solid var(--border-slate-200);
   color: var(--text-slate-600);
@@ -18646,6 +18660,39 @@ select:-webkit-autofill:focus {
   border-color: rgba(255, 255, 255, 0.24);
 }
 
+.ced-hero__stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 0;
+}
+
+.ced-hero__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.ced-hero__stat strong {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.ced-hero__stat-icon {
+  color: #fbbf24;
+  font-size: 13px;
+}
+
+.ced-hero__stat-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.18);
+}
 
 /* ---------- Body ---------- */
 .ced-body {
@@ -18685,18 +18732,18 @@ select:-webkit-autofill:focus {
 }
 
 .ced-section-header.is-done .ced-section-header__step {
-  background: rgba(16, 185, 129, 0.10);
-  border-color: rgba(16, 185, 129, 0.30);
-  color: #059669;
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.30);
+  color: #3B82F6;
   font-size: 13px;
 }
 
 .ced-section-header__icon {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 0;
   background: rgba(59, 130, 246, 0.10);
-  color: var(--premium-blue);
+  color: #3B82F6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -18705,8 +18752,8 @@ select:-webkit-autofill:focus {
 }
 
 .ced-section-header.is-done .ced-section-header__icon {
-  background: rgba(16, 185, 129, 0.10);
-  color: #059669;
+  background: rgba(59, 130, 246, 0.10);
+  color: #3B82F6;
 }
 
 .ced-section-header__text {
@@ -18816,7 +18863,7 @@ select:-webkit-autofill:focus {
 .ced-input.ant-input,
 .ced-input.ant-input-affix-wrapper,
 .ced-textarea.ant-input {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   transition: all 0.2s ease !important;
@@ -18846,7 +18893,7 @@ select:-webkit-autofill:focus {
 }
 
 .ced-select.ant-select .ant-select-selector {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   min-height: 42px !important;
   background: var(--bg-slate-50) !important;
   border: 1px solid var(--border-slate-200) !important;
@@ -18892,7 +18939,7 @@ select:-webkit-autofill:focus {
 .ced-select.ant-select-multiple .ant-select-selection-item {
   background: rgba(59, 130, 246, 0.08) !important;
   border: 1px solid rgba(59, 130, 246, 0.20) !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
   color: var(--text-slate-800) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -18901,7 +18948,7 @@ select:-webkit-autofill:focus {
 
 /* ---------- Dragger ---------- */
 .ced-dragger.ant-upload-wrapper .ant-upload-drag {
-  border-radius: 12px !important;
+  border-radius: 0 !important;
   border: 2px dashed var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   padding: 20px !important;
@@ -18944,16 +18991,16 @@ select:-webkit-autofill:focus {
 }
 
 .ced-footer__dot.is-done {
-  background: linear-gradient(135deg, #10b981, #059669);
-  border-color: #059669;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18);
+  background: #3B82F6;
+  border-color: #3B82F6;
+  box-shadow: none;
 }
 
 .ced-footer__line {
   flex: 1;
   height: 2px;
   background: var(--bg-slate-100);
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .ced-footer__actions {
@@ -18963,7 +19010,7 @@ select:-webkit-autofill:focus {
 }
 
 .ced-btn-ghost.ant-btn {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   height: 40px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
@@ -18979,22 +19026,22 @@ select:-webkit-autofill:focus {
 }
 
 .ced-btn-primary.ant-btn {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   height: 40px !important;
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .ced-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* Dark theme */
@@ -19035,9 +19082,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -19791,7 +19838,7 @@ select:-webkit-autofill:focus {
   height: 30px;
   border-radius: 9px;
   background: rgba(59, 130, 246, 0.10);
-  color: var(--premium-blue);
+  color: #3B82F6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -20373,14 +20420,14 @@ select:-webkit-autofill:focus {
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .es-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* Dark theme */
@@ -24396,17 +24443,17 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .orgx-primary-btn.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Stat grid ---------- */
@@ -25324,17 +25371,17 @@ select:-webkit-autofill:focus {
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .orgx-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Dark theme ---------- */

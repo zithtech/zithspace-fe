@@ -739,6 +739,7 @@ export default function ClientsV2ListPage() {
                       {p.budget ? formatCurrency(p.budget) : "—"}
                     </span>
                   </div>
+                  <div style={{ width: 1, height: 14, background: 'var(--border-slate-200)' }} />
                   <div className="cm-project-row-stat">
                     <span className="cm-project-row-label">Manager</span>
                     {p.projectManager ? (
@@ -776,6 +777,7 @@ export default function ClientsV2ListPage() {
                       <span className="cm-project-row-val" style={{ color: "var(--text-slate-500)" }}>—</span>
                     )}
                   </div>
+                  <div style={{ width: 1, height: 14, background: 'var(--border-slate-200)' }} />
                   <div className="cm-project-row-stat">
                     <span className="cm-project-row-label">Tickets</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -785,6 +787,7 @@ export default function ClientsV2ListPage() {
                       </span>
                     </div>
                   </div>
+                  <div style={{ width: 1, height: 14, background: 'var(--border-slate-200)' }} />
                   <div className="cm-project-row-stat cm-project-row-members">
                     <span className="cm-project-row-label">Members</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

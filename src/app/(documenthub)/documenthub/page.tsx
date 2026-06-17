@@ -2497,7 +2497,7 @@ const DocumentHubPage = () => {
                   <span className="dh-footer-strong">{total}</span> hub{total === 1 ? '' : 's'}
                   {starredVisibleCount > 0 && (
                     <>
-                      {' · '}
+                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
                       <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
                         <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
                       </span>
@@ -2505,7 +2505,7 @@ const DocumentHubPage = () => {
                   )}
                   {sharedWithMeCount > 0 && (
                     <>
-                      {' · '}
+                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
                       <span style={{ color: 'var(--text-slate-600)' }}>{sharedWithMeCount} shared with you</span>
                     </>
                   )}
@@ -3668,7 +3668,7 @@ const DocumentHubPage = () => {
         }
 
         .dh-table-shell {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0 !important; overflow: hidden;
         }
 
         /* Visibility status pill (table + row-card cells) */
@@ -3709,7 +3709,11 @@ const DocumentHubPage = () => {
         /* Add border to the table container instead */
         .premium-table .ant-table-container {
           border: 1px solid var(--border-slate-200) !important;
-          border-radius: 0 !important;
+        }
+        .premium-table .ant-table,
+        .premium-table .ant-table-wrapper,
+        .premium-table .ant-table-container {
+          border-radius: 0px !important;
         }
 
         [data-theme='dark'] .premium-table .ant-table-container {
@@ -3754,6 +3758,7 @@ const DocumentHubPage = () => {
         .premium-table .ant-table-thead > tr > th:first-child {
           border-left: none !important;
           border-top-left-radius: 0px !important;
+          border-start-start-radius: 0px !important;
         }
         .premium-table .ant-table-thead > tr > th:last-child {
           border-right: none !important;

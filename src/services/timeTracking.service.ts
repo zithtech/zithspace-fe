@@ -14,7 +14,7 @@ export interface TimeTrackingEntry {
   logs?: Array<{ id: string; action: string; createdAt: string }>;
   project?: { id: string; name: string; code?: string };
   ticket?: {
-    estimateHours: undefined; id: string; title: string; ticketNumber?: string
+    estimateHours?: any; id: string; title: string; ticketNumber?: string
   };
   user?: { id: string; name: string; workEmail: string; avatarUrl?: string | null };
   createdAt: string;

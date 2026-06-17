@@ -14,6 +14,9 @@ export const Permissions = {
   USER_UPDATE:   'user.update',
   USER_DELETE:   'user.delete',
   USER_MANAGE:   'user.manage', // activate/deactivate, reset password, assign shift
+  USER_TRASH_READ:    'user.trash.read',
+  USER_TRASH_RESTORE: 'user.trash.restore',
+  USER_TRASH_DELETE:  'user.trash.delete',
 
   // Projects
   PROJECT_CREATE: 'project.create',

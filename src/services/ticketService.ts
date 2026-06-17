@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/axios";
 
-function parseDecimal(val: any): number | undefined {
+export function parseDecimal(val: any): number | undefined {
   if (val === null || val === undefined) return undefined;
   if (typeof val === 'number') return val;
   if (typeof val === 'string') {
@@ -74,7 +74,10 @@ export interface TicketFormData {
   assignee?: string;
   startDate?: string;
   endDate?: string;
-  releasePlan?: string;
+  releasePlan?: string | null;
+  sprintPlanId?: string | null;
+  sprintPlan?: string | null;
+  bucketId?: string | null;
   selectedWorkflowSteps?: string[];
   tags?: string[];
 }

@@ -745,22 +745,22 @@ export default function ClientsV2ListPage() {
                           <img
                             src={p.projectManager.avatarUrl}
                             alt={p.projectManager.name}
-                            style={{ width: 18, height: 18, borderRadius: '5px', objectFit: 'cover' }}
+                            style={{ width: 16, height: 16, borderRadius: '10px', objectFit: 'cover' }}
                           />
                         ) : (
                           <div
                             className="cm-mini-avatar"
                             style={{
-                              width: 18,
-                              height: 18,
-                              background: '#3b82f6',
+                              width: 16,
+                              height: 16,
+                              background: 'var(--bg-blue-50)',
                               fontSize: 9,
                               fontWeight: 800,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               borderRadius: '5px',
-                              color: '#fff',
+                              color: 'rgb(59, 130, 246)',
                             }}
                           >
                             {((p.projectManager.name || "?")[0]).toUpperCase()}
@@ -1268,45 +1268,29 @@ export default function ClientsV2ListPage() {
                                         items: [
                                           {
                                             key: 'view',
-                                            icon: <div className="cm-drop-icon" style={{ background: '#eff6ff', color: '#3b82f6', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} /></div>,
-                                            label: (
-                                              <div className="cm-drop-text" style={{ marginLeft: 8 }}>
-                                                <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>View client</div>
-                                                <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open the full view</div>
-                                              </div>
-                                            ),
-                                            style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
-                                            onClick: () => router.push(`/clients-v2/${record.id}`)
+                                            label: menuLabel('View client', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
                                           },
                                           ...(canUpdateClient ? [{
                                             key: 'edit',
-                                            icon: <div className="cm-drop-icon" style={{ background: '#f1f5f9', color: '#64748b', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Settings2 size={16} /></div>,
-                                            label: (
-                                              <div className="cm-drop-text" style={{ marginLeft: 8 }}>
-                                                <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>Configure</div>
-                                                <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open in the builder</div>
-                                              </div>
-                                            ),
-                                            style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
-                                            onClick: () => router.push(`/clients-v2/create?id=${record.id}`)
+                                            label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
                                           }] : []),
                                           ...(canDeleteClient ? [
                                             { type: 'divider' as const },
                                             {
                                               key: 'delete',
-                                              icon: <div className="cm-drop-icon" style={{ background: '#fef2f2', color: '#ef4444', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></div>,
-                                              label: (
-                                                <div className="cm-drop-text" style={{ marginLeft: 8 }}>
-                                                  <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Delete</div>
-                                                  <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Remove this client</div>
-                                                </div>
-                                              ),
-                                              style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
-                                              onClick: () => handleDeleteClient(record.id, record.companyName)
+                                              danger: true,
+                                              label: menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
                                             }
                                           ] : [])
-                                        ]
+                                        ],
+                                        onClick: ({ key, domEvent }) => {
+                                          domEvent.stopPropagation();
+                                          if (key === 'view') router.push(`/clients-v2/${record.id}`);
+                                          else if (key === 'edit') router.push(`/clients-v2/create?id=${record.id}`);
+                                          else if (key === 'delete') handleDeleteClient(record.id, record.companyName);
+                                        }
                                       }}
+                                      overlayClassName="pm2-action-pop"
                                       trigger={['click']}
                                       placement="bottomRight"
                                     >
@@ -1315,6 +1299,7 @@ export default function ClientsV2ListPage() {
                                         className="bh2-more-btn"
                                         icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
                                         style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
+                                        onClick={e => e.stopPropagation()}
                                       />
                                     </Dropdown>
                                   </div>
@@ -1331,14 +1316,14 @@ export default function ClientsV2ListPage() {
                                         style={{
                                           width: 16,
                                           height: 16,
-                                          background: gradientFor(fullName),
                                           fontSize: 8,
                                           fontWeight: 700,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          borderRadius: '5px',
-                                          color: '#fff',
+                                          borderRadius: '10px',
+                                          background: 'var(--bg-blue-50)',
+                                          color: 'rgb(59, 130, 246)',
                                           marginLeft: 5,
                                           marginRight: 5
                                         }}
@@ -1357,8 +1342,8 @@ export default function ClientsV2ListPage() {
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          borderRadius: '5px',
-                                          color: '#94a3b8',
+                                          borderRadius: '10px',
+                                          color: 'rgb(59, 130, 246)',
                                           marginLeft: 4,
                                           marginRight: 4
                                         }}
@@ -1541,7 +1526,7 @@ export default function ClientsV2ListPage() {
         .bh2-main {
           min-width: 0;
           padding: 14px 20px 12px;
-          background: var(--bg-pure-white);
+          background: var(--bg-pure-white) !important;
           display: flex;
           flex-direction: column;
         }
@@ -3485,11 +3470,11 @@ export default function ClientsV2ListPage() {
             }
             .cm-mini-avatar {
               width: 22px; height: 22px;
-              border-radius: 6px;
+              border-radius: 10px !important;
               display: flex; align-items: center; justify-content: center;
-              color: #3b82f6; font-weight: 700; font-size: 10px;
+              color: rgb(59, 130, 246); font-weight: 700; font-size: 10px;
               flex-shrink: 0;
-              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+              background: var(--bg-blue-50) !important;
             }
             .cm-client-name {
               display: flex; align-items: center; gap: 6px;
@@ -3566,7 +3551,7 @@ export default function ClientsV2ListPage() {
             .cm-projects-pill.has {
               background: rgba(59, 130, 246, 0.08);
               border-color: rgba(59, 130, 246, 0.25);
-              color: #2563eb;
+              color: #3b82f6;
             }
             .cm-projects-pill.empty { color: var(--text-slate-500); }
             .cm-projects-ico {
@@ -3593,10 +3578,10 @@ export default function ClientsV2ListPage() {
               font-size: 11.5px;
             }
             [data-theme='dark'] .cm-projects-pill { background: var(--bg-secondary); }
-            [data-theme='dark'] .cm-projects-pill.has {
-              background: rgba(139, 92, 246, 0.12);
-              color: #a78bfa;
-            }
+            // [data-theme='dark'] .cm-projects-pill.has {
+            //   background: rgba(139, 92, 246, 0.12);
+            //   color: #a78bfa;
+            // }
             /* removed cm-projects-ico dark override */
             [data-theme='dark'] .cm-projects-ico { background: var(--bg-slate-50); }
 

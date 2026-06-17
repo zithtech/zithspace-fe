@@ -3275,8 +3275,8 @@ const DocumentHubPage = () => {
           display: flex;
           align-items: center;
           gap: 9px;
-          margin: 0 0px 12px 0px;
-          padding: 20px 20px;
+          margin: 0 0px 0px 0px;
+          padding: 26px 22px;
           height: 38px;
           border-top: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);

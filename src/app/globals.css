@@ -3305,14 +3305,14 @@ select:-webkit-autofill:focus {
 }
 
 .squad-card-v2__footer .ant-btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .squad-card-v2__footer .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 .squad-card-v2__footer .ant-btn-default {
@@ -3828,9 +3828,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -4661,6 +4661,15 @@ select:-webkit-autofill:focus {
 }
 
 /* Table polish — rows */
+.premium-table .ant-table,
+.premium-table .ant-table-container,
+.premium-table .ant-table-thead>tr>th,
+.saas-table .ant-table,
+.saas-table .ant-table-container,
+.saas-table .ant-table-thead>tr>th {
+  border-radius: 0 !important;
+}
+
 .premium-table .ant-table-thead>tr>th {
   background: var(--bg-slate-50) !important;
   color: var(--text-slate-500) !important;
@@ -4716,6 +4725,11 @@ select:-webkit-autofill:focus {
 
 [data-theme='dark'] .premium-table .ant-table-thead>tr>th {
   background: var(--bg-pure-white) !important;
+}
+
+[data-theme='dark'] .premium-table .ant-table,
+[data-theme='dark'] .saas-table .ant-table {
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {
@@ -7735,6 +7749,40 @@ select:-webkit-autofill:focus {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.ced-hero__stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+  border-radius: 12px;
+}
+
+.ced-hero__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-slate-500);
+}
+
+.ced-hero__stat strong {
+  color: var(--text-slate-900);
+  font-weight: 700;
+}
+
+.ced-hero__stat-icon {
+  color: var(--text-slate-400);
+  font-size: 13px;
+}
+
+.ced-hero__stat-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-subtle);
 }
 
 .zai-hero__sub {
@@ -17883,9 +17931,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -18559,15 +18607,15 @@ select:-webkit-autofill:focus {
 .ced-hero__icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ef4444, #f97316);
+  border-radius: 0;
+  background: #3B82F6;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
-  box-shadow: 0 8px 18px -8px rgba(239, 68, 68, 0.55);
+  box-shadow: none;
 }
 
 .ced-hero__text {
@@ -18593,7 +18641,7 @@ select:-webkit-autofill:focus {
 .ced-hero__close {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--bg-slate-50);
   border: 1px solid var(--border-slate-200);
   color: var(--text-slate-600);
@@ -18619,7 +18667,7 @@ select:-webkit-autofill:focus {
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 .ced-hero__stat {
@@ -18684,18 +18732,18 @@ select:-webkit-autofill:focus {
 }
 
 .ced-section-header.is-done .ced-section-header__step {
-  background: rgba(16, 185, 129, 0.10);
-  border-color: rgba(16, 185, 129, 0.30);
-  color: #059669;
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.30);
+  color: #3B82F6;
   font-size: 13px;
 }
 
 .ced-section-header__icon {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 0;
   background: rgba(59, 130, 246, 0.10);
-  color: var(--premium-blue);
+  color: #3B82F6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -18704,8 +18752,8 @@ select:-webkit-autofill:focus {
 }
 
 .ced-section-header.is-done .ced-section-header__icon {
-  background: rgba(16, 185, 129, 0.10);
-  color: #059669;
+  background: rgba(59, 130, 246, 0.10);
+  color: #3B82F6;
 }
 
 .ced-section-header__text {
@@ -18815,7 +18863,7 @@ select:-webkit-autofill:focus {
 .ced-input.ant-input,
 .ced-input.ant-input-affix-wrapper,
 .ced-textarea.ant-input {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   transition: all 0.2s ease !important;
@@ -18845,7 +18893,7 @@ select:-webkit-autofill:focus {
 }
 
 .ced-select.ant-select .ant-select-selector {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   min-height: 42px !important;
   background: var(--bg-slate-50) !important;
   border: 1px solid var(--border-slate-200) !important;
@@ -18891,7 +18939,7 @@ select:-webkit-autofill:focus {
 .ced-select.ant-select-multiple .ant-select-selection-item {
   background: rgba(59, 130, 246, 0.08) !important;
   border: 1px solid rgba(59, 130, 246, 0.20) !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
   color: var(--text-slate-800) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -18900,7 +18948,7 @@ select:-webkit-autofill:focus {
 
 /* ---------- Dragger ---------- */
 .ced-dragger.ant-upload-wrapper .ant-upload-drag {
-  border-radius: 12px !important;
+  border-radius: 0 !important;
   border: 2px dashed var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   padding: 20px !important;
@@ -18943,16 +18991,16 @@ select:-webkit-autofill:focus {
 }
 
 .ced-footer__dot.is-done {
-  background: linear-gradient(135deg, #10b981, #059669);
-  border-color: #059669;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18);
+  background: #3B82F6;
+  border-color: #3B82F6;
+  box-shadow: none;
 }
 
 .ced-footer__line {
   flex: 1;
   height: 2px;
   background: var(--bg-slate-100);
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .ced-footer__actions {
@@ -18962,7 +19010,7 @@ select:-webkit-autofill:focus {
 }
 
 .ced-btn-ghost.ant-btn {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   height: 40px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
@@ -18978,22 +19026,22 @@ select:-webkit-autofill:focus {
 }
 
 .ced-btn-primary.ant-btn {
-  border-radius: 10px !important;
+  border-radius: 0 !important;
   height: 40px !important;
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .ced-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* Dark theme */
@@ -19034,9 +19082,9 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
@@ -19790,7 +19838,7 @@ select:-webkit-autofill:focus {
   height: 30px;
   border-radius: 9px;
   background: rgba(59, 130, 246, 0.10);
-  color: var(--premium-blue);
+  color: #3B82F6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -20372,14 +20420,14 @@ select:-webkit-autofill:focus {
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .es-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* Dark theme */
@@ -24395,17 +24443,17 @@ select:-webkit-autofill:focus {
   height: 38px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .orgx-primary-btn.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Stat grid ---------- */
@@ -25323,17 +25371,17 @@ select:-webkit-autofill:focus {
   padding: 0 22px !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: #3B82F6 !important;
   border: none !important;
-  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px;
 }
 
 .orgx-btn-primary.ant-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  background: #2563eb !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Dark theme ---------- */
@@ -25434,3 +25482,195 @@ select:-webkit-autofill:focus {
     width: 100% !important;
   }
 }
+/* ════════════════════════════════════════════════════════════════════════
+   Proposal Builder canvas refinements
+   - one clean selection outline (no nested boxes / corner handles)
+   - roomy floating toolbar with the destructive action isolated
+   - inter-block "Add Section" inserter always sits above any toolbar
+   ════════════════════════════════════════════════════════════════════════ */
+.pb-block-halo {
+  inset: -3px -14px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid rgba(37, 99, 235, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.07) !important;
+}
+.pb-block-halo::before,
+.pb-block-halo::after { display: none !important; }
+
+.pb-floating-toolbar {
+  top: -36px !important;
+  left: auto !important;
+  right: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 4px !important;
+  z-index: 25 !important;
+  border: 1px solid var(--border-color) !important;
+}
+.pb-tb-btn {
+  padding: 6px 9px !important;
+  min-width: 30px;
+  justify-content: center;
+  cursor: pointer;
+}
+.pb-tb-grip { cursor: grab !important; }
+.pb-tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+.pb-tb-btn--add:hover { background: rgba(37, 99, 235, 0.10) !important; color: #2563eb !important; }
+
+/* keep the "Add Section" inserter clickable even when a block above/below is selected */
+.pb-inserter-slot { z-index: 60 !important; height: 18px !important; }
+
+/* Always-visible "Add Section" between cards — discoverable + never hidden
+   behind a block's top-right toolbar (which now only holds drag/status/delete) */
+.pb-inserter-slot { height: 26px !important; z-index: 60 !important; }
+.pb-block-inserter {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  background: var(--bg-pure-white) !important;
+  color: var(--text-slate-400) !important;
+  border: 1px dashed var(--border-color) !important;
+  box-shadow: none !important;
+}
+.pb-inserter-slot:hover .pb-block-inserter {
+  color: #2563eb !important;
+  border-color: #93c5fd !important;
+  border-style: solid !important;
+  background: rgba(37, 99, 235, 0.06) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.14) !important;
+}
+/* keep the floating toolbar compact + right-anchored so it never reaches the
+   centered "Add Section" pill */
+.pb-floating-toolbar { max-width: 280px; }
+
+/* The inserter strip itself must NOT intercept clicks — only the centered
+   "Add Section" pill is interactive. This keeps an adjacent block's top-right
+   toolbar (drag/status/delete) fully clickable. */
+.pb-inserter-slot { pointer-events: none !important; }
+.pb-block-inserter { pointer-events: auto !important; }
+
+/* Inter-block "Add Section" reveals on hover (declutters multi-component
+   sections) and is centred so it never covers a block's top-right toolbar. */
+.pb-inserter-slot { pointer-events: auto !important; max-width: 360px; margin-left: auto !important; margin-right: auto !important; }
+.pb-block-inserter { opacity: 0 !important; transition: opacity .14s ease !important; }
+.pb-inserter-slot:hover .pb-block-inserter { opacity: 1 !important; }
+
+/* --- Proposal Builder Responsive Header --- */
+.pb-header__title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0 !important;
+}
+
+.pb-header__left {
+  flex-shrink: 0 !important;
+}
+
+.pb-cover-title {
+  font-size: 2.25rem !important;
+}
+
+.pb-cover-summary {
+  font-size: 1.05rem !important;
+}
+
+/* Hide description text on medium/narrow screens to prevent vertical wrap & overlap */
+@media (max-width: 1280px) {
+  .pb-header__sub {
+    display: none !important;
+  }
+}
+
+/* Wrap header elements into stacked rows at 1150px (before buttons squeeze and overlap) */
+@media (max-width: 1150px) {
+  .pb-header {
+    height: auto !important;
+    min-height: 46px !important;
+    padding: 10px 14px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .pb-header__left {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: flex-start !important;
+  }
+
+  .pb-header__title-container {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .pb-header__actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: flex-start !important;
+  }
+
+  .pb-header__sep {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .pb-cover-title {
+    font-size: 1.5rem !important;
+  }
+  .pb-cover-summary {
+    font-size: 0.95rem !important;
+  }
+}
+
+/* --- Responsive layout for side rails (stack vertically) --- */
+@media (max-width: 1024px) {
+  .builder-main-container {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .builder-side-pane {
+    width: 100% !important;
+    height: 380px !important;
+    flex-shrink: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  /* Left side pane divider on mobile */
+  .builder-side-pane:not(.properties-pane) {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  /* Right side pane (properties) divider on mobile */
+  .builder-side-pane.properties-pane {
+    border-left: none !important;
+    border-top: 1px solid var(--border-color) !important;
+    height: 450px !important;
+  }
+
+  .builder-resizer {
+    display: none !important;
+  }
+
+  .builder-canvas-wrapper {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 600px !important;
+    flex: 1 0 auto !important;
+    overflow-y: visible !important;
+  }
+}
+
+
+

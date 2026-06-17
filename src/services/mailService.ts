@@ -35,8 +35,14 @@ export interface MailAttachment {
 }
 
 export const MailService = {
-    async getThreads(label?: string, filter?: string, search?: string) {
-        return await api.get("/api/mail/threads", { params: { label, filter, search } });
+    async getThreads(label?: string, filter?: string, search?: string, to?: string, from?: string) {
+        let params = new URLSearchParams();
+        if (label) params.append("label", label);
+        if (filter) params.append("filter", filter);
+        if (search) params.append("search", search);
+        if (to) params.append("to", to);
+        if (from) params.append("from", from);
+        return await api.get(`/api/mail/threads?${params.toString()}`);
     },
 
     async getThreadMessages(threadId: string) {

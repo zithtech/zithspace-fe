@@ -176,28 +176,28 @@ export default function UpdateCard({
           {/* Foot Section (slate-50 background, containing both pills and dates) */}
           <div style={{ display: "flex", flexDirection: "column", padding: 0, borderTop: "1px solid var(--border-slate-200)", background: "var(--bg-slate-50)" }}>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 12px" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-sky-600)", background: "var(--bg-sky-50)", padding: "2px 6px", borderRadius: 4 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "10px 12px" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-sky-600)", background: "var(--bg-sky-50)", padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                 <Clock size={11} /> <span style={{ opacity: 0.7, fontWeight: 500 }}>Time:</span> {formatHours(totalHours)}
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)", background: "var(--bg-slate-50)", padding: "2px 6px", borderRadius: 4 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)", background: "var(--bg-slate-50)", padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                 <ProjectOutlined /> <span style={{ opacity: 0.7, fontWeight: 500 }}>{projectUpdates.length === 1 ? "Project:" : "Projects:"}</span> {projectUpdates.length}
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                 <span>{statusConfig.icon}</span> <span style={{ opacity: 0.7, fontWeight: 500 }}>Status:</span> {statusConfig.label}
               </span>
               {projectUpdates.length > 0 && (
-                <span title={`Tasks: ${projectUpdates[0].tasks?.[0]?.ticketNumber || projectUpdates[0].tasks?.[0]?.description || "No tasks"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span title={`Tasks: ${firstTask?.type === 'manual' ? 'Manual' : (firstTask?.ticketNumber || firstTask?.description || "No tasks")}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-slate-700)", background: "transparent", padding: "2px 6px", borderRadius: 4, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 1, minWidth: 0 }}>
                   <Activity size={11} color="var(--text-slate-400)" style={{ flexShrink: 0 }} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <span style={{ opacity: 0.7, fontWeight: 500 }}>Tasks ({totalTasks}):</span> {projectUpdates[0].tasks?.[0]?.ticketNumber || projectUpdates[0].tasks?.[0]?.description || "No tasks"}
+                    <span style={{ opacity: 0.7, fontWeight: 500 }}>Tasks ({totalTasks}):</span> {firstTask?.type === 'manual' ? 'Manual' : (firstTask?.ticketNumber || firstTask?.description || "No tasks")}
                   </span>
                 </span>
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 12px", borderTop: "1px solid var(--border-slate-200)" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "8px 12px", borderTop: "1px solid var(--border-slate-200)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)" }}>Due Date:</span>
                 <span style={{ fontWeight: 600 }}>
                   {update.is_missed && update.missed_updateAt
@@ -205,17 +205,17 @@ export default function UpdateCard({
                     : dayjs(update.createdAt).format("DD MMM YYYY")}
                 </span>
               </span>
-              <span style={{ width: 1, height: 11, background: "var(--border-slate-300)" }} />
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)" }}>
+              <span style={{ width: 1, height: 11, background: "var(--border-slate-300)", flexShrink: 0 }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)", whiteSpace: "nowrap", flexShrink: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase" }}>Submitted On</span>
-                <span style={{ fontWeight: 700 }}>
+                <span style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {dayjs((update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60) ? update.updatedAt : update.createdAt).format("MMM D, h:mm A")}
                 </span>
               </span>
               {isMissed && (
                 <>
-                  <span style={{ width: 1, height: 11, background: "var(--border-slate-300)" }} />
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 19, padding: "0 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, background: "var(--bg-leave)", color: "var(--text-leave)", textTransform: "uppercase" }}>
+                  <span style={{ width: 1, height: 11, background: "var(--border-slate-300)", flexShrink: 0 }} />
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 19, padding: "0 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, background: "var(--bg-leave)", color: "var(--text-leave)", textTransform: "uppercase", flexShrink: 0 }}>
                     MISSED
                   </span>
                 </>

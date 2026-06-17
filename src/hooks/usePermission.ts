@@ -26,6 +26,9 @@ export const usePermission = () => {
     canUpdateUser:   hasPermission(Permissions.USER_UPDATE),
     canDeleteUser:   hasPermission(Permissions.USER_DELETE),
     canManageUsers:  hasPermission(Permissions.USER_MANAGE),
+    canReadUserTrash:    hasPermission(Permissions.USER_TRASH_READ),
+    canRestoreUserTrash: hasPermission(Permissions.USER_TRASH_RESTORE),
+    canDeleteUserTrash:  hasPermission(Permissions.USER_TRASH_DELETE),
 
     // ─── Projects ───────────────────────────────────────────────────
     canCreateProject:  hasPermission(Permissions.PROJECT_CREATE),

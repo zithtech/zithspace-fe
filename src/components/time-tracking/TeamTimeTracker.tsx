@@ -15,6 +15,7 @@ import {
 const { RangePicker } = DatePicker;
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
+import { parseDecimal } from "@/services/ticketService";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
@@ -517,9 +518,12 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     {
       title: "Daily Capacity",
       key: "progress",
-      width: 140,
+      width: 160,
       render: (_: any, record: any) => {
-        const targetSeconds = 6 * 3600; // 6 hours
+        // Find matching member in useMembers data to get custom minWorkingHours
+        const matchedMember = members.find((m: any) => m.value === record.user?.id);
+        const goalHours = matchedMember?.minWorkingHours ?? 6;
+        const targetSeconds = goalHours * 3600;
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
@@ -544,16 +548,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             overlayInnerStyle={{ borderRadius: 12, background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(4px)' }}
           >
             <div style={{ width: '100%', cursor: 'help' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 10, lineHeight: 1.2 }}>
-                <span style={{ color: 'var(--text-slate-400)', fontWeight: 500 }}>
-                  {percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h`}
-                </span>
-                <span style={{ 
-                  fontWeight: 600, 
-                  color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)'
-                }}>
-                  {formatTime(record.totalSeconds)}
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, whiteSpace: 'nowrap', gap: '8px' }}>
+                <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
+                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)', whiteSpace: 'nowrap' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 4, background: 'var(--bg-secondary)', borderRadius: 2, overflow: 'hidden' }}>
                 <div
@@ -781,16 +778,18 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                             )}
                             <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
                           </div>
-                          {session.ticket.estimateHours !== undefined ? (
-                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
-                              EST: {(() => {
-                                const mins = Math.round(Number(session.ticket.estimateHours) * 60);
-                                const h = Math.floor(mins / 60);
-                                const m = mins % 60;
-                                return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
-                              })()}
-                            </Tag>
-                          ) : null}
+                          {(() => {
+                            const parsedHours = parseDecimal(session.ticket.estimateHours);
+                            if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
+                            const mins = Math.round(parsedHours * 60);
+                            const h = Math.floor(mins / 60);
+                            const m = mins % 60;
+                            return (
+                              <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
+                              </Tag>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.description || "No description provided"}</Text>

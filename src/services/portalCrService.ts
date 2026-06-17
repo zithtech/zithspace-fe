@@ -83,6 +83,7 @@ export const portalCrService = {
     page?: number;
     limit?: number;
     status?: string;
+    priority?: string;
     search?: string;
     projectId?: string;
     from?: string;

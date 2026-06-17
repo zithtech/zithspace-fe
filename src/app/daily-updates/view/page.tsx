@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,8 @@ import {
   ChevronRight,
   Activity,
   FileText,
-  History
+  History,
+  Menu
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -112,6 +114,8 @@ export default function ViewDailyUpdatesPage() {
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
   const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(true);
@@ -390,7 +394,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
         .du-side-create {
           height: 36px !important;
-          border-radius: 0 !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
           background: #3B82F6 !important;
           border: none !important;
@@ -503,24 +507,27 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         }
 
         .du-sidebar-backdrop { display: none; }
-        .mobile-menu-btn { display: none; }
+        .mobile-menu-btn { display: none !important; }
 
         @media (max-width: 991px) {
           .du-sidebar { width: 228px; }
         }
 
-        @media (max-width: 767px) {
-          .mobile-menu-btn { display: inline-flex; }
+        @media (max-width: 820px) {
+          .btn-text-mobile-hide { display: none; }
+          .du-main-header { padding: 12px 16px !important; }
+          .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           .du-sidebar {
             position: fixed;
             top: 0;
-            left: -280px;
+            left: -320px;
             height: 100vh;
             width: 280px;
             z-index: 1000;
-            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: var(--bg-pure-white);
             border-right: 1px solid var(--border-slate-200);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
           }
           .du-sidebar.is-mobile-open { left: 0; }
           
@@ -528,7 +535,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             display: block;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
             z-index: 999;
             opacity: 0;
             pointer-events: none;
@@ -572,7 +580,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         <div className="du-sidebar-top">
           <div className="du-sidebar-brand">
             <div className="du-hero-icon-box">
-              <FileText size={16} color="#1677ff" />
+              <FileText size={16} color={isDark ? '#ffffff' : '#1677ff'} />
             </div>
             <div className="min-w-0">
               <h1 className="du-sidebar-title">Daily Updates</h1>
@@ -580,9 +588,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             </div>
           </div>
 
-          {canCreateDailyUpdate && (
-            <Button type="primary" icon={<PlusOutlined />} className="du-side-create" onClick={handleSubmitNew} block>
-              Submit Update
+          {canViewTeam && (
+            <Button type="primary" icon={<Clock size={16} />} className="du-side-create" onClick={() => setManageTimeOpen(true)} block>
+              Manage Time
             </Button>
           )}
         </div>
@@ -673,12 +681,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       </aside>
 
       <main className="du-main">
-        <header className="du-main-header">
-          <div className="flex items-center gap-4">
+        <header className="du-main-header" style={{ height: 'auto', minHeight: 52, padding: '12px 24px', flexWrap: 'wrap', gap: '12px 16px' }}>
+          <div className="flex items-center gap-4 flex-wrap" style={{ flex: '1 1 280px' }}>
             <div className="flex items-center gap-3">
               <Button
                 type="text"
-                icon={<MenuOutlined />}
+                icon={<Menu size={18} />}
                 className="mobile-menu-btn"
                 onClick={() => setMobileSidebarOpen(true)}
                 style={{ padding: '0 8px', marginLeft: -8 }}
@@ -695,60 +703,27 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             <DatePicker.RangePicker
               value={dateRange}
               onChange={handleDateRangeChange}
-              style={{ width: 270, borderRadius: 6, height: 30 }}
+              style={{ width: '100%', maxWidth: 270, borderRadius: 6, height: 30 }}
               format="YYYY-MM-DD"
               placeholder={["Start Date", "End Date"]}
             />
-          </div>
-          <div className="flex items-center gap-2">
-            {canViewTeam && (
-              <Button
-                icon={<Clock size={14} />}
-                onClick={() => setManageTimeOpen(true)}
-                size="small"
-                style={{
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  height: 32,
-                  background: "var(--bg-sky-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                  fontWeight: "normal"
-                }}
-              >
-                <span className="btn-text-mobile-hide">Manage Time</span>
-              </Button>
-            )}
-            <Button
-              icon={<RefreshCw size={14} />}
-              onClick={handleRefresh}
-              loading={loading}
-              size="small"
-              style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
-            >
-              <span className="btn-text-mobile-hide">Refresh</span>
-            </Button>
             {canReadActivityLog && (
               <Button
                 icon={<History size={14} />}
                 onClick={() => setHistoryOpen(true)}
                 size="small"
-                style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
-              >
-                <span className="btn-text-mobile-hide">History</span>
-              </Button>
+                style={{ height: 30, width: 30, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
+              />
             )}
-            
-            <div style={{ width: 1, height: 16, background: "var(--border-slate-300)", margin: "0 4px" }} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             
             <div style={{
               display: "flex",
               alignItems: "center",
               background: "var(--bg-pure-white)",
               border: "1px solid var(--border-slate-200)",
-              borderRadius: 20,
+              borderRadius: 12,
               padding: 2,
               gap: 2
             }}>
@@ -761,7 +736,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   justifyContent: "center",
                   width: 36,
                   height: 28,
-                  borderRadius: 16,
+                  borderRadius: 10,
                   border: "none",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -780,7 +755,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   justifyContent: "center",
                   width: 36,
                   height: 28,
-                  borderRadius: 16,
+                  borderRadius: 10,
                   border: "none",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -791,6 +766,25 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 <ListIcon size={14} />
               </button>
             </div>
+
+            <Button
+              icon={<RefreshCw size={16} />}
+              onClick={handleRefresh}
+              loading={loading}
+              style={{
+                width: 34,
+                height: 34,
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--bg-pure-white)",
+                border: "1px solid var(--border-slate-200)",
+                borderRadius: 12,
+                color: "var(--text-slate-600)",
+                boxShadow: "none"
+              }}
+            />
           </div>
         </header>
 

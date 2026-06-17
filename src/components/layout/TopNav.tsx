@@ -516,22 +516,20 @@ export default function TopNav({
 
   return (
     <Header
-      className="glass-panel"
+      className="main-top-nav"
       style={{
         padding: isMobile ? "0 16px" : "0 24px 0 0",
-        background: "rgba(255, 255, 255, 0.8)",
-        backdropFilter: "blur(12px) saturate(180%)",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+        background: "var(--bg-pure-white)",
+        borderBottom: "1px solid var(--border-color)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 54,
+        height: 60,
         position: "fixed",
         top: 0,
         right: 0,
         left: 0,
         zIndex: 1000,
-        boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)"
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -960,11 +958,11 @@ export default function TopNav({
       </Space>
 
       <style jsx global>{`
-                .ant-menu-horizontal {
-                    line-height: 54px !important;
+                  .ant-menu-horizontal {
+                    line-height: 60px !important;
                     border-bottom: none !important;
                     background: transparent !important;
-                }
+                  }
                 .ant-menu-horizontal .ant-menu-item {
                     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                     padding: 0 !important;
@@ -989,7 +987,7 @@ export default function TopNav({
                     gap: 6px;
                     padding: 0 10px;
                     height: 32px;
-                    border-radius: 0px;
+                    border-radius: 6px;
                     font-weight: 600;
                     font-size: 12.5px;
                     letter-spacing: 0.2px;
@@ -1031,8 +1029,8 @@ export default function TopNav({
                 .brand-badge {
                     width: 34px;
                     height: 34px;
-                    border-radius: 10px;
-                    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+                    border-radius: 0px;
+                    background: #3B82F6;
                     color: #ffffff;
                     font-weight: 800;
                     font-size: 16px;
@@ -1121,7 +1119,7 @@ export default function TopNav({
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    border-radius: 9px !important;
+                    border-radius: 0px !important;
                     color: #475569;
                     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
                 }
@@ -1165,7 +1163,7 @@ export default function TopNav({
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    border-radius: 9px !important;
+                    border-radius: 0px !important;
                     color: #475569;
                     transition: background-color 0.2s ease, color 0.2s ease;
                 }

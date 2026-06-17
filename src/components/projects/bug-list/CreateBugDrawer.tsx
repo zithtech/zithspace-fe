@@ -461,7 +461,7 @@ export default function CreateBugDrawer({
 
               {/* Description */}
               <div
-                className={`hb-cbd-fieldgroup ${!isValid && descriptionTouched ? "hb-cbd-error" : ""
+                className={`hb-cbd-fieldgroup ${description.trim().length === 0 && descriptionTouched ? "hb-cbd-error" : ""
                   }`}
               >
                 <div className="hb-cbd-fieldhead">
@@ -499,7 +499,7 @@ export default function CreateBugDrawer({
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={() => setDescriptionTouched(true)}
                 />
-                {!isValid && descriptionTouched && (
+                {descriptionTouched && description.trim().length === 0 && (
                   <div className="hb-cbd-errortext">Description is required</div>
                 )}
               </div>
@@ -525,6 +525,7 @@ export default function CreateBugDrawer({
                     placeholder="Select severity"
                     value={severity}
                     onChange={(v) => setSeverity(v)}
+                    status={!severity && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
                     options={(severityOptions || [])
@@ -555,6 +556,9 @@ export default function CreateBugDrawer({
                         ),
                       }))}
                   />
+                  {descriptionTouched && !severity && (
+                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Severity needs to be updated</div>
+                  )}
                 </div>
                 <div className="hb-cbd-fieldgroup hb-cbd-half">
                   <Label icon={<Layers size={11} />} required>Type</Label>
@@ -563,12 +567,16 @@ export default function CreateBugDrawer({
                     placeholder="Select type"
                     value={bugType}
                     onChange={(v) => setBugType(v)}
+                    status={!bugType && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
                     options={(typeOptions || [])
                       .filter((t) => t.isActive)
                       .map((t) => ({ value: t.key, label: t.label }))}
                   />
+                  {descriptionTouched && !bugType && (
+                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Type is required</div>
+                  )}
                 </div>
               </div>
 

@@ -95,7 +95,7 @@ export default function AccountsSettingsPage() {
     canDeleteAccountConfig,
   } = usePermission();
 
-  const { data: categories = [], isLoading: loading, refetch } = useExpenseCategories();
+  const { data: categories = [], isLoading: loading, refetch, isFetching } = useExpenseCategories();
   const createMutation = useCreateExpenseCategory();
   const updateMutation = useUpdateExpenseCategory();
   const deleteMutation = useDeleteExpenseCategory();
@@ -403,14 +403,7 @@ export default function AccountsSettingsPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                <button
-                  type="button"
-                  className={viewMode === "card" ? "is-active" : ""}
-                  onClick={() => setViewMode("card")}
-                  aria-label="Card view"
-                >
-                  <LayoutGrid size={14} />
-                </button>
+
                 <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
@@ -419,9 +412,18 @@ export default function AccountsSettingsPage() {
                 >
                   <List size={14} />
                 </button>
+                <button
+                  type="button"
+                  className={viewMode === "card" ? "is-active" : ""}
+                  onClick={() => setViewMode("card")}
+                  aria-label="Card view"
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                
               </div>
               <Tooltip title="Refresh">
-                <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={loading} /></button>
+                <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={loading || isFetching} /></button>
               </Tooltip>
             </div>
           </div>
@@ -496,7 +498,7 @@ export default function AccountsSettingsPage() {
                             {initialsOf(category.name)}
                           </div>
                           <div className="pc-identity-body">
-                            <div className="pc-title">{category.name}</div>
+                            <div className="pc-title" style={{ fontSize: '13px' }}>{category.name}</div>
                             <div className="pc-client-line">
                               <span className="pc-client-key">Description:</span>
                               <span className="pc-client-val">
@@ -825,6 +827,20 @@ export default function AccountsSettingsPage() {
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
+        .pp-shell,
+        .pp-shell *,
+        .ant-table,
+        .ant-btn,
+        .ant-select,
+        .ant-picker,
+        .ant-input,
+        .ant-modal,
+        .ant-drawer,
+        .ant-tooltip,
+        .ant-popconfirm,
+        .ant-dropdown {
+          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
+        }
 
         /* ---------------- Sidebar ---------------- */
         .pp-sidebar {
@@ -855,13 +871,14 @@ export default function AccountsSettingsPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 14px !important;
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 12px;
+          color: #fff !important;
         }
         .pp-create-btn:hover { background: #2563EB !important; }
-        .pp-create-btn .anticon { font-size: 14px !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;

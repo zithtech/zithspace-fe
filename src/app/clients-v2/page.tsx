@@ -78,10 +78,7 @@ const AVATAR_GRADIENTS = [
 ];
 
 const gradientFor = (key?: string) => {
-  if (!key) return AVATAR_GRADIENTS[0];
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = key.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+  return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
 };
 
 const initialsOf = (name?: string, code?: string) => {
@@ -639,7 +636,7 @@ export default function ClientsV2ListPage() {
       width: 200,
       render: (_: any, record: any) => {
         const am = record.accountManager;
-        if (!am) return <Text type="secondary" style={{ fontSize: 13 }}>Unassigned</Text>;
+        if (!am) return <Text type="secondary" style={{ fontSize: 12.5 }}>Unassigned</Text>;
         const fullName = `${am.first_name || ""} ${am.last_name || ""}`.trim();
         return (
           <Space size={8}>
@@ -647,7 +644,7 @@ export default function ClientsV2ListPage() {
               {(am.first_name?.[0] || "?").toUpperCase()}
               {(am.last_name?.[0] || "").toUpperCase()}
             </div>
-            <Text style={{ fontSize: 13, fontWeight: 500 }}>{fullName || "—"}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{fullName || "—"}</Text>
           </Space>
         );
       },
@@ -800,7 +797,7 @@ export default function ClientsV2ListPage() {
                           <img
                             src={p.projectManager.avatarUrl}
                             alt={p.projectManager.name}
-                            style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }}
+                            style={{ width: 18, height: 18, borderRadius: '5px', objectFit: 'cover' }}
                           />
                         ) : (
                           <div
@@ -814,7 +811,7 @@ export default function ClientsV2ListPage() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              borderRadius: '50%',
+                              borderRadius: '5px',
                               color: '#fff',
                             }}
                           >
@@ -1411,7 +1408,7 @@ export default function ClientsV2ListPage() {
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          borderRadius: '50%',
+                                          borderRadius: '5px',
                                           color: '#fff',
                                           marginLeft: 5,
                                           marginRight: 5
@@ -1431,10 +1428,10 @@ export default function ClientsV2ListPage() {
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          borderRadius: '50%',
-                                          color: '#3b82f6',
-                                          marginLeft: 5,
-                                          marginRight: 5
+                                          borderRadius: '5px',
+                                          color: '#94a3b8',
+                                          marginLeft: 4,
+                                          marginRight: 4
                                         }}
                                       >
                                         U
@@ -2317,11 +2314,11 @@ export default function ClientsV2ListPage() {
           flex-shrink: 0;
           position: relative;
           overflow: hidden;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
           color: #fff;
         }
         [data-theme="dark"] .bh2-list-avatar {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
         }
         .bh2-side-clear {
           display: flex;
@@ -3448,23 +3445,23 @@ export default function ClientsV2ListPage() {
             .cm-table-card {
               background: var(--bg-pure-white);
               border-radius: 0;
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
               overflow: hidden;
-              margin-top: 12px !important;
-              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+              box-shadow: none;
             }
             .cm-table-card .ant-table {
               background: transparent !important;
             }
             .cm-table-card .ant-table-thead > tr > th {
               background: var(--bg-slate-50) !important;
-              color: var(--text-slate-500) !important;
+              border-bottom: 1px solid var(--border-slate-200) !important;
+              font-size: 10px !important;
               font-weight: 700 !important;
+              letter-spacing: 0.04em !important;
               text-transform: uppercase !important;
-              font-size: 10.5px !important;
-              letter-spacing: 0.08em !important;
+              color: var(--text-slate-400) !important;
               padding: 6px 10px !important;
-              border-bottom: 1px solid var(--border-slate-100) !important;
+              white-space: nowrap !important;
             }
             .cm-table-card .ant-table-thead > tr > th::before { display: none !important; }
             .cm-table-card .ant-table-tbody > tr > td {
@@ -3473,23 +3470,8 @@ export default function ClientsV2ListPage() {
               transition: background .15s ease;
               position: relative;
             }
-            .cm-table-card .cm-row > td:first-child::before {
-              content: "";
-              position: absolute;
-              left: 0;
-              top: 0;
-              bottom: 0;
-              width: 3px;
-              opacity: 0;
-              transition: opacity .2s ease;
-              pointer-events: none;
-            }
-
             .cm-table-card .cm-row:hover > td {
               background: var(--bg-slate-50) !important;
-            }
-            .cm-table-card .cm-row:hover > td:first-child::before {
-              opacity: 1;
             }
             .cm-table-card .ant-table-tbody > tr.ant-table-row-level-0:last-child > td {
               border-bottom: 0 !important;
@@ -3498,30 +3480,30 @@ export default function ClientsV2ListPage() {
             /* avatar / cells */
             .cm-avatar-wrap {
               position: relative;
-              width: 24px; height: 24px;
+              width: 38px; height: 38px;
               flex-shrink: 0;
             }
             .cm-avatar {
-              width: 24px; height: 24px;
-              border-radius: 6px;
+              width: 38px; height: 38px;
+              border-radius: 10px;
               display: flex; align-items: center; justify-content: center;
-              background: #3b82f6;
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
               color: #fff;
               font-weight: 700;
-              font-size: 10px;
+              font-size: 13.5px;
               letter-spacing: 0.02em;
-              box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
+              box-shadow: 0 2px 6px rgba(15,23,42,0.10),
                           inset 0 1px 0 rgba(255,255,255,0.18);
               flex-shrink: 0;
             }
             [data-theme="dark"] .cm-avatar {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
             }
             .cm-avatar-wrap.is-active .cm-avatar-pulse {
               position: absolute;
               right: -2px;
               bottom: -2px;
-              width: 12px; height: 12px;
+              width: 11px; height: 11px;
               border-radius: 50%;
               background: #10b981;
               border: 2px solid var(--bg-pure-white);
@@ -3533,16 +3515,17 @@ export default function ClientsV2ListPage() {
               50% { box-shadow: 0 0 0 4px rgba(16,185,129,0.08); }
             }
             .cm-mini-avatar {
-              width: 26px; height: 26px;
-              border-radius: 50%;
+              width: 22px; height: 22px;
+              border-radius: 6px;
               display: flex; align-items: center; justify-content: center;
               color: #fff; font-weight: 700; font-size: 10px;
               flex-shrink: 0;
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
             }
             .cm-client-name {
               display: flex; align-items: center; gap: 6px;
-              font-size: 14.5px; color: var(--text-slate-900);
-              line-height: 1.25;
+              font-size: 13.5px; color: var(--text-slate-900);
+              line-height: 1.2;
               letter-spacing: -0.005em;
             }
             .cm-client-name .ant-typography {
@@ -3562,7 +3545,7 @@ export default function ClientsV2ListPage() {
             }
             .cm-client-meta {
               display: flex; align-items: center; gap: 6px;
-              font-size: 12px;
+              font-size: 11.5px;
               color: var(--text-slate-500);
               margin-top: 3px;
               flex-wrap: wrap;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
 import { useAuth } from "@/context/AuthContext";
@@ -160,7 +160,7 @@ const FILTERS: { label: string; value: any; icon?: any }[] = [
   { label: "No Attachment", value: "NO_ATTACHMENTS" },
 ];
 
-export default function MailPage() {
+function MailPageContent() {
   const { message } = App.useApp();
   const {
     canCreateMail,
@@ -2441,5 +2441,13 @@ export default function MailPage() {
         </Form>
       </Drawer>
     </MainLayout>
+  );
+}
+
+export default function MailPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>}>
+      <MailPageContent />
+    </Suspense>
   );
 }

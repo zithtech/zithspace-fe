@@ -307,7 +307,7 @@ export default function PortalShell({
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      <main style={{ flex: 1, minWidth: 0, height: "100vh", overflowY: "auto" }}>{children}</main>
 
       <ChangePasswordModal
         open={changePwOpen}

@@ -548,6 +548,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/admin",
       "/roles",
       "/members",
+      "/members/trash",
     ],
     defaultPath: "/clients-v2",
     requiredAnyPermission: [
@@ -555,6 +556,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.SETTINGS_READ,
       Permissions.ROLE_READ,
       Permissions.USER_READ,
+      Permissions.USER_TRASH_READ,
     ],
     items: [
       {
@@ -614,11 +616,29 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       //   ],
       // },
       {
-        key: "/members",
+        key: "members-group",
         label: "Members",
         icon: I(Users),
-        path: "/members",
-        requiredPermission: Permissions.USER_READ,
+        requiredAnyPermission: [
+          Permissions.USER_READ,
+          Permissions.USER_TRASH_READ,
+        ],
+        children: [
+          {
+            key: "/members",
+            label: "Members",
+            icon: I(Users),
+            path: "/members",
+            requiredPermission: Permissions.USER_READ,
+          },
+          {
+            key: "/members/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/members/trash",
+            requiredPermission: Permissions.USER_TRASH_READ,
+          },
+        ],
       },
       {
         key: "/roles",

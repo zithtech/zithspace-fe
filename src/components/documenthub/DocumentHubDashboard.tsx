@@ -248,7 +248,19 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 );
             })}
             <style jsx>{`
-            .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+          .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+          
+          @media (max-width: 1024px) {
+            .pp-stats {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+          @media (max-width: 640px) {
+            .pp-stats {
+              grid-template-columns: 1fr;
+            }
+          }
+
           .pp-stat-card {
             background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
             border-radius: 0; padding: 12px 14px; min-height: 92px;

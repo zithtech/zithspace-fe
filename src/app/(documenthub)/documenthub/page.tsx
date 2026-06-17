@@ -3331,10 +3331,18 @@ const DocumentHubPage = () => {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          min-width: 0;
+          flex-shrink: 1;
         }
         .dh-footer-strong { font-weight: 700; color: var(--text-slate-700); }
         
         /* Custom Pagination Styles */
+        .dh-main-footer .ant-pagination {
+          display: flex;
+          align-items: center;
+          flex-wrap: nowrap !important;
+          flex-shrink: 0;
+        }
         .dh-main-footer .ant-pagination-item,
         .dh-main-footer .ant-pagination-prev .ant-pagination-item-link,
         .dh-main-footer .ant-pagination-next .ant-pagination-item-link {
@@ -3505,12 +3513,17 @@ const DocumentHubPage = () => {
           .dh-main-search { width: 100%; max-width: none; order: 5; flex: 1 1 100%; }
           .dh-main-controls { order: 2; margin-left: auto; }
         }
-        @media (max-width: 560px) {
+        @media (max-width: 900px) {
+          .dh-main-footer { padding: 10px 14px; gap: 8px; }
+          .dh-footer-summary { font-size: 12px; }
+          .dh-main-footer .ant-pagination { flex-wrap: nowrap !important; }
+        }
+        @media (max-width: 640px) {
           .dh-main-body { padding: 8px 12px 14px 12px; }
           .dh-stats-wrap { padding: 10px 12px 0 12px; }
-          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px; }
-          .dh-footer-summary { text-align: center; white-space: normal; }
-          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap; }
+          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+          .dh-footer-summary { text-align: center; white-space: normal; overflow: visible; }
+          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap !important; gap: 6px; }
         }
 
         /* Dark-mode surfaces */

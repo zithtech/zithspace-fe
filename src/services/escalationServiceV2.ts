@@ -15,6 +15,7 @@ export interface EscalationPayload {
     targetMemberIds: string[];
     ticketIds?: string[];
     attachments?: EscalationAttachment[];
+    existingUrls?: string[];
 }
 
 export class EscalationServiceV2 {

@@ -336,6 +336,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                             <Input
                                 size="large"
                                 autoFocus
+                                autoComplete="off"
                                 placeholder={
                                     addingToExisting
                                         ? 'e.g., Scope Doc, Test Scope'

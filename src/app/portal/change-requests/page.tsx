@@ -38,6 +38,7 @@ import {
   Activity,
   ArrowUpRight,
   DollarSign,
+  AlertTriangle,
 } from "lucide-react";
 import {
   portalCrService,
@@ -63,11 +64,15 @@ const { RangePicker } = DatePicker;
 const FILTER_TABS: { key: string; label: string }[] = [
   { key: "ALL", label: "All" },
   { key: "submitted", label: "Submitted" },
+  { key: "under_review", label: "Under review" },
   { key: "estimated", label: "Estimate ready" },
   { key: "approved", label: "Approved" },
+  { key: "scheduled", label: "Scheduled" },
   { key: "in_progress", label: "In progress" },
   { key: "delivered", label: "Delivered" },
   { key: "rejected", label: "Rejected" },
+  { key: "closed", label: "Closed" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 const PRIORITY_OPTIONS: { value: CrPriority; label: string }[] = [
@@ -122,6 +127,7 @@ export default function PortalCrListPage() {
   const [meta, setMeta] = useState<PortalCrMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>("ALL");
+  const [priority, setPriority] = useState<string | undefined>(undefined);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [datePicked, setDatePicked] = useState<
@@ -159,6 +165,7 @@ export default function PortalCrListPage() {
         page,
         limit,
         status: status === "ALL" ? undefined : status,
+        priority: priority || undefined,
         search: search || undefined,
         projectId,
         from: fromIso,
@@ -177,7 +184,7 @@ export default function PortalCrListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, projectId, fromIso, toIso]);
+  }, [page, status, priority, projectId, fromIso, toIso]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -190,7 +197,7 @@ export default function PortalCrListPage() {
 
   // Featured: CRs awaiting your decision (status='estimated' && no decision)
   const hasAnyFilter =
-    status !== "ALL" || !!projectId || !!search || !!fromIso || !!toIso;
+    status !== "ALL" || !!priority || !!projectId || !!search || !!fromIso || !!toIso;
   const featured = useMemo(() => {
     if (hasAnyFilter || page !== 1) return [];
     return items.filter(
@@ -205,7 +212,7 @@ export default function PortalCrListPage() {
   }, [items, featured]);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+    <div style={{ height: "100vh", overflowY: "auto", backgroundColor: "#ffffff" }}>
       {contextHolder}
 
       {/* Workstation Header */}
@@ -396,6 +403,11 @@ export default function PortalCrListPage() {
             setDatePicked(r);
             setPage(1);
           }}
+          priority={priority}
+          onPriorityChange={(v) => {
+            setPriority(v);
+            setPage(1);
+          }}
         />
 
         {/* Active filter chips */}
@@ -419,6 +431,11 @@ export default function PortalCrListPage() {
           statusFilter={status !== "ALL" ? status : undefined}
           onClearStatus={() => {
             setStatus("ALL");
+            setPage(1);
+          }}
+          priorityFilter={priority}
+          onClearPriority={() => {
+            setPriority(undefined);
             setPage(1);
           }}
         />
@@ -859,6 +876,8 @@ function FilterBar({
   onProjectChange,
   datePicked,
   onDateChange,
+  priority,
+  onPriorityChange,
 }: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -867,6 +886,8 @@ function FilterBar({
   onProjectChange: (v: string | undefined) => void;
   datePicked: [Dayjs | null, Dayjs | null] | null;
   onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
+  priority: string | undefined;
+  onPriorityChange: (v: string | undefined) => void;
 }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const today = dayjs();
@@ -1021,6 +1042,30 @@ function FilterBar({
         }
       />
 
+      <Select
+        allowClear
+        placeholder={
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: p.textSubtle,
+              fontWeight: 500,
+            }}
+          >
+            <AlertTriangle size={13} color={p.textFaint} />
+            All priorities
+          </span>
+        }
+        suffixIcon={<AlertTriangle size={13} color={p.textFaint} />}
+        value={priority}
+        onChange={(v) => onPriorityChange(v)}
+        className="premium-select"
+        style={{ width: 160, height: 34 }}
+        options={PRIORITY_OPTIONS}
+      />
+
       <RangePicker
         value={datePicked as any}
         onChange={(r) => onDateChange(r as any)}
@@ -1046,6 +1091,8 @@ function ActiveFilterChips({
   onClearDateRange,
   statusFilter,
   onClearStatus,
+  priorityFilter,
+  onClearPriority,
 }: {
   search: string;
   onClearSearch: () => void;
@@ -1055,9 +1102,11 @@ function ActiveFilterChips({
   onClearDateRange: () => void;
   statusFilter: string | undefined;
   onClearStatus: () => void;
+  priorityFilter: string | undefined;
+  onClearPriority: () => void;
 }) {
   const hasDates = !!(datePicked && (datePicked[0] || datePicked[1]));
-  const any = !!search || !!projectName || hasDates || !!statusFilter;
+  const any = !!search || !!projectName || hasDates || !!statusFilter || !!priorityFilter;
   if (!any) return null;
 
   const dateLabel = hasDates
@@ -1106,6 +1155,13 @@ function ActiveFilterChips({
           onClear={onClearProject}
         />
       )}
+      {priorityFilter && (
+        <FilterChip
+          icon={AlertTriangle}
+          label={`Priority: ${priorityFilter}`}
+          onClear={onClearPriority}
+        />
+      )}
       {hasDates && (
         <FilterChip
           icon={CalendarRange}
@@ -1127,6 +1183,7 @@ function ActiveFilterChips({
           if (projectName) onClearProject();
           if (hasDates) onClearDateRange();
           if (statusFilter) onClearStatus();
+          if (priorityFilter) onClearPriority();
         }}
         className="premium-clear-all"
         style={{

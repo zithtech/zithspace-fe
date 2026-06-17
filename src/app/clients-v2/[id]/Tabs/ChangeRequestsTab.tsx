@@ -834,6 +834,13 @@ function CreateCrModal({
                   { value: "submitted", label: "Submitted" },
                   { value: "estimated", label: "Estimated" },
                   { value: "draft", label: "Draft — hidden from client" },
+                  { value: "approved", label: "Approved" },
+                  { value: "rejected", label: "Rejected" },
+                  { value: "scheduled", label: "Scheduled" },
+                  { value: "in_progress", label: "In progress" },
+                  { value: "delivered", label: "Delivered" },
+                  { value: "closed", label: "Closed" },
+                  { value: "cancelled", label: "Cancelled" },
                 ]}
               />
             </Form.Item>

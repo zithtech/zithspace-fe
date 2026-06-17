@@ -9,6 +9,7 @@ import {
     LoadingOutlined,
     ArrowRightOutlined,
 } from "@ant-design/icons";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
 const { Title, Text } = Typography;
 import MainLayout from "@/components/layout/MainLayout";
@@ -67,6 +68,23 @@ function CalendarPageContent() {
     const [providerLoading, setProviderLoading] = useState(true);
 
     const { message } = AntApp.useApp();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const router = useRouter();
+    const processedConnection = React.useRef(false);
+
+    useEffect(() => {
+        if (searchParams && searchParams.get('connected') === 'true' && !processedConnection.current) {
+            processedConnection.current = true;
+            const provider = searchParams.get('provider') as CalendarProvider;
+            if (provider) {
+                setConnectedProvider(provider);
+                // syncAll already displays success messages
+                syncAll(provider);
+                router.replace(pathname || '/calendar');
+            }
+        }
+    }, [searchParams, pathname, router, syncAll]);
 
     useEffect(() => {
         if (successMessage) {

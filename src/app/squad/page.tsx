@@ -53,6 +53,7 @@ import SquadDrawer from '@/components/squad/SquadDrawer';
 import SquadViewDrawer from '@/components/squad/SquadViewDrawer';
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
@@ -114,6 +115,8 @@ export default function SquadManagement() {
   useActivitySource({ section: "WORK", module: "Squad", page: "SquadView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadSquad, canCreateSquad, canUpdateSquad, canDeleteSquad } = usePermission();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [loading, setLoading] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
 
@@ -526,7 +529,7 @@ export default function SquadManagement() {
         <aside className={`sq-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="sq-sidebar-top">
             <div className="sq-side-head">
-              <div className="sq-side-logo"><TeamOutlined /></div>
+              <div className="sq-side-logo"><TeamOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
               <div className="sq-side-head-text">
                 <div className="sq-side-title">Squads</div>
                 <div className="sq-side-subtitle">Management · Teams</div>
@@ -861,7 +864,7 @@ export default function SquadManagement() {
           .sq-side-logo {
             flex-shrink: 0; display: flex; align-items: center; justify-content: center;
           }
-          .sq-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+          .sq-side-logo .anticon { font-size: 24px !important; }
           .sq-side-head-text { display: flex; flex-direction: column; min-width: 0; }
           .sq-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
           .sq-side-subtitle {
@@ -869,7 +872,7 @@ export default function SquadManagement() {
             text-transform: uppercase; letter-spacing: 0.07em;
           }
           .sq-create-btn {
-            height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+            height: 32px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12.5px !important;
             background: #3B82F6 !important;
             border: none !important; box-shadow: none !important;
             margin-bottom: 4px;

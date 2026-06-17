@@ -96,21 +96,21 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
           <BarChartOutlined />
         </div>
         <div>
-          <div className="text-[13px] font-bold text-slate-800 leading-tight">7-Day Activity</div>
-          <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+          <div className="text-[13px] font-bold text-slate-800 dark:text-slate-200 leading-tight">7-Day Activity</div>
+          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
             Last 7 days · {summary.activeDays} active
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-5">
-        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total</div>
-          <div className="text-sm font-semibold text-slate-700">{formatDurationShort(summary.totalSec)}</div>
+        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50">
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Total</div>
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{formatDurationShort(summary.totalSec)}</div>
         </div>
-        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Daily Avg</div>
-          <div className="text-sm font-semibold text-slate-700">{formatDurationShort(summary.avgSec)}</div>
+        <div className="p-2.5 rounded-md bg-slate-50 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50">
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Daily Avg</div>
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{formatDurationShort(summary.avgSec)}</div>
         </div>
       </div>
 
@@ -137,18 +137,18 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-[30px] shrink-0 text-right">
-                    <span className={`text-[11px] font-bold ${d.isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+                    <span className={`text-[11px] font-bold ${d.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
                       {dayjs(d.date).format("ddd")}
                     </span>
                   </div>
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                  <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
                     <div 
-                      className={`h-full rounded-full transition-all duration-500 ${d.isToday ? 'bg-blue-500' : 'bg-slate-300'}`}
+                      className={`h-full rounded-full transition-all duration-500 ${d.isToday ? 'bg-blue-500 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                       style={{ width: `${widthPct}%` }}
                     />
                   </div>
                   <div className="w-[42px] shrink-0 text-left">
-                    <span className={`text-[11px] font-semibold ${d.seconds === 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                    <span className={`text-[11px] font-semibold ${d.seconds === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400'}`}>
                       {formatDurationCompact(d.seconds)}
                     </span>
                   </div>
@@ -160,7 +160,7 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
       )}
 
       {!loading && summary.totalSec === 0 && (
-        <div className="flex flex-col items-center justify-center py-6 text-slate-400 text-xs gap-2">
+        <div className="flex flex-col items-center justify-center py-6 text-slate-400 dark:text-slate-500 text-xs gap-2">
           <ClockCircleOutlined style={{ fontSize: 20 }} />
           <span>No time logged in 7 days</span>
         </div>

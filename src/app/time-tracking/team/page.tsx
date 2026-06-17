@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History, Menu } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function TeamTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
@@ -35,6 +36,8 @@ export default function TeamTimePage() {
   } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
@@ -71,7 +74,7 @@ export default function TeamTimePage() {
           <div className="dh-sidebar-top">
             <div className="dh-sidebar-brand">
               <div className="dh-hero-icon-box">
-                <TeamOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                <TeamOutlined style={{ fontSize: 18, color: isDark ? '#ffffff' : '#3b82f6' }} />
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">Team Tracking</h1>
@@ -90,7 +93,7 @@ export default function TeamTimePage() {
                 style={{
                   marginTop: 10,
                   height: 38,
-                  borderRadius: 0,
+                  borderRadius: 6,
                   fontWeight: 700,
                   fontSize: 13,
                   boxShadow: 'none',
@@ -222,7 +225,7 @@ export default function TeamTimePage() {
         }
         .dh-side-create {
           height: 36px !important;
-          border-radius: 0 !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
           border: none !important;
         }

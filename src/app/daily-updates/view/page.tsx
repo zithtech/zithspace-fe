@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -113,6 +114,8 @@ export default function ViewDailyUpdatesPage() {
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
   const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(true);
@@ -391,7 +394,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
         .du-side-create {
           height: 36px !important;
-          border-radius: 0 !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
           background: #3B82F6 !important;
           border: none !important;
@@ -577,7 +580,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         <div className="du-sidebar-top">
           <div className="du-sidebar-brand">
             <div className="du-hero-icon-box">
-              <FileText size={16} color="#1677ff" />
+              <FileText size={16} color={isDark ? '#ffffff' : '#1677ff'} />
             </div>
             <div className="min-w-0">
               <h1 className="du-sidebar-title">Daily Updates</h1>
@@ -585,9 +588,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             </div>
           </div>
 
-          {canCreateDailyUpdate && (
-            <Button type="primary" icon={<PlusOutlined />} className="du-side-create" onClick={handleSubmitNew} block>
-              Submit Update
+          {canViewTeam && (
+            <Button type="primary" icon={<Clock size={16} />} className="du-side-create" onClick={() => setManageTimeOpen(true)} block>
+              Manage Time
             </Button>
           )}
         </div>
@@ -704,56 +707,23 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               format="YYYY-MM-DD"
               placeholder={["Start Date", "End Date"]}
             />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {canViewTeam && (
-              <Button
-                icon={<Clock size={14} />}
-                onClick={() => setManageTimeOpen(true)}
-                size="small"
-                style={{
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  height: 32,
-                  background: "var(--bg-sky-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                  fontWeight: "normal"
-                }}
-              >
-                <span className="btn-text-mobile-hide">Manage Time</span>
-              </Button>
-            )}
-            <Button
-              icon={<RefreshCw size={14} />}
-              onClick={handleRefresh}
-              loading={loading}
-              size="small"
-              style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
-            >
-              <span className="btn-text-mobile-hide">Refresh</span>
-            </Button>
             {canReadActivityLog && (
               <Button
                 icon={<History size={14} />}
                 onClick={() => setHistoryOpen(true)}
                 size="small"
-                style={{ height: 32, borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}
-              >
-                <span className="btn-text-mobile-hide">History</span>
-              </Button>
+                style={{ height: 30, width: 30, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
+              />
             )}
-            
-            <div style={{ width: 1, height: 16, background: "var(--border-slate-300)", margin: "0 4px" }} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             
             <div style={{
               display: "flex",
               alignItems: "center",
               background: "var(--bg-pure-white)",
               border: "1px solid var(--border-slate-200)",
-              borderRadius: 20,
+              borderRadius: 12,
               padding: 2,
               gap: 2
             }}>
@@ -766,7 +736,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   justifyContent: "center",
                   width: 36,
                   height: 28,
-                  borderRadius: 16,
+                  borderRadius: 10,
                   border: "none",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -785,7 +755,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   justifyContent: "center",
                   width: 36,
                   height: 28,
-                  borderRadius: 16,
+                  borderRadius: 10,
                   border: "none",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -796,6 +766,25 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 <ListIcon size={14} />
               </button>
             </div>
+
+            <Button
+              icon={<RefreshCw size={16} />}
+              onClick={handleRefresh}
+              loading={loading}
+              style={{
+                width: 34,
+                height: 34,
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--bg-pure-white)",
+                border: "1px solid var(--border-slate-200)",
+                borderRadius: 12,
+                color: "var(--text-slate-600)",
+                boxShadow: "none"
+              }}
+            />
           </div>
         </header>
 

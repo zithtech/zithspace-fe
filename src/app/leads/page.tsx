@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -68,7 +69,8 @@ import {
   Rocket,
   Award,
   Star,
-  Menu
+  Menu,
+  Maximize2
 } from "lucide-react";
 import {
   Card,
@@ -578,6 +580,8 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 export default function LeadsPage() {
   useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const router = useRouter();
   const {
     canReadLead,
@@ -2313,7 +2317,7 @@ export default function LeadsPage() {
             <aside className={`lm-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
               <div className="lm-sidebar-top">
                 <div className="lm-side-head">
-                  <div className="lm-side-logo"><Layers size={20} /></div>
+                  <div className="lm-side-logo"><Layers size={20} color={isDark ? '#ffffff' : '#3b82f6'} /></div>
                   <div className="lm-side-head-text">
                     <div className="lm-side-title">Leads</div>
                     <div className="lm-side-subtitle">Management · Pipeline</div>
@@ -2449,7 +2453,7 @@ export default function LeadsPage() {
                   />
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center" }}>
+                  <Space.Compact className="ticket-filter-group">
                     <Popover
                       trigger={["click"]}
                       placement="bottomRight"
@@ -2565,7 +2569,7 @@ export default function LeadsPage() {
                       <Button
                         icon={<Filter size={13} />}
                         className={`lm-filter-settings-btn lm-toolbar-filters-btn lm-filter-group-left ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
-                        style={{ height: 38, borderRight: 0, display: 'flex', alignItems: 'center' }}
+                        style={{ height: 38, display: 'flex', alignItems: 'center' }}
                       >
                         Filters
                         {(() => {
@@ -2579,13 +2583,13 @@ export default function LeadsPage() {
                       </Button>
                     </Popover>
                     <Button
-                      icon={<ExpandAltOutlined />}
-                      className="lm-filter-settings-btn lm-filter-group-right"
+                      icon={<Maximize2 size={12} strokeWidth={2.5} />}
+                      className={`lm-filter-settings-btn lm-filter-group-right ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
                       style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
                       aria-label="Expand toolbar"
                       onClick={() => setIsFilterRowOpen(prev => !prev)}
                     />
-                  </div>
+                  </Space.Compact>
 
                   <Button
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
@@ -3091,11 +3095,11 @@ export default function LeadsPage() {
                                 height: 64,
                                 margin: "0 auto 16px",
                                 borderRadius: 18,
-                                background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
+                                background: "var(--bg-blue-50)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: "#6366f1",
+                                color: "#3b82f6",
                               }}
                             >
                               <Layers size={28} />
@@ -3121,12 +3125,12 @@ export default function LeadsPage() {
                                   setIsDrawerVisible(true);
                                 }}
                                 style={{
-                                  borderRadius: 0,
+                                  borderRadius: 6,
                                   height: 36,
                                   fontWeight: 700,
-                                  background: "#6366f1",
+                                  background: "#3b82f6",
                                   border: "none",
-                                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
                                 }}
                               >
                                 Add First Lead
@@ -3175,7 +3179,7 @@ export default function LeadsPage() {
                     </div>
                   ) : filteredLeads.length === 0 ? (
                     <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
-                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}>
+                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
                         <Layers size={28} />
                       </div>
                       <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
@@ -3185,7 +3189,7 @@ export default function LeadsPage() {
                         {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
                       </Typography.Text>
                       {leads.length === 0 && (
-                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 0, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
+                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
                       )}
                     </div>
                   ) : (
@@ -4558,7 +4562,7 @@ export default function LeadsPage() {
             .lm-side-logo {
               flex-shrink: 0; display: flex; align-items: center; justify-content: center;
             }
-            .lm-side-logo .anticon, .lm-side-logo svg { font-size: 24px !important; color: var(--text-slate-900) !important; width: 24px; height: 24px; }
+            .lm-side-logo .anticon, .lm-side-logo svg { font-size: 24px !important; width: 24px; height: 24px; }
             .lm-side-head-text { display: flex; flex-direction: column; min-width: 0; }
             .lm-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
             .lm-side-subtitle {
@@ -4566,7 +4570,7 @@ export default function LeadsPage() {
               text-transform: uppercase; letter-spacing: 0.07em;
             }
             .lm-create-btn {
-              height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+              height: 32px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12.5px !important;
               background: #3B82F6 !important;
               border: none !important; box-shadow: none !important;
               margin-bottom: 4px;
@@ -4682,13 +4686,20 @@ export default function LeadsPage() {
               height: 38px !important; font-size: 13px !important; padding: 0 16px !important;
               border-radius: 8px !important;
             }
-            .lm-topbar-actions .lm-filter-group-left.ant-btn {
+            .lm-topbar-actions button.lm-filter-group-left.ant-btn {
               border-top-right-radius: 0 !important;
               border-bottom-right-radius: 0 !important;
             }
-            .lm-topbar-actions .lm-filter-group-right.ant-btn {
+            .lm-topbar-actions button.lm-filter-group-right.ant-btn {
               border-top-left-radius: 0 !important;
               border-bottom-left-radius: 0 !important;
+            }
+            .lm-topbar-actions button.lm-filter-group-left.ant-btn:hover,
+            .lm-topbar-actions button.lm-filter-group-right.ant-btn:hover,
+            .lm-topbar-actions button.lm-filter-group-left.ant-btn:focus,
+            .lm-topbar-actions button.lm-filter-group-right.ant-btn:focus {
+              border-color: #3b82f6 !important;
+              color: #3b82f6 !important;
             }
             .lm-table-toolbar .lm-toolbar-export-btn.ant-btn,
             .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn {
@@ -5272,7 +5283,7 @@ export default function LeadsPage() {
 
             /* Fixed column background overrides (Dark Mode) */
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right {
-              background: var(--bg-secondary) !important;
+              background: var(--bg-pure-white) !important;
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .lm-row:hover > td.ant-table-cell-fix-right {
               background: var(--bg-primary) !important;

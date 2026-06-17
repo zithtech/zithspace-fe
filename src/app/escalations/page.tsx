@@ -50,6 +50,7 @@ import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { usePermission } from '@/hooks/usePermission';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
@@ -122,6 +123,8 @@ export default function EscalationListPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -669,7 +672,7 @@ export default function EscalationListPage() {
         <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="es-sidebar-top">
             <div className="es-side-head">
-              <div className="es-side-logo"><AlertOutlined /></div>
+              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
               <div className="es-side-head-text">
                 <div className="es-side-title">Escalations</div>
                 <div className="es-side-subtitle">Quality & Performance</div>
@@ -1368,7 +1371,7 @@ export default function EscalationListPage() {
         .es-side-logo {
           flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
-        .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .es-side-logo .anticon { font-size: 24px !important; }
         .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
         .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
         .es-side-subtitle {
@@ -1376,7 +1379,7 @@ export default function EscalationListPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .es-create-btn {
-          height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+          height: 32px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 4px;

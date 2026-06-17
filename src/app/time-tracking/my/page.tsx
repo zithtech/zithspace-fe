@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History, Menu } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function MyTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingMy" });
@@ -39,6 +40,8 @@ export default function MyTimePage() {
   } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const handleTotalChange = useCallback((total: number) => {
     setTotalSeconds(total);
@@ -74,7 +77,7 @@ export default function MyTimePage() {
           <div className="dh-sidebar-top">
             <div className="dh-sidebar-brand">
               <div className="dh-hero-icon-box">
-                <ClockCircleOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                <ClockCircleOutlined style={{ fontSize: 18, color: isDark ? '#ffffff' : '#3b82f6' }} />
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">My Time Tracking</h1>
@@ -90,7 +93,7 @@ export default function MyTimePage() {
                 className="dh-side-create w-full"
                 style={{
                   height: 38,
-                  borderRadius: 0,
+                  borderRadius: 6,
                   fontWeight: 700,
                   fontSize: 13,
                   boxShadow: 'none',
@@ -241,7 +244,7 @@ export default function MyTimePage() {
         }
         .dh-side-create {
           height: 36px !important;
-          border-radius: 0 !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
           border: none !important;
         }

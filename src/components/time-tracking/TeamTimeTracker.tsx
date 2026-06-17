@@ -518,7 +518,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     {
       title: "Daily Capacity",
       key: "progress",
-      width: 140,
+      width: 160,
       render: (_: any, record: any) => {
         // Find matching member in useMembers data to get custom minWorkingHours
         const matchedMember = members.find((m: any) => m.value === record.user?.id);
@@ -548,9 +548,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             overlayInnerStyle={{ borderRadius: 12, background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(4px)' }}
           >
             <div style={{ width: '100%', cursor: 'help' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
-                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)' }}>{formatTime(record.totalSeconds)}</Text>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, whiteSpace: 'nowrap', gap: '8px' }}>
+                <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
+                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)', whiteSpace: 'nowrap' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 4, background: 'var(--bg-secondary)', borderRadius: 2, overflow: 'hidden' }}>
                 <div

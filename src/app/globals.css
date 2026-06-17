@@ -4661,6 +4661,15 @@ select:-webkit-autofill:focus {
 }
 
 /* Table polish — rows */
+.premium-table .ant-table,
+.premium-table .ant-table-container,
+.premium-table .ant-table-thead>tr>th,
+.saas-table .ant-table,
+.saas-table .ant-table-container,
+.saas-table .ant-table-thead>tr>th {
+  border-radius: 0 !important;
+}
+
 .premium-table .ant-table-thead>tr>th {
   background: var(--bg-slate-50) !important;
   color: var(--text-slate-500) !important;
@@ -4716,6 +4725,11 @@ select:-webkit-autofill:focus {
 
 [data-theme='dark'] .premium-table .ant-table-thead>tr>th {
   background: var(--bg-pure-white) !important;
+}
+
+[data-theme='dark'] .premium-table .ant-table,
+[data-theme='dark'] .saas-table .ant-table {
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {

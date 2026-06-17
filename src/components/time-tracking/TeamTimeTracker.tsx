@@ -519,7 +519,10 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "progress",
       width: 140,
       render: (_: any, record: any) => {
-        const targetSeconds = 6 * 3600; // 6 hours
+        // Find matching member in useMembers data to get custom minWorkingHours
+        const matchedMember = members.find((m: any) => m.value === record.user?.id);
+        const goalHours = matchedMember?.minWorkingHours ?? 6;
+        const targetSeconds = goalHours * 3600;
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
@@ -544,16 +547,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             overlayInnerStyle={{ borderRadius: 12, background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(4px)' }}
           >
             <div style={{ width: '100%', cursor: 'help' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 10, lineHeight: 1.2 }}>
-                <span style={{ color: 'var(--text-slate-400)', fontWeight: 500 }}>
-                  {percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h`}
-                </span>
-                <span style={{ 
-                  fontWeight: 600, 
-                  color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)'
-                }}>
-                  {formatTime(record.totalSeconds)}
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
+                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
+                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 4, background: 'var(--bg-secondary)', borderRadius: 2, overflow: 'hidden' }}>
                 <div

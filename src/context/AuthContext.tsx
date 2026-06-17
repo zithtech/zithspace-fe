@@ -68,6 +68,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  googleLogin: (token: string) => Promise<boolean>;
+  microsoftLogin: (token: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   checkAuth: () => Promise<void>;
@@ -155,6 +157,94 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       return true;
     } catch (error) {
       console.error("Login failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const googleLogin = async (token: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+
+      const response = await AuthService.googleLogin(token);
+
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
+
+      const userData: User = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.workEmail || response.user.personalEmail,
+        role: response.user.role,
+        position: response.user.position || { id: "", title: "" },
+        personalEmail: response.user.personalEmail,
+        workEmail: response.user.workEmail,
+        phone: response.user.phone,
+        reportsTo: response.user.reportsTo,
+        isActive: response.user.isActive,
+        tenantId: response.user.tenantId,
+        avatarUrl: response.user.avatarUrl,
+        tenantName: response.user.tenantName,
+        tenantLogo: (response.user as any).tenantLogo,
+        department: (response.user as any).department,
+        employeeId: (response.user as any).employeeId,
+        employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
+        permissions: (response.user as any).permissions ?? [],
+      };
+
+      setUser(userData);
+      
+      syncTokenWithExtension(response.accessToken);
+      
+      return true;
+    } catch (error) {
+      console.error("Google login failed in Context:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const microsoftLogin = async (token: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+
+      const response = await AuthService.microsoftLogin(token);
+
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
+
+      const userData: User = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.workEmail || response.user.personalEmail,
+        role: response.user.role,
+        position: response.user.position || { id: "", title: "" },
+        personalEmail: response.user.personalEmail,
+        workEmail: response.user.workEmail,
+        phone: response.user.phone,
+        reportsTo: response.user.reportsTo,
+        isActive: response.user.isActive,
+        tenantId: response.user.tenantId,
+        avatarUrl: response.user.avatarUrl,
+        tenantName: response.user.tenantName,
+        tenantLogo: (response.user as any).tenantLogo,
+        department: (response.user as any).department,
+        employeeId: (response.user as any).employeeId,
+        employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
+        permissions: (response.user as any).permissions ?? [],
+      };
+
+      setUser(userData);
+      
+      syncTokenWithExtension(response.accessToken);
+      
+      return true;
+    } catch (error) {
+      console.error("Microsoft login failed in Context:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -318,6 +408,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     isLoading,
     isAuthenticated: !!user,
     login,
+    googleLogin,
+    microsoftLogin,
     logout,
     updateUser,
     checkAuth,

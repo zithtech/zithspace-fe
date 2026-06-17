@@ -100,6 +100,48 @@ export class AuthService {
   }
 
   /**
+   * Login user with Google access token
+   */
+  static async googleLogin(token: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post('/api/auth/google-login', { token });
+
+      if (response.data.success) {
+        TokenManager.setAccessToken(response.data.accessToken);
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Google login failed');
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Google login failed. Please try again.');
+    }
+  }
+
+  /**
+   * Login user with Microsoft access token
+   */
+  static async microsoftLogin(token: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post('/api/auth/microsoft-login', { token });
+
+      if (response.data.success) {
+        TokenManager.setAccessToken(response.data.accessToken);
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Microsoft login failed');
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Microsoft login failed. Please try again.');
+    }
+  }
+
+  /**
    * Logout user and clear tokens
    */
   static async logout(): Promise<void> {
@@ -188,6 +230,13 @@ export class AuthService {
    */
   static getAccessToken(): string | null {
     return TokenManager.getAccessToken();
+  }
+
+  /**
+   * Set access token
+   */
+  static setAccessToken(token: string): void {
+    TokenManager.setAccessToken(token);
   }
 
   /**

@@ -212,8 +212,8 @@ export default function PortalMomPage() {
       }}
     >
       <div
+        className="portal-mom-container"
         style={{
-          padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px ${PAGE_PAD_Y + 8}px`,
           maxWidth: 1480,
           margin: "0 auto",
           display: "flex",
@@ -221,24 +221,37 @@ export default function PortalMomPage() {
           gap: GAP,
         }}
       >
-        {/* Hero banner with KPI tiles */}
-        <Hero stats={stats} loading={loading} onReload={load} />
-
-        {/* Filter bar */}
-        <FilterBar
-          search={search}
-          setSearch={setSearch}
-          projectId={projectId}
-          setProjectId={(v) => {
-            setProjectId(v);
-            setPage(1);
+        <div
+          className="portal-mom-sticky-header"
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            background: T.pageBg,
+            display: "flex",
+            flexDirection: "column",
+            gap: GAP,
           }}
-          projects={meta?.projects ?? []}
-          dateRange={dateRange}
-          setDateRange={(d) => setDateRange(d as any)}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-        />
+        >
+          {/* Hero banner with KPI tiles */}
+          <Hero stats={stats} loading={loading} onReload={load} />
+
+          {/* Filter bar */}
+          <FilterBar
+            search={search}
+            setSearch={setSearch}
+            projectId={projectId}
+            setProjectId={(v) => {
+              setProjectId(v);
+              setPage(1);
+            }}
+            projects={meta?.projects ?? []}
+            dateRange={dateRange}
+            setDateRange={(d) => setDateRange(d as any)}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+          />
+        </div>
 
         {/* Body */}
         {loading ? (
@@ -433,6 +446,7 @@ export default function PortalMomPage() {
         .mom-list-table {
           width: 100%;
           border-collapse: collapse;
+          min-width: 850px;
         }
         .mom-list-table thead th {
           padding: 10px 16px;
@@ -466,6 +480,65 @@ export default function PortalMomPage() {
         .mom-list-table tbody tr:last-child td {
           border-bottom: none;
         }
+        .portal-mom-container {
+          padding: 0 28px 32px;
+        }
+        .portal-mom-sticky-header {
+          padding-top: 24px;
+          padding-bottom: 4px;
+        }
+        .portal-mom-date-picker {
+          width: 240px;
+        }
+        @media (max-width: 992px) {
+          .portal-mom-hero {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 16px !important;
+          }
+          .portal-mom-hero-stats {
+            width: 100% !important;
+            flex-wrap: wrap !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .portal-mom-container {
+            padding: 0 12px 24px;
+            gap: 8px !important;
+          }
+          .portal-mom-sticky-header {
+            padding-top: 16px;
+            padding-bottom: 4px;
+          }
+          .portal-mom-project-select {
+            width: 100% !important;
+          }
+          .portal-mom-search {
+            min-width: 100% !important;
+          }
+          .portal-mom-date-picker {
+            width: 100% !important;
+          }
+          .portal-mom-view-toggle {
+            width: 100% !important;
+            display: flex !important;
+          }
+          .portal-mom-view-toggle button {
+            flex: 1;
+            justify-content: center;
+          }
+          .portal-mom-pagination-bar {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .portal-mom-hero-stats > div {
+            flex: 1 1 calc(50% - 6px);
+            min-width: 0;
+          }
+        }
       `}</style>
     </div>
   );
@@ -486,6 +559,7 @@ const Hero: React.FC<{
   onReload: () => void;
 }> = ({ stats, loading, onReload }) => (
   <div
+    className="portal-mom-hero"
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
@@ -551,7 +625,7 @@ const Hero: React.FC<{
       </div>
     </div>
 
-    <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "stretch" }}>
+    <div className="portal-mom-hero-stats" style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "stretch" }}>
       {[
         { label: "Total", value: stats.total, accent: "#4338ca" },
         { label: "This month", value: stats.thisMonth, accent: "#0d9488" },
@@ -651,6 +725,7 @@ const FilterBar: React.FC<{
   setViewMode,
 }) => (
   <div
+    className="portal-mom-filterbar"
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
@@ -749,6 +824,7 @@ const FilterBar: React.FC<{
     <RangePicker
       value={dateRange}
       onChange={setDateRange}
+      className="portal-mom-date-picker"
       style={{
         height: 34,
         borderRadius: 8,
@@ -757,6 +833,7 @@ const FilterBar: React.FC<{
       placeholder={["Start", "End"]}
     />
     <div
+      className="portal-mom-view-toggle"
       style={{
         display: "inline-flex",
         background: T.borderSoft,
@@ -1011,7 +1088,7 @@ const GridView: React.FC<{
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: GAP,
     }}
   >
@@ -1216,6 +1293,7 @@ const PaginationBar: React.FC<{
   onChange: (p: number, s: number) => void;
 }> = ({ page, limit, total, openActions, onChange }) => (
   <div
+    className="portal-mom-pagination-bar"
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,

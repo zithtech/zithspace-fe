@@ -343,7 +343,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         selectedRowKeys.map((ticketId) =>
           updateTicket({
             id: ticketId,
-            data: { sprintPlanId: selectedSprintId, bucketId: null } as any,
+            data: { sprintPlanId: selectedSprintId, bucketId: null },
           })
         )
       );

@@ -98,24 +98,27 @@ export default function TrashPage() {
   const total = trashData?.summary?.total || 0;
   const expiringSoon = trashData?.summary?.expiringSoon || 0;
 
-  // Per-project trash counts: we don't have a dedicated stats endpoint, so we
-  // derive from the current page's totals. (For accurate project-level counts
-  // backend support would be ideal; for now the "All projects" total is exact.)
+  // Per-project trash counts: derived from the projectCounts returned by the backend
   const projectFilterOptions = useMemo<ProjectFilterOption[]>(() => {
     if (!projects) return [];
-    const byProject = new Map<string, number>();
-    tickets.forEach((t) => {
-      const pid = typeof t.project === "object" ? t.project?.id : t.project;
-      if (pid) byProject.set(pid, (byProject.get(pid) || 0) + 1);
+    const projectCounts = trashData?.summary?.projectCounts || [];
+    const countsMap = new Map<string, number>();
+    projectCounts.forEach((pc) => {
+      if (pc.projectId) countsMap.set(pc.projectId, pc.count);
     });
     return (projects as any[]).map((p, i) => ({
       value: p.value,
       label: p.label,
       code: p.code,
-      count: byProject.get(p.value) || 0,
+      count: countsMap.get(p.value) || 0,
       color: PROJECT_PALETTE[i % PROJECT_PALETTE.length],
     }));
-  }, [projects, tickets]);
+  }, [projects, trashData?.summary?.projectCounts]);
+
+  const totalAcrossProjects = useMemo(
+    () => projectFilterOptions.reduce((acc, p) => acc + p.count, 0),
+    [projectFilterOptions]
+  );
 
   const handleRestore = async (ids?: string[]) => {
     const ticketIds = ids || (selectedRowKeys as string[]);
@@ -332,7 +335,7 @@ export default function TrashPage() {
         projects={projectFilterOptions}
         selectedProjectId={selectedProject}
         onSelectProject={setSelectedProject}
-        totalCount={total}
+        totalCount={totalAcrossProjects}
         activeFilterCount={(selectedProject ? 1 : 0) + (searchText ? 1 : 0)}
         onClearFilters={() => { setSelectedProject(null); setSearchText(""); }}
         headerActions={

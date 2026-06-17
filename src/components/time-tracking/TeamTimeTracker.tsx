@@ -15,6 +15,7 @@ import {
 const { RangePicker } = DatePicker;
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
+import { parseDecimal } from "@/services/ticketService";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
@@ -777,16 +778,18 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                             )}
                             <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
                           </div>
-                          {session.ticket.estimateHours !== undefined ? (
-                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
-                              EST: {(() => {
-                                const mins = Math.round(Number(session.ticket.estimateHours) * 60);
-                                const h = Math.floor(mins / 60);
-                                const m = mins % 60;
-                                return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
-                              })()}
-                            </Tag>
-                          ) : null}
+                          {(() => {
+                            const parsedHours = parseDecimal(session.ticket.estimateHours);
+                            if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
+                            const mins = Math.round(parsedHours * 60);
+                            const h = Math.floor(mins / 60);
+                            const m = mins % 60;
+                            return (
+                              <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
+                              </Tag>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.description || "No description provided"}</Text>

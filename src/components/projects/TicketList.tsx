@@ -2298,6 +2298,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           color: #f1f5f9;
         }
 
+        .saas-header-container {
+          margin: 0 -24px 0 -24px;
+          padding: 9.7px 16px;
+          gap: 10px;
+        }
+
         /* ── Sidebar backdrop (only used as overlay on narrow widths) ── */
         .tl-sidebar-backdrop { display: none; }
 
@@ -2325,6 +2331,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
            Items scroll horizontally; show/hide collapses the bar to 0
            height, animated via max-height. */
         @media (max-width: 1099.98px) {
+          .saas-header-container {
+            margin: 0;
+            padding: 9.7px 12px;
+          }
           /* Hide the legacy hamburger button — the header toggle handles
              open/close uniformly across viewports now. */
           .tl-sidebar-toggle-btn { display: none !important; }
@@ -2336,42 +2346,79 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             transition: none;
           }
           .tl-shell > aside.tl-sidebar {
-            position: static;
-            top: auto;
-            left: auto;
-            width: auto;
-            height: auto;
-            max-height: 220px;
-            transform: none;
-            transition: max-height 0.28s cubic-bezier(0.25, 1, 0.5, 1),
-                        opacity 0.22s ease,
-                        padding 0.22s ease;
-            box-shadow: none;
-            padding: 8px 10px;
-            border-right: 0;
-            border-top: 1px solid var(--border-slate-200);
-            border-bottom: 1px solid var(--border-slate-200);
-            overflow-x: auto;
-            overflow-y: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            max-height: none;
+            z-index: 1050;
+            background: var(--bg-pure-white);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 16px 12px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+            border-right: 1px solid var(--border-slate-200);
+            border-top: none;
+            border-bottom: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+            opacity: 1 !important;
           }
           [data-theme='dark'] .tl-shell > aside.tl-sidebar {
-            border-top-color: #1f2937;
-            border-bottom-color: #1f2937;
+            background: #0B0F1A;
+            border-right-color: #1f2937;
           }
-          /* Hidden state — collapse the horizontal bar to 0 height. */
+          .tl-shell-wrap.is-sidebar-open > .tl-shell > aside.tl-sidebar {
+            transform: translateX(0);
+          }
           .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            border-top-width: 0;
-            border-bottom-width: 0;
+            transform: translateX(-100%);
+          }
+          .tl-sidebar-backdrop {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1040;
             opacity: 0;
             pointer-events: none;
+            transition: opacity 0.3s ease;
           }
-          /* Drawer backdrop isn't used in horizontal mode. */
-          .tl-sidebar-backdrop { display: none !important; }
+          .tl-shell-wrap.is-sidebar-open .tl-sidebar-backdrop {
+            opacity: 1;
+            pointer-events: auto;
+          }
           /* Main column reclaims full width below the sidebar bar. */
           .tl-main { padding-left: 0; padding-right: 8px; }
+          .tl-action-controls {
+            order: 3;
+            flex: 1 1 100% !important;
+            margin-top: 8px;
+            flex-wrap: nowrap;
+          }
+          .tl-action-controls > .saas-input {
+            max-width: none !important;
+            flex: 1;
+            min-width: 120px;
+          }
+          .tl-right-actions {
+            order: 2;
+            margin-left: auto;
+          }
+        }
+
+        /* ── Tablet Portrait <769px ──────────────────────────── */
+        @media (max-width: 768.98px) {
+          .tl-action-controls {
+            flex-wrap: wrap;
+          }
+          .tl-action-controls > .saas-input {
+            flex: 1 1 100%;
+          }
         }
 
         /* ── Narrow phone <640px ────────────────────────────── */
@@ -2920,11 +2967,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        margin: '0 -24px 0 -24px',
-        padding: '9.7px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
         flexWrap: 'wrap'
       }}>
         {/* Sidebar toggle (only visible on narrow screens via CSS) */}
@@ -3031,7 +3075,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </Tooltip>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+        <div className="tl-action-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
           <Input
             placeholder="Quick search tickets..."
             prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
@@ -3229,7 +3273,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </div>
 
         {/* Right Side Actions */}
-        <Space size={12}>
+        <Space size={12} className="tl-right-actions" style={{ flexWrap: 'wrap' }}>
           {recentTicket && (
             <div
               ref={recentTicketCardRef}

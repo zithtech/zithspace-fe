@@ -4,18 +4,18 @@ import { MailService, MailThread, MailMessage } from "@/services/mailService";
 // Query Keys
 export const mailKeys = {
     all: ['mail'] as const,
-    threads: (label?: string, filter?: string, search?: string) => [...mailKeys.all, 'threads', label, filter, search] as const,
+    threads: (label?: string, filter?: string, search?: string, to?: string, from?: string) => [...mailKeys.all, 'threads', label, filter, search, to, from] as const,
     messages: (threadId: string) => [...mailKeys.all, 'messages', threadId] as const,
     status: () => [...mailKeys.all, 'status'] as const,
     unreadCount: () => [...mailKeys.all, 'unreadCount'] as const,
     contacts: () => [...mailKeys.all, 'contacts'] as const,
 };
 
-export const useMailThreads = (label?: string, filter?: string, search?: string) => {
+export const useMailThreads = (label?: string, filter?: string, search?: string, to?: string, from?: string) => {
     return useQuery({
-        queryKey: mailKeys.threads(label, filter, search),
+        queryKey: mailKeys.threads(label, filter, search, to, from),
         queryFn: async () => {
-            const response = await MailService.getThreads(label, filter, search);
+            const response = await MailService.getThreads(label, filter, search, to, from);
             return response?.data || response || [];
         },
     });
@@ -52,7 +52,10 @@ export const useMailUnreadCount = () => {
         queryKey: mailKeys.unreadCount(),
         queryFn: async () => {
             const data = await MailService.getUnreadCount();
-            return data.unreadCount || 0;
+            return {
+                unreadCount: data.unreadCount || 0,
+                counts: data.counts || {}
+            };
         },
     });
 };

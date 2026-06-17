@@ -63,32 +63,7 @@ export function useCalendar(): UseCalendarReturn {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Handle OAuth callback query params (for messages)
-    useEffect(() => {
-        const connected = searchParams.get("connected");
-        const provider = searchParams.get("provider");
-        const oauthError = searchParams.get("error");
-
-        if (connected === "true") {
-            setSuccessMessage(`${provider} Calendar connected successfully!`);
-            // Refresh events
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            fetchEvents({
-                startDate: start.toISOString(),
-                endDate: end.toISOString(),
-            });
-            // Clean URL
-            router.replace("/calendar");
-        }
-
-        if (oauthError) {
-            setError(`Failed to connect calendar: ${oauthError}`);
-            router.replace("/calendar");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
+    // URL parameters are now handled exclusively in calendar/page.tsx to avoid duplicate execution
 
     const fetchEvents = useCallback(async (filters: EventFilters = {}) => {
         try {

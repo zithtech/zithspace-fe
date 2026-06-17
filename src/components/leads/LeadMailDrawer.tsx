@@ -598,13 +598,13 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           font-weight: 600;
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          color: #6366f1;
+          color: #3b82f6;
         }
         .lmd-dot {
           width: 6px;
           height: 6px;
-          border-radius: 50%;
-          background: #6366f1;
+          border-radius: 0px;
+          background: #3b82f6;
           display: inline-block;
         }
         .lmd-title {
@@ -632,14 +632,14 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           gap: 10px;
           padding: 8px 12px 8px 8px;
           border: 1px solid #ececf1;
-          border-radius: 999px;
+          border-radius: 0px;
           background: #fbfbfd;
         }
         .lmd-recipient-avatar {
           width: 28px;
           height: 28px;
-          border-radius: 50%;
-          background: #6366f1;
+          border-radius: 0px;
+          background: #3b82f6;
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -672,7 +672,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         .lmd-section {
           background: #ffffff;
           border: 1px solid #ececf1;
-          border-radius: 12px;
+          border-radius: 0px;
           padding: 18px 20px;
           margin-bottom: 14px;
         }
@@ -697,7 +697,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           color: #94a3b8;
           background: #f4f4f7;
           padding: 2px 7px;
-          border-radius: 6px;
+          border-radius: 0px;
           font-variant-numeric: tabular-nums;
           letter-spacing: 0.05em;
         }
@@ -714,10 +714,10 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           gap: 5px;
           font-size: 10.5px;
           font-weight: 700;
-          color: #6366f1;
-          background: #eef2ff;
+          color: #3b82f6;
+          background: #eff6ff;
           padding: 4px 9px;
-          border-radius: 999px;
+          border-radius: 0px;
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
@@ -725,13 +725,13 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         /* ============ INLINE FIELD ROWS ============ */
         .lmd-field-list {
           border: 1px solid #ececf1;
-          border-radius: 10px;
+          border-radius: 0px;
           background: #ffffff;
           overflow: hidden;
         }
         .lmd-input.lmd-input--row {
           border: none !important;
-          border-radius: 0 !important;
+          border-radius: 0px !important;
           background: transparent !important;
           height: 46px !important;
           padding: 0 14px !important;
@@ -789,7 +789,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           padding: 12px 14px;
           margin-bottom: 12px;
           border: 1px solid #e5e7f0;
-          border-radius: 10px;
+          border-radius: 0px;
           background:
             linear-gradient(180deg, #fafaff 0%, #f5f5ff 100%);
         }
@@ -802,10 +802,10 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         .lmd-ai-toolbar-glyph {
           width: 30px;
           height: 30px;
-          border-radius: 8px;
+          border-radius: 0px;
           background: #ffffff;
           border: 1px solid #e5e7f0;
-          color: #6366f1;
+          color: #3b82f6;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -845,14 +845,14 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           color: #475569;
           background: #ffffff;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 0px;
           cursor: pointer;
           transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
           white-space: nowrap;
         }
         .lmd-ai-action:hover:not(:disabled) {
-          color: #4f46e5;
-          border-color: #c7d2fe;
+          color: #2563eb;
+          border-color: #bfdbfe;
           background: #fafafe;
         }
         .lmd-ai-action:disabled {
@@ -861,29 +861,29 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         }
         .lmd-ai-action--primary {
           color: #ffffff;
-          background: #4f46e5;
-          border-color: #4338ca;
+          background: #2563eb;
+          border-color: #1d4ed8;
         }
         .lmd-ai-action--primary:hover:not(:disabled) {
           color: #ffffff;
-          background: #4338ca;
-          border-color: #3730a3;
+          background: #1d4ed8;
+          border-color: #1e40af;
         }
 
         /* ============ EDITOR ============ */
         .lmd-editor {
           position: relative;
           border: 1px solid #ececf1;
-          border-radius: 10px;
+          border-radius: 0px;
           overflow: hidden;
           background: #ffffff;
           transition: border-color 0.15s ease;
         }
         .lmd-editor:focus-within {
-          border-color: #c7d2fe;
+          border-color: #bfdbfe;
         }
         .lmd-editor--busy {
-          border-color: #c7d2fe;
+          border-color: #bfdbfe;
         }
         .lmd-editor-overlay {
           position: absolute;
@@ -900,11 +900,11 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           align-items: center;
           gap: 8px;
           padding: 8px 14px;
-          background: #4f46e5;
+          background: #2563eb;
           color: #ffffff;
           font-size: 12px;
           font-weight: 600;
-          border-radius: 999px;
+          border-radius: 0px;
         }
 
         /* ============ ATTACHMENTS ============ */
@@ -933,22 +933,22 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           gap: 14px;
           padding: 16px 18px;
           border: 1.5px dashed #d4d4dc;
-          border-radius: 10px;
+          border-radius: 0px;
           background: #fbfbfd;
           cursor: pointer;
           transition: border-color 0.15s ease, background 0.15s ease;
           text-align: left;
         }
         .lmd-dropzone:hover {
-          border-color: #6366f1;
+          border-color: #3b82f6;
           background: #f5f5ff;
         }
         .lmd-dropzone-icon {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
-          background: #eef2ff;
-          color: #4f46e5;
+          border-radius: 0px;
+          background: #eff6ff;
+          color: #2563eb;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -975,10 +975,10 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         .lmd-dropzone-cta {
           font-size: 12px;
           font-weight: 700;
-          color: #4f46e5;
+          color: #2563eb;
           padding: 6px 12px;
-          border: 1px solid #c7d2fe;
-          border-radius: 8px;
+          border: 1px solid #bfdbfe;
+          border-radius: 0px;
           background: #ffffff;
           flex-shrink: 0;
         }
@@ -989,7 +989,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           gap: 12px;
           padding: 10px 12px;
           border: 1px solid #ececf1;
-          border-radius: 10px;
+          border-radius: 0px;
           background: #ffffff;
           transition: border-color 0.15s ease, background 0.15s ease;
         }
@@ -1000,7 +1000,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         .lmd-attach-icon {
           width: 36px;
           height: 36px;
-          border-radius: 8px;
+          border-radius: 0px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1046,7 +1046,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           font-weight: 700;
           letter-spacing: 0.06em;
           padding: 2px 6px;
-          border-radius: 4px;
+          border-radius: 0px;
           background: #f1f5f9;
           color: #475569;
         }
@@ -1065,7 +1065,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         .lmd-attach-remove {
           width: 28px;
           height: 28px;
-          border-radius: 8px;
+          border-radius: 0px;
           border: 1px solid transparent;
           background: transparent;
           color: #94a3b8;
@@ -1099,12 +1099,12 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           font-size: 12px;
           font-weight: 600;
           padding: 6px 11px;
-          border-radius: 999px;
+          border-radius: 0px;
           border: 1px solid transparent;
         }
         .lmd-status--idle {
-          color: #6366f1;
-          background: #eef2ff;
+          color: #3b82f6;
+          background: #eff6ff;
         }
         .lmd-status--working {
           color: #b45309;
@@ -1125,7 +1125,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         /* ============ BUTTONS ============ */
         .lmd-btn {
           height: 38px !important;
-          border-radius: 8px !important;
+          border-radius: 0px !important;
           font-weight: 600 !important;
           font-size: 13px !important;
           padding: 0 16px !important;
@@ -1146,18 +1146,18 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         }
         .lmd-btn--primary {
           color: #ffffff !important;
-          background: #4f46e5 !important;
-          border: 1px solid #4338ca !important;
+          background: #2563eb !important;
+          border: 1px solid #1d4ed8 !important;
           padding: 0 14px !important;
         }
         .lmd-btn--primary:hover {
-          background: #4338ca !important;
-          border-color: #3730a3 !important;
+          background: #1d4ed8 !important;
+          border-color: #1e40af !important;
         }
         .lmd-btn--primary:disabled,
         .lmd-btn--primary.ant-btn-loading {
-          background: #818cf8 !important;
-          border-color: #818cf8 !important;
+          background: #60a5fa !important;
+          border-color: #60a5fa !important;
           color: #ffffff !important;
         }
         .lmd-kbd {
@@ -1167,7 +1167,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           width: 20px;
           height: 20px;
           background: rgba(255, 255, 255, 0.18);
-          border-radius: 5px;
+          border-radius: 0px;
           margin-left: 4px;
         }
 
@@ -1214,8 +1214,8 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           color: #8b949e;
         }
         [data-theme='dark'] .lmd-ai-badge {
-          background: rgba(99, 102, 241, 0.15);
-          color: #a5b4fc;
+          background: rgba(59, 130, 246, 0.15);
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-field-list {
           background: #0d1117;
@@ -1253,7 +1253,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         [data-theme='dark'] .lmd-ai-toolbar-glyph {
           background: #0d1117;
           border-color: #21262d;
-          color: #a5b4fc;
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-ai-toolbar-title {
           color: #e6edf3;
@@ -1268,17 +1268,17 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         }
         [data-theme='dark'] .lmd-ai-action:hover:not(:disabled) {
           background: #1c222b;
-          border-color: #4f46e5;
-          color: #a5b4fc;
+          border-color: #2563eb;
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-ai-action--primary {
-          background: #4f46e5;
-          border-color: #4338ca;
+          background: #2563eb;
+          border-color: #1d4ed8;
           color: #ffffff;
         }
         [data-theme='dark'] .lmd-ai-action--primary:hover:not(:disabled) {
-          background: #4338ca;
-          border-color: #3730a3;
+          background: #1d4ed8;
+          border-color: #1e40af;
         }
         [data-theme='dark'] .lmd-editor-overlay {
           background: rgba(13, 17, 23, 0.72);
@@ -1289,11 +1289,11 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         }
         [data-theme='dark'] .lmd-dropzone:hover {
           background: #131826;
-          border-color: #4f46e5;
+          border-color: #2563eb;
         }
         [data-theme='dark'] .lmd-dropzone-icon {
-          background: rgba(99, 102, 241, 0.15);
-          color: #a5b4fc;
+          background: rgba(59, 130, 246, 0.15);
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-dropzone-title {
           color: #e6edf3;
@@ -1303,8 +1303,8 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
         }
         [data-theme='dark'] .lmd-dropzone-cta {
           background: #11151d;
-          border-color: #4f46e5;
-          color: #a5b4fc;
+          border-color: #2563eb;
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-attach-row {
           background: #11151d;
@@ -1357,8 +1357,8 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
           color: #e6edf3 !important;
         }
         [data-theme='dark'] .lmd-status--idle {
-          background: rgba(99, 102, 241, 0.15);
-          color: #a5b4fc;
+          background: rgba(59, 130, 246, 0.15);
+          color: #93c5fd;
         }
         [data-theme='dark'] .lmd-status--working {
           background: rgba(245, 158, 11, 0.15);

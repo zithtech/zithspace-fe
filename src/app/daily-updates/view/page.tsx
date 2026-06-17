@@ -45,7 +45,8 @@ import {
   ChevronRight,
   Activity,
   FileText,
-  History
+  History,
+  Menu
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -503,24 +504,27 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         }
 
         .du-sidebar-backdrop { display: none; }
-        .mobile-menu-btn { display: none; }
+        .mobile-menu-btn { display: none !important; }
 
         @media (max-width: 991px) {
           .du-sidebar { width: 228px; }
         }
 
-        @media (max-width: 767px) {
-          .mobile-menu-btn { display: inline-flex; }
+        @media (max-width: 820px) {
+          .btn-text-mobile-hide { display: none; }
+          .du-main-header { padding: 12px 16px !important; }
+          .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           .du-sidebar {
             position: fixed;
             top: 0;
-            left: -280px;
+            left: -320px;
             height: 100vh;
             width: 280px;
             z-index: 1000;
-            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: var(--bg-pure-white);
             border-right: 1px solid var(--border-slate-200);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
           }
           .du-sidebar.is-mobile-open { left: 0; }
           
@@ -528,7 +532,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             display: block;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
             z-index: 999;
             opacity: 0;
             pointer-events: none;
@@ -673,12 +678,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       </aside>
 
       <main className="du-main">
-        <header className="du-main-header">
-          <div className="flex items-center gap-4">
+        <header className="du-main-header" style={{ height: 'auto', minHeight: 52, padding: '12px 24px', flexWrap: 'wrap', gap: '12px 16px' }}>
+          <div className="flex items-center gap-4 flex-wrap" style={{ flex: '1 1 280px' }}>
             <div className="flex items-center gap-3">
               <Button
                 type="text"
-                icon={<MenuOutlined />}
+                icon={<Menu size={18} />}
                 className="mobile-menu-btn"
                 onClick={() => setMobileSidebarOpen(true)}
                 style={{ padding: '0 8px', marginLeft: -8 }}
@@ -695,12 +700,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             <DatePicker.RangePicker
               value={dateRange}
               onChange={handleDateRangeChange}
-              style={{ width: 270, borderRadius: 6, height: 30 }}
+              style={{ width: '100%', maxWidth: 270, borderRadius: 6, height: 30 }}
               format="YYYY-MM-DD"
               placeholder={["Start Date", "End Date"]}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {canViewTeam && (
               <Button
                 icon={<Clock size={14} />}

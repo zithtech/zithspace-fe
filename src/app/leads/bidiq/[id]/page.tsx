@@ -59,7 +59,7 @@ type VerdictTone = "go" | "review" | "skip";
 
 const verdictPalette: Record<VerdictTone, { bg: string; border: string; accent: string; pillBg: string; }> = {
   go:     { bg: "#ecfdf5", border: "rgba(16, 185, 129, 0.22)", accent: "#047857", pillBg: "rgba(16, 185, 129, 0.12)" },
-  review: { bg: "#fffbeb", border: "rgba(245, 158, 11, 0.22)", accent: "#b45309", pillBg: "rgba(245, 158, 11, 0.14)" },
+  review: { bg: "#eff6ff", border: "rgba(59, 130, 246, 0.22)", accent: "#1d4ed8", pillBg: "rgba(59, 130, 246, 0.14)" },
   skip:   { bg: "var(--bg-slate-50)", border: "var(--border-slate-100)", accent: "#475569", pillBg: "rgba(100, 116, 139, 0.12)" },
 };
 
@@ -319,7 +319,7 @@ export default function BidiqIntelligencePage() {
   const budgetFairnessScore = aiData?.budgetFairnessScore || Math.max(10, Math.min(100, 100 - budgetGap * 0.8));
 
   const complexity = aiData?.complexity || (baselineHours < 80 ? "Easy" : baselineHours < 240 ? "Medium" : "Complex");
-  const complexityAccent = complexity.toLowerCase().includes("easy") ? "#10b981" : complexity.toLowerCase().includes("medium") ? "#f59e0b" : "#ef4444";
+  const complexityAccent = complexity.toLowerCase().includes("easy") ? "#10b981" : complexity.toLowerCase().includes("medium") ? "#3b82f6" : "#3b82f6";
 
   const skillsList: string[] = Array.isArray(lead.skills)
     ? lead.skills
@@ -491,7 +491,7 @@ export default function BidiqIntelligencePage() {
               <div className="biq-kpi-grid">
                 {[
                   { label: "Budget", value: lead.budget ? `$${clientBudgetNum.toLocaleString()}` : "—", icon: <DollarSign size={13} />, accent: "#10b981" },
-                  { label: "Timeline", value: lead.duration || "—", icon: <Clock size={13} />, accent: "#6366f1" },
+                  { label: "Timeline", value: lead.duration || "—", icon: <Clock size={13} />, accent: "#3b82f6" },
                   { label: "AI Score", value: `${score}%`, icon: <Gauge size={13} />, accent: verdictColors.accent },
                   { label: "Complexity", value: complexity, icon: <Activity size={13} />, accent: complexityAccent },
                 ].map((m, i) => (
@@ -581,7 +581,7 @@ export default function BidiqIntelligencePage() {
             <section className="biq-card">
               <SectionHead
                 icon={<Brain size={14} />}
-                accent="#6366f1"
+                accent="#3b82f6"
                 title="Smart summary"
                 sub="What this lead is really about, in plain English"
                 right={
@@ -624,16 +624,16 @@ export default function BidiqIntelligencePage() {
             <section className="biq-card">
               <SectionHead
                 icon={<Target size={14} />}
-                accent="#ec4899"
+                accent="#10b981"
                 title="Reality gap"
                 sub="What the client posted vs what the work actually needs"
                 right={
                   <span
                     className="biq-section-tag"
                     style={{
-                      background: isUnderpriced ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)",
-                      color: isUnderpriced ? "#b91c1c" : "#047857",
-                      borderColor: isUnderpriced ? "rgba(239, 68, 68, 0.25)" : "rgba(16, 185, 129, 0.25)",
+                      background: isUnderpriced ? "rgba(59, 130, 246, 0.1)" : "rgba(16, 185, 129, 0.1)",
+                      color: isUnderpriced ? "#1d4ed8" : "#047857",
+                      borderColor: isUnderpriced ? "rgba(59, 130, 246, 0.25)" : "rgba(16, 185, 129, 0.25)",
                     }}
                   >
                     {budgetStatus}
@@ -649,10 +649,10 @@ export default function BidiqIntelligencePage() {
                     <span className="biq-gap-th-delta">Δ</span>
                   </div>
                   {[
-                    { icon: <DollarSign size={12} />, name: "Budget", client: `$${clientBudgetNum.toLocaleString()}`, reality: `$${projectMarketValue.toLocaleString()}`, delta: `+${budgetGap}%`, accent: "#f59e0b" },
-                    { icon: <Clock size={12} />, name: "Timeline", client: lead.duration || "3 mo", reality: `${Math.ceil(baselineHours / 32)}-${Math.ceil(baselineHours / 28)} wk`, delta: "+85%", accent: "#ef4444" },
-                    { icon: <Users size={12} />, name: "Team size", client: "1 dev", reality: `${realTeamSize} devs`, delta: `+${realTeamSize}`, accent: "#6366f1" },
-                    { icon: <RefreshCw size={12} />, name: "Revisions", client: "2 rd", reality: `${realRevisions} rd`, delta: `+${Math.round((realRevisions / 2) * 100 - 100)}%`, accent: "#ec4899" },
+                    { icon: <DollarSign size={12} />, name: "Budget", client: `$${clientBudgetNum.toLocaleString()}`, reality: `$${projectMarketValue.toLocaleString()}`, delta: `+${budgetGap}%`, accent: "#3b82f6" },
+                    { icon: <Clock size={12} />, name: "Timeline", client: lead.duration || "3 mo", reality: `${Math.ceil(baselineHours / 32)}-${Math.ceil(baselineHours / 28)} wk`, delta: "+85%", accent: "#3b82f6" },
+                    { icon: <Users size={12} />, name: "Team size", client: "1 dev", reality: `${realTeamSize} devs`, delta: `+${realTeamSize}`, accent: "#3b82f6" },
+                    { icon: <RefreshCw size={12} />, name: "Revisions", client: "2 rd", reality: `${realRevisions} rd`, delta: `+${Math.round((realRevisions / 2) * 100 - 100)}%`, accent: "#10b981" },
                   ].map((row, i) => (
                     <div key={i} className="biq-gap-row">
                       <div className="biq-gap-name">
@@ -674,7 +674,7 @@ export default function BidiqIntelligencePage() {
                 </div>
 
                 <div className="biq-advise">
-                  <span className="biq-advise-icon" style={{ background: "rgba(99, 102, 241, 0.1)", color: "#4f46e5" }}>
+                  <span className="biq-advise-icon" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#2563eb" }}>
                     <TrendingUp size={13} />
                   </span>
                   <div className="biq-advise-body">
@@ -711,8 +711,8 @@ export default function BidiqIntelligencePage() {
                 <div className="biq-card-body">
                   <div className="biq-effort-stack">
                     {[
-                      { label: "Beginner", val: beginnerRange, color: "#ef4444", pct: 90, icon: <Zap size={11} /> },
-                      { label: "Intermediate", val: intermediateRange, color: "#f59e0b", pct: 65, icon: <Sparkles size={11} /> },
+                      { label: "Beginner", val: beginnerRange, color: "#3b82f6", pct: 90, icon: <Zap size={11} /> },
+                      { label: "Intermediate", val: intermediateRange, color: "#3b82f6", pct: 65, icon: <Sparkles size={11} /> },
                       { label: "Expert", val: expertRange, color: "#10b981", pct: 35, icon: <ShieldCheck size={11} /> },
                     ].map((row, i) => (
                       <div key={i} className="biq-effort-row">
@@ -747,11 +747,11 @@ export default function BidiqIntelligencePage() {
               <section className="biq-card">
                 <SectionHead
                   icon={<AlertTriangle size={14} />}
-                  accent="#f59e0b"
+                  accent="#3b82f6"
                   title="Risk signals"
                   sub="What might go wrong"
                   right={
-                    <span className="biq-section-tag" style={{ background: "rgba(245, 158, 11, 0.1)", color: "#b45309", borderColor: "rgba(245, 158, 11, 0.25)" }}>
+                    <span className="biq-section-tag" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#1d4ed8", borderColor: "rgba(59, 130, 246, 0.25)" }}>
                       {dynamicRisks.length} flagged
                     </span>
                   }
@@ -792,7 +792,7 @@ export default function BidiqIntelligencePage() {
                         <span className="biq-budget-bar-val">${clientBudgetNum.toLocaleString()}</span>
                       </div>
                       <div className="biq-bar-track">
-                        <div className="biq-bar-fill" style={{ width: "45%", background: "#f59e0b" }} />
+                        <div className="biq-bar-fill" style={{ width: "45%", background: "#3b82f6" }} />
                       </div>
                     </div>
                     <div className="biq-budget-bar-item">
@@ -831,7 +831,7 @@ export default function BidiqIntelligencePage() {
               <section className="biq-card">
                 <SectionHead
                   icon={<Flame size={14} />}
-                  accent="#ef4444"
+                  accent="#3b82f6"
                   title="Competition"
                   sub="How your bid stacks"
                 />
@@ -964,7 +964,7 @@ export default function BidiqIntelligencePage() {
                   <div className="biq-pinfo-caps">
                     <div className="biq-pinfo-caps-head">What the proposal will include</div>
                     <div className="biq-pinfo-caps-grid">
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="biq-pinfo-cap-icon">
                           <Briefcase size={14} />
                         </div>
@@ -975,7 +975,7 @@ export default function BidiqIntelligencePage() {
                           </span>
                         </div>
                       </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
                         <div className="biq-pinfo-cap-icon">
                           <Calendar size={14} />
                         </div>
@@ -997,7 +997,7 @@ export default function BidiqIntelligencePage() {
                           </span>
                         </div>
                       </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="biq-pinfo-cap-icon">
                           <FileText size={14} />
                         </div>
@@ -1187,14 +1187,14 @@ export default function BidiqIntelligencePage() {
                 }
               }
               const blockTypeMeta: Record<string, { label: string; icon: React.ReactNode; accent: string }> = {
-                scope:      { label: "Scope",       icon: <Briefcase size={13} />,  accent: "#6366f1" },
+                scope:      { label: "Scope",       icon: <Briefcase size={13} />,  accent: "#3b82f6" },
                 pricing:    { label: "Pricing",     icon: <DollarSign size={13} />, accent: "#10b981" },
                 cost:       { label: "Cost",        icon: <DollarSign size={13} />, accent: "#10b981" },
-                timeline:   { label: "Timeline",    icon: <Calendar size={13} />,   accent: "#8b5cf6" },
-                milestones: { label: "Milestones",  icon: <Calendar size={13} />,   accent: "#8b5cf6" },
+                timeline:   { label: "Timeline",    icon: <Calendar size={13} />,   accent: "#10b981" },
+                milestones: { label: "Milestones",  icon: <Calendar size={13} />,   accent: "#10b981" },
                 terms:      { label: "Terms",       icon: <FileText size={13} />,   accent: "#64748b" },
-                pitch:      { label: "Pitch",       icon: <Sparkles size={13} />,   accent: "#f59e0b" },
-                intro:      { label: "Introduction",icon: <Sparkles size={13} />,   accent: "#f59e0b" },
+                pitch:      { label: "Pitch",       icon: <Sparkles size={13} />,   accent: "#3b82f6" },
+                intro:      { label: "Introduction",icon: <Sparkles size={13} />,   accent: "#3b82f6" },
                 summary:    { label: "Summary",     icon: <Brain size={13} />,      accent: "#0ea5e9" },
               };
               const metaFor = (type: string) =>
@@ -1422,7 +1422,7 @@ const bidiqStyles = (
       .biq-back-btn.ant-btn {
         width: 32px !important; height: 32px !important;
         padding: 0 !important;
-        border-radius: 8px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
         color: var(--text-slate-700) !important;
@@ -1438,7 +1438,7 @@ const bidiqStyles = (
       .biq-brand-mark {
         width: 24px; height: 24px;
         border-radius: 7px;
-        background: #4f46e5;
+        background: #2563eb;
         color: #fff;
         display: inline-flex; align-items: center; justify-content: center;
       }
@@ -1452,8 +1452,8 @@ const bidiqStyles = (
         border-radius: 999px;
         font-size: 9px; font-weight: 800;
         letter-spacing: 0.06em; text-transform: uppercase;
-        background: rgba(99,102,241,0.1); color: #4f46e5;
-        border: 1px solid rgba(99,102,241,0.2);
+        background: rgba(59, 130, 246,0.1); color: #2563eb;
+        border: 1px solid rgba(59, 130, 246,0.2);
       }
       .biq-topbar-sep {
         width: 1px; height: 18px;
@@ -1483,7 +1483,7 @@ const bidiqStyles = (
         font-weight: 700;
         border: 1px solid;
       }
-      .biq-ai-status.is-loading { color: #4f46e5; border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.06); }
+      .biq-ai-status.is-loading { color: #2563eb; border-color: rgba(59, 130, 246,0.25); background: rgba(59, 130, 246,0.06); }
       .biq-ai-status.is-ready { color: #047857; border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.06); }
       .biq-ai-status.is-fallback { color: var(--text-slate-500); border-color: var(--border-slate-100); background: var(--bg-slate-50); }
       .biq-spin { animation: biq-spin 1s linear infinite; }
@@ -1494,7 +1494,7 @@ const bidiqStyles = (
         height: 34px !important;
         border-radius: 9px !important;
         padding: 0 14px !important;
-        background: #4f46e5 !important;
+        background: #2563eb !important;
         color: #fff !important;
         border: 0 !important;
         font-weight: 700 !important;
@@ -1530,7 +1530,7 @@ const bidiqStyles = (
       .biq-hero {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 14px;
+        border-radius: 4px;
         padding: 22px 24px;
       }
       .biq-hero-meta {
@@ -1549,14 +1549,14 @@ const bidiqStyles = (
         letter-spacing: 0.02em;
       }
       .biq-meta-platform {
-        background: rgba(99,102,241,0.08);
-        color: #4f46e5;
-        border: 1px solid rgba(99,102,241,0.2);
+        background: rgba(59, 130, 246,0.08);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246,0.2);
       }
       .biq-meta-dot {
         width: 5px; height: 5px;
         border-radius: 50%;
-        background: #4f46e5;
+        background: #2563eb;
       }
       .biq-meta-sep {
         width: 3px; height: 3px;
@@ -1584,8 +1584,8 @@ const bidiqStyles = (
       }
       .biq-hero-avatar {
         width: 36px; height: 36px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-radius: 4px;
+        background: #3b82f6;
         color: #fff;
         display: flex; align-items: center; justify-content: center;
         font-weight: 800; font-size: 13px;
@@ -1620,11 +1620,11 @@ const bidiqStyles = (
         padding: 12px 14px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 11px;
+        border-radius: 4px;
       }
       .biq-kpi-icon {
         width: 30px; height: 30px;
-        border-radius: 8px;
+        border-radius: 4px;
         background: color-mix(in oklab, var(--biq-kpi-accent) 14%, transparent);
         color: var(--biq-kpi-accent);
         display: flex; align-items: center; justify-content: center;
@@ -1669,9 +1669,9 @@ const bidiqStyles = (
         border-radius: 999px;
       }
       .biq-skill-more {
-        background: rgba(99,102,241,0.08);
-        color: #4f46e5;
-        border-color: rgba(99,102,241,0.22);
+        background: rgba(59, 130, 246,0.08);
+        color: #2563eb;
+        border-color: rgba(59, 130, 246,0.22);
       }
 
       /* ----------- Verdict banner ----------- */
@@ -1682,7 +1682,7 @@ const bidiqStyles = (
         align-items: center;
         padding: 22px 24px;
         border: 1px solid;
-        border-radius: 14px;
+        border-radius: 4px;
       }
       @media (max-width: 820px) {
         .biq-verdict {
@@ -1779,7 +1779,7 @@ const bidiqStyles = (
       .biq-card {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 14px;
+        border-radius: 4px;
         overflow: hidden;
       }
       .biq-section-head {
@@ -1794,7 +1794,7 @@ const bidiqStyles = (
       }
       .biq-section-icon {
         width: 28px; height: 28px;
-        border-radius: 8px;
+        border-radius: 4px;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
       }
@@ -1830,9 +1830,9 @@ const bidiqStyles = (
         border-radius: 999px;
         font-size: 10.5px;
         font-weight: 700;
-        background: rgba(99,102,241,0.08);
-        color: #4f46e5;
-        border: 1px solid rgba(99,102,241,0.22);
+        background: rgba(59, 130, 246,0.08);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246,0.22);
       }
       .biq-card-body { padding: 16px 18px 18px; }
 
@@ -1878,7 +1878,7 @@ const bidiqStyles = (
         padding: 12px 14px;
         background: var(--bg-slate-50);
         border: 1px dashed var(--border-slate-100);
-        border-radius: 10px;
+        border-radius: 4px;
         font-size: 12.5px;
         color: var(--text-slate-500);
       }
@@ -1947,9 +1947,9 @@ const bidiqStyles = (
       .biq-advise {
         display: flex; align-items: flex-start; gap: 10px;
         padding: 12px 14px;
-        background: rgba(99, 102, 241, 0.06);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 11px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 4px;
       }
       .biq-advise-icon {
         width: 26px; height: 26px;
@@ -1966,7 +1966,7 @@ const bidiqStyles = (
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #4f46e5;
+        color: #2563eb;
       }
       .biq-advise-text {
         font-size: 13px;
@@ -2057,12 +2057,12 @@ const bidiqStyles = (
       .biq-risk-row {
         display: flex; align-items: flex-start; gap: 10px;
         padding: 11px 12px;
-        border-radius: 10px;
+        border-radius: 4px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
       }
-      .biq-risk-row.tone-red { background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.18); }
-      .biq-risk-row.tone-yellow { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.18); }
+      .biq-risk-row.tone-red { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.18); }
+      .biq-risk-row.tone-yellow { background: rgba(59, 130, 246, 0.06); border-color: rgba(59, 130, 246, 0.18); }
       .biq-risk-row.tone-grey { background: var(--bg-slate-50); border-color: var(--border-slate-100); }
       .biq-risk-icon {
         width: 24px; height: 24px;
@@ -2070,8 +2070,8 @@ const bidiqStyles = (
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
       }
-      .biq-risk-icon.tone-red { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
-      .biq-risk-icon.tone-yellow { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+      .biq-risk-icon.tone-red { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+      .biq-risk-icon.tone-yellow { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
       .biq-risk-icon.tone-grey { background: rgba(100, 116, 139, 0.12); color: #475569; }
       .biq-risk-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
       .biq-risk-title {
@@ -2093,8 +2093,8 @@ const bidiqStyles = (
         letter-spacing: 0.08em;
         flex-shrink: 0;
       }
-      .biq-risk-badge.tone-red { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
-      .biq-risk-badge.tone-yellow { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+      .biq-risk-badge.tone-red { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
+      .biq-risk-badge.tone-yellow { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
       .biq-risk-badge.tone-grey { background: rgba(100, 116, 139, 0.14); color: #475569; }
 
       /* ----------- Budget ----------- */
@@ -2132,16 +2132,16 @@ const bidiqStyles = (
         letter-spacing: 0.02em;
       }
       .biq-segment.is-active {
-        background: rgba(99, 102, 241, 0.1);
-        color: #4f46e5;
-        border-color: rgba(99, 102, 241, 0.25);
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        border-color: rgba(59, 130, 246, 0.25);
       }
       .biq-tip {
         display: flex; align-items: center; gap: 8px;
         padding: 10px 13px;
         background: rgba(16, 185, 129, 0.06);
         border: 1px solid rgba(16, 185, 129, 0.2);
-        border-radius: 10px;
+        border-radius: 4px;
       }
       .biq-tip-icon {
         width: 22px; height: 22px;
@@ -2168,7 +2168,7 @@ const bidiqStyles = (
         padding: 12px 14px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 11px;
+        border-radius: 4px;
         display: flex; flex-direction: column; gap: 3px;
       }
       .biq-comp-label {
@@ -2193,19 +2193,19 @@ const bidiqStyles = (
       .biq-comp-cta {
         display: flex; align-items: center; gap: 6px;
         padding: 9px 12px;
-        background: rgba(239, 68, 68, 0.06);
-        border: 1px solid rgba(239, 68, 68, 0.18);
-        border-radius: 10px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(59, 130, 246, 0.18);
+        border-radius: 4px;
         font-size: 12px;
         color: var(--text-slate-700);
       }
-      .biq-comp-cta svg { color: #b91c1c; flex-shrink: 0; }
+      .biq-comp-cta svg { color: #1d4ed8; flex-shrink: 0; }
       .biq-comp-cta b { color: var(--text-slate-900); font-weight: 700; }
 
       /* ===================== Modal ===================== */
       .biq-modal .ant-modal-content {
         padding: 22px 24px !important;
-        border-radius: 16px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100);
         background: var(--bg-pure-white);
       }
@@ -2218,9 +2218,9 @@ const bidiqStyles = (
       }
       .biq-modal-icon {
         width: 36px; height: 36px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.1);
-        color: #4f46e5;
+        border-radius: 4px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
         display: flex; align-items: center; justify-content: center;
       }
       .biq-modal-head-text { display: flex; flex-direction: column; }
@@ -2247,7 +2247,7 @@ const bidiqStyles = (
         position: relative;
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         padding: 14px;
         text-align: left;
         cursor: pointer;
@@ -2256,11 +2256,11 @@ const bidiqStyles = (
         display: flex; flex-direction: column; gap: 10px;
       }
       .biq-opt-card:hover {
-        border-color: rgba(99, 102, 241, 0.35);
+        border-color: rgba(59, 130, 246, 0.35);
       }
       .biq-opt-card.is-selected {
-        border-color: #6366f1;
-        background: rgba(99, 102, 241, 0.04);
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.04);
       }
       .biq-opt-card-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -2276,16 +2276,16 @@ const bidiqStyles = (
         border: 1px solid;
       }
       .biq-opt-tag-client {
-        background: rgba(14, 165, 233, 0.08);
+        background: rgba(59, 130, 246, 0.08);
         color: #0369a1;
-        border-color: rgba(14, 165, 233, 0.22);
+        border-color: rgba(59, 130, 246, 0.22);
       }
       .biq-opt-tag-custom {
-        background: rgba(139, 92, 246, 0.08);
+        background: rgba(59, 130, 246, 0.08);
         color: #6d28d9;
-        border-color: rgba(139, 92, 246, 0.22);
+        border-color: rgba(59, 130, 246, 0.22);
       }
-      .biq-opt-check { color: #4f46e5; }
+      .biq-opt-check { color: #2563eb; }
       .biq-opt-name {
         font-size: 14px;
         font-weight: 800;
@@ -2297,7 +2297,7 @@ const bidiqStyles = (
         padding: 10px 12px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 10px;
+        border-radius: 4px;
       }
       .biq-opt-row {
         display: flex; justify-content: space-between; align-items: center;
@@ -2333,14 +2333,14 @@ const bidiqStyles = (
         display: flex; align-items: flex-start; gap: 8px;
         padding: 11px 13px;
         margin-top: 14px;
-        background: rgba(99, 102, 241, 0.06);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 11px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 4px;
         color: var(--text-slate-700);
         font-size: 12px;
         line-height: 1.5;
       }
-      .biq-opt-note svg { color: #4f46e5; margin-top: 3px; flex-shrink: 0; }
+      .biq-opt-note svg { color: #2563eb; margin-top: 3px; flex-shrink: 0; }
       .biq-opt-note b { color: var(--text-slate-900); font-weight: 700; }
 
       .biq-modal-footer {
@@ -2354,7 +2354,7 @@ const bidiqStyles = (
       /* ===================== Pre-flight Proposal Info Modal ===================== */
       .biq-pinfo-modal .ant-modal-content {
         padding: 0 !important;
-        border-radius: 16px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100);
         overflow: hidden;
         background: var(--bg-pure-white);
@@ -2373,8 +2373,8 @@ const bidiqStyles = (
       }
       .biq-pinfo-icon {
         width: 44px; height: 44px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px;
+        background: #3b82f6;
         color: #fff;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
@@ -2384,13 +2384,13 @@ const bidiqStyles = (
         display: inline-flex; align-items: center; gap: 5px;
         padding: 3px 8px;
         border-radius: 999px;
-        background: rgba(99, 102, 241, 0.08);
-        color: #4f46e5;
+        background: rgba(59, 130, 246, 0.08);
+        color: #2563eb;
         font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        border: 1px solid rgba(99, 102, 241, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.2);
         margin-bottom: 8px;
       }
       .biq-pinfo-title {
@@ -2410,7 +2410,7 @@ const bidiqStyles = (
         position: absolute;
         top: 16px; right: 16px;
         width: 30px; height: 30px;
-        border-radius: 8px;
+        border-radius: 4px;
         border: 1px solid var(--border-slate-100);
         background: var(--bg-pure-white);
         color: var(--text-slate-500);
@@ -2453,8 +2453,8 @@ const bidiqStyles = (
       }
       .biq-pinfo-step.is-active { color: var(--text-slate-900); }
       .biq-pinfo-step.is-active .biq-pinfo-step-dot {
-        background: #4f46e5;
-        border-color: #4f46e5;
+        background: #2563eb;
+        border-color: #2563eb;
         color: #fff;
       }
       .biq-pinfo-step.is-done { color: #047857; }
@@ -2484,7 +2484,7 @@ const bidiqStyles = (
         margin: 18px 24px 0;
         padding: 14px 16px;
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         background: var(--bg-slate-50);
       }
       .biq-pinfo-snapshot-head {
@@ -2559,7 +2559,7 @@ const bidiqStyles = (
         display: flex; align-items: flex-start; gap: 10px;
         padding: 12px 14px;
         border: 1px solid var(--border-slate-100);
-        border-radius: 11px;
+        border-radius: 4px;
         background: var(--bg-pure-white);
         transition: border-color .15s ease;
       }
@@ -2568,7 +2568,7 @@ const bidiqStyles = (
       }
       .biq-pinfo-cap-icon {
         width: 28px; height: 28px;
-        border-radius: 8px;
+        border-radius: 4px;
         background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
         color: var(--cap-accent);
         display: flex; align-items: center; justify-content: center;
@@ -2626,8 +2626,8 @@ const bidiqStyles = (
       }
       .biq-prop-head-icon {
         width: 44px; height: 44px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px;
+        background: #3b82f6;
         color: #fff;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
@@ -2637,13 +2637,13 @@ const bidiqStyles = (
         display: inline-flex; align-items: center; gap: 5px;
         padding: 3px 8px;
         border-radius: 999px;
-        background: rgba(99, 102, 241, 0.08);
-        color: #4f46e5;
+        background: rgba(59, 130, 246, 0.08);
+        color: #2563eb;
         font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        border: 1px solid rgba(99, 102, 241, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.2);
         margin-bottom: 8px;
       }
       .biq-prop-title {
@@ -2664,7 +2664,7 @@ const bidiqStyles = (
         position: absolute;
         top: 18px; right: 18px;
         width: 30px; height: 30px;
-        border-radius: 8px;
+        border-radius: 4px;
         border: 1px solid var(--border-slate-100);
         background: var(--bg-pure-white);
         color: var(--text-slate-500);
@@ -2726,7 +2726,7 @@ const bidiqStyles = (
       .biq-prop-summary {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         padding: 14px 16px;
       }
       .biq-prop-summary-grid {
@@ -2762,7 +2762,7 @@ const bidiqStyles = (
       .biq-prop-sections {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         overflow: hidden;
       }
       .biq-prop-sections-head {
@@ -2789,7 +2789,7 @@ const bidiqStyles = (
       .biq-prop-section:hover { background: var(--bg-slate-50); }
       .biq-prop-section-icon {
         width: 28px; height: 28px;
-        border-radius: 8px;
+        border-radius: 4px;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
       }
@@ -2824,7 +2824,7 @@ const bidiqStyles = (
       .biq-prop-preview-sheet {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         padding: 24px 28px;
       }
 
@@ -2833,7 +2833,7 @@ const bidiqStyles = (
         background: var(--bg-slate-50) !important;
         border: 1px solid var(--border-slate-100) !important;
         padding: 2px !important;
-        border-radius: 8px !important;
+        border-radius: 4px !important;
       }
       .biq-prop-segmented.ant-segmented .ant-segmented-item {
         border-radius: 6px !important;

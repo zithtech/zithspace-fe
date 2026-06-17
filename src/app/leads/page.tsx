@@ -67,7 +67,8 @@ import {
   Megaphone,
   Rocket,
   Award,
-  Star
+  Star,
+  Menu
 } from "lucide-react";
 import {
   Card,
@@ -129,6 +130,8 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   EllipsisOutlined,
+  ExpandAltOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
@@ -356,12 +359,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
   const sectionCard: React.CSSProperties = {
     marginBottom: 20,
     padding: '20px',
-    borderRadius: '16px',
+    borderRadius: 0,
     border: '1px solid var(--border-slate-100)',
   };
   const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
   const stepBadge = (color: string, n: string): React.CSSProperties => ({
-    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+    width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     background: `${color}14`, color, border: `1px solid ${color}33`,
   });
@@ -375,14 +378,14 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
           <span style={stepBadge('#6366f1', '01')}>01</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Globe size={15} color="#6366f1" />
+              <Globe size={15} color="#3b82f6" />
               <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry Source</span>
             </div>
             <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Which website did this come from</Text>
           </div>
         </div>
         <Form.Item name="websiteSource" label={<Text strong style={labelStyle}>Website</Text>} initialValue="zukvo">
-          <Select style={{ borderRadius: 8 }}>
+          <Select style={{ borderRadius: 0 }}>
             <Select.Option value="zukvo">Zukvo</Select.Option>
             <Select.Option value="zithtech">Zithtech</Select.Option>
             <Select.Option value="other">Other</Select.Option>
@@ -405,12 +408,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="priya@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -459,12 +462,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
                 }
               ]}
             >
-              <Input placeholder="+91 …" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
-              <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -485,17 +488,17 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
-              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
-              <Input placeholder="acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
+              <Input placeholder="acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
         <Form.Item name="companySize" label={<Text strong style={labelStyle}>Team Size</Text>}>
-          <Select placeholder="Select range" style={{ borderRadius: 8 }} allowClear>
+          <Select placeholder="Select range" style={{ borderRadius: 0 }} allowClear>
             <Select.Option value="1-10">1 – 10</Select.Option>
             <Select.Option value="11-50">11 – 50</Select.Option>
             <Select.Option value="51-200">51 – 200</Select.Option>
@@ -519,13 +522,13 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
           </div>
         </div>
         <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
-          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} autoComplete="off" />
+          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 0 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
-          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} autoComplete="off" />
+          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 0 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
-          <Select placeholder="Select pipeline" style={{ borderRadius: 8 }}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 0 }}>
             {configStatuses.map((s: any) => (
               <Select.Option key={s.id} value={s.name}>
                 <Space>
@@ -601,6 +604,7 @@ export default function LeadsPage() {
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -622,6 +626,7 @@ export default function LeadsPage() {
   const [timelineData, setTimelineData] = useState<any[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [activeTimelineLead, setActiveTimelineLead] = useState<Lead | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const openTimeline = async (lead: Lead) => {
     setActiveTimelineLead(lead);
@@ -922,40 +927,19 @@ export default function LeadsPage() {
   };
 
   const getLeadActionMenu = (record: Lead) => {
-    const menuItems: MenuProps['items'] = [
-      { key: 'view', label: 'View Details', icon: <Eye size={16} /> },
-      canUpdateLead && { key: 'edit', label: 'Edit Lead', icon: <Settings size={16} /> },
-      { key: 'timeline', label: 'View Timeline', icon: <History size={16} /> },
-      (canUpdateLead || canDeleteLead) && { type: 'divider' },
-      canDeleteLead && { key: 'delete', label: 'Delete Lead', danger: true, icon: <Trash2 size={16} /> }
-    ].filter(Boolean) as MenuProps['items'];
-
     return (
       <Dropdown
-        menu={{
-          items: menuItems,
-          onClick: ({ key, domEvent }) => {
-            domEvent.stopPropagation();
-            if (key === 'view') handleView(record);
-            if (key === 'edit') handleEdit(record);
-            if (key === 'timeline') openTimeline(record);
-            if (key === 'delete') {
-              modal.confirm({
-                title: "Are you sure you want to delete this lead?",
-                content: "This action cannot be undone.",
-                okText: "Delete",
-                cancelText: "Cancel",
-                okButtonProps: { danger: true },
-                onOk: () => handleDelete(record.id)
-              });
-            }
-          }
-        }}
+        menu={actionMenu(record)}
         trigger={['click']}
         placement="bottomRight"
+        overlayClassName="lm-action-pop"
       >
-        <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
-          <EllipsisOutlined style={{ fontSize: 16 }} />
+        <button
+          type="button"
+          className="pc-actions"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreVertical size={16} />
         </button>
       </Dropdown>
     );
@@ -992,6 +976,43 @@ export default function LeadsPage() {
     const r = lead as any;
     return r.created_by_name || r.creator_name || r.owner_name || "";
   };
+
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="lm-menu-item">
+      <span className="lm-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="lm-menu-text">
+        <span className="lm-menu-title">{title}</span>
+        <span className="lm-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  const actionMenu = (record: Lead): MenuProps => ({
+    className: 'lm-action-menu',
+    items: [
+      { key: 'view', label: menuLabel('View Details', 'Open the full view', <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)') },
+      canUpdateLead ? { key: 'edit', label: menuLabel('Edit Lead', 'Open lead editor', <Settings size={14} />, '#64748b', 'rgba(100,116,139,0.12)') } : null,
+      { key: 'timeline', label: menuLabel('View Timeline', 'Activity history', <History size={14} />, '#8b5cf6', 'rgba(139,92,246,0.12)') },
+      (canUpdateLead || canDeleteLead) ? { type: 'divider' as const } : null,
+      canDeleteLead ? { key: 'delete', danger: true, label: menuLabel('Delete Lead', 'Remove this lead', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)') } : null,
+    ].filter(Boolean) as MenuProps['items'],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent.stopPropagation();
+      if (key === 'view') handleView(record);
+      else if (key === 'edit') handleEdit(record);
+      else if (key === 'timeline') openTimeline(record);
+      else if (key === 'delete') {
+        modal.confirm({
+          title: "Are you sure you want to delete this lead?",
+          content: "This action cannot be undone.",
+          okText: "Delete",
+          cancelText: "Cancel",
+          okButtonProps: { danger: true },
+          onOk: () => handleDelete(record.id)
+        });
+      }
+    },
+  });
 
   const columns = [
     {
@@ -1378,7 +1399,7 @@ export default function LeadsPage() {
               alignItems: "center",
               gap: 6,
               padding: "4px 10px",
-              borderRadius: 999,
+              borderRadius: 0,
               background: level.bg,
               color: level.color,
               fontWeight: 700,
@@ -1631,69 +1652,7 @@ export default function LeadsPage() {
       align: "right" as const,
       width: 80,
       fixed: "right" as const,
-      render: (_: unknown, record: Lead) => {
-        const menuItems: MenuProps['items'] = [
-          {
-            key: 'view',
-            label: 'View Details',
-            icon: <Eye size={16} />,
-          },
-          canUpdateLead && {
-            key: 'edit',
-            label: 'Edit Lead',
-            icon: <Settings size={16} />,
-          },
-          {
-            key: 'timeline',
-            label: 'View Timeline',
-            icon: <History size={16} />,
-          },
-          (canUpdateLead || canDeleteLead) && {
-            type: 'divider',
-          },
-          canDeleteLead && {
-            key: 'delete',
-            label: 'Delete Lead',
-            danger: true,
-            icon: <Trash2 size={16} />,
-          }
-        ].filter(Boolean) as MenuProps['items'];
-
-        return (
-          <Dropdown
-            menu={{
-              items: menuItems,
-              onClick: ({ key, domEvent }) => {
-                domEvent.stopPropagation();
-                if (key === 'view') handleView(record);
-                if (key === 'edit') handleEdit(record);
-                if (key === 'timeline') {
-                  openTimeline(record);
-                }
-                if (key === 'delete') {
-                  modal.confirm({
-                    title: "Are you sure you want to delete this lead?",
-                    content: "This action cannot be undone.",
-                    okText: "Delete",
-                    cancelText: "Cancel",
-                    okButtonProps: { danger: true },
-                    onOk: () => handleDelete(record.id)
-                  });
-                }
-              }
-            }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Button
-              type="text"
-              icon={<MoreVertical size={20} style={{ color: "var(--text-slate-400)" }} />}
-              className="action-btn"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </Dropdown>
-        );
-      },
+      render: (_: unknown, record: Lead) => getLeadActionMenu(record),
     },
   ];
 
@@ -1908,6 +1867,15 @@ export default function LeadsPage() {
     }
     return sorted;
   }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus, sortKey]);
+
+  useEffect(() => {
+    const totalPages = Math.ceil(filteredLeads.length / tablePageSize);
+    if (totalPages > 0 && tablePage > totalPages) {
+      setTablePage(totalPages);
+    } else if (totalPages === 0 && tablePage > 1) {
+      setTablePage(1);
+    }
+  }, [filteredLeads.length, tablePage, tablePageSize]);
 
   const creatorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -2341,7 +2309,8 @@ export default function LeadsPage() {
           <div className="lm-ambient" />
 
           <div className="lm-shell">
-            <aside className="lm-sidebar">
+            {mobileSidebarOpen && <div className="lm-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
+            <aside className={`lm-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
               <div className="lm-sidebar-top">
                 <div className="lm-side-head">
                   <div className="lm-side-logo"><Layers size={20} /></div>
@@ -2461,144 +2430,162 @@ export default function LeadsPage() {
 
             <div className="lm-main">
               <div className="lm-topbar">
-                <Input
-                  placeholder="Search subject, target…"
-                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                  suffix={<span className="lm-kbd">⌘K</span>}
-                  className="lm-search-input"
-                  style={{ width: 600, borderRadius: 8, height: 34 }}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  value={searchText}
-                  allowClear
-                />
+                <div className="lm-topbar-search-wrap">
+                  <Button
+                    className="lm-mobile-menu-btn"
+                    type="text"
+                    icon={<Menu size={18} />}
+                    onClick={() => setMobileSidebarOpen(true)}
+                  />
+                  <Input
+                    placeholder="Search subject, target…"
+                    prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                    suffix={<span className="lm-kbd">⌘K</span>}
+                    className="lm-search-input"
+                    style={{ width: 600, borderRadius: 0, height: 24, fontSize: 12 }}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    value={searchText}
+                    allowClear
+                  />
+                </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Popover
-                    trigger={["click"]}
-                    placement="bottomRight"
-                    classNames={{ root: "lm-toolbar-popover" }}
-                    content={
-                      <div className="lm-filters-popover-body">
-                        <div className="lm-popover-section-label">
-                          <Filter size={11} />
-                          <span>Workflow</span>
-                        </div>
-                        <Select
-                          placeholder="Any workflow"
-                          className="lm-filter-select"
-                          style={{ width: "100%" }}
-                          allowClear
-                          value={filterAction}
-                          onChange={setFilterAction}
-                        >
-                          {configActions.map(a => (
-                            <Select.Option key={a.id} value={a.name}>
-                              <Space size={6}>
-                                {renderActionIcon(a.icon)}
-                                {a.name}
-                              </Space>
-                            </Select.Option>
-                          ))}
-                        </Select>
-
-                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                          <User size={11} />
-                          <span>Created by</span>
-                        </div>
-                        <Select
-                          placeholder="Anyone"
-                          className="lm-filter-select"
-                          style={{ width: "100%" }}
-                          allowClear
-                          value={filterCreatedBy}
-                          onChange={setFilterCreatedBy}
-                          showSearch
-                          filterOption={(input, option) =>
-                            String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-                          }
-                        >
-                          {creatorOptions.map((name) => {
-                            const palette = getAvatarStyle(name);
-                            return (
-                              <Select.Option key={name} value={name}>
-                                <Space size={8}>
-                                  <span
-                                    className="lm-creator-avatar"
-                                    style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                                  >
-                                    {getInitials(name)}
-                                  </span>
-                                  <span style={{ fontSize: 12.5 }}>{name}</span>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <Popover
+                      trigger={["click"]}
+                      placement="bottomRight"
+                      classNames={{ root: "lm-toolbar-popover" }}
+                      content={
+                        <div className="lm-filters-popover-body">
+                          <div className="lm-popover-section-label">
+                            <Filter size={11} />
+                            <span>Workflow</span>
+                          </div>
+                          <Select
+                            placeholder="Any workflow"
+                            className="lm-filter-select"
+                            style={{ width: "100%" }}
+                            allowClear
+                            value={filterAction}
+                            onChange={setFilterAction}
+                          >
+                            {configActions.map(a => (
+                              <Select.Option key={a.id} value={a.name}>
+                                <Space size={6}>
+                                  {renderActionIcon(a.icon)}
+                                  {a.name}
                                 </Space>
                               </Select.Option>
-                            );
-                          })}
-                        </Select>
+                            ))}
+                          </Select>
 
-                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                          <Mail size={11} />
-                          <span>Mail status</span>
-                        </div>
-                        <Select
-                          placeholder="Any"
-                          className="lm-filter-select"
-                          style={{ width: "100%" }}
-                          allowClear
-                          value={filterMailStatus}
-                          onChange={setFilterMailStatus}
-                        >
-                          <Select.Option value="sent">
-                            <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-                          </Select.Option>
-                          <Select.Option value="not_sent">
-                            <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-                          </Select.Option>
-                        </Select>
-
-                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                          <Clock size={11} />
-                          <span>Posted on</span>
-                        </div>
-                        <DatePicker.RangePicker
-                          className="lm-filter-date"
-                          style={{ width: "100%" }}
-                          value={filterDateRange}
-                          onChange={(dates) => setFilterDateRange(dates as any)}
-                        />
-
-                        <div className="lm-popover-footer">
-                          <button
-                            type="button"
-                            className="lm-popover-reset"
-                            onClick={() => {
-                              setFilterStatus(null);
-                              setFilterPlatform(null);
-                              setFilterAction(null);
-                              setFilterDateRange(null);
-                              setFilterCreatedBy(null);
-                              setFilterMailStatus(null);
-                            }}
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <User size={11} />
+                            <span>Created by</span>
+                          </div>
+                          <Select
+                            placeholder="Anyone"
+                            className="lm-filter-select"
+                            style={{ width: "100%" }}
+                            allowClear
+                            value={filterCreatedBy}
+                            onChange={setFilterCreatedBy}
+                            showSearch
+                            filterOption={(input, option) =>
+                              String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                            }
                           >
-                            Reset
-                          </button>
+                            {creatorOptions.map((name) => {
+                              const palette = getAvatarStyle(name);
+                              return (
+                                <Select.Option key={name} value={name}>
+                                  <Space size={8}>
+                                    <span
+                                      className="lm-creator-avatar"
+                                      style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                                    >
+                                      {getInitials(name)}
+                                    </span>
+                                    <span style={{ fontSize: 12.5 }}>{name}</span>
+                                  </Space>
+                                </Select.Option>
+                              );
+                            })}
+                          </Select>
+
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <Mail size={11} />
+                            <span>Mail status</span>
+                          </div>
+                          <Select
+                            placeholder="Any"
+                            className="lm-filter-select"
+                            style={{ width: "100%" }}
+                            allowClear
+                            value={filterMailStatus}
+                            onChange={setFilterMailStatus}
+                          >
+                            <Select.Option value="sent">
+                              <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                            </Select.Option>
+                            <Select.Option value="not_sent">
+                              <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                            </Select.Option>
+                          </Select>
+
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <Clock size={11} />
+                            <span>Posted on</span>
+                          </div>
+                          <DatePicker.RangePicker
+                            className="lm-filter-date"
+                            style={{ width: "100%" }}
+                            value={filterDateRange}
+                            onChange={(dates) => setFilterDateRange(dates as any)}
+                          />
+
+                          <div className="lm-popover-footer">
+                            <button
+                              type="button"
+                              className="lm-popover-reset"
+                              onClick={() => {
+                                setFilterStatus(null);
+                                setFilterPlatform(null);
+                                setFilterAction(null);
+                                setFilterDateRange(null);
+                                setFilterCreatedBy(null);
+                                setFilterMailStatus(null);
+                              }}
+                            >
+                              Reset
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    }
-                  >
-                    <Button
-                      icon={<Filter size={13} />}
-                      className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                      }
                     >
-                      Filters
-                      {(() => {
-                        const n =
-                          (filterAction ? 1 : 0) +
-                          (filterCreatedBy ? 1 : 0) +
-                          (filterMailStatus ? 1 : 0) +
-                          (filterDateRange ? 1 : 0);
-                        return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
-                      })()}
-                    </Button>
-                  </Popover>
+                      <Button
+                        icon={<Filter size={13} />}
+                        className={`lm-filter-settings-btn lm-toolbar-filters-btn lm-filter-group-left ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
+                        style={{ height: 38, borderRight: 0, display: 'flex', alignItems: 'center' }}
+                      >
+                        Filters
+                        {(() => {
+                          const n =
+                            (filterAction ? 1 : 0) +
+                            (filterCreatedBy ? 1 : 0) +
+                            (filterMailStatus ? 1 : 0) +
+                            (filterDateRange ? 1 : 0);
+                          return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                        })()}
+                      </Button>
+                    </Popover>
+                    <Button
+                      icon={<ExpandAltOutlined />}
+                      className="lm-filter-settings-btn lm-filter-group-right"
+                      style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
+                      aria-label="Expand toolbar"
+                      onClick={() => setIsFilterRowOpen(prev => !prev)}
+                    />
+                  </div>
 
                   <Button
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
@@ -2640,6 +2627,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </div>
+              <div className="lm-divider" />
 
               {/* Saved-View Segments */}
               {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
@@ -2662,7 +2650,7 @@ export default function LeadsPage() {
                     gap: 6,
                     padding: "6px 12px",
                     height: 32,
-                    borderRadius: 999,
+                    borderRadius: 0,
                     border: `1px solid ${isActive ? accent : "#e2e8f0"}`,
                     background: isActive ? `${accent}10` : "#fff",
                     color: isActive ? accent : "#475569",
@@ -2683,7 +2671,7 @@ export default function LeadsPage() {
                       minWidth: 20,
                       height: 18,
                       padding: "0 6px",
-                      borderRadius: 999,
+                      borderRadius: 0,
                       background: isActive ? accent : "#f1f5f9",
                       color: isActive ? "#fff" : "#64748b",
                       fontSize: 10,
@@ -2702,14 +2690,14 @@ export default function LeadsPage() {
                   label="Total Leads"
                   value={leads.length}
                   icon={Layers}
-                  accent="#6366f1"
+                  accent="#3b82f6"
                   subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
                   loading={leads.length === 0 && loading}
                   chart={
                     leads.length > 0 ? (
                       <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
                         <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={totalLeadsTrend} color="#6366f1" />
+                        <AreaSparkline values={totalLeadsTrend} color="#3b82f6" />
                       </div>
                     ) : null
                   }
@@ -2718,14 +2706,30 @@ export default function LeadsPage() {
                   label="New Today"
                   value={leadsToday}
                   icon={Zap}
-                  accent="#f59e0b"
+                  accent="#10b981"
                   subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
                   loading={leads.length === 0 && loading}
                   chart={
                     leads.length > 0 ? (
                       <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
                         <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={newLeadsTrend} color="#f59e0b" />
+                        <AreaSparkline values={newLeadsTrend} color="#10b981" />
+                      </div>
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="Pipeline Rate"
+                  value={`${pipelineRate}%`}
+                  icon={Target}
+                  accent="#64748b"
+                  subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={pipelineRateTrend} color="#64748b" />
                       </div>
                     ) : null
                   }
@@ -2750,200 +2754,60 @@ export default function LeadsPage() {
                     ) : null
                   }
                 />
-                <StatCard
-                  label="Pipeline Rate"
-                  value={`${pipelineRate}%`}
-                  icon={Target}
-                  accent="#10b981"
-                  subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
-                  loading={leads.length === 0 && loading}
-                  chart={
-                    leads.length > 0 ? (
-                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
-                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={pipelineRateTrend} color="#10b981" />
-                      </div>
-                    ) : null
-                  }
-                />
               </div>
 
 
 
               {/* Compact toolbar — Sort + Filters + Export + Settings */}
-              <div className="lm-table-toolbar">
-                <span className="lm-toolbar-count">
-                  <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
-                </span>
+              {isFilterRowOpen && (
+                <div className="lm-table-toolbar">
+                  <span className="lm-toolbar-count">
+                    <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
+                  </span>
 
-                <span className="lm-toolbar-spacer" />
+                  <span className="lm-toolbar-spacer" />
 
-                <SearchableDropdown
-                  placeholder="Pipeline"
-                  options={stageDropdownOptions}
-                  value={filterStatus || undefined}
-                  onChange={(v) => {
-                    setFilterStatus(v || null);
-                    setFilterPlatform(null);
-                  }}
-                  style={{ height: 32, minWidth: 120, width: 120, borderRadius: 4 }}
-                  width={200}
-                />
+                  <SearchableDropdown
+                    placeholder="Pipeline"
+                    options={stageDropdownOptions}
+                    value={filterStatus || undefined}
+                    onChange={(v) => {
+                      setFilterStatus(v || null);
+                      setFilterPlatform(null);
+                    }}
+                    style={{ height: 32, minWidth: 120, width: 120, borderRadius: 0 }}
+                    width={200}
+                  />
 
-                <SearchableDropdown
-                  placeholder="Action"
-                  options={actionDropdownOptions}
-                  value={filterAction || undefined}
-                  onChange={(v) => setFilterAction(v || null)}
-                  style={{ height: 32, minWidth: 140, width: 140, borderRadius: 4 }}
-                  width={220}
-                />
+                  <SearchableDropdown
+                    placeholder="Action"
+                    options={actionDropdownOptions}
+                    value={filterAction || undefined}
+                    onChange={(v) => setFilterAction(v || null)}
+                    style={{ height: 32, minWidth: 140, width: 140, borderRadius: 0 }}
+                    width={220}
+                  />
 
-                <SearchableDropdown
-                  placeholder="Created by"
-                  options={creatorDropdownOptions}
-                  value={filterCreatedBy || undefined}
-                  onChange={(v) => setFilterCreatedBy(v || null)}
-                  style={{ height: 32, minWidth: 130, width: 130, borderRadius: 4 }}
-                  width={220}
-                />
+                  <SearchableDropdown
+                    placeholder="Created by"
+                    options={creatorDropdownOptions}
+                    value={filterCreatedBy || undefined}
+                    onChange={(v) => setFilterCreatedBy(v || null)}
+                    style={{ height: 32, minWidth: 130, width: 130, borderRadius: 0 }}
+                    width={220}
+                  />
 
-                <SearchableDropdown
-                  placeholder="Sort"
+                  <SearchableDropdown
+                    placeholder="Sort"
                   options={sortDropdownOptions}
                   value={sortKey}
                   onChange={(v) => {
                     if (v) setSortKey(v as any);
                   }}
-                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 8 }}
+                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
                   width={200}
                   allowClear={false}
                 />
-
-                <Popover
-                  trigger={["click"]}
-                  placement="bottomRight"
-                  classNames={{ root: "lm-toolbar-popover" }}
-                  content={
-                    <div className="lm-filters-popover-body">
-                      <div className="lm-popover-section-label">
-                        <Filter size={11} />
-                        <span>Workflow</span>
-                      </div>
-                      <SearchableDropdown
-                        placeholder="Any workflow"
-                        options={actionDropdownOptions}
-                        value={filterAction || undefined}
-                        onChange={(v) => setFilterAction(v || null)}
-                        style={{ width: "100%", borderRadius: 8, height: 36 }}
-                        width={220}
-                      />
-
-                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                        <User size={11} />
-                        <span>Created by</span>
-                      </div>
-                      <SearchableDropdown
-                        placeholder="Anyone"
-                        options={creatorDropdownOptions}
-                        value={filterCreatedBy || undefined}
-                        onChange={(v) => setFilterCreatedBy(v || null)}
-                        style={{ width: "100%", borderRadius: 8, height: 36 }}
-                        width={220}
-                      />
-
-                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                        <Mail size={11} />
-                        <span>Mail status</span>
-                      </div>
-                      <SearchableDropdown
-                        placeholder="Any mail status"
-                        options={mailDropdownOptions}
-                        value={filterMailStatus || undefined}
-                        onChange={(v) => setFilterMailStatus(v || null)}
-                        style={{ width: "100%", borderRadius: 8, height: 36 }}
-                        width={220}
-                      />
-
-                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                        <Clock size={11} />
-                        <span>Posted on</span>
-                      </div>
-                      <DatePicker.RangePicker
-                        className="lm-filter-date"
-                        style={{ width: "100%" }}
-                        value={filterDateRange}
-                        onChange={(dates) => setFilterDateRange(dates as any)}
-                      />
-
-                      <div className="lm-popover-footer">
-                        <button
-                          type="button"
-                          className="lm-popover-reset"
-                          onClick={() => {
-                            setFilterStatus(null);
-                            setFilterPlatform(null);
-                            setFilterAction(null);
-                            setFilterDateRange(null);
-                            setFilterCreatedBy(null);
-                            setFilterMailStatus(null);
-                          }}
-                        >
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Button
-                    icon={<Filter size={13} />}
-                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
-                  >
-                    Filters
-                    {(() => {
-                      const n =
-                        (filterAction ? 1 : 0) +
-                        (filterCreatedBy ? 1 : 0) +
-                        (filterMailStatus ? 1 : 0) +
-                        (filterDateRange ? 1 : 0);
-                      return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
-                    })()}
-                  </Button>
-                </Popover>
-
-                <Button
-                  className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
-                  onClick={() => {
-                    const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
-                    const rows = filteredLeads.map(l => {
-                      const score = l.ai_score;
-                      const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
-                      return [
-                        l.title || "",
-                        l.client_name || "",
-                        l.status || "",
-                        l.platform || "",
-                        l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
-                        getLeadCreator(l) || "",
-                        priority,
-                        l.last_mail_at || l.updated_at || l.created_at || "",
-                        l.created_at || "",
-                      ];
-                    });
-                    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-                    const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
-                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                >
-                  <Download size={13} />
-                  Export
-                </Button>
 
                 <Popover
                   trigger={["click"]}
@@ -3011,10 +2875,86 @@ export default function LeadsPage() {
                   </Tooltip>
                 </Popover>
               </div>
+              )}
+
+              {/* Collapsible Filter Row */}
+              {false && (
+                <div className="lm-filter-row" style={{ display: 'none' }}>
+                  <SearchableDropdown
+                    placeholder="Pipeline"
+                    options={stageDropdownOptions}
+                    value={filterStatus || undefined}
+                    onChange={(v) => {
+                      setFilterStatus(v || null);
+                      setFilterPlatform(null);
+                    }}
+                    style={{ height: 32, minWidth: 140, borderRadius: 0 }}
+                    width={200}
+                  />
+
+                  <SearchableDropdown
+                    placeholder="Action"
+                    options={actionDropdownOptions}
+                    value={filterAction || undefined}
+                    onChange={(v) => setFilterAction(v || null)}
+                    style={{ height: 32, minWidth: 140, borderRadius: 0 }}
+                    width={220}
+                  />
+
+                  <SearchableDropdown
+                    placeholder="Created by"
+                    options={creatorDropdownOptions}
+                    value={filterCreatedBy || undefined}
+                    onChange={(v) => setFilterCreatedBy(v || null)}
+                    style={{ height: 32, minWidth: 140, borderRadius: 0 }}
+                    width={220}
+                  />
+
+                  <Select
+                    placeholder="Mail status"
+                    className="lm-filter-select"
+                    style={{ width: 140, height: 32 }}
+                    allowClear
+                    value={filterMailStatus}
+                    onChange={setFilterMailStatus}
+                  >
+                    <Select.Option value="sent">
+                      <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                    </Select.Option>
+                    <Select.Option value="not_sent">
+                      <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                    </Select.Option>
+                  </Select>
+
+                  <DatePicker.RangePicker
+                    className="lm-filter-date"
+                    style={{ width: 220, height: 32 }}
+                    value={filterDateRange}
+                    onChange={(dates) => setFilterDateRange(dates as any)}
+                  />
+
+                  {activeFilterChips.length > 0 && (
+                    <Button 
+                      type="text" 
+                      onClick={() => {
+                        setFilterStatus(null);
+                        setFilterAction(null);
+                        setFilterCreatedBy(null);
+                        setFilterPlatform(null);
+                        setFilterMailStatus(null);
+                        setFilterDateRange(null);
+                      }}
+                      style={{ fontSize: 13, color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <CloseCircleOutlined style={{ fontSize: 12 }} /> Clear All
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Active filter chips */}
               {activeFilterChips.length > 0 && (
-                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, alignItems: "center" }}>
+                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: 14, alignItems: "center" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     <ListFilter size={12} /> Active
                   </span>
@@ -3027,7 +2967,7 @@ export default function LeadsPage() {
                         alignItems: "center",
                         gap: 6,
                         padding: "4px 6px 4px 10px",
-                        borderRadius: 999,
+                        borderRadius: 0,
                         background: "rgba(99, 102, 241, 0.08)",
                         color: "#4f46e5",
                         border: "1px solid rgba(99, 102, 241, 0.18)",
@@ -3111,15 +3051,15 @@ export default function LeadsPage() {
                             borderBottom: "1px solid var(--border-slate-100)",
                           }}
                         >
-                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 0 }} />
                           <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
                           <div style={{ flex: 1 }}>
                             <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
                             <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
                           </div>
-                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
-                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
-                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
+                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 0 }} />
+                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 0 }} />
+                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 0 }} />
                         </div>
                       ))}
                     </div>
@@ -3181,7 +3121,7 @@ export default function LeadsPage() {
                                   setIsDrawerVisible(true);
                                 }}
                                 style={{
-                                  borderRadius: 8,
+                                  borderRadius: 0,
                                   height: 36,
                                   fontWeight: 700,
                                   background: "#6366f1",
@@ -3204,7 +3144,7 @@ export default function LeadsPage() {
                                   setSearchText("");
                                   setActiveSegment("all");
                                 }}
-                                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                                style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
                               >
                                 Clear all filters
                               </Button>
@@ -3225,16 +3165,16 @@ export default function LeadsPage() {
                           <div style={{ display: 'flex', gap: 12 }}>
                             <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
                             <div style={{ flex: 1 }}>
-                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
-                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 4 }} />
+                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 0, marginBottom: 8 }} />
+                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 0 }} />
                             </div>
                           </div>
-                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 4, marginTop: 'auto' }} />
+                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 0, marginTop: 'auto' }} />
                         </div>
                       ))}
                     </div>
                   ) : filteredLeads.length === 0 ? (
-                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-200)" }}>
+                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
                       <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}>
                         <Layers size={28} />
                       </div>
@@ -3245,7 +3185,7 @@ export default function LeadsPage() {
                         {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
                       </Typography.Text>
                       {leads.length === 0 && (
-                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 8, height: 36, fontWeight: 700, background: "#6366f1", border: "none" }}>Add First Lead</Button>
+                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 0, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
                       )}
                     </div>
                   ) : (
@@ -3273,113 +3213,101 @@ export default function LeadsPage() {
                           const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
 
                           return (
-                            <div key={record.id} className="lm-card" style={{ padding: 0, gap: 0 }} onClick={() => handleView(record)}>
-                              {/* LAYER 1: Header (Lead, Company, Owner, Actions) */}
-                              <div className="lm-card-head" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-slate-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color, borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{initials}</div>
-                                <div className="lm-card-title-group" style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-                                  <h4 className="lm-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={name}>{name}</h4>
-                                  <span className="lm-card-subtitle" style={{ fontSize: '12px', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                    <span>Client: <span style={{ fontWeight: 700, color: 'var(--text-slate-800)' }}>{record.client_name || '—'}</span></span>
-                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                      <span style={{
-                                        width: 16, height: 16, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
-                                      }}>
-                                        {ownerInitials}
-                                      </span>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>{ownerName}</span>
+                            <div key={record.id} className="lm-card" onClick={() => handleView(record)}>
+                              <div className="lm-card-head">
+                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color }}>{initials}</div>
+                                <div className="lm-card-title-group">
+                                  <div className="lm-card-title">{name}</div>
+                                  <div className="lm-card-subtitle">
+                                    <span className="lm-card-subtitle-key">Client:</span>
+                                    <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
+                                    <span style={{ color: '#94a3b8' }}>|</span>
+                                    <span style={{
+                                      width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
+                                    }}>
+                                      {ownerInitials}
                                     </span>
-                                  </span>
+                                    <span className="lm-card-subtitle-val">{ownerName}</span>
+                                  </div>
                                 </div>
-                                <div className="lm-card-actions" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                                <div className="lm-card-actions">
                                   {getLeadActionMenu(record)}
                                 </div>
                               </div>
 
-                              {/* LAYER 2: Details & Actions */}
-                              <div className="lm-card-footer" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--border-slate-100)', marginTop: 0, backgroundColor: 'var(--bg-slate-50)' }}>
-                                {/* Source */}
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Source:</span>
-                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>{record.platform || 'Upwork'}</span>
-                                </div>
-
-                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-
-                                {/* Value */}
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Value:</span>
-                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>
-                                    {record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}
+                              <div className="lm-card-footer">
+                                <div className="lm-card-footer-row">
+                                  <span className="lm-card-footer-item">
+                                    <span className="lm-card-footer-key">Source:</span>
+                                    <span className="lm-card-footer-val">{record.platform || 'Upwork'}</span>
+                                  </span>
+                                  <span className="lm-card-footer-div" />
+                                  <span className="lm-card-footer-item">
+                                    <span className="lm-card-footer-key">Value:</span>
+                                    <span className="lm-card-footer-val">{record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}</span>
+                                  </span>
+                                  <span className="lm-card-footer-div" />
+                                  <span className="lm-card-footer-item">
+                                    <span className="lm-card-footer-key">Status:</span>
+                                    <span className="lm-card-footer-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
+                                      <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
+                                      {record.status || '—'}
+                                    </span>
                                   </span>
                                 </div>
-
-                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-
-                                {/* Status */}
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Status:</span>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
-                                    <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
-                                    {record.status || '—'}
-                                  </span>
-                                </div>
-
-                                {/* BidIq Action */}
-                                {canManageLeads && record.lead_source_kind !== "website" && (() => {
-                                  const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
-                                  return (
+                                
+                                <div className="lm-card-footer-row">
+                                  {canManageLeads && record.lead_source_kind !== "website" && (() => {
+                                    const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
+                                    return (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: hasBidiq ? '#10b981' : '#3B82F6' }}
+                                        >
+                                          {hasBidiq ? <Eye size={12} /> : <Zap size={12} />}
+                                          {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                        </button>
+                                        <span className="lm-card-footer-div" />
+                                      </>
+                                    );
+                                  })()}
+                                  
+                                  {canCreateProposal && (
                                     <>
-                                      <span style={{ color: 'var(--border-slate-300)' }}>|</span>
                                       <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: hasBidiq ? '#10b981' : 'var(--premium-blue)' }}
+                                        onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
                                       >
-                                        {hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
-                                        {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                        {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
+                                        {record.proposal_id ? 'View Proposal' : 'Generate'}
                                       </button>
+                                      <span className="lm-card-footer-div" />
                                     </>
-                                  );
-                                })()}
-
-                                {/* Proposal Action */}
-                                {canCreateProposal && (
-                                  <>
-                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
-                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: record.proposal_id ? '#10b981' : 'var(--premium-blue)' }}
-                                    >
-                                      {record.proposal_id ? <FileText size={13} /> : <Sparkles size={13} />}
-                                      {record.proposal_id ? 'View Proposal' : 'Generate'}
-                                    </button>
-                                  </>
-                                )}
-
-                                {/* Mail Action */}
-                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: isSent ? '#10b981' : 'var(--premium-blue)' }}
-                                >
-                                  {isSent ? <CheckCircle size={13} style={{ color: '#10b981' }} /> : <Mail size={13} />}
-                                  {isSent ? 'Sent' : 'Send Mail'}
-                                </button>
-
-                                {/* Timeline View Action */}
-                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: 'var(--text-slate-500)' }}
-                                >
-                                  <History size={13} />
-                                  Timeline
-                                </button>
+                                  )}
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: isSent ? '#10b981' : '#3B82F6' }}
+                                  >
+                                    {isSent ? <CheckCircle size={12} style={{ color: '#10b981' }} /> : <Mail size={12} />}
+                                    {isSent ? 'Sent' : 'Send Mail'}
+                                  </button>
+                                  
+                                  <span className="lm-card-footer-div" />
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
+                                  >
+                                    <History size={12} />
+                                    <span className="lm-card-footer-key" style={{ color: '#3B82F6' }}>Timeline</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           );
@@ -3504,7 +3432,7 @@ export default function LeadsPage() {
               <div className="lm-bidiq-caps">
                 <div className="lm-bidiq-caps-head">What BidIq will do for you</div>
                 <div className="lm-bidiq-caps-grid">
-                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                     <div className="lm-bidiq-cap-icon">
                       <Target size={14} />
                     </div>
@@ -3537,7 +3465,7 @@ export default function LeadsPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                     <div className="lm-bidiq-cap-icon">
                       <Brain size={14} />
                     </div>
@@ -3672,7 +3600,7 @@ export default function LeadsPage() {
                   <div className="biq-pinfo-caps">
                     <div className="biq-pinfo-caps-head">What the proposal will include</div>
                     <div className="biq-pinfo-caps-grid">
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="biq-pinfo-cap-icon">
                           <Briefcase size={14} />
                         </div>
@@ -3683,7 +3611,7 @@ export default function LeadsPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="biq-pinfo-cap-icon">
                           <Calendar size={14} />
                         </div>
@@ -3705,7 +3633,7 @@ export default function LeadsPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="biq-pinfo-cap-icon">
                           <FileText size={14} />
                         </div>
@@ -3780,7 +3708,7 @@ export default function LeadsPage() {
                           <div className="biq-opt-field">
                             <label>Project window</label>
                             <DatePicker.RangePicker
-                              style={{ width: "100%", borderRadius: 8 }}
+                              style={{ width: "100%", borderRadius: 0 }}
                               value={customDates as any}
                               onChange={(dates) => setCustomDates(dates as any)}
                               disabled={generatingProposal}
@@ -3795,7 +3723,7 @@ export default function LeadsPage() {
                           <div className="biq-opt-field">
                             <label>Your cost (USD)</label>
                             <InputNumber
-                              style={{ width: "100%", borderRadius: 8 }}
+                              style={{ width: "100%", borderRadius: 0 }}
                               min={0}
                               value={customCost as any}
                               onChange={(v) => setCustomCost(v as any)}
@@ -3834,13 +3762,13 @@ export default function LeadsPage() {
                 <div className="biq-pinfo-footer-actions">
                   {proposalStep === 0 ? (
                     <>
-                      <Button onClick={closeProposalFlow} className="biq-secondary-btn">
+                      <Button onClick={closeProposalFlow} className="biq-secondary-btn" style={{ borderRadius: 0, fontWeight: 600 }}>
                         Cancel
                       </Button>
                       <Button
                         type="primary"
                         onClick={goToOptionStep}
-                        className="biq-primary-btn"
+                        className="biq-primary-btn" style={{ borderRadius: 0, fontWeight: 700 }}
                         icon={<Sparkles size={13} />}
                       >
                         Continue
@@ -3851,7 +3779,7 @@ export default function LeadsPage() {
                     <>
                       <Button
                         onClick={() => setProposalStep(0)}
-                        className="biq-secondary-btn"
+                        className="biq-secondary-btn" style={{ borderRadius: 0, fontWeight: 600 }}
                         disabled={generatingProposal}
                       >
                         Back
@@ -3861,7 +3789,7 @@ export default function LeadsPage() {
                         loading={generatingProposal}
                         disabled={!selectedOption || (selectedOption === "custom" && !customValid)}
                         onClick={handleConfirmGenerate}
-                        className="biq-primary-btn"
+                        className="biq-primary-btn" style={{ borderRadius: 0, fontWeight: 700 }}
                         icon={!generatingProposal ? <Sparkles size={13} /> : undefined}
                       >
                         {generatingProposal ? "Generating proposal…" : "Create proposal"}
@@ -3885,7 +3813,7 @@ export default function LeadsPage() {
                   position: "absolute",
                   inset: 0,
                   background:
-                    "radial-gradient(120% 80% at 100% 0%, rgba(139,92,246,0.10) 0%, transparent 55%), radial-gradient(80% 60% at 0% 100%, rgba(99,102,241,0.08) 0%, transparent 60%)",
+                    "transparent",
                   pointerEvents: "none",
                 }}
               />
@@ -3894,13 +3822,13 @@ export default function LeadsPage() {
                   style={{
                     width: 44,
                     height: 44,
-                    borderRadius: 14,
-                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                    borderRadius: 0,
+                    background: "#3b82f6",
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 8px 20px -6px rgba(99, 102, 241, 0.5)",
+                    boxShadow: "none",
                     flexShrink: 0,
                   }}
                 >
@@ -3918,14 +3846,14 @@ export default function LeadsPage() {
                         alignItems: "center",
                         gap: 4,
                         padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "rgba(99, 102, 241, 0.1)",
-                        color: "#6366f1",
+                        borderRadius: 0,
+                        background: "rgba(59, 130, 246, 0.1)",
+                        color: "#2563eb",
                         fontSize: 10,
                         fontWeight: 800,
                         letterSpacing: "0.05em",
                         textTransform: "uppercase",
-                        border: "1px solid rgba(99, 102, 241, 0.2)",
+                        border: "1px solid rgba(59, 130, 246, 0.2)",
                       }}
                     >
                       <Sparkles size={10} /> AI-ready
@@ -3954,7 +3882,7 @@ export default function LeadsPage() {
                 Auto-saved to your secure workspace
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
+                <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 0, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
                 {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
                   <Button
                     type="primary"
@@ -3962,13 +3890,13 @@ export default function LeadsPage() {
                     onClick={() => form.submit()}
                     className="lead-drawer-submit"
                     style={{
-                      borderRadius: 10,
+                      borderRadius: 0,
                       height: 40,
                       padding: "0 22px",
-                      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                      background: "#3b82f6",
                       border: "none",
                       fontWeight: 700,
-                      boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
+                      boxShadow: "none",
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 6,
@@ -4029,19 +3957,19 @@ export default function LeadsPage() {
                 <div className="premium-drawer-section lead-section-card" style={{
                   marginBottom: 20,
                   padding: '20px',
-                  borderRadius: '16px',
+                  borderRadius: 0,
                   border: '1px solid var(--border-slate-100)'
                 }}>
                   <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                     <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(99, 102, 241, 0.08)", color: "#6366f1",
-                      border: "1px solid rgba(99, 102, 241, 0.18)",
+                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb",
+                      border: "1px solid rgba(59, 130, 246, 0.18)",
                     }}>01</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <User size={15} color="#6366f1" />
+                        <User size={15} color="#3b82f6" />
                         <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
                       </div>
                       <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
@@ -4050,12 +3978,12 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
-                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -4104,31 +4032,31 @@ export default function LeadsPage() {
                           }
                         ]}
                       >
-                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="+1 234..." style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
-                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
-                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
-                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
-                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
                             <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
                           </Select.Option>
@@ -4140,7 +4068,7 @@ export default function LeadsPage() {
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
-                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
                             <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
                           </Select.Option>
@@ -4157,32 +4085,31 @@ export default function LeadsPage() {
                 <div className="premium-drawer-section-alt lead-section-card" style={{
                   marginBottom: 20,
                   padding: '20px',
-                  borderRadius: '16px',
+                  borderRadius: 0,
                   border: '1px solid var(--border-slate-100)'
                 }}>
                   <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                     <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b",
-                      border: "1px solid rgba(245, 158, 11, 0.2)",
+                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
                     }}>02</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Briefcase size={15} color="#f59e0b" />
+                        <Briefcase size={15} color="#3b82f6" />
                         <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
                       </div>
                       <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
                     </div>
                   </div>
                   <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} autoComplete="off" />
+                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
                   <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
                     <TextArea
                       rows={4}
                       placeholder="Enter the full job description or client request..."
-                      style={{ borderRadius: 8 }}
+                      style={{ borderRadius: 0 }}
                       autoComplete="off"
                     />
                   </Form.Item>
@@ -4192,10 +4119,10 @@ export default function LeadsPage() {
                       <Space size={6}>
                         <span className="lead-ai-chip" style={{
                           display: "inline-flex", alignItems: "center", gap: 4,
-                          padding: "2px 8px", borderRadius: 999,
-                          background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
-                          color: "#6366f1", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
-                          textTransform: "uppercase", border: "1px solid rgba(99,102,241,0.25)",
+                          padding: "2px 8px", borderRadius: 0,
+                          background: "rgba(59, 130, 246, 0.1)",
+                          color: "#2563eb", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
+                          textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.2)",
                         }}>
                           <Sparkles size={10} /> AI
                         </span>
@@ -4208,9 +4135,9 @@ export default function LeadsPage() {
                       placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
                       className="lead-ai-textarea"
                       style={{
-                        borderRadius: 12,
-                        background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
-                        border: "1px solid rgba(99, 102, 241, 0.18)",
+                        borderRadius: 0,
+                        background: "rgba(59, 130, 246, 0.03)",
+                        border: "1px solid rgba(59, 130, 246, 0.18)",
                       }}
                       autoComplete="off"
                     />
@@ -4225,22 +4152,22 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={8}>
                       <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
-                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} autoComplete="off" />
+                        <InputNumber style={{ width: '100%', borderRadius: 0 }} min={0} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
-                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
-                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} autoComplete="off" />
+                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -4250,15 +4177,14 @@ export default function LeadsPage() {
                 <div className="premium-drawer-section lead-section-card" style={{
                   marginBottom: 20,
                   padding: '20px',
-                  borderRadius: '16px',
+                  borderRadius: 0,
                   border: '1px solid var(--border-slate-100)'
                 }}>
                   <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                     <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(16, 185, 129, 0.08)", color: "#10b981",
-                      border: "1px solid rgba(16, 185, 129, 0.2)",
+                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
                     }}>03</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -4271,7 +4197,7 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                        <Select placeholder="Select Platform" style={{ borderRadius: 8 }}>
+                        <Select placeholder="Select Platform" style={{ borderRadius: 0 }}>
                           <Select.Option value="Upwork">Upwork</Select.Option>
                           <Select.Option value="LinkedIn">LinkedIn</Select.Option>
                           <Select.Option value="Freelancer">Freelancer</Select.Option>
@@ -4283,7 +4209,7 @@ export default function LeadsPage() {
                     </Col>
                     <Col span={12}>
                       <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                        <Select placeholder="Select Status" style={{ borderRadius: 8 }}>
+                        <Select placeholder="Select Status" style={{ borderRadius: 0 }}>
                           {configStatuses.map(s => (
                             <Select.Option key={s.id} value={s.name}>
                               <Space>
@@ -4297,17 +4223,17 @@ export default function LeadsPage() {
                     </Col>
                   </Row>
                   <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                    <Input placeholder="https://..." style={{ borderRadius: 8 }} autoComplete="off" />
+                    <Input placeholder="https://..." style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                        <DatePicker style={{ width: '100%', borderRadius: 8 }} />
+                        <DatePicker style={{ width: '100%', borderRadius: 0 }} />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 8 }}>
+                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 0 }}>
                           {configActions.map(a => (
                             <Select.Option key={a.id} value={a.name}>
                               <Space>
@@ -4325,22 +4251,21 @@ export default function LeadsPage() {
                 {/* Documents Section */}
                 <div className="premium-drawer-section-alt lead-section-card" style={{
                   padding: '20px',
-                  borderRadius: '16px',
+                  borderRadius: 0,
                   border: '1px solid var(--border-slate-100)'
                 }}>
                   <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                     <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(236, 72, 153, 0.08)", color: "#ec4899",
-                      border: "1px solid rgba(236, 72, 153, 0.2)",
+                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
                     }}>04</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <FileText size={15} color="#ec4899" />
                         <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
                         <span style={{
-                          padding: "1px 7px", borderRadius: 999, background: "#f1f5f9",
+                          padding: "1px 7px", borderRadius: 0, background: "#f1f5f9",
                           color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
                           textTransform: "uppercase",
                         }}>Optional</span>
@@ -4526,13 +4451,48 @@ export default function LeadsPage() {
               display: none;
             }
             
+            /* Premium action dropdown */
+            .lm-action-pop .ant-dropdown-menu {
+              padding: 6px; border-radius: 0; min-width: 236px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+            }
+            .lm-action-pop .ant-dropdown-menu-item {
+              padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+              transition: background .12s ease;
+            }
+            .lm-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+            .lm-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+            .lm-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+            
+            .lm-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+            .lm-menu-ic {
+              width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+              display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+            }
+            .lm-menu-text { display: flex; flex-direction: column; min-width: 0; }
+            .lm-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+            .lm-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+            
+            .lm-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+            .lm-action-pop .ant-dropdown-menu-item-danger .lm-menu-title { color: #ef4444; }
+            .lm-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+            .lm-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+            
+            .pc-actions {
+              flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+              background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+            }
+            .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+
             /* Custom Table Footer */
             .lm-bottom-bar {
               display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-              padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+              padding: 6px 14px; border-top: 1px solid var(--border-slate-200);
             }
             .lm-bottom-bar--sticky {
-              position: sticky; bottom: 0; z-index: 30; padding: 12px 14px 12px 32px;
+              position: sticky; bottom: 0; z-index: 30; padding: 6px 14px 6px 32px;
               margin: 16px 0 0 -18px;
               background: var(--bg-pure-white);
               border-top: 1px solid var(--border-slate-200);
@@ -4543,17 +4503,17 @@ export default function LeadsPage() {
             .lm-bottom-sel { color: #3B82F6; font-weight: 600; }
             .lm-pager { display: flex; align-items: center; gap: 3px; }
             .lm-pager-btn, .lm-pager-num {
-              min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-              background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+              min-width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 11px; font-weight: 600;
             }
             .lm-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
             .lm-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
             .lm-pagesize { margin-left: 5px; }
-            .lm-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+            .lm-pagesize .ant-select-selector { border-radius: 7px !important; height: 24px !important; font-size: 11px !important; padding: 0 8px !important; }
             .lm-body {
               position: relative;
               z-index: 1;
-              padding: 10px 0 20px 0;
+              padding: 0 0 20px 0;
             }
 
             /* ---------- Shell (sidebar + main) ---------- */
@@ -4660,12 +4620,17 @@ export default function LeadsPage() {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              padding-bottom: 20px;
+              padding-bottom: 4px;
             }
             .lm-kbd {
               font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
               background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
               border-radius: 5px; padding: 1px 6px;
+            }
+            .lm-divider {
+              height: 1px;
+              background: var(--border-slate-200);
+              margin: 0 -18px 6px;
             }
 
             /* ---------- Compact toolbar above the table ---------- */
@@ -4673,11 +4638,14 @@ export default function LeadsPage() {
               display: flex;
               align-items: center;
               gap: 14px;
-              padding: 8px 12px;
-              margin-bottom: 14px;
+              padding: 4px 10px;
+              margin-bottom: 4px;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 10px;
+              border-radius: 0px;
+            }
+            .lm-table-toolbar .ant-btn {
+              border-radius: 0px !important;
             }
             .lm-toolbar-count {
               font-size: 12.5px;
@@ -4691,18 +4659,36 @@ export default function LeadsPage() {
             }
             .lm-toolbar-spacer { flex: 1 1 auto; }
             .lm-table-toolbar .lm-toolbar-filters-btn.ant-btn,
-            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn,
-            .lm-topbar-actions .lm-toolbar-filters-btn.ant-btn,
-            .lm-topbar-actions button.lm-toolbar-filters-btn.ant-btn {
+            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn {
               width: auto !important;
               min-width: 0 !important;
-              padding: 0 12px !important;
               gap: 6px !important;
-              font-size: 12.5px !important;
               font-weight: 600 !important;
               color: var(--text-slate-700) !important;
               white-space: nowrap !important;
               flex-shrink: 0 !important;
+              height: 24px !important; font-size: 11px !important; padding: 0 8px !important;
+            }
+            .lm-topbar-actions .lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions button.lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions .lm-filter-settings-btn.ant-btn {
+              width: auto !important;
+              min-width: 0 !important;
+              gap: 6px !important;
+              font-weight: 600 !important;
+              color: var(--text-slate-700) !important;
+              white-space: nowrap !important;
+              flex-shrink: 0 !important;
+              height: 38px !important; font-size: 13px !important; padding: 0 16px !important;
+              border-radius: 8px !important;
+            }
+            .lm-topbar-actions .lm-filter-group-left.ant-btn {
+              border-top-right-radius: 0 !important;
+              border-bottom-right-radius: 0 !important;
+            }
+            .lm-topbar-actions .lm-filter-group-right.ant-btn {
+              border-top-left-radius: 0 !important;
+              border-bottom-left-radius: 0 !important;
             }
             .lm-table-toolbar .lm-toolbar-export-btn.ant-btn,
             .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn {
@@ -4730,7 +4716,7 @@ export default function LeadsPage() {
               margin-left: 4px;
               border-radius: 999px;
               background: rgba(99, 102, 241, 0.14);
-              color: #4f46e5;
+              color: #2563eb;
               font-size: 10px;
               font-weight: 800;
               font-variant-numeric: tabular-nums;
@@ -4757,14 +4743,14 @@ export default function LeadsPage() {
             /* ---------- Header buttons / search ---------- */
             .lm-search-input.ant-input-affix-wrapper {
               height: 38px !important;
-              border-radius: 10px !important;
+              border-radius: 8px !important;
               background: transparent !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all .2s ease;
             }
             .lm-search-input.ant-input-affix-wrapper:focus-within {
-              border-color: #6366f1 !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+              border-color: #3b82f6 !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
               background: var(--bg-pure-white) !important;
             }
             .lm-search-input .ant-input {
@@ -4774,7 +4760,7 @@ export default function LeadsPage() {
             }
             .lm-secondary-btn {
               height: 38px !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-700) !important;
@@ -4789,13 +4775,13 @@ export default function LeadsPage() {
             }
             .lm-primary-btn {
               height: 38px !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               padding: 0 18px !important;
               font-weight: 700 !important;
               display: inline-flex !important;
               align-items: center !important;
               gap: 6px !important;
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              background: #3b82f6 !important;
               border: 0 !important;
               box-shadow: 0 6px 16px -8px rgba(99, 102, 241, 0.6) !important;
             }
@@ -4823,7 +4809,7 @@ export default function LeadsPage() {
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
               border-radius: 0;
-              padding: 10px 12px 10px;
+              padding: 6px 12px;
               overflow: hidden;
               transition: border-color .15s ease;
             }
@@ -4896,7 +4882,7 @@ export default function LeadsPage() {
               display: block;
               font-size: 10.5px;
               color: var(--text-slate-500);
-              margin-top: 4px;
+              margin-top: 2px;
               padding-left: 32px;
               font-weight: 500;
               line-height: 1.35;
@@ -4905,8 +4891,8 @@ export default function LeadsPage() {
               text-overflow: ellipsis;
             }
             .lm-stat-chart {
-              margin-top: 6px;
-              padding-top: 6px;
+              margin-top: 4px;
+              padding-top: 4px;
               padding-left: 32px;
               border-top: 1px dashed var(--border-slate-100);
             }
@@ -5036,7 +5022,7 @@ export default function LeadsPage() {
               box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.12);
             }
             .lm-status-pill:focus-visible {
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
             }
             .lm-status-pill-text {
               white-space: nowrap;
@@ -5068,12 +5054,13 @@ export default function LeadsPage() {
               gap: 12px;
               padding: 10px 14px;
               margin-bottom: 12px;
+              margin-top: 14px;
               background: linear-gradient(
                 90deg,
                 rgba(99, 102, 241, 0.08) 0%,
                 rgba(139, 92, 246, 0.05) 100%
               );
-              border: 1px solid rgba(99, 102, 241, 0.2);
+              border: 1px solid rgba(59, 130, 246, 0.2);
               border-radius: 12px;
               animation: lmBulkSlide 0.2s ease-out;
             }
@@ -5094,8 +5081,8 @@ export default function LeadsPage() {
               padding: 4px 10px;
               border-radius: 999px;
               background: #fff;
-              border: 1px solid rgba(99, 102, 241, 0.3);
-              color: #4f46e5;
+              border: 1px solid rgba(59, 130, 246, 0.2);
+              color: #2563eb;
               font-size: 12px;
               font-weight: 700;
               letter-spacing: 0.01em;
@@ -5104,7 +5091,7 @@ export default function LeadsPage() {
               width: 6px; height: 6px;
               border-radius: 50%;
               background: #6366f1;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
             }
             .lm-bulk-divider {
               width: 1px; height: 16px;
@@ -5243,18 +5230,18 @@ export default function LeadsPage() {
               height: 17px;
             }
             .lm-table.ant-table-wrapper .ant-checkbox-wrapper:hover .ant-checkbox-inner {
-              border-color: #8b5cf6 !important;
+              border-color: #3b82f6 !important;
             }
             .lm-table.ant-table-wrapper .ant-checkbox-checked .ant-checkbox-inner {
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
-              border-color: #6366f1 !important;
+              background: #3b82f6 !important;
+              border-color: #3b82f6 !important;
               box-shadow: 0 2px 6px -2px rgba(99, 102, 241, 0.45);
             }
             .lm-table.ant-table-wrapper .ant-checkbox-indeterminate .ant-checkbox-inner::after {
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              background: #3b82f6 !important;
             }
             .lm-table.ant-table-wrapper .ant-checkbox-checked::after {
-              border-color: #8b5cf6 !important;
+              border-color: #3b82f6 !important;
             }
 
             /* Pagination polish */
@@ -5342,7 +5329,7 @@ export default function LeadsPage() {
             /* Filter selects */
             .lm-filter-select.ant-select .ant-select-selector {
               height: 38px !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100) !important;
               background: transparent !important;
               padding: 0 12px !important;
@@ -5354,9 +5341,9 @@ export default function LeadsPage() {
               border-color: rgba(99, 102, 241, 0.35) !important;
             }
             .lm-filter-select.ant-select-focused .ant-select-selector {
-              border-color: #6366f1 !important;
+              border-color: #3b82f6 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
             }
             .lm-filter-select .ant-select-selection-placeholder,
             .lm-filter-select .ant-select-selection-item {
@@ -5377,7 +5364,7 @@ export default function LeadsPage() {
             /* Date range picker */
             .lm-filter-date.ant-picker {
               height: 38px !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100) !important;
               background: transparent !important;
               padding: 0 12px !important;
@@ -5390,9 +5377,9 @@ export default function LeadsPage() {
               border-color: rgba(99, 102, 241, 0.35) !important;
             }
             .lm-filter-date.ant-picker-focused {
-              border-color: #6366f1 !important;
+              border-color: #3b82f6 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
             }
             .lm-filter-date.ant-picker input { font-size: 12.5px !important; }
 
@@ -5420,7 +5407,7 @@ export default function LeadsPage() {
               height: 32px !important;
               width: 32px !important;
               padding: 0 !important;
-              border-radius: 4px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-500) !important;
@@ -5660,7 +5647,7 @@ export default function LeadsPage() {
               border: 0;
               padding: 0;
               cursor: pointer;
-              color: #4f46e5;
+              color: #2563eb;
               font-size: 14px;
               font-weight: 700;
               font-family: inherit;
@@ -5829,7 +5816,7 @@ export default function LeadsPage() {
             /* ---------- Lead title tooltip (Document Hub style) ---------- */
             .lm-title-tooltip-overlay .ant-tooltip-inner {
               background: rgba(15, 23, 42, 0.96) !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               padding: 10px 12px !important;
               box-shadow: 0 10px 32px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
               min-width: 220px;
@@ -5876,7 +5863,7 @@ export default function LeadsPage() {
             /* ---------- BidIq preview modal ---------- */
             .lm-bidiq-modal .ant-modal-content {
               padding: 0 !important;
-              border-radius: 16px !important;
+              border-radius: 0px !important;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
               background: var(--bg-pure-white);
@@ -5896,8 +5883,8 @@ export default function LeadsPage() {
             }
             .lm-bidiq-icon {
               width: 44px; height: 44px;
-              border-radius: 12px;
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              border-radius: 0px;
+              background: #3b82f6;
               color: #fff;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
@@ -5906,14 +5893,14 @@ export default function LeadsPage() {
             .lm-bidiq-eyebrow {
               display: inline-flex; align-items: center; gap: 5px;
               padding: 3px 8px;
-              border-radius: 999px;
-              background: rgba(99, 102, 241, 0.08);
-              color: #4f46e5;
+              border-radius: 0px;
+              background: rgba(59, 130, 246, 0.08);
+              color: #2563eb;
               font-size: 10px;
               font-weight: 800;
               letter-spacing: 0.06em;
               text-transform: uppercase;
-              border: 1px solid rgba(99, 102, 241, 0.2);
+              border: 1px solid rgba(59, 130, 246, 0.2);
               margin-bottom: 8px;
             }
             .lm-bidiq-title {
@@ -5933,7 +5920,7 @@ export default function LeadsPage() {
               position: absolute;
               top: 16px; right: 16px;
               width: 30px; height: 30px;
-              border-radius: 8px;
+              border-radius: 0px;
               border: 1px solid var(--border-slate-100);
               background: var(--bg-pure-white);
               color: var(--text-slate-500);
@@ -5950,7 +5937,7 @@ export default function LeadsPage() {
               margin: 18px 24px 0;
               padding: 14px 16px;
               border: 1px solid var(--border-slate-100);
-              border-radius: 12px;
+              border-radius: 0px;
               background: var(--bg-slate-50);
             }
             .lm-bidiq-snapshot-head {
@@ -6029,7 +6016,7 @@ export default function LeadsPage() {
               gap: 10px;
               padding: 12px 14px;
               border: 1px solid var(--border-slate-100);
-              border-radius: 11px;
+              border-radius: 0px;
               background: var(--bg-pure-white);
               transition: border-color .15s ease;
             }
@@ -6038,7 +6025,7 @@ export default function LeadsPage() {
             }
             .lm-bidiq-cap-icon {
               width: 28px; height: 28px;
-              border-radius: 8px;
+              border-radius: 0px;
               background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
               color: var(--cap-accent);
               display: flex; align-items: center; justify-content: center;
@@ -6077,7 +6064,7 @@ export default function LeadsPage() {
             .lm-bidiq-footer-actions { display: flex; gap: 8px; }
             .lm-bidiq-cancel.ant-btn {
               height: 36px !important;
-              border-radius: 9px !important;
+              border-radius: 0px !important;
               font-weight: 600 !important;
               padding: 0 14px !important;
               border: 1px solid var(--border-slate-100) !important;
@@ -6090,10 +6077,10 @@ export default function LeadsPage() {
             }
             .lm-bidiq-launch.ant-btn {
               height: 36px !important;
-              border-radius: 9px !important;
+              border-radius: 0px !important;
               font-weight: 700 !important;
               padding: 0 16px !important;
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              background: #3b82f6 !important;
               border: 0 !important;
               color: #fff !important;
               display: inline-flex !important;
@@ -6161,7 +6148,7 @@ export default function LeadsPage() {
             }
             
             .premium-pagination .ant-pagination-item-active {
-              border-color: #6366f1;
+              border-color: #3b82f6;
             }
             .premium-pagination .ant-pagination-item-active a {
               color: #6366f1;
@@ -6255,7 +6242,7 @@ export default function LeadsPage() {
             .lead-drawer-form .ant-input-affix-wrapper,
             .lead-drawer-form .ant-select-selector,
             .lead-drawer-form .ant-picker {
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid #e2e8f0 !important;
               transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
             }
@@ -6271,15 +6258,15 @@ export default function LeadsPage() {
             .lead-drawer-form .ant-input-affix-wrapper-focused,
             .lead-drawer-form .ant-select-focused .ant-select-selector,
             .lead-drawer-form .ant-picker-focused {
-              border-color: #6366f1 !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+              border-color: #3b82f6 !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
             }
 
             .lead-ai-textarea:focus,
             .lead-ai-textarea.ant-input-focused {
               background: #fff !important;
-              border-color: #6366f1 !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+              border-color: #3b82f6 !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
             }
 
             .lead-drawer-form .ant-select-selection-item {
@@ -6287,9 +6274,9 @@ export default function LeadsPage() {
             }
 
             .lead-drawer-form .ant-select-selection-overflow .ant-select-selection-item {
-              background: rgba(99, 102, 241, 0.08) !important;
+              background: rgba(59, 130, 246, 0.08) !important;
               color: #4f46e5 !important;
-              border: 1px solid rgba(99, 102, 241, 0.2) !important;
+              border: 1px solid rgba(59, 130, 246, 0.2) !important;
               border-radius: 999px !important;
               padding: 0 10px !important;
               font-weight: 700;
@@ -6432,7 +6419,7 @@ export default function LeadsPage() {
             .doc-type-segmented.ant-segmented {
               background: var(--bg-slate-50) !important;
               padding: 3px !important;
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all 0.2s ease;
             }
@@ -6446,7 +6433,7 @@ export default function LeadsPage() {
               justify-content: center !important;
               gap: 6px !important;
               padding: 0 16px !important;
-              min-height: 28px !important;
+              min-height: 24px !important; font-size: 11px !important; padding: 0 8px !important;
               font-weight: 700 !important;
               font-size: 11px !important;
               text-transform: uppercase !important;
@@ -6479,7 +6466,7 @@ export default function LeadsPage() {
               transition: all 0.3s ease;
             }
             .doc-upload-area:hover {
-              border-color: #6366f1;
+              border-color: #3b82f6;
               background: rgba(99, 102, 241, 0.02);
             }
             .doc-file-icon-box {
@@ -6520,7 +6507,7 @@ export default function LeadsPage() {
               transition: all 0.2s ease;
             }
             .doc-change-label:hover {
-              border-color: #6366f1;
+              border-color: #3b82f6;
               color: #6366f1;
             }
             .doc-upload-label {
@@ -6536,7 +6523,7 @@ export default function LeadsPage() {
               width: 40px;
               height: 40px;
               border-radius: 50%;
-              background: rgba(99, 102, 241, 0.08);
+              background: rgba(59, 130, 246, 0.08);
               color: #6366f1;
               display: flex;
               align-items: center;
@@ -6585,7 +6572,7 @@ export default function LeadsPage() {
             }
 
             .premium-input {
-              border-radius: 10px !important;
+              border-radius: 0 !important;
               border: 1px solid #e2e8f0 !important;
             }
 
@@ -6614,7 +6601,7 @@ export default function LeadsPage() {
               background: #0d1117;
             }
             [data-theme='dark'] .doc-upload-area:hover {
-              border-color: #6366f1;
+              border-color: #3b82f6;
               background: rgba(99, 102, 241, 0.05);
             }
             [data-theme='dark'] .doc-file-icon-box {
@@ -6629,7 +6616,7 @@ export default function LeadsPage() {
               color: #8b949e;
             }
             [data-theme='dark'] .doc-change-label:hover {
-              border-color: #6366f1;
+              border-color: #3b82f6;
               color: #a5b4fc;
             }
             [data-theme='dark'] .doc-upload-primary {
@@ -6653,83 +6640,65 @@ export default function LeadsPage() {
               color: #c9d1d9 !important;
             }
 
+            .lm-mobile-menu-btn { display: none !important; }
+            .lm-topbar-search-wrap { display: flex; align-items: center; width: 600px; gap: 8px; }
+
             @media (max-width: 820px) {
               .lm-shell {
                 flex-direction: column;
               }
+              .lm-mobile-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(2px);
+                z-index: 998;
+              }
               .lm-sidebar {
-                position: sticky;
-                top: 0;
-                z-index: 90;
-                height: auto;
+                position: fixed;
+                top: 0; left: -320px; bottom: 0;
+                z-index: 999;
+                height: 100%;
                 max-height: none;
-                border-right: 0;
-                border-bottom: 1px solid var(--border-slate-200);
+                border-right: 1px solid var(--border-slate-200);
+                border-bottom: 0;
                 display: flex;
                 flex-direction: column;
                 align-items: stretch;
-                padding: 10px 16px;
+                padding: 14px 18px;
                 background: var(--bg-pure-white);
-                overflow: hidden;
-                width: 100%;
+                width: 280px;
                 box-sizing: border-box;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+              }
+              .lm-sidebar.is-open {
+                left: 0;
               }
               .lm-sidebar-top {
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 0;
-                border-bottom: 0;
+                padding: 0 0 16px 0;
+                border-bottom: 1px solid var(--border-slate-100);
               }
               .lm-side-head {
-                margin-bottom: 0;
+                margin-bottom: 12px;
               }
               .lm-create-btn {
-                margin-bottom: 0;
+                width: 100%;
               }
               .lm-side-scroll {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 8px;
-                padding: 10px 0 0 0;
-                margin-top: 10px;
-                border-top: 1px solid var(--border-slate-100);
-                overflow-x: auto;
-                overflow-y: hidden;
-                white-space: nowrap;
-                width: 100%;
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-              }
-              .lm-side-scroll::-webkit-scrollbar {
-                display: none;
-              }
-              .lm-side-section + .lm-side-section {
-                border-top: 1px solid var(--border-slate-100) !important;
-                padding-top: 10px !important;
-                margin-top: 4px !important;
-                width: 100%;
-              }
-              .lm-side-section::-webkit-scrollbar {
-                display: none;
+                padding: 12px 0;
+                overflow-y: auto;
+                overflow-x: hidden;
               }
               .lm-side-section-label {
-                display: none;
+                display: block;
               }
               .lm-side-list {
                 display: flex;
-                flex-direction: row;
-                gap: 6px;
+                flex-direction: column;
               }
               .lm-view-item {
-                width: auto !important;
-                flex-shrink: 0;
-                margin: 0 !important;
-                height: 32px;
-                padding: 0 10px;
-                border-radius: 6px;
+                width: 100% !important;
               }
               .lm-main {
                 padding: 10px 16px 16px 16px;
@@ -6738,6 +6707,15 @@ export default function LeadsPage() {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 12px;
+              }
+              .lm-topbar-search-wrap {
+                width: 100%;
+              }
+              .lm-mobile-menu-btn {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                color: var(--text-slate-700);
               }
               .lm-topbar-actions {
                 width: 100%;
@@ -6763,145 +6741,38 @@ export default function LeadsPage() {
               margin-bottom: 24px;
             }
             .lm-card {
-              background: var(--bg-pure-white);
-              border: 1px solid var(--border-slate-200);
-              border-radius: 0px;
-              padding: 12px 14px;
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              cursor: pointer;
-              transition: all 0.2s ease;
+              border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+              cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+              transition: box-shadow .15s ease, border-color .15s ease;
             }
-            .lm-card:hover {
-              box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
-              border-color: #cbd5e1;
-            }
-            .lm-card-head {
-              display: flex;
-              align-items: flex-start;
-              gap: 12px;
-            }
+            .lm-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+            .lm-card-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; border-bottom: none !important; }
             .lm-card-avatar {
-              width: 36px;
-              height: 36px;
-              border-radius: 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: 700;
-              font-size: 14px;
-              flex-shrink: 0;
+              width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+              display: flex; align-items: center; justify-content: center;
+              color: #fff; font-weight: 800; font-size: 12px;
             }
-            .lm-card-title-group {
-              flex: 1;
-              min-width: 0;
-              display: flex;
-              flex-direction: column;
-            }
-            .lm-card-title {
-              margin: 0;
-              font-size: 14px;
-              font-weight: 600;
-              color: var(--text-slate-900);
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .lm-card-subtitle {
-              font-size: 11.5px;
-              color: var(--text-slate-500);
-            }
+            .lm-card-title-group { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
             .lm-card-actions {
-              margin-left: auto;
-              margin-top: -4px;
-              margin-right: -4px;
+              flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+              background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
             }
-            .lm-card-body {
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
+            .lm-card-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+            .lm-card-title {
+              font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+              display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;
             }
-            .lm-card-row {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              font-size: 12.5px;
-              color: var(--text-slate-600);
-            }
-            .lm-card-text {
-              flex: 1;
-              min-width: 0;
-            }
-            .lm-card-details {
-              display: flex;
-              flex-direction: column;
-              gap: 0;
-            }
-            .lm-card-detail-row {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 7px 0;
-              border-bottom: 1px solid var(--border-slate-50);
-            }
-            .lm-card-detail-row:last-child {
-              border-bottom: none;
-            }
-            .lm-card-detail-label {
-              font-size: 11.5px;
-              font-weight: 600;
-              color: var(--text-slate-400);
-              text-transform: uppercase;
-              letter-spacing: 0.04em;
-              flex-shrink: 0;
-              min-width: 60px;
-            }
-            .lm-card-footer {
-              margin-top: auto;
-              padding-top: 12px;
-              border-top: 1px solid var(--border-slate-100);
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 12px;
-            }
-            .lm-card-action-btns {
-              display: flex;
-              align-items: center;
-              gap: 4px;
-              flex-wrap: wrap;
-            }
-            .lm-card-action-btn {
-              display: inline-flex;
-              align-items: center;
-              gap: 4px;
-              padding: 4px 10px;
-              border-radius: 6px;
-              border: 1px solid var(--border-slate-200);
-              background: var(--bg-pure-white);
-              font-size: 11.5px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.15s ease;
-              white-space: nowrap;
-            }
-            .lm-card-action-btn:hover {
-              background: var(--bg-slate-50);
-              border-color: currentColor;
-            }
-            .lm-card-tags {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              flex-wrap: wrap;
-            }
-            .lm-card-date {
-              font-size: 11px;
-              color: var(--text-slate-400);
-              font-weight: 500;
-              white-space: nowrap;
-            }
+            .lm-card-subtitle { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+            .lm-card-subtitle-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+            .lm-card-subtitle-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .lm-card-footer { display: flex; flex-direction: column; padding: 0 !important; border-top: 1px solid var(--border-slate-200) !important; background: var(--bg-slate-50) !important; margin-top: 0 !important; }
+            .lm-card-footer-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+            .lm-card-footer-row + .lm-card-footer-row { border-top: 1px solid var(--border-slate-200); }
+            .lm-card-footer-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); font-weight: 600; }
+            .lm-card-footer-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+            .lm-card-footer-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .lm-card-footer-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+            
             .lm-grid-pagination {
               display: flex;
               justify-content: flex-end;
@@ -6941,7 +6812,7 @@ export default function LeadsPage() {
             /* ===================== Pre-flight Proposal Info Modal ===================== */
             .biq-pinfo-modal .ant-modal-content {
               padding: 0 !important;
-              border-radius: 16px !important;
+              border-radius: 0 !important;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
               background: var(--bg-pure-white);
@@ -6960,8 +6831,8 @@ export default function LeadsPage() {
             }
             .biq-pinfo-icon {
               width: 44px; height: 44px;
-              border-radius: 12px;
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              border-radius: 0;
+              background: #3b82f6;
               color: #fff;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
@@ -6970,14 +6841,14 @@ export default function LeadsPage() {
             .biq-pinfo-eyebrow {
               display: inline-flex; align-items: center; gap: 5px;
               padding: 3px 8px;
-              border-radius: 999px;
-              background: rgba(99, 102, 241, 0.08);
-              color: #4f46e5;
+              border-radius: 0;
+              background: rgba(59, 130, 246, 0.08);
+              color: #2563eb;
               font-size: 10px;
               font-weight: 800;
               letter-spacing: 0.06em;
               text-transform: uppercase;
-              border: 1px solid rgba(99, 102, 241, 0.2);
+              border: 1px solid rgba(59, 130, 246, 0.2);
               margin-bottom: 8px;
             }
             .biq-pinfo-title {
@@ -6997,7 +6868,7 @@ export default function LeadsPage() {
               position: absolute;
               top: 16px; right: 16px;
               width: 30px; height: 30px;
-              border-radius: 8px;
+              border-radius: 0;
               border: 1px solid var(--border-slate-100);
               background: var(--bg-pure-white);
               color: var(--text-slate-500);
@@ -7029,7 +6900,7 @@ export default function LeadsPage() {
             }
             .biq-pinfo-step-dot {
               width: 18px; height: 18px;
-              border-radius: 999px;
+              border-radius: 0;
               background: var(--bg-slate-50);
               border: 1px solid var(--border-slate-100);
               color: var(--text-slate-500);
@@ -7040,8 +6911,8 @@ export default function LeadsPage() {
             }
             .biq-pinfo-step.is-active { color: var(--text-slate-900); }
             .biq-pinfo-step.is-active .biq-pinfo-step-dot {
-              background: #4f46e5;
-              border-color: #4f46e5;
+              background: #3b82f6;
+              border-color: #2563eb;
               color: #fff;
             }
             .biq-pinfo-step.is-done { color: #047857; }
@@ -7071,7 +6942,7 @@ export default function LeadsPage() {
               margin: 18px 24px 0;
               padding: 14px 16px;
               border: 1px solid var(--border-slate-100);
-              border-radius: 12px;
+              border-radius: 0;
               background: var(--bg-slate-50);
             }
             .biq-pinfo-snapshot-head {
@@ -7146,7 +7017,7 @@ export default function LeadsPage() {
               display: flex; align-items: flex-start; gap: 10px;
               padding: 12px 14px;
               border: 1px solid var(--border-slate-100);
-              border-radius: 11px;
+              border-radius: 0;
               background: var(--bg-pure-white);
               transition: border-color .15s ease;
             }
@@ -7154,7 +7025,7 @@ export default function LeadsPage() {
               border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
             }
             .biq-pinfo-cap-icon {
-              width: 28px; height: 28px;
+              width: 20; height: 28px;
               border-radius: 8px;
               background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
               color: var(--cap-accent);
@@ -7203,7 +7074,7 @@ export default function LeadsPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 12px;
+              border-radius: 0;
               padding: 14px;
               text-align: left;
               cursor: pointer;
@@ -7212,11 +7083,11 @@ export default function LeadsPage() {
               display: flex; flex-direction: column; gap: 10px;
             }
             .biq-opt-card:hover {
-              border-color: rgba(99, 102, 241, 0.35);
+              border-color: rgba(59, 130, 246, 0.35);
             }
             .biq-opt-card.is-selected {
-              border-color: #6366f1;
-              background: rgba(99, 102, 241, 0.04);
+              border-color: #3b82f6;
+              background: rgba(59, 130, 246, 0.04);
             }
             .biq-opt-card-head {
               display: flex; align-items: center; justify-content: space-between;
@@ -7224,7 +7095,7 @@ export default function LeadsPage() {
             .biq-opt-tag {
               display: inline-flex; align-items: center; gap: 5px;
               padding: 3px 9px;
-              border-radius: 999px;
+              border-radius: 0;
               font-size: 10px;
               font-weight: 800;
               letter-spacing: 0.06em;
@@ -7241,7 +7112,7 @@ export default function LeadsPage() {
               color: #6d28d9;
               border-color: rgba(139, 92, 246, 0.22);
             }
-            .biq-opt-check { color: #4f46e5; }
+            .biq-opt-check { color: #2563eb; }
             .biq-opt-name {
               font-size: 14px;
               font-weight: 800;
@@ -7290,13 +7161,13 @@ export default function LeadsPage() {
               padding: 11px 13px;
               margin-top: 14px;
               background: rgba(99, 102, 241, 0.06);
-              border: 1px solid rgba(99, 102, 241, 0.2);
+              border: 1px solid rgba(59, 130, 246, 0.2);
               border-radius: 11px;
               color: var(--text-slate-700);
               font-size: 12px;
               line-height: 1.5;
             }
-            .biq-opt-note svg { color: #4f46e5; margin-top: 3px; flex-shrink: 0; }
+            .biq-opt-note svg { color: #2563eb; margin-top: 3px; flex-shrink: 0; }
             .biq-opt-note b { color: var(--text-slate-900); font-weight: 700; }
 
             .biq-modal-footer {

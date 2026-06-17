@@ -58,6 +58,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
+import { Menu } from 'lucide-react';
 
 const { Text } = Typography;
 
@@ -127,6 +128,7 @@ export default function SquadManagement() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
   const [currentSquad, setCurrentSquad] = useState<Squad | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
@@ -520,7 +522,8 @@ export default function SquadManagement() {
     <MainLayout>
       <div className="sq-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="sq-sidebar">
+        {mobileSidebarOpen && <div className="sq-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
+        <aside className={`sq-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="sq-sidebar-top">
             <div className="sq-side-head">
               <div className="sq-side-logo"><TeamOutlined /></div>
@@ -598,16 +601,24 @@ export default function SquadManagement() {
         {/* ============================ MAIN ============================ */}
         <main className="sq-main">
           <div className="sq-topbar">
-            <div className="sq-search-wrap">
-              <SearchOutlined className="sq-search-icon" />
-              <input
-                ref={searchRef}
-                className="sq-search"
-                placeholder="Search squads by name or code…"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+            <div className="sq-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
+              <Button
+                className="sq-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
               />
-              <span className="sq-kbd">⌘K</span>
+              <div className="sq-search-wrap" style={{ maxWidth: 'none' }}>
+                <SearchOutlined className="sq-search-icon" />
+                <input
+                  ref={searchRef}
+                  className="sq-search"
+                  placeholder="Search squads by name or code…"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+                <span className="sq-kbd">⌘K</span>
+              </div>
             </div>
 
             <div className="sq-topbar-meta">
@@ -710,7 +721,7 @@ export default function SquadManagement() {
                     return (
                       <div key={s.id} className="sc-card" onClick={() => handleOpen(s)}>
                         <div className="sc-top">
-                          <div className="sc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                          <div className="sc-avatar" style={{ background: '#3B82F6' }}>
                             {initialsOf(title)}
                           </div>
                           <div className="sc-identity-body">
@@ -1197,9 +1208,29 @@ export default function SquadManagement() {
           @media (max-width: 1100px) {
             .sq-stats { grid-template-columns: repeat(2, 1fr); }
           }
+          .sq-mobile-menu-btn { display: none !important; }
+
           @media (max-width: 820px) {
-            .sq-sidebar { display: none; }
+            .sq-shell { flex-direction: column; }
+            .sq-mobile-overlay {
+              position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+            }
+            .sq-sidebar {
+              position: fixed; top: 0; left: -320px; bottom: 0;
+              z-index: 999; height: 100%; max-height: none;
+              border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+              display: flex; flex-direction: column; align-items: stretch;
+              background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+              transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+            }
+            .sq-sidebar.is-open { left: 0; }
+            .sq-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .sq-topbar-left { max-width: none !important; width: 100%; }
+            .sq-topbar-actions { width: 100%; justify-content: flex-start; }
             .sq-topbar-meta { display: none; }
+            .sq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           }
         
 

@@ -14,7 +14,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { History } from "lucide-react";
+import { History, Menu } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 export default function TeamTimePage() {
@@ -143,12 +143,12 @@ export default function TeamTimePage() {
           <div className="dh-main-topbar">
             <Button
               className="dh-mobile-menu-btn"
+              type="text"
+              icon={<Menu size={18} />}
               onClick={() => setMobileSidebarOpen((v) => !v)}
               aria-label="Open menu"
-              style={{ height: 38, width: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              ☰
-            </Button>
+              style={{ height: 38, width: 38, borderRadius: 10 }}
+            />
           </div>
 
           <div className="dh-main-scroll">
@@ -303,58 +303,30 @@ export default function TeamTimePage() {
         @media (max-width: 1100px) {
           .dh-sidebar { width: 200px; }
         }
-        @media (max-width: 860px) {
-          .dh-shell {
-            display: block;
-            margin: 0;
-            padding-left: 0;
-            gap: 0;
-          }
-          /* Sidebar becomes a slide-in drawer */
-          .dh-sidebar {
-            position: fixed;
-            top: 54px; left: 0; bottom: 0;
-            height: auto;
-            width: 286px;
-            max-width: 86vw;
-            margin: 0;
-            border-radius: 0 18px 18px 0;
-            border-left: none;
-            transform: translateX(-103%);
-            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1200;
-          }
-          .dh-sidebar.is-mobile-open {
-            transform: translateX(0);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
-          }
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; display: flex; margin: 0; padding-left: 0; gap: 0; }
           .dh-sidebar-backdrop {
-            display: block;
-            position: fixed;
-            inset: 54px 0 0 0;
-            background: rgba(15, 23, 42, 0.45);
-            backdrop-filter: blur(2px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.26s ease;
-            z-index: 1150;
+            display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px);
+            z-index: 998; opacity: 0; pointer-events: none; transition: opacity 0.3s;
           }
           .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
-          .dh-main {
-            height: auto;
-            min-height: calc(100vh - 54px);
-            overflow: visible;
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 999; height: 100vh; max-height: none; width: 280px;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0; border-radius: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08); margin: 0; transform: none;
           }
+          .dh-sidebar.is-mobile-open { left: 0; transform: none; }
+          .dh-main { height: auto; min-height: calc(100vh - 54px); overflow: visible; }
           .dh-main-scroll { overflow: visible; }
           .dh-main-topbar { display: flex; flex-wrap: wrap; padding: 8px 14px; min-height: 0; }
           .dh-mobile-menu-btn {
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-200);
-            color: var(--text-slate-700);
-            order: 0;
+            display: inline-flex !important; align-items: center; justify-content: center;
+            background: transparent; border: none; color: var(--text-slate-700); order: 0;
           }
           .dh-main-controls { order: 2; margin-left: auto; }
         }

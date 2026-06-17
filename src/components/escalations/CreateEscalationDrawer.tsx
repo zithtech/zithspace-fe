@@ -569,7 +569,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar
                           size={24}
-                          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontSize: 11, fontWeight: 600 }}
+                          style={{ background: '#3B82F6', fontSize: 11, fontWeight: 600 }}
                         >
                           {(m.label || '?').charAt(0).toUpperCase()}
                         </Avatar>
@@ -606,7 +606,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                     label: c.name,
                     rich: (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 4, height: 14, borderRadius: 2, background: c.color || '#94a3b8' }} />
+                        <span style={{ width: 4, height: 14, borderRadius: 0, background: c.color || '#94a3b8' }} />
                         {c.name}
                       </span>
                     ),
@@ -656,7 +656,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                     label: p.name,
                     rich: (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color || '#94a3b8' }} />
+                        <span style={{ width: 8, height: 8, borderRadius: 0, background: p.color || '#94a3b8' }} />
                         {p.name}
                       </span>
                     ),

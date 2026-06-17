@@ -41,11 +41,17 @@ function BuilderContent() {
   const [messageApi, messageHolder] = message.useMessage();
   const proposalId = searchParams.get('id');
   const { blocks, addBlock, reorderBlocks, setBlocks, setSelectedBlockId } = useProposalStore();
+  const selectedBlockId = useProposalStore((s) => s.selectedBlockId);
+
+  // These blocks are edited via the right panel; only composed components edit inline.
+  const STRUCTURED_TYPES = ['cover', 'pricing', 'scope', 'timeline', 'signature', 'text', 'section'];
 
   const [activeDragType, setActiveDragType] = useState<BlockType | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isRailVisible, setIsRailVisible] = useState(true);
-  const [isPropertiesVisible, setIsPropertiesVisible] = useState(true);
+  // Panel is collapsed by default — free-text edits happen inline on the canvas.
+  // It auto-opens only when a structured block (cover/pricing/…) is selected.
+  const [isPropertiesVisible, setIsPropertiesVisible] = useState(false);
   const [railWidth, setRailWidth] = useState(248);
   const [propertiesWidth, setPropertiesWidth] = useState(() => {
     if (typeof window === 'undefined') return 480;
@@ -73,6 +79,15 @@ function BuilderContent() {
     }
   }, [user, isLoading, canCreateProposal, canUpdateProposal, proposalId, router]);
 
+  // Auto-open the properties panel only when a structured block is selected.
+  useEffect(() => {
+    if (!selectedBlockId) return;
+    const b = blocks.find((x: any) => x.id === selectedBlockId);
+    const opensPanel = b && (STRUCTURED_TYPES.includes(b.type) || (b.type === 'component' && ['twoColumn', 'paragraph'].includes(b.data?.kind)));
+    if (opensPanel) setIsPropertiesVisible(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBlockId]);
+
   const [zoom, setZoom] = useState(1);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -97,6 +112,25 @@ function BuilderContent() {
       };
 
       if (!proposalId) {
+        // 0. CHECK IF WE HAVE A PENDING TEMPLATE (from the Template Library)
+        const pendingTpl = sessionStorage.getItem('pending_template_blocks');
+        if (pendingTpl) {
+          try {
+            const parsed = JSON.parse(pendingTpl);
+            sessionStorage.removeItem('pending_template_blocks');
+            if (Array.isArray(parsed?.blocks) && parsed.blocks.length) {
+              setBlocks(parsed.blocks);
+              if (parsed.themeId) {
+                useProposalStore.getState().setDocumentTheme({ themeId: parsed.themeId, fontId: parsed.fontId || 'inter' });
+              }
+              messageApi.success({ content: `Loaded "${parsed.name || 'template'}"`, key: 'load_data' });
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse pending template:', e);
+          }
+        }
+
         // 1. CHECK IF WE HAVE PENDING AI DATA (from Lead Dashboard)
         const pendingData = sessionStorage.getItem('pending_proposal_data');
         if (pendingData) {
@@ -150,10 +184,11 @@ function BuilderContent() {
           }
         }
 
-        // 2. DEFAULT TEMPLATE FOR NEW PROPOSAL
-        const defaultTemplateTypes: BlockType[] = ['cover', 'text', 'scope', 'timeline', 'pricing', 'signature', 'section'];
+        // 2. NEW PROPOSAL — start with just the Cover so the user lands on
+        //    Branding & Identity first. More sections are added from the rail.
         setBlocks([]);
-        defaultTemplateTypes.forEach((t) => addBlock(t));
+        addBlock('cover');
+        setIsPropertiesVisible(true);
         return;
       }
 
@@ -172,12 +207,14 @@ function BuilderContent() {
           }
 
           if (Array.isArray(fetchedBlocks)) {
-            // Sort by TYPE_ORDER to ensure Cover is first, Executive Summary second, etc.
-            const sortedBlocks = [...fetchedBlocks].sort((a, b) =>
-              (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99)
-            );
+            // Proposals that use composed components keep their exact saved order.
+            // Legacy proposals are normalised by TYPE_ORDER (Cover first, etc.).
+            const hasComponents = fetchedBlocks.some((b: any) => b?.type === 'component');
+            const orderedBlocks = hasComponents
+              ? fetchedBlocks
+              : [...fetchedBlocks].sort((a, b) => (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99));
 
-            setBlocks(sortedBlocks);
+            setBlocks(orderedBlocks);
             if (proposal.lead_id) {
               setPendingLeadId(proposal.lead_id);
             }
@@ -278,11 +315,8 @@ function BuilderContent() {
     const t = setTimeout(() => {
       initialLoadCompletedAt.current = Date.now();
       editorScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-      // Default-select the first (Cover) block so the right panel highlights it
-      const firstBlock = useProposalStore.getState().blocks[0];
-      if (firstBlock && !useProposalStore.getState().selectedBlockId) {
-        setSelectedBlockId(firstBlock.id);
-      }
+      // No auto-selection on load — the properties panel stays collapsed until the
+      // user picks a structured block. Free-text editing happens inline.
     }, 600);
     return () => clearTimeout(t);
   }, [setSelectedBlockId]);
@@ -407,35 +441,375 @@ function BuilderContent() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (skipRedirect?: boolean) => {
+    const focusBlock = (id: string) => {
+      setSelectedBlockId(id);
+      setIsPropertiesVisible(true);
+      setTimeout(() => {
+        document.getElementById(`editor-block-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
+
+    // 1. Cover validation
+    const cover = blocks.find((b: any) => b.type === 'cover');
+    if (cover) {
+      if (!cover.data?.title?.trim()) {
+        messageApi.warning({ content: 'Please enter a Proposal Title in the Cover settings.', duration: 3.5 });
+        focusBlock(cover.id);
+        return;
+      }
+      if (!cover.data?.clientName?.trim()) {
+        messageApi.warning({ content: 'Please enter a Client Contact Person in the Cover settings.', duration: 3.5 });
+        focusBlock(cover.id);
+        return;
+      }
+    }
+
+    // 2. Validate all added blocks/components
+    for (const block of blocks) {
+      if (block.type === 'text' || block.type === 'section') {
+        if (!block.data?.heading?.trim()) {
+          messageApi.warning({ content: `Please enter a Heading for the ${block.type === 'text' ? 'Text' : 'Section'} block.`, duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+      }
+
+      if (block.type === 'pricing') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Pricing block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.items || block.data.items.length === 0) {
+          messageApi.warning({ content: 'Please add at least one line item to the Pricing block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.items.length; i++) {
+          const item = block.data.items[i];
+          if (!item.name?.trim()) {
+            messageApi.warning({ content: `Please enter a Name for Service Item #${i + 1} in the Pricing block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (item.price === undefined || item.price === null || item.price < 0) {
+            messageApi.warning({ content: `Please enter a valid Price for Service Item "${item.name || i + 1}" in the Pricing block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'scope') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Scope of Work block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.milestones || block.data.milestones.length === 0) {
+          messageApi.warning({ content: 'Please add at least one Milestone Phase to the Scope block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.milestones.length; i++) {
+          const m = block.data.milestones[i];
+          if (!m.title?.trim()) {
+            messageApi.warning({ content: `Please enter a Phase Name for Milestone Phase #${i + 1} in the Scope block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!m.deliverables?.trim()) {
+            messageApi.warning({ content: `Please enter the Deliverables for Milestone Phase "${m.title || i + 1}" in the Scope block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'timeline') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.startDate) {
+          messageApi.warning({ content: 'Please set a Kickoff Date in the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.finalDate) {
+          messageApi.warning({ content: 'Please set a Final Delivery Date in the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.phases || block.data.phases.length === 0) {
+          messageApi.warning({ content: 'Please add at least one Project Phase to the Timeline block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        for (let i = 0; i < block.data.phases.length; i++) {
+          const p = block.data.phases[i];
+          if (!p.title?.trim()) {
+            messageApi.warning({ content: `Please enter a Phase Name for Project Phase #${i + 1} in the Timeline block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!p.deadline) {
+            messageApi.warning({ content: `Please set a Deadline for Project Phase "${p.title || i + 1}" in the Timeline block.`, duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+
+      if (block.type === 'signature') {
+        if (!block.data?.title?.trim()) {
+          messageApi.warning({ content: 'Please enter a Title for the Signature block.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.companyName?.trim()) {
+          messageApi.warning({ content: 'Please enter Your Company Name in the Signature block settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.companySigner?.trim()) {
+          messageApi.warning({ content: 'Please enter Your Authorized Signer name/title in the Signature settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.clientName?.trim()) {
+          messageApi.warning({ content: 'Please enter the Client Company Name in the Signature block settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+        if (!block.data?.clientSigner?.trim()) {
+          messageApi.warning({ content: 'Please enter the Client Authorized Signer name/title in the Signature settings.', duration: 3.5 });
+          focusBlock(block.id);
+          return;
+        }
+      }
+
+      if (block.type === 'component') {
+        const kind = block.data?.kind;
+        const props = block.data?.props || {};
+
+        if (kind === 'heading') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter a Heading text for the Heading component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'phase') {
+          if (!props.title?.trim()) {
+            messageApi.warning({ content: 'Please enter a Phase Title for the Phase component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'paragraph') {
+          const cleanText = props.text?.replace(/<[^>]*>/g, '').trim();
+          if (!cleanText) {
+            messageApi.warning({ content: 'Please enter paragraph content.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'deliverable') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter a description for the Deliverable component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'callout') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter body text for the Callout component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'quote') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter quote text for the Testimonial component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'bullets') {
+          if (!props.items || props.items.length === 0 || props.items.some((item: string) => !item.trim())) {
+            messageApi.warning({ content: 'Please fill in all Bullet List items.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'tasklist') {
+          if (!props.items || props.items.length === 0 || props.items.some((item: string) => !item.trim())) {
+            messageApi.warning({ content: 'Please fill in all Task List items.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'twoColumn') {
+          const leftText = props.left?.replace(/<[^>]*>/g, '').trim();
+          const rightText = props.right?.replace(/<[^>]*>/g, '').trim();
+          if (!props.leftTitle?.trim()) {
+            messageApi.warning({ content: 'Please enter a title for the Left Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!leftText) {
+            messageApi.warning({ content: 'Please enter content for the Left Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!props.rightTitle?.trim()) {
+            messageApi.warning({ content: 'Please enter a title for the Right Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (!rightText) {
+            messageApi.warning({ content: 'Please enter content for the Right Column in the Two Columns component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'table') {
+          const columns = props.columns || [];
+          const rows = props.rows || [];
+          if (columns.length === 0) {
+            messageApi.warning({ content: 'Please add at least one column to the Table component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          if (rows.length === 0) {
+            messageApi.warning({ content: 'Please add at least one row to the Table component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < columns.length; i++) {
+            if (!columns[i].label?.trim()) {
+              messageApi.warning({ content: `Please enter a label for Column #${i + 1} in the Table component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+          for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            for (let c = 0; c < columns.length; c++) {
+              const col = columns[c];
+              const cellValue = row.cells?.[col.id]?.replace(/<[^>]*>/g, '').trim();
+              if (!cellValue) {
+                messageApi.warning({ content: `Please fill in Row #${r + 1}, Column "${col.label || c + 1}" in the Table component.`, duration: 3.5 });
+                focusBlock(block.id);
+                return;
+              }
+            }
+          }
+        }
+
+        if (kind === 'keyvalue') {
+          if (!props.label?.trim()) {
+            messageApi.warning({ content: 'Please enter a Label for the Highlights component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          const rows = props.rows || [];
+          if (rows.length === 0) {
+            messageApi.warning({ content: 'Please add at least one highlight row in the Highlights component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].k?.trim() || !rows[i].v?.trim()) {
+              messageApi.warning({ content: `Please enter both label and value for Row #${i + 1} in the Highlights component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+        }
+
+        if (kind === 'image') {
+          if (!props.src?.trim()) {
+            messageApi.warning({ content: 'Please upload or paste an image URL in the Image component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+
+        if (kind === 'gallery') {
+          const images = props.images || [];
+          if (images.length === 0) {
+            messageApi.warning({ content: 'Please add at least one image to the Gallery component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+          for (let i = 0; i < images.length; i++) {
+            if (!images[i].src?.trim()) {
+              messageApi.warning({ content: `Please upload or paste an image URL for Image #${i + 1} in the Gallery component.`, duration: 3.5 });
+              focusBlock(block.id);
+              return;
+            }
+          }
+        }
+
+        if (kind === 'cta') {
+          if (!props.text?.trim()) {
+            messageApi.warning({ content: 'Please enter button text for the CTA component.', duration: 3.5 });
+            focusBlock(block.id);
+            return;
+          }
+        }
+      }
+    }
+
     try {
       messageApi.loading({ content: 'Saving proposal...', key: 'save_proposal' });
 
-      // Extract dynamic metadata from the blocks area
-      const coverBlock = blocks.find((b: any) => b.type === 'cover')?.data || {};
-
+      const coverBlock = cover?.data || {};
       const payload = {
-        title: coverBlock.title || 'Untitled Proposal',
-        client_name: coverBlock.clientName || 'Unnamed Client',
+        title: coverBlock.title.trim(),
+        client_name: coverBlock.clientName.trim(),
         blocks: blocks,
         status: 'draft',
         lead_id: pendingLeadId // Link to the lead if we have it
       };
 
       let response: any;
-      if (proposalId) {
-        response = await ProposalService.updateProposal(proposalId, payload);
+      let activeId = proposalId;
+      if (activeId) {
+        response = await ProposalService.updateProposal(activeId, payload);
       } else {
         response = await ProposalService.createProposal(payload);
+        const createdObj = response?.data?.data || response?.data || response;
+        if (createdObj?.id) {
+          activeId = createdObj.id;
+          router.replace(`/proposals/builder?id=${activeId}`);
+        }
       }
 
       if (response) {
         setSavedAt(new Date());
         messageApi.success({ content: `Proposal ${proposalId ? 'updated' : 'created'} successfully!`, key: 'save_proposal' });
+        if (skipRedirect) {
+          return activeId;
+        }
         // Redirect to main list after success
         setTimeout(() => {
           router.push('/proposals');
         }, 1200);
+        return activeId;
       }
     } catch (err: any) {
       console.error('Save error:', err);
@@ -443,72 +817,39 @@ function BuilderContent() {
     }
   };
 
-  const handleExportPDF = () => {
-    if (!previewOpen) {
-      message.info('Opening preview bounds to generate PDF...');
-      setPreviewOpen(true);
-      setTimeout(() => {
-        iframeRef.current?.contentWindow?.print();
-      }, 500);
-    } else {
-      iframeRef.current?.contentWindow?.print();
-    }
-  };
-
-  const executeWordExport = () => {
+  const handleExport = async (format: 'pdf' | 'word') => {
+    const key = 'exporting';
     try {
-      const iframeDoc = iframeRef.current?.contentDocument;
-      if (!iframeDoc) throw new Error('Cannot access preview document');
+      const activeId = await handleSave(true);
+      if (!activeId) return;
 
-      const wrapper = iframeDoc.querySelector('div[style*="zoom"]') as HTMLElement;
-      let originalZoom = '';
-      if (wrapper) {
-        originalZoom = wrapper.style.zoom;
-        wrapper.style.zoom = '1';
-        wrapper.style.width = '100%';
+      messageApi.open({ key, type: 'loading', content: `Downloading ${format.toUpperCase()}...`, duration: 0 });
+      const response = await ProposalService.requestProposalExport(activeId);
+      const resData = response?.data?.data || response?.data || response;
+      const { pdfUrl, docxUrl } = resData || {};
+      const fileUrl = format === 'pdf' ? pdfUrl : docxUrl;
+      if (!fileUrl) throw new Error("Server didn't return a file URL");
+
+      if (format === 'pdf') {
+        window.open(fileUrl, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.setAttribute('download', `Proposal-${activeId}.docx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
-
-      const htmlContent = iframeDoc.body.innerHTML;
-
-      if (wrapper) {
-        wrapper.style.zoom = originalZoom;
-        wrapper.style.width = '100%';
-      }
-
-      const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Proposal Document</title></head><body>";
-      const footer = "</body></html>";
-      const sourceHTML = header + htmlContent + footer;
-
-      const blob = new Blob([sourceHTML], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'Proposal.doc';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      message.success('Word document downloaded successfully');
-    } catch (e) {
-      console.error(e);
-      message.error('Failed to export. Please ensure the preview panel is fully loaded.');
-    }
-  };
-
-  const handleExportWord = () => {
-    if (!previewOpen) {
-      message.info('Opening preview to synthesize Word Document...');
-      setPreviewOpen(true);
-      setTimeout(() => executeWordExport(), 800);
-    } else {
-      executeWordExport();
+      messageApi.open({ key, type: 'success', content: 'Export complete!', duration: 3 });
+    } catch (err: any) {
+      console.error('Export Failed:', err);
+      messageApi.open({ key, type: 'error', content: `Export Failed: ${err.message}`, duration: 4 });
     }
   };
 
   const exportMenu: MenuProps['items'] = [
-    { key: 'pdf', label: 'Download as PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} />, onClick: handleExportPDF },
-    { key: 'word', label: 'Download as Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} />, onClick: handleExportWord },
+    { key: 'pdf', label: 'Download as PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} />, onClick: () => handleExport('pdf') },
+    { key: 'word', label: 'Download as Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} />, onClick: () => handleExport('word') },
   ];
 
   return (
@@ -526,7 +867,7 @@ function BuilderContent() {
           </Button>
           <span className="pb-header__sep" />
 
-          <Space size={12} align="center">
+          <div className="pb-header__title-container">
             <div className="pb-header__brand">
               <SnippetsOutlined style={{ fontSize: 18 }} />
             </div>
@@ -538,9 +879,9 @@ function BuilderContent() {
               <span className="pb-status-pill__dot" />
               Auto-saved
             </span>
-          </Space>
+          </div>
         </div>
-        <Space size={10} className="pb-header__actions">
+        <div className="pb-header__actions">
           <Segmented
             className="pb-seg"
             options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
@@ -584,7 +925,7 @@ function BuilderContent() {
               className="pb-action-btn pb-action-btn--primary"
               type="primary"
               icon={<SaveOutlined />}
-              onClick={handleSave}
+              onClick={() => handleSave()}
             >
               {proposalId ? 'Save Changes' : 'Save'}
             </Button>
@@ -595,7 +936,7 @@ function BuilderContent() {
             icon={isPropertiesVisible ? <MenuFoldOutlined style={{ transform: 'rotate(180deg)' }} /> : <MenuUnfoldOutlined style={{ transform: 'rotate(180deg)' }} />}
             onClick={() => setIsPropertiesVisible(!isPropertiesVisible)}
           />
-        </Space>
+        </div>
       </Header>
 
       <Content style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -607,7 +948,7 @@ function BuilderContent() {
         >
           {isRailVisible && railPosition === 'top' && (
             <div className="builder-top-rail">
-              <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
+               <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
             </div>
           )}
 
@@ -666,9 +1007,9 @@ function BuilderContent() {
       <CommandPalette
         open={commandOpen}
         onClose={() => setCommandOpen(false)}
-        onSave={handleSave}
+        onSave={() => handleSave()}
         onTogglePreview={() => setPreviewOpen((v) => !v)}
-        onExport={handleExportPDF}
+        onExport={() => handleExport('pdf')}
         onOpenZai={() => setEndToEndOpen(true)}
         onJumpToBlock={jumpToBlock}
       />
@@ -797,7 +1138,7 @@ function BuilderContent() {
 
 export default function BuilderPage() {
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <Suspense fallback={<div>Loading builder...</div>}>
         <BuilderContent />
       </Suspense>

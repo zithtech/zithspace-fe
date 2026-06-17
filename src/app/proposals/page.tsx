@@ -71,10 +71,10 @@ const STATUS_META: Record<
   Exclude<StatusKey, 'all'>,
   { label: string; color: string; bg: string; ring: string; icon: React.ReactNode }
 > = {
-  draft:    { label: 'Draft',    color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
-  sent:     { label: 'Sent',     color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)',  icon: <SendOutlined /> },
-  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)',  icon: <CheckCircleOutlined /> },
-  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.25)',   icon: <CloseCircleOutlined /> },
+  draft: { label: 'Draft', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
+  sent: { label: 'Sent', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)', icon: <SendOutlined /> },
+  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)', icon: <CheckCircleOutlined /> },
+  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)', ring: 'rgba(239,68,68,0.25)', icon: <CloseCircleOutlined /> },
 };
 
 // Deterministic accent gradient per card, hashed off client/title.
@@ -182,14 +182,14 @@ export default function ProposalsListPage() {
 
   const persistStarred = (next: Record<string, boolean>) => {
     setStarred(next);
-    try { window.localStorage.setItem(STARRED_KEY, JSON.stringify(next)); } catch {}
+    try { window.localStorage.setItem(STARRED_KEY, JSON.stringify(next)); } catch { }
   };
 
   const pushRecent = (p: any) => {
     const entry = { id: p.id, title: resolveTitle(p), client_name: p.client_name, ts: Date.now() };
     setRecents((prev) => {
       const next = [entry, ...prev.filter((r) => r.id !== p.id)].slice(0, 6);
-      try { window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch {}
+      try { window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { }
       return next;
     });
   };
@@ -303,7 +303,7 @@ export default function ProposalsListPage() {
         const blocks = typeof record.blocks_data === 'string' ? JSON.parse(record.blocks_data) : record.blocks_data || [];
         const coverData = blocks.find((b: any) => b.type === 'cover')?.data;
         if (coverData?.title) displayTitle = coverData.title;
-      } catch (e) {}
+      } catch (e) { }
     }
     return displayTitle || 'Untitled Proposal';
   };
@@ -381,10 +381,10 @@ export default function ProposalsListPage() {
     const wonTrend = trendFor((p) => p.status === 'accepted');
 
     return [
-      { key: 'total',   title: 'Total Proposals', value: stats.total,   suffix: '',  icon: <SnippetsOutlined />,    color: '#3b82f6', tint: 'rgba(59,130,246,0.10)',  trend: totalTrend, delta: sum(totalTrend) },
-      { key: 'draft',   title: 'In Draft',        value: stats.drafts,  suffix: '',  icon: <FileTextOutlined />,    color: '#64748b', tint: 'rgba(100,116,139,0.10)', trend: draftTrend, delta: sum(draftTrend) },
-      { key: 'sent',    title: 'Sent to Clients', value: stats.sent,    suffix: '',  icon: <SendOutlined />,        color: '#3b82f6', tint: 'rgba(59,130,246,0.10)',   trend: sentTrend,  delta: sum(sentTrend) },
-      { key: 'winrate', title: 'Win Rate',        value: stats.winRate, suffix: '%', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)',  trend: wonTrend,   delta: stats.accepted },
+      { key: 'total', title: 'Total Proposals', value: stats.total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: totalTrend, delta: sum(totalTrend) },
+      { key: 'draft', title: 'In Draft', value: stats.drafts, suffix: '', icon: <FileTextOutlined />, color: '#64748b', tint: 'rgba(100,116,139,0.10)', trend: draftTrend, delta: sum(draftTrend) },
+      { key: 'sent', title: 'Sent to Clients', value: stats.sent, suffix: '', icon: <SendOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: sentTrend, delta: sum(sentTrend) },
+      { key: 'winrate', title: 'Win Rate', value: stats.winRate, suffix: '%', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: wonTrend, delta: stats.accepted },
     ];
   }, [proposals, stats]);
 
@@ -418,10 +418,10 @@ export default function ProposalsListPage() {
   const scopedProposals = useMemo(() => {
     return proposals.filter((p) => {
       switch (savedView) {
-        case 'mine':    return p.createdBy?.id === user?.id;
-        case 'sent':    return p.status === 'sent';
+        case 'mine': return p.createdBy?.id === user?.id;
+        case 'sent': return p.status === 'sent';
         case 'starred': return !!starred[p.id];
-        default:        return true;
+        default: return true;
       }
     });
   }, [proposals, savedView, user?.id, starred]);
@@ -503,10 +503,10 @@ export default function ProposalsListPage() {
   }, [proposals]);
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'all',     label: 'All proposals', icon: <FolderOutlined />, color: '#3B82F6' },
-    { key: 'mine',    label: 'My proposals',  icon: <UserOutlined />,   color: '#64748B' },
-    { key: 'sent',    label: 'Sent',          icon: <GlobalOutlined />, color: '#10B981' },
-    { key: 'starred', label: 'Starred',       icon: <StarFilled />,     color: '#3B82F6' },
+    { key: 'all', label: 'All proposals', icon: <FolderOutlined />, color: '#3B82F6' },
+    { key: 'mine', label: 'My proposals', icon: <UserOutlined />, color: '#64748B' },
+    { key: 'sent', label: 'Sent', icon: <GlobalOutlined />, color: '#10B981' },
+    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
   ];
 
   // ─── Premium row/card action menu (shared by table + cards) ─────────────────
@@ -883,8 +883,8 @@ export default function ProposalsListPage() {
 
             {/* Table / grid */}
             <div className="pp-body">
-            {view === 'list' ? (
-              <div className="pp-table-wrap">
+              {view === 'list' ? (
+                <div className="pp-table-wrap">
                   <Table
                     columns={columns}
                     dataSource={pagedProposals}
@@ -905,9 +905,9 @@ export default function ProposalsListPage() {
                       className: 'pp-row',
                     })}
                   />
-              </div>
-            ) : (
-              <div className="pp-grid">
+                </div>
+              ) : (
+                <div className="pp-grid">
                   {loading ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : filteredProposals.length === 0 ? (
@@ -1067,7 +1067,7 @@ export default function ProposalsListPage() {
         <style jsx global>{`
           .pp-shell {
             display: flex;
-            margin: 0 -16px;
+            margin: 0 -8px;
             min-height: calc(100vh - 64px);
             background: var(--bg-pure-white);
           }
@@ -1083,7 +1083,7 @@ export default function ProposalsListPage() {
             padding: 14px 14px 0;
             position: sticky;
             top: 0;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 54px);
           }
           .pp-side-head {
             display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
@@ -1100,7 +1100,7 @@ export default function ProposalsListPage() {
             text-transform: uppercase; letter-spacing: 0.07em;
           }
           .pp-create-btn {
-            height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+            height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
             background: #3B82F6 !important;
             border: none !important; box-shadow: none !important;
             margin-bottom: 4px;
@@ -1135,10 +1135,10 @@ export default function ProposalsListPage() {
             background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
           }
           .pp-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
-          .pp-side-sd { border-radius: 0 !important; }
+          .pp-side-sd { border-radius: 8px !important; }
           .pp-side-select .ant-select-selector,
           .pp-side-range.ant-picker {
-            border-radius: 0 !important; border-color: var(--border-slate-200) !important;
+            border-radius: 8px !important; border-color: var(--border-slate-200) !important;
             background: var(--bg-pure-white) !important;
           }
           .pp-side-select { width: 100%; }
@@ -1168,9 +1168,11 @@ export default function ProposalsListPage() {
           .pp-recent-sub { font-size: 9.5px; color: var(--text-slate-400); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .pp-trash {
             display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
-            margin: 0 -14px; padding: 12px 22px;
+            margin: 0 -14px; padding: 0 22px;
+            height: 52px !important;
             border-top: 1px solid var(--border-slate-200);
             background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500; cursor: pointer;
+            box-sizing: border-box;
           }
           .pp-trash .anticon { font-size: 15px; }
           .pp-trash:hover { color: #ef4444; }
@@ -1298,12 +1300,16 @@ export default function ProposalsListPage() {
           /* Footer + pager */
           .pp-footer {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 12px 18px;
+            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
           }
           .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
           .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

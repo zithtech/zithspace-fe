@@ -219,6 +219,7 @@ export default function CustomerDrawer({
           form={form}
           requiredMark={false}
           className="flex flex-col gap-5"
+          autoComplete="off"
         >
           {/* COMPANY */}
           <div
@@ -246,7 +247,7 @@ export default function CustomerDrawer({
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input placeholder="Acme Corp" style={inputBase} />
+                <Input placeholder="Acme Corp" style={inputBase} autoComplete="off" />
               </Form.Item>
 
               <div className="grid grid-cols-2 gap-4">
@@ -268,14 +269,21 @@ export default function CustomerDrawer({
                     }
                     placeholder="client@example.com"
                     style={inputBase}
+                    autoComplete="off"
                   />
                 </Form.Item>
                 <Form.Item
                   name="phone"
                   label={<FieldLabel>Phone number</FieldLabel>}
                   normalize={(value) =>
-                    (value || "").replace(/[^0-9+\-\s()]/g, "")
+                    (value || "").replace(/[^0-9+\-]/g, "")
                   }
+                  rules={[
+                    {
+                      pattern: /^[+]?[0-9][0-9\-]{5,18}$/,
+                      message: "Enter a valid phone number (digits and + or - only)",
+                    },
+                  ]}
                   style={{ marginBottom: 0 }}
                 >
                   <Input
@@ -289,7 +297,9 @@ export default function CustomerDrawer({
                       />
                     }
                     placeholder="+1 234 567 890"
+                    maxLength={20}
                     style={inputBase}
+                    autoComplete="off"
                   />
                 </Form.Item>
               </div>
@@ -318,6 +328,7 @@ export default function CustomerDrawer({
                 <Input
                   placeholder="123 Business Avenue, Suite 400"
                   style={inputBase}
+                  autoComplete="off"
                 />
               </Form.Item>
 
@@ -325,13 +336,25 @@ export default function CustomerDrawer({
                 <Form.Item
                   name="city"
                   label={<FieldLabel>City / district</FieldLabel>}
+                  rules={[
+                    {
+                      pattern: /^[A-Za-z\s\-'.]+$/,
+                      message: "City must contain only letters",
+                    },
+                  ]}
                   style={{ marginBottom: 0 }}
                 >
-                  <Input placeholder="New York" style={inputBase} />
+                  <Input placeholder="New York" style={inputBase} autoComplete="off" />
                 </Form.Item>
                 <Form.Item
                   name="country"
                   label={<FieldLabel>Country</FieldLabel>}
+                  rules={[
+                    {
+                      pattern: /^[A-Za-z\s\-'.]+$/,
+                      message: "Country must contain only letters",
+                    },
+                  ]}
                   style={{ marginBottom: 0 }}
                 >
                   <Input
@@ -346,6 +369,7 @@ export default function CustomerDrawer({
                     }
                     placeholder="USA"
                     style={inputBase}
+                    autoComplete="off"
                   />
                 </Form.Item>
               </div>
@@ -369,17 +393,33 @@ export default function CustomerDrawer({
               <Form.Item
                 name="taxId"
                 label={<FieldLabel>Tax ID number</FieldLabel>}
+                normalize={(value) =>
+                  (value || "").replace(/[^A-Za-z0-9\-]/g, "").toUpperCase()
+                }
+                rules={[
+                  {
+                    pattern: /^[A-Za-z0-9\-]{1,30}$/,
+                    message: "Tax ID must be alphanumeric (max 30 characters, no special characters)",
+                  },
+                ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input style={monoInput} placeholder="—" />
+                <Input style={monoInput} placeholder="—" maxLength={30} autoComplete="off" />
               </Form.Item>
 
               <div className="grid grid-cols-2 gap-4">
                 <Form.Item
                   name="gstin"
                   label={<FieldLabel>GSTIN</FieldLabel>}
+                  normalize={(value) =>
+                    (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+                  }
                   rules={[
-                    { len: 15, message: "Exactly 15 characters required" },
+                    { len: 15, message: "GSTIN must be exactly 15 characters" },
+                    {
+                      pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                      message: "Invalid GSTIN format (e.g. 22ABCDE1234F1Z5)",
+                    },
                   ]}
                   style={{ marginBottom: 0 }}
                 >
@@ -387,11 +427,15 @@ export default function CustomerDrawer({
                     maxLength={15}
                     style={monoInput}
                     placeholder="22ABCDE1234F1Z5"
+                    autoComplete="off"
                   />
                 </Form.Item>
                 <Form.Item
                   name="pan"
                   label={<FieldLabel>PAN</FieldLabel>}
+                  normalize={(value) =>
+                    (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+                  }
                   rules={[
                     { len: 10, message: "Exactly 10 characters" },
                     {
@@ -405,6 +449,7 @@ export default function CustomerDrawer({
                     maxLength={10}
                     style={monoInput}
                     placeholder="ABCDE1234F"
+                    autoComplete="off"
                   />
                 </Form.Item>
               </div>

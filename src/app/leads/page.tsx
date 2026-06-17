@@ -98,6 +98,7 @@ import {
   Skeleton,
   Popover,
   Segmented,
+  Pagination,
   Switch,
   Upload,
   Timeline,
@@ -125,6 +126,9 @@ import {
   TeamOutlined,
   SendOutlined,
   LinkOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  EllipsisOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
@@ -302,7 +306,7 @@ type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "title", label: "Lead" },
-  { key: "status", label: "Stage" },
+  { key: "status", label: "Pipeline" },
   { key: "platform", label: "Source" },
   { key: "budget", label: "Value" },
   { key: "bidiq", label: "BidIq" },
@@ -401,12 +405,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} />
+              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} />
+              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -455,12 +459,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
                 }
               ]}
             >
-              <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
+              <Input placeholder="+91 …" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
-              <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+              <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -481,12 +485,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
-              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} />
+              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
-              <Input placeholder="acme.com" style={{ borderRadius: 8 }} />
+              <Input placeholder="acme.com" style={{ borderRadius: 8 }} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -515,13 +519,13 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
           </div>
         </div>
         <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
-          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} />
+          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
-          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} />
+          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} autoComplete="off" />
         </Form.Item>
-        <Form.Item name="status" label={<Text strong style={labelStyle}>Stage</Text>}>
-          <Select placeholder="Select stage" style={{ borderRadius: 8 }}>
+        <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 8 }}>
             {configStatuses.map((s: any) => (
               <Select.Option key={s.id} value={s.name}>
                 <Space>
@@ -537,6 +541,34 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         </Form.Item>
       </div>
     </>
+  );
+};
+
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+  const w = 96;
+  const h = 26;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const stepX = n > 1 ? w / (n - 1) : w;
+  const pts = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - 3 - (v / max) * (h - 8);
+    return [x, y] as const;
+  });
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 };
 
@@ -558,13 +590,18 @@ export default function LeadsPage() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [gridPage, setGridPage] = useState(1);
+  const [gridPageSize, setGridPageSize] = useState(12);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterAction, setFilterAction] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
@@ -715,7 +752,7 @@ export default function LeadsPage() {
     const lead = selectedProposalLead;
     const id = lead.id;
     let payload: { selection: "client" | "custom"; duration?: string; cost?: string | number; startDate?: string; endDate?: string };
-    
+
     const clientBudgetNum = parseFloat(lead.budget?.replace(/[^0-9.]/g, "") || "0") || 50;
 
     if (selectedOption === "client") {
@@ -750,8 +787,8 @@ export default function LeadsPage() {
   };
 
   const clientBudgetNum = selectedProposalLead ? (parseFloat(selectedProposalLead.budget?.replace(/[^0-9.]/g, "") || "0") || 50) : 50;
-  
-  const suggestedBudgetVal = selectedProposalLead 
+
+  const suggestedBudgetVal = selectedProposalLead
     ? Math.round(clientBudgetNum * 0.9)
     : 0;
 
@@ -852,34 +889,24 @@ export default function LeadsPage() {
 
   const getInitials = (name: string) => {
     if (!name) return "?";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.trim().charAt(0).toUpperCase();
   };
 
   const AVATAR_PALETTE = [
-    { bg: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", ring: "rgba(99, 102, 241, 0.18)" },
-    { bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", ring: "rgba(16, 185, 129, 0.18)" },
-    { bg: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)", ring: "rgba(245, 158, 11, 0.18)" },
-    { bg: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)", ring: "rgba(236, 72, 153, 0.18)" },
-    { bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", ring: "rgba(6, 182, 212, 0.18)" },
-    { bg: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", ring: "rgba(139, 92, 246, 0.18)" },
-    { bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", ring: "rgba(239, 68, 68, 0.18)" },
+    { bg: "#eff6ff", color: "#3b82f6" },
   ];
 
   const getAvatarStyle = (key: string) => {
-    if (!key) return AVATAR_PALETTE[0];
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-    return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+    return AVATAR_PALETTE[0];
   };
 
   const getAIScoreLevel = (score?: number) => {
     if (score === undefined || score === null) return null;
-    if (score >= 80) return { label: "Hot", color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", icon: <Flame size={11} /> };
-    if (score >= 60) return { label: "Warm", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", icon: <TrendingUp size={11} /> };
-    if (score >= 40) return { label: "Mild", color: "#6366f1", bg: "rgba(99, 102, 241, 0.08)", icon: <Activity size={11} /> };
-    return { label: "Cold", color: "#64748b", bg: "rgba(100, 116, 139, 0.08)", icon: <Activity size={11} /> };
+    const minimal = { color: "var(--text-slate-600)", bg: "var(--bg-slate-50)" };
+    if (score >= 80) return { label: "Hot", ...minimal, icon: <Flame size={11} /> };
+    if (score >= 60) return { label: "Warm", ...minimal, icon: <TrendingUp size={11} /> };
+    if (score >= 40) return { label: "Mild", ...minimal, icon: <Activity size={11} /> };
+    return { label: "Cold", ...minimal, icon: <Activity size={11} /> };
   };
 
   const formatRelativeTime = (date?: string) => {
@@ -892,6 +919,70 @@ export default function LeadsPage() {
     if (days < 7) return `${days}d ago`;
     if (days < 30) return `${Math.floor(days / 7)}w ago`;
     return dayjs(date).format("MMM D");
+  };
+
+  const getLeadActionMenu = (record: Lead) => {
+    const menuItems: MenuProps['items'] = [
+      { key: 'view', label: 'View Details', icon: <Eye size={16} /> },
+      canUpdateLead && { key: 'edit', label: 'Edit Lead', icon: <Settings size={16} /> },
+      { key: 'timeline', label: 'View Timeline', icon: <History size={16} /> },
+      (canUpdateLead || canDeleteLead) && { type: 'divider' },
+      canDeleteLead && { key: 'delete', label: 'Delete Lead', danger: true, icon: <Trash2 size={16} /> }
+    ].filter(Boolean) as MenuProps['items'];
+
+    return (
+      <Dropdown
+        menu={{
+          items: menuItems,
+          onClick: ({ key, domEvent }) => {
+            domEvent.stopPropagation();
+            if (key === 'view') handleView(record);
+            if (key === 'edit') handleEdit(record);
+            if (key === 'timeline') openTimeline(record);
+            if (key === 'delete') {
+              modal.confirm({
+                title: "Are you sure you want to delete this lead?",
+                content: "This action cannot be undone.",
+                okText: "Delete",
+                cancelText: "Cancel",
+                okButtonProps: { danger: true },
+                onOk: () => handleDelete(record.id)
+              });
+            }
+          }
+        }}
+        trigger={['click']}
+        placement="bottomRight"
+      >
+        <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
+          <EllipsisOutlined style={{ fontSize: 16 }} />
+        </button>
+      </Dropdown>
+    );
+  };
+
+  const getLeadStatusPill = (record: Lead) => {
+    const status = record.status;
+    const cfg = configStatuses.find(s => s.name === status);
+    const color = cfg?.color || '#6366f1';
+    return (
+      <span
+        className="lm-status-pill"
+        style={{
+          backgroundColor: `${color}12`,
+          color: color,
+          border: `1px solid ${color}25`,
+          padding: '2px 8px',
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center'
+        }}
+      >
+        <span className="lm-status-pill-text">{status}</span>
+      </span>
+    );
   };
 
   // Resolve the creator name from whatever the backend returned. Do NOT fall
@@ -915,18 +1006,16 @@ export default function LeadsPage() {
             <div
               className="lead-avatar"
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 9,
+                width: 24,
+                height: 24,
+                borderRadius: 6,
                 background: avatar.bg,
-                boxShadow: `0 0 0 3px ${avatar.ring}`,
-                color: "#fff",
+                color: avatar.color || "var(--text-slate-700)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: 11,
-                letterSpacing: "0.02em",
                 flexShrink: 0,
                 position: "relative",
               }}
@@ -945,7 +1034,7 @@ export default function LeadsPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   border: "2px solid #fff",
-                  color: "#fff"
+                  color: "var(--text-slate-600)"
                 }}>
                   <Flame size={7} />
                 </div>
@@ -962,9 +1051,10 @@ export default function LeadsPage() {
                       strong
                       style={{
                         color: "var(--text-slate-900)",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        lineHeight: 1.25,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        letterSpacing: "-0.01em",
                         cursor: isLong ? "help" : "default",
                       }}
                     >
@@ -1001,7 +1091,7 @@ export default function LeadsPage() {
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-slate-500)", lineHeight: 1.2, marginTop: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--text-slate-400)", lineHeight: 1.2, marginTop: 1 }}>
                 <span style={{ fontWeight: 500 }}>{record.client_name}</span>
                 {record.posted_on && (
                   <>
@@ -1023,24 +1113,24 @@ export default function LeadsPage() {
       render: (platform: string) => {
         const p = platform || "Upwork";
         const palette: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
-          Upwork: { bg: "rgba(20,168,0,0.08)", color: "#14a800", border: "rgba(20,168,0,0.25)", icon: <UpworkGlyph size={11} /> },
-          LinkedIn: { bg: "rgba(10,102,194,0.08)", color: "#0a66c2", border: "rgba(10,102,194,0.25)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
-          Freelancer: { bg: "rgba(41,178,254,0.08)", color: "#0284c7", border: "rgba(41,178,254,0.25)", icon: <FreelancerGlyph size={11} /> },
-          Fiverr: { bg: "rgba(29,191,115,0.08)", color: "#1dbf73", border: "rgba(29,191,115,0.25)", icon: <FiverrGlyph size={11} /> },
-          Zukvo: { bg: "rgba(139,92,246,0.08)", color: "#8b5cf6", border: "rgba(139,92,246,0.25)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
-          Zithtech: { bg: "rgba(14,165,233,0.08)", color: "#0ea5e9", border: "rgba(14,165,233,0.25)", icon: <Layers size={11} strokeWidth={2.2} /> },
-          Website: { bg: "rgba(99,102,241,0.08)", color: "#6366f1", border: "rgba(99,102,241,0.25)", icon: <Globe size={11} strokeWidth={2.2} /> },
+          Upwork: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <UpworkGlyph size={11} /> },
+          LinkedIn: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
+          Freelancer: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <FreelancerGlyph size={11} /> },
+          Fiverr: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <FiverrGlyph size={11} /> },
+          Zukvo: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
+          Zithtech: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Layers size={11} strokeWidth={2.2} /> },
+          Website: { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Globe size={11} strokeWidth={2.2} /> },
         };
-        const meta = palette[p] || { bg: "rgba(148,163,184,0.12)", color: "#475569", border: "rgba(148,163,184,0.3)", icon: <Briefcase size={11} strokeWidth={2.2} /> };
+        const meta = palette[p] || { bg: "var(--bg-slate-50)", color: "var(--text-slate-600)", border: "var(--border-slate-200)", icon: <Briefcase size={11} strokeWidth={2.2} /> };
         return (
           <span
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              padding: "3px 9px",
-              borderRadius: 6,
-              fontSize: 11.5,
+              padding: "2px 7px",
+              borderRadius: 5,
+              fontSize: 11,
               fontWeight: 600,
               background: meta.bg,
               color: meta.color,
@@ -1054,7 +1144,7 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Stage",
+      title: "Pipeline",
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -1127,10 +1217,10 @@ export default function LeadsPage() {
             }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
-              ["--pill-color" as any]: color,
-              backgroundColor: `${color}12`,
-              color,
-              border: `1px solid ${color}25`,
+              ["--pill-color" as any]: "var(--text-slate-500)",
+              backgroundColor: "var(--bg-slate-50)",
+              color: "var(--text-slate-500)",
+              border: `1px solid var(--border-slate-200)`,
             }}
             title="Click to change status"
           >
@@ -1233,10 +1323,10 @@ export default function LeadsPage() {
             onClick={(e) => { e.stopPropagation(); setActionEditId(record.id); }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
-              ["--pill-color" as any]: color,
-              backgroundColor: `${color}12`,
-              color,
-              border: `1px solid ${color}25`,
+              ["--pill-color" as any]: "var(--text-slate-500)",
+              backgroundColor: "var(--bg-slate-50)",
+              color: "var(--text-slate-500)",
+              border: `1px solid var(--border-slate-200)`,
             }}
             title="Click to change action"
           >
@@ -1262,7 +1352,7 @@ export default function LeadsPage() {
         const isHourly = String(value).includes("/hr");
         return (
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <DollarSign size={13} style={{ color: "#10b981", alignSelf: "center" }} />
+            <DollarSign size={13} style={{ color: "var(--text-slate-400)", alignSelf: "center" }} />
             <Text strong style={{ color: "var(--text-slate-900)", fontSize: 14, fontWeight: 700, lineHeight: 1 }}>
               {String(value).replace(/^\$/, "").replace("/hr", "")}
             </Text>
@@ -1325,7 +1415,7 @@ export default function LeadsPage() {
           canManageLeads && (
             <Button
               type="link"
-              icon={hasBidiq ? <Eye size={15} /> : <Zap size={16} />}
+              icon={hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
               onClick={(e) => {
                 e.stopPropagation();
                 if (hasBidiq) {
@@ -1338,10 +1428,10 @@ export default function LeadsPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 4,
                 color: hasBidiq ? "#10b981" : "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0,
               }}
             >
@@ -1360,7 +1450,7 @@ export default function LeadsPage() {
           record.proposal_id ? (
             <Button
               type="link"
-              icon={<FileText size={16} />}
+              icon={<FileText size={13} />}
               onClick={(e) => { e.stopPropagation(); router.push(`/proposals/builder?id=${record.proposal_id}`); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
@@ -1369,7 +1459,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: "#10b981",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0
               }}
             >
@@ -1378,7 +1468,7 @@ export default function LeadsPage() {
           ) : (
             <Button
               type="link"
-              icon={<Sparkles size={16} />}
+              icon={<Sparkles size={13} />}
               onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
@@ -1387,7 +1477,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0
               }}
             >
@@ -1408,7 +1498,7 @@ export default function LeadsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Button
               type="link"
-              icon={isSent ? <CheckCircle size={16} /> : <Mail size={16} />}
+              icon={isSent ? <CheckCircle size={13} /> : <Mail size={13} />}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedLeadForMail(record);
@@ -1421,7 +1511,7 @@ export default function LeadsPage() {
                 gap: "4px",
                 color: isSent ? "#10b981" : "var(--premium-blue)",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 11.5,
                 padding: 0,
                 height: "auto"
               }}
@@ -1443,7 +1533,7 @@ export default function LeadsPage() {
       key: "company",
       width: 180,
       render: (clientName: string) => (
-        <Text style={{ color: "var(--text-slate-800)", fontSize: 12.5, fontWeight: 600 }} ellipsis>
+        <Text style={{ color: "var(--text-slate-700)", fontSize: 11.5, fontWeight: 600 }} ellipsis>
           {clientName || "—"}
         </Text>
       ),
@@ -1459,18 +1549,13 @@ export default function LeadsPage() {
         const name = rawName || "Unknown";
         // "you" annotation only when the signed-in user truly created this row.
         const isYou = !!user?.name && rawName === user.name;
-        const initials = name
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((w: string) => w[0]?.toUpperCase() || "")
-          .join("") || "—";
+        const initials = name.trim().charAt(0).toUpperCase() || "—";
         const palette = getAvatarStyle(name);
         return (
           <div className="lm-creator-cell">
             <span
               className="lm-creator-avatar"
-              style={{ background: palette.bg }}
+              style={{ background: palette.bg, color: palette.color || "var(--text-slate-600)", border: "none" }}
             >
               {initials}
             </span>
@@ -1496,8 +1581,8 @@ export default function LeadsPage() {
         let label = "Low";
         let color = "#94a3b8";
         if (score == null) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
-        if (score >= 80) { label = "High"; color = "#ef4444"; }
-        else if (score >= 60) { label = "Medium"; color = "#f59e0b"; }
+        if (score >= 80) { label = "High"; color = "var(--text-slate-500)"; }
+        else if (score >= 60) { label = "Medium"; color = "var(--text-slate-400)"; }
         return (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
@@ -1785,11 +1870,13 @@ export default function LeadsPage() {
       let matchesSegment = true;
       if (activeSegment === "hot") {
         matchesSegment = (item.ai_score || 0) >= 80;
-      } else if (activeSegment === "week") {
-        matchesSegment = dayjs(item.created_at || item.posted_on).isAfter(weekAgo);
-      } else if (activeSegment === "won") {
-        const status = (item.status || "").toLowerCase();
-        matchesSegment = status.includes("won") || status.includes("accept") || status.includes("close") || !!item.proposal_id;
+      } else if (activeSegment === "today") {
+        const startOfDay = dayjs().startOf('day');
+        const endOfDay = dayjs().endOf('day');
+        const dt = dayjs(item.created_at || item.posted_on);
+        matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
+      } else if (activeSegment === "with_proposal") {
+        matchesSegment = !!item.proposal_id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
@@ -2082,6 +2169,82 @@ export default function LeadsPage() {
     return Math.round((withProposal / leads.length) * 100);
   }, [leads]);
 
+  const pipelineRateTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      if (leadsUpToDay.length === 0) {
+        trend.push(0);
+      } else {
+        const proposalsUpToDay = leadsUpToDay.filter(l => !!l.proposal_id).length;
+        trend.push(Math.round((proposalsUpToDay / leadsUpToDay.length) * 100));
+      }
+    }
+    if (trend[trend.length - 1] === 0 && pipelineRate > 0) {
+      trend[trend.length - 1] = pipelineRate;
+    }
+    return trend;
+  }, [leads, pipelineRate]);
+
+  const hotLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      const hotLeadsUpToDay = leadsUpToDay.filter(l => (l.ai_score || 0) >= 80).length;
+      trend.push(hotLeadsUpToDay);
+    }
+    if (trend[trend.length - 1] === 0 && hotLeadsCount > 0) {
+      trend[trend.length - 1] = hotLeadsCount;
+    }
+    return trend;
+  }, [leads, hotLeadsCount]);
+
+  const totalLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const dayBoundary = now.subtract(i, 'day').endOf('day');
+      const leadsUpToDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return dt.isBefore(dayBoundary) || dt.isSame(dayBoundary);
+      });
+      trend.push(leadsUpToDay.length);
+    }
+    if (trend[trend.length - 1] === 0 && leads.length > 0) {
+      trend[trend.length - 1] = leads.length;
+    }
+    return trend;
+  }, [leads]);
+
+  const newLeadsTrend = useMemo(() => {
+    if (!leads.length) return [0, 0, 0, 0, 0, 0, 0];
+    const trend: number[] = [];
+    const now = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const startOfDay = now.subtract(i, 'day').startOf('day');
+      const endOfDay = now.subtract(i, 'day').endOf('day');
+      const newLeadsThatDay = leads.filter(l => {
+        const dt = dayjs(l.created_at || l.posted_on);
+        return (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
+      }).length;
+      trend.push(newLeadsThatDay);
+    }
+    return trend;
+  }, [leads]);
+
   const totalClients = useMemo(() => {
     return new Set(leads.map(l => l.client_name)).size;
   }, [leads]);
@@ -2139,10 +2302,6 @@ export default function LeadsPage() {
       </div>
       {subtle && <Text className="lm-stat-subtle">{subtle}</Text>}
       {chart && <div className="lm-stat-chart">{chart}</div>}
-      <span
-        className="lm-stat-accent"
-        style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-      />
     </div>
   );
 
@@ -2179,140 +2338,308 @@ export default function LeadsPage() {
     <ProtectedRoute>
       <MainLayout>
         <div className="lm-page">
-          <TimeTrackingHeader
-            icon={<Layers size={20} color="#6366f1" />}
-            title="Leads Management"
-            description="Track, manage and convert your potential business opportunities."
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 100,
-              borderBottom: '1px solid var(--border-slate-200)',
-              padding: '9.5px 32px',
-              marginBottom: 0,
-            }}
-            extra={
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Input
-                  placeholder="Search leads…"
-                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                  className="lm-search-input"
-                  onChange={(e) => setSearchText(e.target.value)}
-                  value={searchText}
-                  allowClear
-                />
-
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  className="lm-primary-btn"
-                  onClick={() => {
-                    setEditingKey(null);
-                    form.resetFields();
-                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                    const defaultStatus = configStatuses.find(s => s.is_default);
-                    if (defaultStatus) {
-                      form.setFieldsValue({ status: defaultStatus.name });
-                    }
-                    setIsDrawerVisible(true);
-                  }}
-                >
-                  New Lead
-                </Button>
-              </div>
-            }
-          />
-
           <div className="lm-ambient" />
 
           <div className="lm-shell">
             <aside className="lm-sidebar">
-              <button
-                type="button"
-                className={`lm-side-row lm-side-row--all${!filterPlatform && !filterStatus ? " is-active" : ""
-                  }`}
-                onClick={() => {
-                  setFilterPlatform(null);
-                  setFilterStatus(null);
-                }}
-              >
-                <span className="lm-side-row-icon" aria-hidden>
-                  <Layers size={14} />
-                </span>
-                <span className="lm-side-row-label">All Leads</span>
-                <span className="lm-side-row-count">{leads.length}</span>
-              </button>
-
-              <div className="lm-side-section">
-                <div className="lm-side-heading">
-                  <span>Sources</span>
-                  <span className="lm-side-heading-count">{sourceOptions.length}</span>
+              <div className="lm-sidebar-top">
+                <div className="lm-side-head">
+                  <div className="lm-side-logo"><Layers size={20} /></div>
+                  <div className="lm-side-head-text">
+                    <div className="lm-side-title">Leads</div>
+                    <div className="lm-side-subtitle">Management · Pipeline</div>
+                  </div>
                 </div>
-                {sourceOptions.map(opt => {
-                  const isActive = filterPlatform === opt.name;
-                  return (
-                    <button
-                      key={opt.name}
-                      type="button"
-                      className={`lm-side-row${isActive ? " is-active" : ""}`}
-                      onClick={() =>
-                        setFilterPlatform(prev => (prev === opt.name ? null : opt.name))
+
+                {canCreateLead && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    className="lm-create-btn"
+                    onClick={() => {
+                      setEditingKey(null);
+                      form.resetFields();
+                      form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                      const defaultStatus = configStatuses.find(s => s.is_default);
+                      if (defaultStatus) {
+                        form.setFieldsValue({ status: defaultStatus.name });
                       }
-                    >
-                      <span
-                        className="lm-side-brand"
-                        style={{
-                          background: `${opt.color}15`,
-                          color: opt.color,
-                          boxShadow: `inset 0 0 0 1px ${opt.color}33`,
-                        }}
-                        aria-hidden
-                      >
-                        {opt.icon}
-                      </span>
-                      <span className="lm-side-row-label">{opt.name}</span>
-                      <span className="lm-side-row-count">{opt.count}</span>
-                    </button>
-                  );
-                })}
+                      setIsDrawerVisible(true);
+                    }}
+                    block
+                  >
+                    New Lead
+                  </Button>
+                )}
               </div>
 
-              <div className="lm-side-section">
-                <div className="lm-side-heading">
-                  <span>Pipeline</span>
-                  <span className="lm-side-heading-count">{pipelineTotal}</span>
-                </div>
-                {pipelineOptions.map(opt => {
-                  const isActive = filterStatus === opt.name;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={`lm-side-row${isActive ? " is-active" : ""}`}
-                      onClick={() =>
-                        setFilterStatus(prev => (prev === opt.name ? null : opt.name))
-                      }
-                    >
-                      <span
-                        className="lm-side-brand"
-                        style={{
-                          background: `${opt.color}15`,
-                          color: opt.color,
-                          boxShadow: `inset 0 0 0 1px ${opt.color}33`,
+              <div className="lm-side-scroll">
+                <div className="lm-side-section-label">Views</div>
+                <div className="lm-side-list">
+                  {[
+                    { key: 'all', label: 'All Leads', icon: <Layers size={14} />, count: leads.length, color: '#3b82f6' },
+                    { key: 'hot', label: 'Hot Leads', icon: <Flame size={14} />, count: hotLeadsCount, color: '#ef4444' },
+                    { key: 'today', label: 'Added Today', icon: <Zap size={14} />, count: leadsToday, color: '#f59e0b' },
+                    { key: 'with_proposal', label: 'With Proposal', icon: <FileText size={14} />, count: leads.filter(l => !!l.proposal_id).length, color: '#10b981' },
+                  ].map((v) => {
+                    const active = activeSegment === v.key || (!activeSegment && v.key === 'all') || (activeSegment === 'all' && v.key === 'all');
+                    const isActive = v.key === 'all'
+                      ? (!filterPlatform && !filterStatus && activeSegment === 'all')
+                      : v.key === 'hot'
+                        ? activeSegment === 'hot'
+                        : v.key === 'today'
+                          ? activeSegment === 'today'
+                          : v.key === 'with_proposal'
+                            ? activeSegment === 'with_proposal'
+                            : false;
+                    return (
+                      <button
+                        key={v.key}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => {
+                          setFilterPlatform(null);
+                          setFilterStatus(null);
+                          if (v.key === 'all') {
+                            setActiveSegment('all');
+                          } else if (v.key === 'hot') {
+                            setActiveSegment('hot');
+                          } else if (v.key === 'today') {
+                            setActiveSegment('today');
+                          } else if (v.key === 'with_proposal') {
+                            setActiveSegment('with_proposal');
+                          }
                         }}
-                        aria-hidden
                       >
-                        {opt.icon}
-                      </span>
-                      <span className="lm-side-row-label">{opt.name}</span>
-                      <span className="lm-side-row-count">{opt.count}</span>
-                    </button>
-                  );
-                })}
+                        <span className="lm-view-icon" style={{ color: isActive ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                        <span className="lm-view-label">{v.label}</span>
+                        <span className="lm-view-count">{v.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="lm-side-section-label">Sources</div>
+                <div className="lm-side-list">
+                  {sourceOptions.map(opt => {
+                    const isActive = filterPlatform === opt.name;
+                    return (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => { setFilterPlatform(prev => (prev === opt.name ? null : opt.name)); setActiveSegment('all'); }}
+                      >
+                        <span className="lm-view-icon" style={{ color: isActive ? 'var(--text-slate-600)' : 'var(--text-slate-400)' }}>{opt.icon}</span>
+                        <span className="lm-view-label">{opt.name}</span>
+                        <span className="lm-view-count">{opt.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="lm-side-section-label">Pipeline</div>
+                <div className="lm-side-list">
+                  {pipelineOptions.map(opt => {
+                    const isActive = filterStatus === opt.name;
+                    return (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        className={`lm-view-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => { setFilterStatus(prev => (prev === opt.name ? null : opt.name)); setActiveSegment('all'); }}
+                      >
+                        <span className="lm-view-icon" style={{ color: isActive ? 'var(--text-slate-600)' : 'var(--text-slate-400)' }}>{opt.icon}</span>
+                        <span className="lm-view-label">{opt.name}</span>
+                        <span className="lm-view-count">{opt.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </aside>
 
             <div className="lm-main">
+              <div className="lm-topbar">
+                <Input
+                  placeholder="Search subject, target…"
+                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                  suffix={<span className="lm-kbd">⌘K</span>}
+                  className="lm-search-input"
+                  style={{ width: 600, borderRadius: 8, height: 34 }}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  value={searchText}
+                  allowClear
+                />
+                <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Popover
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    classNames={{ root: "lm-toolbar-popover" }}
+                    content={
+                      <div className="lm-filters-popover-body">
+                        <div className="lm-popover-section-label">
+                          <Filter size={11} />
+                          <span>Workflow</span>
+                        </div>
+                        <Select
+                          placeholder="Any workflow"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterAction}
+                          onChange={setFilterAction}
+                        >
+                          {configActions.map(a => (
+                            <Select.Option key={a.id} value={a.name}>
+                              <Space size={6}>
+                                {renderActionIcon(a.icon)}
+                                {a.name}
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <User size={11} />
+                          <span>Created by</span>
+                        </div>
+                        <Select
+                          placeholder="Anyone"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterCreatedBy}
+                          onChange={setFilterCreatedBy}
+                          showSearch
+                          filterOption={(input, option) =>
+                            String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                          }
+                        >
+                          {creatorOptions.map((name) => {
+                            const palette = getAvatarStyle(name);
+                            return (
+                              <Select.Option key={name} value={name}>
+                                <Space size={8}>
+                                  <span
+                                    className="lm-creator-avatar"
+                                    style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                                  >
+                                    {getInitials(name)}
+                                  </span>
+                                  <span style={{ fontSize: 12.5 }}>{name}</span>
+                                </Space>
+                              </Select.Option>
+                            );
+                          })}
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Mail size={11} />
+                          <span>Mail status</span>
+                        </div>
+                        <Select
+                          placeholder="Any"
+                          className="lm-filter-select"
+                          style={{ width: "100%" }}
+                          allowClear
+                          value={filterMailStatus}
+                          onChange={setFilterMailStatus}
+                        >
+                          <Select.Option value="sent">
+                            <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                          </Select.Option>
+                          <Select.Option value="not_sent">
+                            <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                          </Select.Option>
+                        </Select>
+
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Clock size={11} />
+                          <span>Posted on</span>
+                        </div>
+                        <DatePicker.RangePicker
+                          className="lm-filter-date"
+                          style={{ width: "100%" }}
+                          value={filterDateRange}
+                          onChange={(dates) => setFilterDateRange(dates as any)}
+                        />
+
+                        <div className="lm-popover-footer">
+                          <button
+                            type="button"
+                            className="lm-popover-reset"
+                            onClick={() => {
+                              setFilterStatus(null);
+                              setFilterPlatform(null);
+                              setFilterAction(null);
+                              setFilterDateRange(null);
+                              setFilterCreatedBy(null);
+                              setFilterMailStatus(null);
+                            }}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Button
+                      icon={<Filter size={13} />}
+                      className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                    >
+                      Filters
+                      {(() => {
+                        const n =
+                          (filterAction ? 1 : 0) +
+                          (filterCreatedBy ? 1 : 0) +
+                          (filterMailStatus ? 1 : 0) +
+                          (filterDateRange ? 1 : 0);
+                        return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                      })()}
+                    </Button>
+                  </Popover>
+
+                  <Button
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                    onClick={() => {
+                      const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                      const rows = filteredLeads.map(l => {
+                        const score = l.ai_score;
+                        const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                        return [
+                          l.title || "",
+                          l.client_name || "",
+                          l.status || "",
+                          l.platform || "",
+                          l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                          getLeadCreator(l) || "",
+                          priority,
+                          l.last_mail_at || l.updated_at || l.created_at || "",
+                          l.created_at || "",
+                        ];
+                      });
+                      const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                      const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download size={13} />
+                    Export
+                  </Button>
+
+                  <div className="lm-segmented">
+                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                </div>
+              </div>
 
               {/* Saved-View Segments */}
               {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
@@ -2380,12 +2707,10 @@ export default function LeadsPage() {
                   loading={leads.length === 0 && loading}
                   chart={
                     leads.length > 0 ? (
-                      <MiniBar
-                        segments={[
-                          { value: hotLeadsCount, color: "#ef4444", label: `${hotLeadsCount} hot` },
-                          { value: Math.max(0, leads.length - hotLeadsCount), color: "#94a3b8", label: `${Math.max(0, leads.length - hotLeadsCount)} warm` },
-                        ]}
-                      />
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={totalLeadsTrend} color="#6366f1" />
+                      </div>
                     ) : null
                   }
                 />
@@ -2397,13 +2722,11 @@ export default function LeadsPage() {
                   subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
                   loading={leads.length === 0 && loading}
                   chart={
-                    leadsThisWeek > 0 ? (
-                      <MiniBar
-                        segments={[
-                          { value: leadsToday, color: "#f59e0b", label: `${leadsToday} today` },
-                          { value: Math.max(0, leadsThisWeek - leadsToday), color: "#94a3b8", label: `${Math.max(0, leadsThisWeek - leadsToday)} earlier this week` },
-                        ]}
-                      />
+                    leads.length > 0 ? (
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={newLeadsTrend} color="#f59e0b" />
+                      </div>
                     ) : null
                   }
                 />
@@ -2420,19 +2743,9 @@ export default function LeadsPage() {
                   loading={leads.length === 0 && loading}
                   chart={
                     leads.length > 0 ? (
-                      <div className="lm-progress-row">
-                        <div className="lm-progress-track">
-                          <span
-                            className="lm-progress-fill"
-                            style={{
-                              width: `${Math.round((hotLeadsCount / leads.length) * 100)}%`,
-                              background: "linear-gradient(90deg, #ef4444, #f97316)",
-                            }}
-                          />
-                        </div>
-                        <span className="lm-progress-label">
-                          {Math.round((hotLeadsCount / leads.length) * 100)}%
-                        </span>
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={hotLeadsTrend} color="#ef4444" />
                       </div>
                     ) : null
                   }
@@ -2446,17 +2759,9 @@ export default function LeadsPage() {
                   loading={leads.length === 0 && loading}
                   chart={
                     leads.length > 0 ? (
-                      <div className="lm-progress-row">
-                        <div className="lm-progress-track">
-                          <span
-                            className="lm-progress-fill"
-                            style={{
-                              width: `${pipelineRate}%`,
-                              background: "linear-gradient(90deg, #10b981, #34d399)",
-                            }}
-                          />
-                        </div>
-                        <span className="lm-progress-label">{pipelineRate}%</span>
+                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+                        <AreaSparkline values={pipelineRateTrend} color="#10b981" />
                       </div>
                     ) : null
                   }
@@ -2474,14 +2779,14 @@ export default function LeadsPage() {
                 <span className="lm-toolbar-spacer" />
 
                 <SearchableDropdown
-                  placeholder="Stage"
+                  placeholder="Pipeline"
                   options={stageDropdownOptions}
                   value={filterStatus || undefined}
                   onChange={(v) => {
                     setFilterStatus(v || null);
                     setFilterPlatform(null);
                   }}
-                  style={{ height: 32, minWidth: 120, width: 120, borderRadius: 8 }}
+                  style={{ height: 32, minWidth: 120, width: 120, borderRadius: 4 }}
                   width={200}
                 />
 
@@ -2490,7 +2795,7 @@ export default function LeadsPage() {
                   options={actionDropdownOptions}
                   value={filterAction || undefined}
                   onChange={(v) => setFilterAction(v || null)}
-                  style={{ height: 32, minWidth: 140, width: 140, borderRadius: 8 }}
+                  style={{ height: 32, minWidth: 140, width: 140, borderRadius: 4 }}
                   width={220}
                 />
 
@@ -2499,7 +2804,7 @@ export default function LeadsPage() {
                   options={creatorDropdownOptions}
                   value={filterCreatedBy || undefined}
                   onChange={(v) => setFilterCreatedBy(v || null)}
-                  style={{ height: 32, minWidth: 130, width: 130, borderRadius: 8 }}
+                  style={{ height: 32, minWidth: 130, width: 130, borderRadius: 4 }}
                   width={220}
                 />
 
@@ -2609,7 +2914,7 @@ export default function LeadsPage() {
                 <Button
                   className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
                   onClick={() => {
-                    const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                    const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
                     const rows = filteredLeads.map(l => {
                       const score = l.ai_score;
                       const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
@@ -2790,129 +3095,323 @@ export default function LeadsPage() {
                 </div>
               )}
 
-              <div className="lm-table-card" data-density={tableDensity}>
-                {loading && leads.length === 0 ? (
-                  <div className="leads-skeleton" style={{ padding: "8px 0" }}>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          padding: "16px 20px",
-                          borderBottom: "1px solid var(--border-slate-100)",
-                        }}
-                      >
-                        <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
-                        <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
-                        <div style={{ flex: 1 }}>
-                          <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
-                          <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
-                        </div>
-                        <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
-                        <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
-                        <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <Table
-                    columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                    dataSource={filteredLeads}
-                    rowKey="id"
-                    size="middle"
-                    scroll={{ x: "max-content" }}
-                    rowSelection={{
-                      selectedRowKeys,
-                      onChange: (keys) => setSelectedRowKeys(keys),
-                      columnWidth: 48,
-                    }}
-                    pagination={{
-                      pageSize: 10,
-                      position: ["bottomRight"],
-                      showSizeChanger: false,
-                      className: "premium-pagination"
-                    }}
-                    className="lm-table premium-table"
-                    rowClassName={() => "lm-row"}
-                    onRow={(record) => ({
-                      onClick: () => handleView(record),
-                      style: { cursor: 'pointer' }
-                    })}
-                    locale={{
-                      emptyText: (
-                        <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                          <div
-                            style={{
-                              width: 64,
-                              height: 64,
-                              margin: "0 auto 16px",
-                              borderRadius: 18,
-                              background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#6366f1",
-                            }}
-                          >
-                            <Layers size={28} />
+              <div className="lm-body">
+                {view === 'list' ? (
+                <div className="lm-table-card" data-density={tableDensity}>
+                  {loading && leads.length === 0 ? (
+                    <div className="leads-skeleton" style={{ padding: "8px 0" }}>
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "16px 20px",
+                            borderBottom: "1px solid var(--border-slate-100)",
+                          }}
+                        >
+                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                          <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
+                          <div style={{ flex: 1 }}>
+                            <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
+                            <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
                           </div>
-                          <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                            {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                          </Title>
-                          <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                            {leads.length === 0
-                              ? "Add your first opportunity to start tracking your pipeline."
-                              : "Try clearing filters or switching to a different view."}
-                          </Text>
-                          {leads.length === 0 ? (
-                            <Button
-                              type="primary"
-                              icon={<Plus size={14} />}
-                              onClick={() => {
-                                setEditingKey(null);
-                                form.resetFields();
-                                form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                                const defaultStatus = configStatuses.find(s => s.is_default);
-                                if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                                setIsDrawerVisible(true);
-                              }}
-                              style={{
-                                borderRadius: 8,
-                                height: 36,
-                                fontWeight: 700,
-                                background: "#6366f1",
-                                border: "none",
-                                boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
-                              }}
-                            >
-                              Add First Lead
-                            </Button>
-                          ) : (
-                            <Button
-                              icon={<RefreshCw size={14} />}
-                              onClick={() => {
-                                setFilterStatus(null);
-                                setFilterAction(null);
-                                setFilterPlatform(null);
-                                setFilterDateRange(null);
-                                setFilterCreatedBy(null);
-                                setFilterMailStatus(null);
-                                setSearchText("");
-                                setActiveSegment("all");
-                              }}
-                              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-                            >
-                              Clear all filters
-                            </Button>
-                          )}
+                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
+                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
+                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
                         </div>
-                      ),
-                    }}
-                  />
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <Table
+                      columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
+                      dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
+                      rowKey="id"
+                      size="middle"
+                      scroll={{ x: "max-content" }}
+                      rowSelection={{
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys),
+                        columnWidth: 48,
+                      }}
+                      pagination={false}
+                      className="lm-table premium-table"
+                      rowClassName={() => "lm-row"}
+                      onRow={(record) => ({
+                        onClick: () => handleView(record),
+                        style: { cursor: 'pointer' }
+                      })}
+                      locale={{
+                        emptyText: (
+                          <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                            <div
+                              style={{
+                                width: 64,
+                                height: 64,
+                                margin: "0 auto 16px",
+                                borderRadius: 18,
+                                background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#6366f1",
+                              }}
+                            >
+                              <Layers size={28} />
+                            </div>
+                            <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                              {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                            </Title>
+                            <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                              {leads.length === 0
+                                ? "Add your first opportunity to start tracking your pipeline."
+                                : "Try clearing filters or switching to a different view."}
+                            </Text>
+                            {leads.length === 0 ? (
+                              <Button
+                                type="primary"
+                                icon={<Plus size={14} />}
+                                onClick={() => {
+                                  setEditingKey(null);
+                                  form.resetFields();
+                                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                  const defaultStatus = configStatuses.find(s => s.is_default);
+                                  if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                  setIsDrawerVisible(true);
+                                }}
+                                style={{
+                                  borderRadius: 8,
+                                  height: 36,
+                                  fontWeight: 700,
+                                  background: "#6366f1",
+                                  border: "none",
+                                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                                }}
+                              >
+                                Add First Lead
+                              </Button>
+                            ) : (
+                              <Button
+                                icon={<RefreshCw size={14} />}
+                                onClick={() => {
+                                  setFilterStatus(null);
+                                  setFilterAction(null);
+                                  setFilterPlatform(null);
+                                  setFilterDateRange(null);
+                                  setFilterCreatedBy(null);
+                                  setFilterMailStatus(null);
+                                  setSearchText("");
+                                  setActiveSegment("all");
+                                }}
+                                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                              >
+                                Clear all filters
+                              </Button>
+                            )}
+                          </div>
+                        ),
+                      }}
+                    />
+                  )}
+
+                </div>
+              ) : (
+                <div className="lm-grid-view">
+                  {loading && leads.length === 0 ? (
+                    <div className="lm-grid">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                            <div style={{ flex: 1 }}>
+                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
+                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 4 }} />
+                            </div>
+                          </div>
+                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 4, marginTop: 'auto' }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredLeads.length === 0 ? (
+                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-200)" }}>
+                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}>
+                        <Layers size={28} />
+                      </div>
+                      <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                      </Typography.Title>
+                      <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                        {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
+                      </Typography.Text>
+                      {leads.length === 0 && (
+                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 8, height: 36, fontWeight: 700, background: "#6366f1", border: "none" }}>Add First Lead</Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="lm-grid">
+                        {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
+                          const r = record as any;
+                          const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
+                          const initials = getInitials(name);
+                          const palette = getAvatarStyle(name);
+                          const statusCfg = configStatuses.find(s => s.name === record.status);
+                          const statusColor = statusCfg?.color || '#6366f1';
+                          const scoreLevel = getAIScoreLevel(record.ai_score);
+                          const ownerName = getLeadCreator(record) || 'Unknown';
+                          const ownerPalette = getAvatarStyle(ownerName);
+                          const isSent = !!record.last_mail_at || !!record.is_mail_sent;
+
+                          const formatDate = (date: any) => {
+                            if (!date) return '—';
+                            const d = dayjs(date);
+                            if (!d.isValid()) return '—';
+                            return d.format('MMM D, YYYY · h:mm A');
+                          };
+
+                          const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
+
+                          return (
+                            <div key={record.id} className="lm-card" style={{ padding: 0, gap: 0 }} onClick={() => handleView(record)}>
+                              {/* LAYER 1: Header (Lead, Company, Owner, Actions) */}
+                              <div className="lm-card-head" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-slate-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color, borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{initials}</div>
+                                <div className="lm-card-title-group" style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+                                  <h4 className="lm-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={name}>{name}</h4>
+                                  <span className="lm-card-subtitle" style={{ fontSize: '12px', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <span>Client: <span style={{ fontWeight: 700, color: 'var(--text-slate-800)' }}>{record.client_name || '—'}</span></span>
+                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      <span style={{
+                                        width: 16, height: 16, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
+                                      }}>
+                                        {ownerInitials}
+                                      </span>
+                                      <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>{ownerName}</span>
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="lm-card-actions" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                                  {getLeadActionMenu(record)}
+                                </div>
+                              </div>
+
+                              {/* LAYER 2: Details & Actions */}
+                              <div className="lm-card-footer" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--border-slate-100)', marginTop: 0, backgroundColor: 'var(--bg-slate-50)' }}>
+                                {/* Source */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Source:</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>{record.platform || 'Upwork'}</span>
+                                </div>
+
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+
+                                {/* Value */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Value:</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: '12px' }}>
+                                    {record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}
+                                  </span>
+                                </div>
+
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+
+                                {/* Status */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, fontSize: '12px' }}>Status:</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
+                                    <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
+                                    {record.status || '—'}
+                                  </span>
+                                </div>
+
+                                {/* BidIq Action */}
+                                {canManageLeads && record.lead_source_kind !== "website" && (() => {
+                                  const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
+                                  return (
+                                    <>
+                                      <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: hasBidiq ? '#10b981' : 'var(--premium-blue)' }}
+                                      >
+                                        {hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
+                                        {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                      </button>
+                                    </>
+                                  );
+                                })()}
+
+                                {/* Proposal Action */}
+                                {canCreateProposal && (
+                                  <>
+                                    <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: record.proposal_id ? '#10b981' : 'var(--premium-blue)' }}
+                                    >
+                                      {record.proposal_id ? <FileText size={13} /> : <Sparkles size={13} />}
+                                      {record.proposal_id ? 'View Proposal' : 'Generate'}
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Mail Action */}
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: isSent ? '#10b981' : 'var(--premium-blue)' }}
+                                >
+                                  {isSent ? <CheckCircle size={13} style={{ color: '#10b981' }} /> : <Mail size={13} />}
+                                  {isSent ? 'Sent' : 'Send Mail'}
+                                </button>
+
+                                {/* Timeline View Action */}
+                                <span style={{ color: 'var(--border-slate-300)' }}>|</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 700, color: 'var(--text-slate-500)' }}
+                                >
+                                  <History size={13} />
+                                  Timeline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               </div>
+              {filteredLeads.length > 0 && (
+                <div className="lm-bottom-bar lm-bottom-bar--sticky">
+                  <div className="lm-bottom-info">
+                    Showing <strong>{(tablePage - 1) * tablePageSize + 1}–{Math.min(tablePage * tablePageSize, filteredLeads.length)}</strong> of <strong>{filteredLeads.length}</strong>
+                    {selectedRowKeys.length > 0 && <span className="lm-bottom-sel"> · {selectedRowKeys.length} selected</span>}
+                  </div>
+                  <div className="lm-pager">
+                    <button type="button" className="lm-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+                    {Array.from({ length: Math.ceil(filteredLeads.length / tablePageSize) }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                      <button key={p} type="button" className={`lm-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+                    ))}
+                    <button type="button" className="lm-pager-btn" disabled={tablePage >= Math.ceil(filteredLeads.length / tablePageSize)} onClick={() => setTablePage((p) => Math.min(Math.ceil(filteredLeads.length / tablePageSize), p + 1))}>›</button>
+                    <Select
+                      className="lm-pagesize"
+                      value={tablePageSize}
+                      onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                      options={[15, 30, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3441,7 +3940,7 @@ export default function LeadsPage() {
               </div>
             </div>
           }
-          width={680}
+          width={540}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
           className="premium-drawer lead-drawer"
@@ -3483,7 +3982,7 @@ export default function LeadsPage() {
             </div>
           }
         >
-          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form">
+          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
             <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
               <Segmented
@@ -3551,12 +4050,12 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
-                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
+                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -3605,24 +4104,24 @@ export default function LeadsPage() {
                           }
                         ]}
                       >
-                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
+                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
-                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
-                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
-                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -3677,13 +4176,14 @@ export default function LeadsPage() {
                     </div>
                   </div>
                   <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
+                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} autoComplete="off" />
                   </Form.Item>
                   <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
                     <TextArea
                       rows={4}
                       placeholder="Enter the full job description or client request..."
                       style={{ borderRadius: 8 }}
+                      autoComplete="off"
                     />
                   </Form.Item>
                   <Form.Item
@@ -3712,6 +4212,7 @@ export default function LeadsPage() {
                         background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
                         border: "1px solid rgba(99, 102, 241, 0.18)",
                       }}
+                      autoComplete="off"
                     />
                   </Form.Item>
                   <Row gutter={16}>
@@ -3724,22 +4225,22 @@ export default function LeadsPage() {
                   <Row gutter={16}>
                     <Col span={8}>
                       <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
-                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
+                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
-                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
+                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
                       <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
-                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
+                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -3796,7 +4297,7 @@ export default function LeadsPage() {
                     </Col>
                   </Row>
                   <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                    <Input placeholder="https://..." style={{ borderRadius: 8 }} />
+                    <Input placeholder="https://..." style={{ borderRadius: 8 }} autoComplete="off" />
                   </Form.Item>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -3939,7 +4440,7 @@ export default function LeadsPage() {
           }
           open={timelineOpen}
           onClose={() => setTimelineOpen(false)}
-          width={520}
+          width={420}
           styles={{ body: { padding: '24px 20px' } }}
         >
           {timelineLoading ? (
@@ -4017,181 +4518,161 @@ export default function LeadsPage() {
             /* ====================================================== */
             .lm-page {
               position: relative;
-              margin: 0 -8px;
-              background: var(--bg-primary);
-              min-height: calc(100vh - 64px);
+              background: var(--bg-pure-white);
+              height: calc(100vh - 64px);
+              overflow: hidden;
             }
             .lm-ambient {
-              position: absolute;
-              top: 0; left: 0; right: 0;
-              height: 320px;
-              pointer-events: none;
-              background:
-                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.07), transparent 60%),
-                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.05), transparent 60%);
-              z-index: 0;
+              display: none;
             }
-            [data-theme='dark'] .lm-ambient {
-              background:
-                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
-                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.08), transparent 60%);
+            
+            /* Custom Table Footer */
+            .lm-bottom-bar {
+              display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+              padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
             }
+            .lm-bottom-bar--sticky {
+              position: sticky; bottom: 0; z-index: 30; padding: 12px 14px 12px 32px;
+              margin: 16px 0 0 -18px;
+              background: var(--bg-pure-white);
+              border-top: 1px solid var(--border-slate-200);
+              box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            }
+            .lm-bottom-info { font-size: 12px; color: var(--text-slate-500); }
+            .lm-bottom-info strong { color: var(--text-slate-700); font-weight: 700; }
+            .lm-bottom-sel { color: #3B82F6; font-weight: 600; }
+            .lm-pager { display: flex; align-items: center; gap: 3px; }
+            .lm-pager-btn, .lm-pager-num {
+              min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+            }
+            .lm-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+            .lm-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+            .lm-pagesize { margin-left: 5px; }
+            .lm-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
             .lm-body {
               position: relative;
               z-index: 1;
-              padding: 20px 32px 40px 32px;
+              padding: 10px 0 20px 0;
             }
 
             /* ---------- Shell (sidebar + main) ---------- */
             .lm-shell {
-              position: relative;
-              z-index: 1;
-              display: grid;
-              grid-template-columns: 240px minmax(0, 1fr);
-              gap: 0;
-              padding: 0;
-              align-items: stretch;
-              min-height: calc(100vh - 64px - 66px);
+              display: flex;
+              margin: 0 -16px;
+              height: 100%;
+              background: var(--bg-pure-white);
             }
             .lm-main {
+              flex: 1;
               min-width: 0;
-              padding: 10px 10px 40px 10px;
+              padding: 8px 18px 0;
+              display: flex;
+              flex-direction: column;
+              height: 100%;
             }
-            @media (max-width: 1100px) {
-              .lm-shell {
-                grid-template-columns: 216px minmax(0, 1fr);
-              }
-              .lm-main {
-                padding: 10px 16px 32px 14px;
-              }
+            .lm-body {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
             }
 
             .lm-sidebar {
-              position: sticky;
-              top: 56px;
-              align-self: start;
+              width: 240px;
+              flex-shrink: 0;
+              border-right: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white);
               display: flex;
               flex-direction: column;
-              gap: 3px;
-              padding: 8px 10px 16px 10px;
-              background: var(--bg-secondary);
-              border-right: 1px solid var(--border-slate-100);
-              height: calc(100vh - 64px - 56px);
-              overflow-y: auto;
-              margin-top: 0;
-              -ms-overflow-style: none;
-              scrollbar-width: none;
+              position: sticky;
+              top: 0;
+              height: calc(100vh - 64px);
             }
-            .lm-sidebar::-webkit-scrollbar {
-              display: none;
+            .lm-sidebar-top {
+              padding: 14px 14px 12px 18px;
+              border-bottom: 1px solid var(--border-slate-200);
+            }
+            .lm-side-head {
+              display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+            }
+            .lm-side-logo {
+              flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            }
+            .lm-side-logo .anticon, .lm-side-logo svg { font-size: 24px !important; color: var(--text-slate-900) !important; width: 24px; height: 24px; }
+            .lm-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+            .lm-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+            .lm-side-subtitle {
+              font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+              text-transform: uppercase; letter-spacing: 0.07em;
+            }
+            .lm-create-btn {
+              height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+              background: #3B82F6 !important;
+              border: none !important; box-shadow: none !important;
+              margin-bottom: 4px;
+            }
+            .lm-create-btn:hover { background: #2563EB !important; }
+            .lm-create-btn .anticon, .lm-create-btn svg { font-size: 12px !important; width: 12px; height: 12px; }
+            .lm-side-scroll {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
+              overflow-x: hidden;
+              padding: 10px 10px 6px 16px;
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            .lm-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+            .lm-side-section-label {
+              font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+              color: var(--text-slate-400); padding: 12px 8px 0; margin: 16px 0 6px;
+              border-top: 1px solid var(--border-slate-200);
+            }
+            .lm-side-scroll > .lm-side-section-label:first-child { margin-top: 6px; border-top: none; padding-top: 0; }
+            .lm-side-list { display: flex; flex-direction: column; gap: 1px; }
+            .lm-view-item {
+              display: flex; align-items: center; gap: 10px; width: 100%;
+              padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+              cursor: pointer; transition: background .12s ease; text-align: left;
+            }
+            .lm-view-item:hover { background: var(--bg-slate-50); }
+            .lm-view-item.is-active { background: var(--bg-blue-50); }
+            .lm-view-item.is-active .lm-view-label { color: var(--text-slate-900); font-weight: 600; }
+            .lm-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+            .lm-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+            .lm-view-count {
+              font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+              min-width: 18px; text-align: right;
+            }
+            .lm-view-item.is-active .lm-view-count {
+              color: #3B82F6; font-weight: 700;
+              background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+            }
+            .lm-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+            .lm-side-sd { border-radius: 0 !important; }
+            .lm-clear-filters {
+              display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+              background: none; border: none; cursor: pointer; padding: 3px;
+              font-size: 12px; font-weight: 600; color: #ef4444;
             }
 
-            .lm-side-section {
-              padding-top: 10px;
-              margin-top: 4px;
-              border-top: 1px solid var(--border-slate-100);
-              display: flex;
-              flex-direction: column;
-              gap: 2px;
-            }
-            .lm-side-heading {
+            .lm-topbar {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              padding: 4px 12px 8px 12px;
-              font-size: 10.5px;
-              font-weight: 800;
-              letter-spacing: 0.08em;
-              text-transform: uppercase;
-              color: var(--text-slate-400);
+              padding-bottom: 20px;
             }
-            .lm-side-heading-count {
-              font-size: 10.5px;
-              font-weight: 700;
-              color: var(--text-slate-400);
-              font-variant-numeric: tabular-nums;
-            }
-
-            .lm-side-row {
-              all: unset;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              width: 100%;
-              box-sizing: border-box;
-              padding: 7px 12px;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 13px;
-              font-weight: 600;
-              color: var(--text-slate-700);
-              transition: background-color .15s ease, color .15s ease;
-            }
-            .lm-side-row:hover {
-              background: var(--bg-slate-50);
-              color: var(--text-slate-900);
-            }
-            .lm-side-row.is-active {
-              background: rgba(99, 102, 241, 0.10);
-              color: #4f46e5;
-            }
-            .lm-side-row.is-active .lm-side-row-count {
-              color: #4f46e5;
-            }
-            .lm-side-row--all {
-              margin-bottom: 2px;
-            }
-            .lm-side-row-icon {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              width: 22px;
-              height: 22px;
-              border-radius: 6px;
-              background: rgba(99, 102, 241, 0.10);
-              color: #6366f1;
-            }
-            .lm-side-row-dot {
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              margin-left: 7px;
-              margin-right: 0;
-              flex: 0 0 8px;
-            }
-            .lm-side-brand {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              width: 22px;
-              height: 22px;
-              border-radius: 6px;
-              flex: 0 0 22px;
-              transition: transform .15s ease;
-            }
-            .lm-side-row:hover .lm-side-brand {
-              transform: scale(1.06);
-            }
-            .lm-side-row-label {
-              flex: 1 1 auto;
-              min-width: 0;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-            .lm-side-row-count {
-              font-size: 11.5px;
-              font-weight: 700;
-              color: var(--text-slate-400);
-              font-variant-numeric: tabular-nums;
-              padding-left: 6px;
+            .lm-kbd {
+              font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+              background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+              border-radius: 5px; padding: 1px 6px;
             }
 
             /* ---------- Compact toolbar above the table ---------- */
             .lm-table-toolbar {
               display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 14px;
               padding: 8px 12px;
               margin-bottom: 14px;
               background: var(--bg-pure-white);
@@ -4210,7 +4691,9 @@ export default function LeadsPage() {
             }
             .lm-toolbar-spacer { flex: 1 1 auto; }
             .lm-table-toolbar .lm-toolbar-filters-btn.ant-btn,
-            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn {
+            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions .lm-toolbar-filters-btn.ant-btn,
+            .lm-topbar-actions button.lm-toolbar-filters-btn.ant-btn {
               width: auto !important;
               min-width: 0 !important;
               padding: 0 12px !important;
@@ -4252,6 +4735,9 @@ export default function LeadsPage() {
               font-weight: 800;
               font-variant-numeric: tabular-nums;
             }
+            .lm-toolbar-popover .ant-popover-inner {
+              border-radius: 0 !important;
+            }
             .lm-filters-popover-body {
               width: 260px;
             }
@@ -4270,10 +4756,9 @@ export default function LeadsPage() {
 
             /* ---------- Header buttons / search ---------- */
             .lm-search-input.ant-input-affix-wrapper {
-              width: 280px !important;
               height: 38px !important;
               border-radius: 10px !important;
-              background: var(--bg-slate-50) !important;
+              background: transparent !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all .2s ease;
             }
@@ -4337,7 +4822,7 @@ export default function LeadsPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 10px;
+              border-radius: 0;
               padding: 10px 12px 10px;
               overflow: hidden;
               transition: border-color .15s ease;
@@ -4664,10 +5149,9 @@ export default function LeadsPage() {
             .lm-table-card {
               position: relative;
               background: var(--bg-pure-white);
-              border-radius: 16px;
-              border: 1px solid var(--border-slate-100);
+              border-radius: 0;
+              border: 1px solid var(--border-slate-200);
               overflow: hidden;
-              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
             }
             /* Hide horizontal scrollbar but keep scroll functionality */
             .lm-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
@@ -4681,20 +5165,22 @@ export default function LeadsPage() {
             }
             .lm-table.ant-table-wrapper .ant-table {
               background: transparent !important;
+              font-size: 12px;
             }
             .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
               background: var(--bg-slate-50) !important;
-              color: var(--text-slate-500) !important;
+              color: var(--text-slate-400) !important;
               font-weight: 700 !important;
               text-transform: uppercase !important;
-              font-size: 10.5px !important;
-              letter-spacing: 0.08em !important;
-              padding: 14px 16px !important;
-              border-bottom: 1px solid var(--border-slate-100) !important;
+              font-size: 10px !important;
+              letter-spacing: 0.04em !important;
+              padding: 6px 10px !important;
+              border-bottom: 1px solid var(--border-slate-200) !important;
+              white-space: nowrap !important;
             }
             .lm-table.ant-table-wrapper .ant-table-thead > tr > th::before { display: none !important; }
             .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 16px 16px !important;
+              padding: 6.5px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
               transition: background .15s ease;
               position: relative;
@@ -4706,7 +5192,7 @@ export default function LeadsPage() {
               top: 0;
               bottom: 0;
               width: 3px;
-              background: linear-gradient(180deg, #6366f1, #8b5cf6);
+              background: linear-gradient(180deg, #3b82f6, #2563eb);
               opacity: 0;
               transition: opacity .2s ease;
               pointer-events: none;
@@ -4855,13 +5341,14 @@ export default function LeadsPage() {
 
             /* Filter selects */
             .lm-filter-select.ant-select .ant-select-selector {
-              height: 32px !important;
-              border-radius: 8px !important;
+              height: 38px !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
-              background: var(--bg-slate-50) !important;
-              padding: 0 10px !important;
+              background: transparent !important;
+              padding: 0 12px !important;
               display: flex; align-items: center;
-              font-size: 12.5px;
+              font-size: 13px;
+              font-weight: 600;
             }
             .lm-filter-select.ant-select:hover .ant-select-selector {
               border-color: rgba(99, 102, 241, 0.35) !important;
@@ -4869,13 +5356,13 @@ export default function LeadsPage() {
             .lm-filter-select.ant-select-focused .ant-select-selector {
               border-color: #6366f1 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
             }
             .lm-filter-select .ant-select-selection-placeholder,
             .lm-filter-select .ant-select-selection-item {
-              line-height: 30px !important;
-              font-size: 12.5px;
-              font-weight: 500;
+              line-height: 36px !important;
+              font-size: 13px;
+              font-weight: 600;
             }
             .lm-filter-status-chip {
               display: inline-block;
@@ -4889,10 +5376,15 @@ export default function LeadsPage() {
 
             /* Date range picker */
             .lm-filter-date.ant-picker {
-              height: 32px !important;
-              border-radius: 8px !important;
+              height: 38px !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
-              background: var(--bg-slate-50) !important;
+              background: transparent !important;
+              padding: 0 12px !important;
+            }
+            .lm-filter-date.ant-picker .ant-picker-input > input {
+              font-weight: 600;
+              font-size: 13px;
             }
             .lm-filter-date.ant-picker:hover {
               border-color: rgba(99, 102, 241, 0.35) !important;
@@ -4928,7 +5420,7 @@ export default function LeadsPage() {
               height: 32px !important;
               width: 32px !important;
               padding: 0 !important;
-              border-radius: 8px !important;
+              border-radius: 4px !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-500) !important;
@@ -5014,18 +5506,18 @@ export default function LeadsPage() {
             .lm-creator-cell {
               display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 6px;
               min-width: 0;
             }
             .lm-creator-avatar {
-              width: 26px; height: 26px;
-              border-radius: 8px;
+              width: 20px; height: 20px;
+              border-radius: 6px;
               color: #fff;
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              font-size: 10.5px;
-              font-weight: 800;
+              font-size: 9px;
+              font-weight: 700;
               letter-spacing: 0.02em;
               flex-shrink: 0;
             }
@@ -5034,9 +5526,9 @@ export default function LeadsPage() {
               min-width: 0;
             }
             .lm-creator-name {
-              font-size: 12.5px;
-              font-weight: 600;
-              color: var(--text-slate-900);
+              font-size: 11.5px;
+              font-weight: 500;
+              color: var(--text-slate-700);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -5169,7 +5661,7 @@ export default function LeadsPage() {
               padding: 0;
               cursor: pointer;
               color: #4f46e5;
-              font-size: 11.5px;
+              font-size: 14px;
               font-weight: 700;
               font-family: inherit;
             }
@@ -6163,41 +6655,56 @@ export default function LeadsPage() {
 
             @media (max-width: 820px) {
               .lm-shell {
-                grid-template-columns: 1fr;
+                flex-direction: column;
               }
               .lm-sidebar {
                 position: sticky;
-                top: 56px;
+                top: 0;
                 z-index: 90;
                 height: auto;
                 max-height: none;
                 border-right: 0;
-                border-bottom: 1px solid var(--border-slate-100);
+                border-bottom: 1px solid var(--border-slate-200);
                 display: flex;
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-                padding: 12px 16px;
-                background: var(--bg-secondary);
+                align-items: stretch;
+                padding: 10px 16px;
+                background: var(--bg-pure-white);
                 overflow: hidden;
-                margin-top: 0;
                 width: 100%;
                 box-sizing: border-box;
               }
-              .lm-side-section {
+              .lm-sidebar-top {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0;
+                border-bottom: 0;
+              }
+              .lm-side-head {
+                margin-bottom: 0;
+              }
+              .lm-create-btn {
+                margin-bottom: 0;
+              }
+              .lm-side-scroll {
                 display: flex;
                 flex-direction: row;
                 align-items: center;
                 gap: 8px;
-                padding-top: 0;
-                margin-top: 0;
-                border-top: none;
+                padding: 10px 0 0 0;
+                margin-top: 10px;
+                border-top: 1px solid var(--border-slate-100);
                 overflow-x: auto;
                 overflow-y: hidden;
                 white-space: nowrap;
                 width: 100%;
                 -ms-overflow-style: none;
                 scrollbar-width: none;
+              }
+              .lm-side-scroll::-webkit-scrollbar {
+                display: none;
               }
               .lm-side-section + .lm-side-section {
                 border-top: 1px solid var(--border-slate-100) !important;
@@ -6208,30 +6715,227 @@ export default function LeadsPage() {
               .lm-side-section::-webkit-scrollbar {
                 display: none;
               }
-              .lm-side-heading {
-                padding: 0 4px;
-                font-size: 10px;
-                color: var(--text-slate-400);
-                margin: 0;
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                white-space: nowrap;
-                flex-shrink: 0;
-              }
-              .lm-side-heading-count {
+              .lm-side-section-label {
                 display: none;
               }
-              .lm-side-row {
+              .lm-side-list {
+                display: flex;
+                flex-direction: row;
+                gap: 6px;
+              }
+              .lm-view-item {
                 width: auto !important;
                 flex-shrink: 0;
                 margin: 0 !important;
                 height: 32px;
                 padding: 0 10px;
+                border-radius: 6px;
               }
               .lm-main {
                 padding: 10px 16px 16px 16px;
               }
+              .lm-topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+              }
+              .lm-topbar-actions {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+              }
+              .lm-search-input.ant-input-affix-wrapper {
+                width: 100% !important;
+              }
+            }
+
+            @media (max-width: 640px) {
+              .lm-grid {
+                grid-template-columns: 1fr;
+              }
+            }
+
+            .lm-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+              margin-bottom: 24px;
+            }
+            .lm-card {
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-200);
+              border-radius: 0px;
+              padding: 12px 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              cursor: pointer;
+              transition: all 0.2s ease;
+            }
+            .lm-card:hover {
+              box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+              border-color: #cbd5e1;
+            }
+            .lm-card-head {
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+            }
+            .lm-card-avatar {
+              width: 36px;
+              height: 36px;
+              border-radius: 10px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+              font-size: 14px;
+              flex-shrink: 0;
+            }
+            .lm-card-title-group {
+              flex: 1;
+              min-width: 0;
+              display: flex;
+              flex-direction: column;
+            }
+            .lm-card-title {
+              margin: 0;
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--text-slate-900);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .lm-card-subtitle {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+            }
+            .lm-card-actions {
+              margin-left: auto;
+              margin-top: -4px;
+              margin-right: -4px;
+            }
+            .lm-card-body {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .lm-card-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 12.5px;
+              color: var(--text-slate-600);
+            }
+            .lm-card-text {
+              flex: 1;
+              min-width: 0;
+            }
+            .lm-card-details {
+              display: flex;
+              flex-direction: column;
+              gap: 0;
+            }
+            .lm-card-detail-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 7px 0;
+              border-bottom: 1px solid var(--border-slate-50);
+            }
+            .lm-card-detail-row:last-child {
+              border-bottom: none;
+            }
+            .lm-card-detail-label {
+              font-size: 11.5px;
+              font-weight: 600;
+              color: var(--text-slate-400);
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              flex-shrink: 0;
+              min-width: 60px;
+            }
+            .lm-card-footer {
+              margin-top: auto;
+              padding-top: 12px;
+              border-top: 1px solid var(--border-slate-100);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+            }
+            .lm-card-action-btns {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              flex-wrap: wrap;
+            }
+            .lm-card-action-btn {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 4px 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border-slate-200);
+              background: var(--bg-pure-white);
+              font-size: 11.5px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.15s ease;
+              white-space: nowrap;
+            }
+            .lm-card-action-btn:hover {
+              background: var(--bg-slate-50);
+              border-color: currentColor;
+            }
+            .lm-card-tags {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              flex-wrap: wrap;
+            }
+            .lm-card-date {
+              font-size: 11px;
+              color: var(--text-slate-400);
+              font-weight: 500;
+              white-space: nowrap;
+            }
+            .lm-grid-pagination {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 24px;
+            }
+            .lm-segmented {
+              display: flex;
+              align-items: center;
+              background: var(--bg-slate-50);
+              padding: 4px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-200);
+              gap: 4px;
+            }
+            .lm-segmented button {
+              background: transparent;
+              border: none;
+              border-radius: 6px;
+              padding: 4px 10px;
+              color: var(--text-slate-500);
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s;
+            }
+            .lm-segmented button:hover {
+              color: var(--text-slate-800);
+            }
+            .lm-segmented button.is-active {
+              background: var(--bg-pure-white);
+              color: #6366f1;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              font-weight: 600;
             }
 
             /* ===================== Pre-flight Proposal Info Modal ===================== */

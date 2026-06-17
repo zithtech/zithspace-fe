@@ -76,9 +76,6 @@ import {
   UserMinus,
   Sliders,
   Network,
-  Award,
-  BadgeInfo,
-  Building,
   // FINANCE
   Receipt,
   LineChart,
@@ -406,11 +403,40 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
-        key: "/proposals",
+        key: "proposals-group",
         label: "Proposals",
         icon: I(FileSignature),
-        path: "/proposals",
         requiredPermission: Permissions.PROPOSAL_READ,
+        children: [
+          {
+            key: "/proposals",
+            label: "All Proposals",
+            icon: I(List),
+            path: "/proposals",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/builder",
+            label: "Create Proposal",
+            icon: I(FilePlus2),
+            path: "/proposals/builder",
+            requiredAnyPermission: [Permissions.PROPOSAL_CREATE, Permissions.PROPOSAL_UPDATE],
+          },
+          {
+            key: "/proposals/sections",
+            label: "Section Library",
+            icon: I(LayoutGrid),
+            path: "/proposals/sections",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/templates",
+            label: "Template Library",
+            icon: I(Layers),
+            path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+        ],
       },
       {
         key: "squadManagement",
@@ -500,54 +526,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "orgstructure",
+        // Submodule navigation moved into the in-page left sidebar
+        // (see src/app/org-structure/layout.tsx). Each submodule keeps its
+        // own URL; this single entry opens the module on its Overview page.
+        key: "/org-structure",
         icon: I(Network),
         label: "Org-structure",
+        path: "/org-structure/overview",
         requiredPermission: Permissions.ORG_READ,
-        children: [
-          {
-            key: "/org-structure/overview",
-            icon: I(Eye),
-            label: "Overview",
-            path: "/org-structure/overview",
-            requiredPermission: Permissions.ORG_READ,
-          },
-          {
-            key: "/org-structure/grades",
-            icon: I(Award),
-            label: "Grades",
-            path: "/org-structure/grades",
-            requiredAnyPermission: [Permissions.ORG_GRADE_READ, Permissions.ORG_MANAGE],
-          },
-          {
-            key: "/org-structure/employment-types",
-            icon: I(BadgeInfo),
-            label: "Employment Types",
-            path: "/org-structure/employment-types",
-            requiredAnyPermission: [Permissions.ORG_EMPLOYMENT_TYPE_READ, Permissions.ORG_MANAGE],
-          },
-          {
-            key: "/org-structure/departments",
-            icon: I(Building),
-            label: "Departments",
-            path: "/org-structure/departments",
-            requiredAnyPermission: [Permissions.ORG_DEPARTMENT_READ, Permissions.ORG_MANAGE],
-          },
-          {
-            key: "/org-structure/sub-departments",
-            icon: I(Building2),
-            label: "Sub Departments",
-            path: "/org-structure/sub-departments",
-            requiredAnyPermission: [Permissions.ORG_DEPARTMENT_READ, Permissions.ORG_MANAGE],
-          },
-          {
-            key: "/org-structure/positions",
-            icon: I(Briefcase),
-            label: "Positions",
-            path: "/org-structure/positions",
-            requiredAnyPermission: [Permissions.ORG_POSITION_READ, Permissions.ORG_MANAGE],
-          },
-        ],
       },
     ],
   },

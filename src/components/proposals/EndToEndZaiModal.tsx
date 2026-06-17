@@ -145,6 +145,8 @@ const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any 
     }
     if (!data.date && brief.startDate) data.date = brief.startDate;
     if (!data.validUntil && brief.endDate) data.validUntil = brief.endDate;
+    if (!data.senderWebsite) data.senderWebsite = '';
+    if (!data.senderPosition) data.senderPosition = '';
     return data;
   }
 
@@ -308,9 +310,11 @@ Return JSON for a "cover" block with EXACTLY these fields, all required and non-
   "clientPhone": "<plausible phone>",
   "clientAddress": "<plausible single-line address>",
   "senderName": "<your contact name>",
+  "senderPosition": "<your position/designation>",
   "senderCompany": "<your agency name>",
   "senderContact": "<your phone>",
   "senderEmail": "<your email>",
+  "senderWebsite": "<your website url>",
   "senderAddress": "<your address>",
   "date": "${brief.startDate || ''}",
   "validUntil": "${brief.endDate || ''}"

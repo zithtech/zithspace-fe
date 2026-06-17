@@ -246,25 +246,30 @@ export default function SprintPlanComponent() {
       setLoading(true);
       const activeFilters = filtersOverride || tableFilters;
 
-      // Fetch plans respecting search and project, but NOT status
-      // This allows us to calculate accurate status counts in JS
+      // Fetch plans respecting search, but NOT project or status
+      // This allows us to calculate accurate status and project counts in JS
       const data = await ReleasePlanService.getReleasePlans({
         type: "sprint_plan",
         search: activeFilters.search || undefined,
-        projectId: activeFilters.projectId || undefined,
-        // We omit status here to get the full set for metrics
+        // We omit status and projectId here to get the full set for metrics
         limit: 100, // Increased limit to ensure we get all plans for the current view
       });
 
       const plans = data?.data || [];
       setAllPlans(plans);
 
-      // Now filter by status for the display table
-      if (activeFilters.status) {
-        setSprintPlans(plans.filter(p => p.status === activeFilters.status));
-      } else {
-        setSprintPlans(plans);
+      // Filter by project and status in Javascript for display in the table/calendar
+      let filteredPlans = plans;
+      if (activeFilters.projectId) {
+        filteredPlans = filteredPlans.filter(p => {
+          const pid = typeof p.project === 'object' ? p.project?.id : p.project;
+          return pid === activeFilters.projectId;
+        });
       }
+      if (activeFilters.status) {
+        filteredPlans = filteredPlans.filter(p => p.status === activeFilters.status);
+      }
+      setSprintPlans(filteredPlans);
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
       message.error("Error!, Failed to load sprint plans.");

@@ -13,13 +13,17 @@ export interface Member {
   } | null;
   phone: string;
   reportsTo?: {
-    id: string; // Changed from id
+    id: string;
     name: string;
+    avatarUrl?: string | null;
     position: string;
   } | null;
   isActive: boolean;
   avatarUrl?: string | null;
   lastLoginAt?: string; // Added field from backend
+  deletedBy?: string | null;
+  deletedAt?: string | null;
+  minWorkingHours?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +43,7 @@ export interface CreateMemberData {
   assignedShiftId?: string | null; // ADDED: Missing shift assignment field
   isActive?: boolean; // ADDED: Missing isActive field
   sendEmailTo?: string; // ADDED: Target email for welcome notification ('work' | 'personal')
+  minWorkingHours?: number;
 }
 
 export interface UpdateMemberData {
@@ -54,6 +59,7 @@ export interface UpdateMemberData {
   dateOfBirth?: string; // Added optional field
   workDays?: number[]; // Added optional field
   assignedShiftId?: string | null; // ADDED: Missing shift assignment field
+  minWorkingHours?: number;
 }
 
 export interface MembersFilters {
@@ -233,6 +239,7 @@ export class MembersService {
     position: string;
     role: string;
     avatarUrl?: string | null;
+    minWorkingHours?: number;
   }>> {
     try {
       console.log("🔍 [API] getMembersForSelect called with filters:", filters);
@@ -291,6 +298,90 @@ export class MembersService {
         throw new Error(error.message);
       }
       throw new Error('Failed to assign shift to member');
+    }
+  }
+
+  /**
+   * Get all trashed (soft-deleted/inactive) members with filters/pagination
+   */
+  static async getDeletedMembers(filters: { search?: string; page?: number; limit?: number } = {}): Promise<PaginatedResponse<Member>> {
+    try {
+      return await apiUtils.getPaginated<Member>('/api/members/trash', filters);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch deleted members');
+    }
+  }
+
+  /**
+   * Restore a soft-deleted member
+   */
+  static async restoreMember(id: string): Promise<Member> {
+    try {
+      return await api.patch<Member>(`/api/members/${id}/restore`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to restore member');
+    }
+  }
+
+  /**
+   * Permanently delete a member
+   */
+  static async permanentDeleteMember(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/members/${id}/permanent`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to permanently delete member');
+    }
+  }
+
+  /**
+   * Empty trash - permanently delete all inactive members
+   */
+  static async emptyTrash(): Promise<void> {
+    try {
+      await api.delete('/api/members/trash/empty');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to empty member trash');
+    }
+  }
+
+  /**
+   * Bulk restore members
+   */
+  static async bulkRestore(ids: string[]): Promise<void> {
+    try {
+      await api.post('/api/members/trash/bulk-restore', { ids });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to bulk restore members');
+    }
+  }
+
+  /**
+   * Bulk permanent delete members
+   */
+  static async bulkPermanentDelete(ids: string[]): Promise<void> {
+    try {
+      await api.post('/api/members/trash/bulk-permanent-delete', { ids });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to bulk delete members');
     }
   }
 }

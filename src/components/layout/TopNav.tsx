@@ -987,7 +987,7 @@ export default function TopNav({
                     gap: 6px;
                     padding: 0 10px;
                     height: 32px;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     font-weight: 600;
                     font-size: 12.5px;
                     letter-spacing: 0.2px;

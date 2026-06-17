@@ -334,14 +334,14 @@ export default function PortalSprintsPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
+    } catch { }
   }, []);
 
   const setViewPersist = (v: ViewMode) => {
     setView(v);
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
+    } catch { }
   };
 
   const load = async () => {
@@ -542,233 +542,233 @@ export default function PortalSprintsPage() {
 
       <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
 
-      {/* Filter tabs + view toggle */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TABS.map((tab) => {
-            const active = status === tab.key;
-            const count =
-              tab.key === "ALL"
-                ? meta?.total
-                : tab.key === "completed"
-                ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
-                : meta?.counts?.[tab.key];
-            return (
-              <button
-                key={tab.key}
-                className="premium-filter-tab"
-                data-active={active ? "true" : "false"}
-                onClick={() => {
-                  setStatus(tab.key);
-                  setPage(1);
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 11px",
-                  background: active ? p.indigo : p.surfaceElevated,
-                  color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? p.indigo : p.border}`,
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
-                  cursor: "pointer",
-                  transition: "all 120ms ease",
-                }}
-              >
-                {tab.label}
-                {count != null && count > 0 && (
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      padding: "0 6px",
-                      borderRadius: 999,
-                      background: active
-                        ? "rgba(255,255,255,0.18)"
-                        : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Filter tabs + view toggle */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTER_TABS.map((tab) => {
+              const active = status === tab.key;
+              const count =
+                tab.key === "ALL"
+                  ? meta?.total
+                  : tab.key === "completed"
+                    ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
+                    : meta?.counts?.[tab.key];
+              return (
+                <button
+                  key={tab.key}
+                  className="premium-filter-tab"
+                  data-active={active ? "true" : "false"}
+                  onClick={() => {
+                    setStatus(tab.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 11px",
+                    background: active ? p.indigo : p.surfaceElevated,
+                    color: active ? "#ffffff" : p.textMuted,
+                    border: `1px solid ${active ? p.indigo : p.border}`,
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                    cursor: "pointer",
+                    transition: "all 120ms ease",
+                  }}
+                >
+                  {tab.label}
+                  {count != null && count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        padding: "0 6px",
+                        borderRadius: 999,
+                        background: active
+                          ? "rgba(255,255,255,0.18)"
+                          : p.neutralBg,
+                        color: active ? "#ffffff" : p.textSubtle,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <ViewToggle view={view} onChange={setViewPersist} />
         </div>
-        <ViewToggle view={view} onChange={setViewPersist} />
-      </div>
 
-      {/* Premium filter bar */}
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        projects={meta?.projects || []}
-        projectId={projectId}
-        onProjectChange={(v) => {
-          setProjectId(v);
-          setPage(1);
-        }}
-        dateRange={dateRange}
-        onDateRangeChange={(r) => {
-          setDateRange(r);
-          setPage(1);
-        }}
-      />
+        {/* Premium filter bar */}
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          projects={meta?.projects || []}
+          projectId={projectId}
+          onProjectChange={(v) => {
+            setProjectId(v);
+            setPage(1);
+          }}
+          dateRange={dateRange}
+          onDateRangeChange={(r) => {
+            setDateRange(r);
+            setPage(1);
+          }}
+        />
 
-      {/* Active filter chips */}
-      <ActiveFilterChips
-        search={search}
-        onClearSearch={() => setSearch("")}
-        projectName={
-          projectId
-            ? meta?.projects.find((p) => p.id === projectId)?.name
-            : undefined
-        }
-        onClearProject={() => {
-          setProjectId(undefined);
-          setPage(1);
-        }}
-        dateRange={dateRange}
-        onClearDateRange={() => {
-          setDateRange(null);
-          setPage(1);
-        }}
-        statusFilter={status !== "ALL" ? status : undefined}
-        onClearStatus={() => {
-          setStatus("ALL");
-          setPage(1);
-        }}
-      />
+        {/* Active filter chips */}
+        <ActiveFilterChips
+          search={search}
+          onClearSearch={() => setSearch("")}
+          projectName={
+            projectId
+              ? meta?.projects.find((p) => p.id === projectId)?.name
+              : undefined
+          }
+          onClearProject={() => {
+            setProjectId(undefined);
+            setPage(1);
+          }}
+          dateRange={dateRange}
+          onClearDateRange={() => {
+            setDateRange(null);
+            setPage(1);
+          }}
+          statusFilter={status !== "ALL" ? status : undefined}
+          onClearStatus={() => {
+            setStatus("ALL");
+            setPage(1);
+          }}
+        />
 
-      {/* Current sprint(s) — focused detail card(s) */}
-      {!loading && currentSprints.length > 0 && (
-        <div style={{ marginBottom: 18 }}>
-          <SectionLabel
-            icon={Activity}
-            label="Current sprint"
-            count={currentSprints.length}
-          />
+        {/* Current sprint(s) — focused detail card(s) */}
+        {!loading && currentSprints.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <SectionLabel
+              icon={Activity}
+              label="Current sprint"
+              count={currentSprints.length}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  currentSprints.length === 1
+                    ? "1fr"
+                    : "repeat(auto-fit, minmax(440px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {currentSprints.map((s) => (
+                <CurrentSprintCard key={s.id} sprint={s} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rest of sprints heading when featured exists */}
+        {!loading && currentSprints.length > 0 && restItems.length > 0 && (
+          <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
+        )}
+
+        {/* Body */}
+        {loading ? (
+          <div
+            style={{
+              padding: 60,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Spin />
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: 56,
+              textAlign: "center",
+              background: p.surfaceTinted,
+              border: `1px dashed ${p.neutralBorder}`,
+              borderRadius: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: p.surface,
+                border: `1px solid ${p.border}`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Target size={18} color={p.textFaint} />
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
+              {search
+                ? `No sprints match "${search}"`
+                : status !== "ALL"
+                  ? `No ${status} sprints`
+                  : "No sprints yet"}
+            </div>
+            <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
+              {search
+                ? "Try a different search term or clear filters."
+                : "Sprints will appear here as the team plans and ships work."}
+            </div>
+          </div>
+        ) : restItems.length === 0 ? null : view === "card" ? (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                currentSprints.length === 1
-                  ? "1fr"
-                  : "repeat(auto-fit, minmax(440px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 10,
             }}
           >
-            {currentSprints.map((s) => (
-              <CurrentSprintCard key={s.id} sprint={s} />
+            {restItems.map((s) => (
+              <SprintCardCompact key={s.id} sprint={s} />
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <SprintList items={restItems} />
+        )}
 
-      {/* Rest of sprints heading when featured exists */}
-      {!loading && currentSprints.length > 0 && restItems.length > 0 && (
-        <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
-      )}
-
-      {/* Body */}
-      {loading ? (
-        <div
-          style={{
-            padding: 60,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Spin />
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 56,
-            textAlign: "center",
-            background: p.surfaceTinted,
-            border: `1px dashed ${p.neutralBorder}`,
-            borderRadius: 12,
-          }}
-        >
+        {/* Pagination */}
+        {meta && meta.total > limit && (
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: p.surface,
-              border: `1px solid ${p.border}`,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 12,
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end",
             }}
           >
-            <Target size={18} color={p.textFaint} />
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={meta.total}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
           </div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
-            {search
-              ? `No sprints match "${search}"`
-              : status !== "ALL"
-              ? `No ${status} sprints`
-              : "No sprints yet"}
-          </div>
-          <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
-            {search
-              ? "Try a different search term or clear filters."
-              : "Sprints will appear here as the team plans and ships work."}
-          </div>
-        </div>
-      ) : restItems.length === 0 ? null : view === "card" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {restItems.map((s) => (
-            <SprintCardCompact key={s.id} sprint={s} />
-          ))}
-        </div>
-      ) : (
-        <SprintList items={restItems} />
-      )}
-
-      {/* Pagination */}
-      {meta && meta.total > limit && (
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Pagination
-            current={page}
-            pageSize={limit}
-            total={meta.total}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
-        </div>
-      )}
+        )}
         <style jsx global>{`
           .portal-mom-header-container,
           [data-theme='dark'] .portal-mom-header-container,
@@ -1731,24 +1731,24 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             endDays != null && endDays >= 0
               ? "Ends in"
               : endDays != null && endDays < 0
-              ? "Overdue"
-              : "Ends"
+                ? "Overdue"
+                : "Ends"
           }
           value={
             endDays == null
               ? fmtDateShort(sprint.endDate)
               : endDays > 0
-              ? `${endDays}d`
-              : endDays === 0
-              ? "today"
-              : `${-endDays}d`
+                ? `${endDays}d`
+                : endDays === 0
+                  ? "today"
+                  : `${-endDays}d`
           }
           tone={
             endDays != null && endDays < 0
               ? p.dangerText
               : endDays != null && endDays <= 3
-              ? p.warningText
-              : p.text
+                ? p.warningText
+                : p.text
           }
           divider
         />
@@ -2007,9 +2007,8 @@ function ActiveFilterChips({
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${
-        dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (

@@ -98,7 +98,7 @@ export default function PortalApprovalsListPage() {
     <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
       {/* Workstation Header */}
       <div
-        className="saas-header-container portal-mom-header-container"
+        className="saas-header-container portal-mom-header-container portal-approvals-header"
         style={{
           position: "sticky",
           top: 0,
@@ -158,6 +158,7 @@ export default function PortalApprovalsListPage() {
 
               <Divider
                 type="vertical"
+                className="portal-approvals-divider"
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
@@ -182,202 +183,209 @@ export default function PortalApprovalsListPage() {
         </AntRow>
       </div>
 
-      <div style={{ padding: "32px 40px 56px", maxWidth: 1180 }}>
+      <div className="portal-approvals-body">
 
-      {/* Summary */}
-      {summary.total > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 12,
-            marginBottom: 18,
-          }}
-        >
-          <SummaryCard
-            label="Waiting on you"
-            value={summary.open}
-            tone="warning"
-            icon={Hourglass}
-          />
-          <SummaryCard
-            label="Approved"
-            value={summary.approved}
-            tone="success"
-            icon={CheckCircle2}
-          />
-          <SummaryCard
-            label="Rejected"
-            value={summary.rejected}
-            tone="danger"
-            icon={XCircle}
-          />
-          <SummaryCard
-            label="Total"
-            value={summary.total}
-            tone="neutral"
-            icon={CheckSquare}
-          />
-        </div>
-      )}
-
-      {/* Filter row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 12,
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TABS.map((tab) => {
-            const active = status === tab.key;
-            const count =
-              tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
-            return (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setStatus(tab.key);
-                  setPage(1);
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 12px",
-                  background: active ? "#4f46e5" : p.surfaceElevated,
-                  color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? "#4f46e5" : p.border}`,
-                  borderRadius: 999,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {tab.label}
-                {count != null && count > 0 && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "1px 7px",
-                      borderRadius: 999,
-                      background: active
-                        ? "rgba(255,255,255,0.15)"
-                        : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle,
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span
+        {/* Summary */}
+        {summary.total > 0 && (
+          <div
             style={{
-              fontSize: 12,
-              color: p.textSubtle,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              marginBottom: 18,
             }}
           >
-            <Switch
-              size="small"
-              checked={mine}
-              onChange={(v) => {
-                setMine(v);
-                setPage(1);
-              }}
+            <SummaryCard
+              label="Waiting on you"
+              value={summary.open}
+              tone="warning"
+              icon={Hourglass}
             />
-            Only approvals where I&apos;m an approver
-          </span>
-          <Input
-            allowClear
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            prefix={<Search size={14} color={p.textFaint} />}
-            placeholder="Search…"
-            style={{ width: 240 }}
-          />
-        </div>
-      </div>
+            <SummaryCard
+              label="Approved"
+              value={summary.approved}
+              tone="success"
+              icon={CheckCircle2}
+            />
+            <SummaryCard
+              label="Rejected"
+              value={summary.rejected}
+              tone="danger"
+              icon={XCircle}
+            />
+            <SummaryCard
+              label="Total"
+              value={summary.total}
+              tone="neutral"
+              icon={CheckSquare}
+            />
+          </div>
+        )}
 
-      {/* Body */}
-      {loading ? (
+        {/* Filter row */}
         <div
           style={{
-            padding: 80,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Spin />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: 64,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px dashed ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ color: p.textSubtle, fontSize: 13 }}>
-                {search
-                  ? `No approvals match "${search}".`
-                  : mine
-                  ? "Nothing waiting on your decision."
-                  : "No approvals raised yet."}
-              </span>
-            }
-          />
-        </div>
-      ) : (
-        <div
-          style={{
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          {filtered.map((a, i) => (
-            <Row key={a.id} a={a} first={i === 0} />
-          ))}
-        </div>
-      )}
-
-      {meta && meta.total > limit && (
-        <div
-          style={{
-            marginTop: 16,
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 12,
+            alignItems: "center",
           }}
         >
-          <Pagination
-            current={page}
-            pageSize={limit}
-            total={meta.total}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTER_TABS.map((tab) => {
+              const active = status === tab.key;
+              const count =
+                tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setStatus(tab.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 12px",
+                    background: active ? "#4f46e5" : p.surfaceElevated,
+                    color: active ? "#ffffff" : p.textMuted,
+                    border: `1px solid ${active ? "#4f46e5" : p.border}`,
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tab.label}
+                  {count != null && count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "1px 7px",
+                        borderRadius: 999,
+                        background: active
+                          ? "rgba(255,255,255,0.15)"
+                          : p.neutralBg,
+                        color: active ? "#ffffff" : p.textSubtle,
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="portal-approvals-controls">
+            <span
+              style={{
+                fontSize: 12,
+                color: p.textSubtle,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Switch
+                size="small"
+                checked={mine}
+                onChange={(v) => {
+                  setMine(v);
+                  setPage(1);
+                }}
+              />
+              Only approvals where I&apos;m an approver
+            </span>
+
+            <Divider type="vertical" style={{ height: 18, borderColor: p.border, margin: 0 }} />
+
+            <Input
+              allowClear
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              prefix={<Search size={14} color={p.textFaint} />}
+              className="portal-approvals-search"
+              placeholder="Search by title or request number"
+            />
+          </div>
         </div>
-      )}
+
+        {/* Body */}
+        {loading ? (
+          <div
+            style={{
+              padding: 80,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Spin />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div
+            style={{
+              padding: 64,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px dashed ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                  {search
+                    ? `No approvals match "${search}".`
+                    : mine
+                      ? "Nothing waiting on your decision."
+                      : "No approvals raised yet."}
+                </span>
+              }
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+              overflowX: "auto",
+              overflowY: "hidden",
+            }}
+          >
+            <div style={{ minWidth: 800 }}>
+              {filtered.map((a, i) => (
+                <Row key={a.id} a={a} first={i === 0} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {meta && meta.total > limit && (
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={meta.total}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
+          </div>
+        )}
 
         <style jsx global>{`
           .portal-mom-header-container,
@@ -393,6 +401,46 @@ export default function PortalApprovalsListPage() {
           }
           .portal-mom-header-desc {
             color: #475569 !important;
+          }
+          
+          .portal-approvals-body {
+            padding: 32px 40px 56px;
+            max-width: 1180px;
+            margin: 0 auto;
+          }
+          
+          .portal-approvals-controls {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: nowrap;
+          }
+          .portal-approvals-search {
+            width: 100%;
+            min-width: 160px;
+            max-width: 260px;
+          }
+
+          @media (max-width: 1024px) {
+            .portal-approvals-controls {
+              width: 100%;
+            }
+            .portal-approvals-search {
+              max-width: none;
+              flex: 1;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .portal-approvals-body {
+              padding: 24px 16px 40px;
+            }
+            .portal-approvals-header {
+              padding: 16px !important;
+            }
+            .portal-approvals-divider {
+              display: none !important;
+            }
           }
           
           /* Form Inputs and Select elements styling overrides */
@@ -453,7 +501,7 @@ export default function PortalApprovalsListPage() {
             stroke: #cbd5e1 !important;
           }
         `}</style>
-    </div>
+      </div>
     </div>
   );
 }
@@ -569,9 +617,8 @@ function Row({
           height: 36,
           borderRadius: 9,
           background: needsMyDecision ? p.warningBg : p.accentBg,
-          border: `1px solid ${
-            needsMyDecision ? p.warningBorder : p.accentBorder
-          }`,
+          border: `1px solid ${needsMyDecision ? p.warningBorder : p.accentBorder
+            }`,
           color: needsMyDecision ? p.warningText : p.accentText,
           display: "flex",
           alignItems: "center",

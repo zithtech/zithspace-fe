@@ -88,8 +88,8 @@ const STATUS_META: Record<
 > = {
   planned: { label: "Planned", tone: "neutral", icon: Calendar },
   planning: { label: "Planning", tone: "neutral", icon: Calendar },
-  active: { label: "Active", tone: "indigo", icon: Activity },
-  in_progress: { label: "In progress", tone: "indigo", icon: Activity },
+  active: { label: "Active", tone: "accent", icon: Activity },
+  in_progress: { label: "In progress", tone: "accent", icon: Activity },
   paused: { label: "Paused", tone: "warning", icon: Pause },
   completed: { label: "Completed", tone: "success", icon: CheckCircle2 },
   done: { label: "Completed", tone: "success", icon: CheckCircle2 },
@@ -148,7 +148,7 @@ function daysBetween(iso: string | null): number | null {
 }
 
 function sprintTiming(s: PortalSprintListItem):
-  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success"; icon: any }
+  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent"; icon: any }
   | null {
   if (isCompleted(s.status) && s.completedAt) {
     const days = daysBetween(s.completedAt);
@@ -173,13 +173,13 @@ function sprintTiming(s: PortalSprintListItem):
     }
     if (days === 0) return { label: "Ends today", tone: "warning", icon: Clock };
     if (days <= 3) return { label: `${days}d left`, tone: "warning", icon: Clock };
-    return { label: `${days}d left`, tone: "indigo", icon: Clock };
+    return { label: `${days}d left`, tone: "accent", icon: Clock };
   }
   if (isPlanning(s.status) && s.startDate) {
     const days = daysBetween(s.startDate);
     if (days == null) return null;
     if (days < 0) return null;
-    if (days === 0) return { label: "Starts today", tone: "indigo", icon: Clock };
+    if (days === 0) return { label: "Starts today", tone: "accent", icon: Clock };
     return { label: `Starts in ${days}d`, tone: "neutral", icon: Clock };
   }
   return null;
@@ -223,7 +223,7 @@ function TimingChip({
   label,
   compact,
 }: {
-  tone: "indigo" | "warning" | "danger" | "neutral" | "success";
+  tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent";
   icon: any;
   label: string;
   compact?: boolean;
@@ -334,14 +334,14 @@ export default function PortalSprintsPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
+    } catch { }
   }, []);
 
   const setViewPersist = (v: ViewMode) => {
     setView(v);
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
+    } catch { }
   };
 
   const load = async () => {
@@ -407,7 +407,7 @@ export default function PortalSprintsPage() {
   }, [items, currentSprints]);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+    <div style={{ height: "100vh", overflowY: "auto", backgroundColor: "#ffffff" }}>
       {/* Workstation Header */}
       <div
         className="saas-header-container portal-mom-header-container"
@@ -542,233 +542,233 @@ export default function PortalSprintsPage() {
 
       <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
 
-      {/* Filter tabs + view toggle */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TABS.map((tab) => {
-            const active = status === tab.key;
-            const count =
-              tab.key === "ALL"
-                ? meta?.total
-                : tab.key === "completed"
-                ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
-                : meta?.counts?.[tab.key];
-            return (
-              <button
-                key={tab.key}
-                className="premium-filter-tab"
-                data-active={active ? "true" : "false"}
-                onClick={() => {
-                  setStatus(tab.key);
-                  setPage(1);
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 11px",
-                  background: active ? p.indigo : p.surfaceElevated,
-                  color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? p.indigo : p.border}`,
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
-                  cursor: "pointer",
-                  transition: "all 120ms ease",
-                }}
-              >
-                {tab.label}
-                {count != null && count > 0 && (
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      padding: "0 6px",
-                      borderRadius: 999,
-                      background: active
-                        ? "rgba(255,255,255,0.18)"
-                        : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Filter tabs + view toggle */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTER_TABS.map((tab) => {
+              const active = status === tab.key;
+              const count =
+                tab.key === "ALL"
+                  ? meta?.total
+                  : tab.key === "completed"
+                    ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
+                    : meta?.counts?.[tab.key];
+              return (
+                <button
+                  key={tab.key}
+                  className="premium-filter-tab"
+                  data-active={active ? "true" : "false"}
+                  onClick={() => {
+                    setStatus(tab.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 11px",
+                    background: active ? p.indigo : p.surfaceElevated,
+                    color: active ? "#ffffff" : p.textMuted,
+                    border: `1px solid ${active ? p.indigo : p.border}`,
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                    cursor: "pointer",
+                    transition: "all 120ms ease",
+                  }}
+                >
+                  {tab.label}
+                  {count != null && count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        padding: "0 6px",
+                        borderRadius: 999,
+                        background: active
+                          ? "rgba(255,255,255,0.18)"
+                          : p.neutralBg,
+                        color: active ? "#ffffff" : p.textSubtle,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <ViewToggle view={view} onChange={setViewPersist} />
         </div>
-        <ViewToggle view={view} onChange={setViewPersist} />
-      </div>
 
-      {/* Premium filter bar */}
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        projects={meta?.projects || []}
-        projectId={projectId}
-        onProjectChange={(v) => {
-          setProjectId(v);
-          setPage(1);
-        }}
-        dateRange={dateRange}
-        onDateRangeChange={(r) => {
-          setDateRange(r);
-          setPage(1);
-        }}
-      />
+        {/* Premium filter bar */}
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          projects={meta?.projects || []}
+          projectId={projectId}
+          onProjectChange={(v) => {
+            setProjectId(v);
+            setPage(1);
+          }}
+          dateRange={dateRange}
+          onDateRangeChange={(r) => {
+            setDateRange(r);
+            setPage(1);
+          }}
+        />
 
-      {/* Active filter chips */}
-      <ActiveFilterChips
-        search={search}
-        onClearSearch={() => setSearch("")}
-        projectName={
-          projectId
-            ? meta?.projects.find((p) => p.id === projectId)?.name
-            : undefined
-        }
-        onClearProject={() => {
-          setProjectId(undefined);
-          setPage(1);
-        }}
-        dateRange={dateRange}
-        onClearDateRange={() => {
-          setDateRange(null);
-          setPage(1);
-        }}
-        statusFilter={status !== "ALL" ? status : undefined}
-        onClearStatus={() => {
-          setStatus("ALL");
-          setPage(1);
-        }}
-      />
+        {/* Active filter chips */}
+        <ActiveFilterChips
+          search={search}
+          onClearSearch={() => setSearch("")}
+          projectName={
+            projectId
+              ? meta?.projects.find((p) => p.id === projectId)?.name
+              : undefined
+          }
+          onClearProject={() => {
+            setProjectId(undefined);
+            setPage(1);
+          }}
+          dateRange={dateRange}
+          onClearDateRange={() => {
+            setDateRange(null);
+            setPage(1);
+          }}
+          statusFilter={status !== "ALL" ? status : undefined}
+          onClearStatus={() => {
+            setStatus("ALL");
+            setPage(1);
+          }}
+        />
 
-      {/* Current sprint(s) — focused detail card(s) */}
-      {!loading && currentSprints.length > 0 && (
-        <div style={{ marginBottom: 18 }}>
-          <SectionLabel
-            icon={Activity}
-            label="Current sprint"
-            count={currentSprints.length}
-          />
+        {/* Current sprint(s) — focused detail card(s) */}
+        {!loading && currentSprints.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <SectionLabel
+              icon={Activity}
+              label="Current sprint"
+              count={currentSprints.length}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  currentSprints.length === 1
+                    ? "1fr"
+                    : "repeat(auto-fit, minmax(440px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {currentSprints.map((s) => (
+                <CurrentSprintCard key={s.id} sprint={s} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rest of sprints heading when featured exists */}
+        {!loading && currentSprints.length > 0 && restItems.length > 0 && (
+          <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
+        )}
+
+        {/* Body */}
+        {loading ? (
+          <div
+            style={{
+              padding: 60,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Spin />
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: 56,
+              textAlign: "center",
+              background: p.surfaceTinted,
+              border: `1px dashed ${p.neutralBorder}`,
+              borderRadius: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: p.surface,
+                border: `1px solid ${p.border}`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Target size={18} color={p.textFaint} />
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
+              {search
+                ? `No sprints match "${search}"`
+                : status !== "ALL"
+                  ? `No ${status} sprints`
+                  : "No sprints yet"}
+            </div>
+            <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
+              {search
+                ? "Try a different search term or clear filters."
+                : "Sprints will appear here as the team plans and ships work."}
+            </div>
+          </div>
+        ) : restItems.length === 0 ? null : view === "card" ? (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                currentSprints.length === 1
-                  ? "1fr"
-                  : "repeat(auto-fit, minmax(440px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 10,
             }}
           >
-            {currentSprints.map((s) => (
-              <CurrentSprintCard key={s.id} sprint={s} />
+            {restItems.map((s) => (
+              <SprintCardCompact key={s.id} sprint={s} />
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <SprintList items={restItems} />
+        )}
 
-      {/* Rest of sprints heading when featured exists */}
-      {!loading && currentSprints.length > 0 && restItems.length > 0 && (
-        <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
-      )}
-
-      {/* Body */}
-      {loading ? (
-        <div
-          style={{
-            padding: 60,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Spin />
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 56,
-            textAlign: "center",
-            background: p.surfaceTinted,
-            border: `1px dashed ${p.neutralBorder}`,
-            borderRadius: 12,
-          }}
-        >
+        {/* Pagination */}
+        {meta && meta.total > limit && (
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: p.surface,
-              border: `1px solid ${p.border}`,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 12,
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end",
             }}
           >
-            <Target size={18} color={p.textFaint} />
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={meta.total}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
           </div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
-            {search
-              ? `No sprints match "${search}"`
-              : status !== "ALL"
-              ? `No ${status} sprints`
-              : "No sprints yet"}
-          </div>
-          <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
-            {search
-              ? "Try a different search term or clear filters."
-              : "Sprints will appear here as the team plans and ships work."}
-          </div>
-        </div>
-      ) : restItems.length === 0 ? null : view === "card" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {restItems.map((s) => (
-            <SprintCardCompact key={s.id} sprint={s} />
-          ))}
-        </div>
-      ) : (
-        <SprintList items={restItems} />
-      )}
-
-      {/* Pagination */}
-      {meta && meta.total > limit && (
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Pagination
-            current={page}
-            pageSize={limit}
-            total={meta.total}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
-        </div>
-      )}
+        )}
         <style jsx global>{`
           .portal-mom-header-container,
           [data-theme='dark'] .portal-mom-header-container,
@@ -826,17 +826,17 @@ export default function PortalSprintsPage() {
             transition: background 120ms ease;
           }
           .premium-sprint-card[data-active='true']::before {
-            background: #4f46e5;
+            background: #3b82f6;
           }
           .premium-sprint-card[data-completed='true']::before {
-            background: #a7f3d0;
+            background: #10b981;
           }
           .premium-sprint-card:hover {
-            border-color: #a5b4fc !important;
+            border-color: #93c5fd !important;
           }
           .premium-sprint-card:hover .premium-sprint-arrow {
             transform: translateX(2px);
-            color: #4f46e5;
+            color: #3b82f6;
           }
           .premium-sprint-arrow {
             transition: transform 140ms ease, color 140ms ease;
@@ -844,10 +844,10 @@ export default function PortalSprintsPage() {
 
           /* Current sprint card hover */
           .premium-current-card:hover {
-            border-color: #818cf8 !important;
+            border-color: #60a5fa !important;
           }
           .premium-current-card:hover .premium-current-cta {
-            background: #4338ca;
+            background: #2563eb;
             gap: 6px;
           }
 
@@ -1522,7 +1522,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         padding: "16px 18px 16px 22px",
         background:
           "linear-gradient(180deg, #fafbff 0%, #ffffff 70%)",
-        border: `1px solid ${p.indigoBorder}`,
+        border: `1px solid ${p.accentBorder}`,
         borderRadius: 12,
         textDecoration: "none",
         color: "inherit",
@@ -1537,7 +1537,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.indigo}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${p.accent}, ${p.accentText})`,
         }}
       />
 
@@ -1602,7 +1602,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             alignItems: "center",
             gap: 4,
             padding: "6px 11px",
-            background: p.indigo,
+            background: p.accent,
             color: "#ffffff",
             borderRadius: 7,
             fontSize: 11.5,
@@ -1631,7 +1631,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         >
           <Flag
             size={11}
-            color={p.indigo}
+            color={p.accent}
             style={{ verticalAlign: -1, marginRight: 5 }}
           />
           {sprint.goal}
@@ -1731,24 +1731,24 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             endDays != null && endDays >= 0
               ? "Ends in"
               : endDays != null && endDays < 0
-              ? "Overdue"
-              : "Ends"
+                ? "Overdue"
+                : "Ends"
           }
           value={
             endDays == null
               ? fmtDateShort(sprint.endDate)
               : endDays > 0
-              ? `${endDays}d`
-              : endDays === 0
-              ? "today"
-              : `${-endDays}d`
+                ? `${endDays}d`
+                : endDays === 0
+                  ? "today"
+                  : `${-endDays}d`
           }
           tone={
             endDays != null && endDays < 0
               ? p.dangerText
               : endDays != null && endDays <= 3
-              ? p.warningText
-              : p.text
+                ? p.warningText
+                : p.text
           }
           divider
         />
@@ -2007,9 +2007,8 @@ function ActiveFilterChips({
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${
-        dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (

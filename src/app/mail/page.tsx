@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
 import {
   Mail,
@@ -53,6 +53,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 dayjs.extend(relativeTime);
 
@@ -79,31 +80,18 @@ const PALETTE = {
   border: "var(--mail-border)",
 };
 
-// Deterministic gradient avatar generator
-const AVATAR_GRADIENTS = [
-  ["#6366F1", "#8B5CF6"],
-  ["#3B82F6", "#06B6D4"],
-  ["#10B981", "#14B8A6"],
-  ["#F59E0B", "#F97316"],
-  ["#EC4899", "#F43F5E"],
-  ["#8B5CF6", "#EC4899"],
-  ["#06B6D4", "#3B82F6"],
-  ["#14B8A6", "#10B981"],
-  ["#F97316", "#EF4444"],
-  ["#A855F7", "#6366F1"],
-];
-
-const hashString = (str: string) => {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (h << 5) - h + str.charCodeAt(i);
-    h |= 0;
+// Avatar style generator based on read status and folder
+const getAvatarStyle = (seed: string, isRead?: boolean, folder?: string) => {
+  let c1, c2;
+  if (folder === "SPAM") {
+    c1 = "#FCA5A5"; c2 = "#EF4444"; // Light Red
+  } else if (folder === "DRAFTS") {
+    c1 = "#9CA3AF"; c2 = "#4B5563"; // Gray
+  } else if (isRead) {
+    c1 = "#64748b"; c2 = "#475569"; // Gray for read
+  } else {
+    c1 = "#60A5FA"; c2 = "#2563EB"; // Blue for unread
   }
-  return Math.abs(h);
-};
-
-const getAvatarStyle = (seed: string) => {
-  const [c1, c2] = AVATAR_GRADIENTS[hashString(seed || "x") % AVATAR_GRADIENTS.length];
   return {
     background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`,
     color: "#fff",
@@ -138,8 +126,8 @@ const FOLDERS = [
     key: "DRAFTS",
     label: "Drafts",
     icon: FileText,
-    color: "var(--mail-amber)",
-    tint: "var(--mail-tint-amber)",
+    color: "var(--mail-text-muted)",
+    tint: "var(--mail-surface-2)",
   },
   {
     key: "SPAM",
@@ -159,8 +147,8 @@ const FOLDERS = [
     key: "ARCHIVE",
     label: "Archive",
     icon: Archive,
-    color: "var(--mail-violet)",
-    tint: "var(--mail-tint-violet)",
+    color: "var(--mail-text-muted)",
+    tint: "var(--mail-surface-2)",
   },
 ];
 
@@ -172,16 +160,18 @@ const FILTERS: { label: string; value: any; icon?: any }[] = [
   { label: "No Attachment", value: "NO_ATTACHMENTS" },
 ];
 
-export default function MailPage() {
+function MailPageContent() {
   const { message } = App.useApp();
-  const { 
-    canCreateMail, 
-    canUpdateMail, 
-    canDeleteMail, 
-    canManageMail 
+  const {
+    canCreateMail,
+    canUpdateMail,
+    canDeleteMail,
+    canManageMail
   } = usePermission();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedFolder, setSelectedFolder] = useState("INBOX");
   const [filter, setFilter] = useState<
     "ALL" | "READ" | "UNREAD" | "HAS_ATTACHMENTS" | "NO_ATTACHMENTS"
@@ -190,11 +180,21 @@ export default function MailPage() {
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [toFilter, setToFilter] = useState<string | null>(null);
+  const [fromFilter, setFromFilter] = useState<string | null>(null);
 
-  const { data: threadsData = [], isLoading: threadsLoading } = useMailThreads(selectedFolder, filter, debouncedSearch);
+  const { data: threadsData = [], isLoading: threadsLoading } = useMailThreads(
+    selectedFolder, 
+    filter, 
+    debouncedSearch, 
+    toFilter || undefined, 
+    fromFilter || undefined
+  );
   const { data: messages = [], isLoading: messagesLoading } = useThreadMessages(selectedThreadId);
   const { data: mailStatus } = useMailStatus();
-  // const { data: unreadCount = 0 } = useMailUnreadCount();
+  const { data: folderCountsData } = useMailUnreadCount();
+  const folderCounts = folderCountsData?.counts || {};
+  const globalUnreadCount = folderCountsData?.unreadCount || 0;
   const threads = Array.isArray(threadsData) ? threadsData : [];
   const { data: contacts = [] } = useMailContacts();
 
@@ -247,6 +247,66 @@ export default function MailPage() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFixingReplyGrammar, setIsFixingReplyGrammar] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Record<string, boolean>>({});
+
+  const [syncProgress, setSyncProgress] = useState<number | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mail_last_sync");
+      if (saved) setLastSyncTime(new Date(saved));
+    }
+  }, []);
+
+  const processedConnection = React.useRef(false);
+
+  useEffect(() => {
+    if (searchParams && searchParams.get('connected') === 'true' && !processedConnection.current) {
+      processedConnection.current = true;
+      const provider = searchParams.get('provider');
+      if (provider) {
+        message.success(`Mail connected successfully! Syncing your emails...`);
+        syncMail();
+        router.replace(pathname || '/mail');
+      }
+    }
+  }, [searchParams, pathname, router, syncMail]);
+
+  const prevSyncingRef = React.useRef(isSyncing);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isSyncing && !prevSyncingRef.current) {
+      message.success("Mail sync initiated...");
+    }
+
+    if (!isSyncing && prevSyncingRef.current) {
+      setSyncProgress(100);
+      setTimeout(() => {
+        message.success("Mail synced successfully.");
+        setSyncProgress(null);
+        const now = new Date();
+        setLastSyncTime(now);
+        localStorage.setItem("mail_last_sync", now.toISOString());
+      }, 800);
+    }
+
+    prevSyncingRef.current = isSyncing;
+
+    if (isSyncing) {
+      setSyncProgress(0);
+      interval = setInterval(() => {
+        setSyncProgress((prev) => {
+          if (prev === null) return 0;
+          if (prev >= 90) return prev;
+          return prev + Math.floor(Math.random() * 10) + 5;
+        });
+      }, 300);
+    }
+
+    return () => clearInterval(interval);
+  }, [isSyncing]);
 
   const fixComposeGrammar = async () => {
     const body = form.getFieldValue("body");
@@ -400,7 +460,7 @@ export default function MailPage() {
     const ext = fileName.split(".").pop()?.toLowerCase();
     switch (ext) {
       case "pdf":
-        return "#DC2626";
+        return "#EF4444";
       case "doc":
       case "docx":
       case "rtf":
@@ -415,7 +475,7 @@ export default function MailPage() {
       case "jpeg":
       case "gif":
       case "webp":
-        return "#7C3AED";
+        return "#6B7280";
       default:
         return PALETTE.slate500;
     }
@@ -514,7 +574,7 @@ export default function MailPage() {
           subject: lastMsg.subject || "",
           body: lastMsg.bodyHtml || lastMsg.bodyText || ""
         });
-        
+
         // Show Cc/Bcc if they have values
         if (lastMsg.ccEmails && lastMsg.ccEmails.length > 0) setShowCc(true);
         else setShowCc(false);
@@ -534,11 +594,7 @@ export default function MailPage() {
 
   const selectedThread = threads.find((t: any) => t.id === selectedThreadId);
 
-  const unreadCount = useMemo(
-    () =>
-      threads.filter((t: any) => !t.isRead).length,
-    [threads]
-  );
+  const unreadCount = globalUnreadCount;
 
   const activeFolder = FOLDERS.find((f) => f.key === selectedFolder)!;
 
@@ -563,12 +619,27 @@ export default function MailPage() {
           flex-direction: column;
           padding: 12px 10px;
         }
+        .mail-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid ${PALETTE.slate200};
+        }
+        .mail-side-logo {
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .mail-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .mail-side-title { font-size: 16px; font-weight: 800; color: ${PALETTE.slate900}; letter-spacing: -0.025em; line-height: 1.1; }
+        .mail-side-subtitle {
+          font-size: 10.5px; color: ${PALETTE.slate500}; font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
         .mail-compose-btn {
           height: 34px;
-          border: 1px solid var(--mail-pill-active-bg);
+          border: 1px solid #2563EB;
           border-radius: 8px;
-          background: var(--mail-pill-active-bg);
-          color: var(--mail-pill-active-fg);
+          background: #2563EB;
+          color: #fff;
           font-weight: 600;
           font-size: 13px;
           display: flex;
@@ -585,41 +656,57 @@ export default function MailPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 6px 10px;
-          border-radius: 6px;
+          width: 100%;
+          padding: 7px 10px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
           cursor: pointer;
-          transition: background 0.12s ease;
-          color: ${PALETTE.slate700};
-          font-size: 13px;
-          font-weight: 500;
+          transition: background .12s ease;
+          text-align: left;
           margin-bottom: 1px;
-          height: 30px;
         }
         .mail-folder-item:hover {
-          background: var(--mail-folder-hover);
+          background: ${PALETTE.slate50};
         }
         .mail-folder-item.active {
-          background: var(--mail-surface-2);
+          background: var(--mail-tint-blue);
+        }
+        .mail-folder-icon {
+          font-size: 14px;
+          width: 16px;
+          display: inline-flex;
+          justify-content: center;
+          color: ${PALETTE.slate500};
+        }
+        .mail-folder-item.active .mail-folder-icon {
+          color: var(--mail-primary);
+        }
+        .mail-folder-label {
+          flex: 1;
+          font-size: 13px;
+          font-weight: 500;
+          color: ${PALETTE.slate700};
+        }
+        .mail-folder-item.active .mail-folder-label {
           color: ${PALETTE.slate900};
           font-weight: 600;
         }
-        .mail-folder-icon {
-          width: 16px; height: 16px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          color: ${PALETTE.slate500};
-        }
-        .mail-folder-item.active .mail-folder-icon { color: ${PALETTE.slate900}; }
         .mail-folder-count {
           margin-left: auto;
-          font-size: 11px;
-          font-weight: 500;
-          color: ${PALETTE.slate500};
-          font-variant-numeric: tabular-nums;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: ${PALETTE.slate400};
+          min-width: 18px;
+          text-align: right;
         }
         .mail-folder-item.active .mail-folder-count {
-          color: ${PALETTE.slate700};
-          font-weight: 600;
+          color: var(--mail-primary);
+          font-weight: 700;
+          background: var(--mail-tint-blue);
+          border-radius: 6px;
+          padding: 1px 7px;
+          min-width: 0;
         }
 
         .mail-main {
@@ -642,7 +729,7 @@ export default function MailPage() {
         .mail-search {
           flex: 1;
           max-width: 420px;
-          height: 30px;
+          height: 36px;
           background: var(--mail-surface-1);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 6px;
@@ -1134,26 +1221,15 @@ export default function MailPage() {
       <div className="mail-shell">
         {/* ============== SIDEBAR ============== */}
         <aside className="mail-sidebar">
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 8px 12px" }}>
-            <Mail size={15} strokeWidth={2.2} color={PALETTE.slate700} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: PALETTE.slate900, letterSpacing: "-0.005em", lineHeight: 1.2 }}>
-                Mail
+          <div className="mail-side-head">
+            <div className="mail-side-logo">
+              <Mail size={24} strokeWidth={2} color={PALETTE.slate900} />
+            </div>
+            <div className="mail-side-head-text">
+              <div className="mail-side-title">Mail</div>
+              <div className="mail-side-subtitle">
+                {mailStatus?.connectedEmail || "Inbox · Sent · Drafts"}
               </div>
-              {mailStatus?.connectedEmail && (
-                <div
-                  style={{
-                    fontSize: 10.5,
-                    color: PALETTE.slate500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    marginTop: 1,
-                  }}
-                >
-                  {mailStatus.connectedEmail}
-                </div>
-              )}
             </div>
           </div>
 
@@ -1179,7 +1255,7 @@ export default function MailPage() {
             {FOLDERS.map((f) => {
               const Icon = f.icon;
               const isActive = selectedFolder === f.key;
-              const showCount = isActive && threads.length > 0;
+              const count = folderCounts[f.key] || 0;
               return (
                 <div
                   key={f.key}
@@ -1189,13 +1265,15 @@ export default function MailPage() {
                   <div className="mail-folder-icon">
                     <Icon size={14} strokeWidth={2} />
                   </div>
-                  <span>{f.label}</span>
-                  {showCount && (
-                    <span className="mail-folder-count">{threads.length}</span>
-                  )}
-                  {f.key === "INBOX" && !isActive && unreadCount > 0 && (
-                    <span className="mail-folder-count" style={{ color: "var(--mail-primary)", fontWeight: 600 }}>
+                  <span className="mail-folder-label">{f.label}</span>
+                  
+                  {f.key === "INBOX" && unreadCount > 0 ? (
+                    <span className="mail-folder-count" style={!isActive ? { color: "var(--mail-primary)", fontWeight: 600 } : {}}>
                       {unreadCount}
+                    </span>
+                  ) : (
+                    <span className="mail-folder-count">
+                      {count}
                     </span>
                   )}
                 </div>
@@ -1207,23 +1285,54 @@ export default function MailPage() {
         {/* ============== MAIN ============== */}
         <main className="mail-main">
           <div className="mail-topbar">
-            <div className="mail-search">
-              <Search size={16} color={PALETTE.slate400} />
-              <input
-                placeholder="Search messages, senders, attachments…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search ? (
-                <X
-                  size={14}
-                  color={PALETTE.slate400}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setSearch("")}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div className="mail-search">
+                <Search size={16} color={PALETTE.slate400} />
+                <input
+                  placeholder="Search messages, senders, attachments…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
-              ) : (
-                <span className="mail-kbd">/</span>
-              )}
+                {search ? (
+                  <X
+                    size={14}
+                    color={PALETTE.slate400}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setSearch("")}
+                  />
+                ) : (
+                  <span className="mail-kbd">/</span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <SearchableDropdown
+                  placeholder="To..."
+                  options={contacts
+                    .map((u: any) => ({
+                      value: u.email || "",
+                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim(),
+                    }))
+                    .filter((u: any) => u.value)}
+                  value={toFilter || ""}
+                  onChange={(val) => setToFilter(val || null)}
+                  style={{ width: 140 }}
+                  allowClear
+                />
+                <SearchableDropdown
+                  placeholder="From..."
+                  options={contacts
+                    .map((u: any) => ({
+                      value: u.email || "",
+                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim(),
+                    }))
+                    .filter((u: any) => u.value)}
+                  value={fromFilter || ""}
+                  onChange={(val) => setFromFilter(val || null)}
+                  style={{ width: 140 }}
+                  allowClear
+                />
+              </div>
             </div>
 
             <Space size={10}>
@@ -1249,21 +1358,37 @@ export default function MailPage() {
                 </Popconfirm>
               )}
               {canManageMail && (
-                <Tooltip title="Sync mail">
-                  <button
-                    className="mail-icon-btn"
-                    onClick={() => syncMail()}
-                    disabled={isSyncing}
-                    style={{ opacity: isSyncing ? 0.5 : 1 }}
-                  >
-                    <RefreshCw
-                      size={16}
-                      style={{
-                        animation: isSyncing ? "spin 1s linear infinite" : "none",
-                      }}
-                    />
-                  </button>
-                </Tooltip>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {syncProgress !== null ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11, color: PALETTE.emerald, fontWeight: 600 }}>
+                        {syncProgress}%
+                      </span>
+                      <div style={{ width: 60, height: 4, background: PALETTE.slate200, borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ width: `${syncProgress}%`, height: "100%", background: PALETTE.emerald, transition: "width 0.3s ease" }} />
+                      </div>
+                    </div>
+                  ) : lastSyncTime ? (
+                    <span style={{ fontSize: 11, color: PALETTE.slate500, fontWeight: 500 }}>
+                      Last sync: {dayjs(lastSyncTime).format("MMM D, h:mm A")}
+                    </span>
+                  ) : null}
+                  <Tooltip title="Sync mail">
+                    <button
+                      className="mail-icon-btn"
+                      onClick={() => syncMail()}
+                      disabled={isSyncing}
+                      style={{ opacity: isSyncing ? 0.5 : 1 }}
+                    >
+                      <RefreshCw
+                        size={16}
+                        style={{
+                          animation: isSyncing ? "spin 1s linear infinite" : "none",
+                        }}
+                      />
+                    </button>
+                  </Tooltip>
+                </div>
               )}
               <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </Space>
@@ -1423,7 +1548,7 @@ export default function MailPage() {
                       />
                     </div>
                     {isUnread ? <span className="unread-dot" /> : <span className="unread-dot" style={{ background: "transparent" }} />}
-                    <div className="thread-avatar" style={getAvatarStyle(sender)}>
+                    <div className="thread-avatar" style={getAvatarStyle(sender, item.isRead, selectedFolder)}>
                       {getInitials(sender)}
                     </div>
                     <div className="thread-meta">
@@ -1477,9 +1602,9 @@ export default function MailPage() {
               >
                 <ArrowLeft size={14} />
               </button>
-              <span style={{ 
-                fontSize: 14, 
-                fontWeight: 600, 
+              <span style={{
+                fontSize: 14,
+                fontWeight: 600,
                 color: PALETTE.slate900,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -1624,7 +1749,7 @@ export default function MailPage() {
                 <div className="convo-meta">
                   <div className="avatars">
                     {uniqueParticipants.slice(0, 4).map((p) => (
-                      <div key={p} className="pa-avatar" style={getAvatarStyle(p)} title={p}>
+                      <div key={p} className="pa-avatar" style={getAvatarStyle(p, selectedThread?.isRead, selectedFolder)} title={p}>
                         {getInitials(p)}
                       </div>
                     ))}
@@ -1665,7 +1790,7 @@ export default function MailPage() {
                         className="msg-head"
                         onClick={!isExpanded ? toggleExpand : undefined}
                       >
-                        <div className="msg-avatar" style={getAvatarStyle(fromName)}>
+                        <div className="msg-avatar" style={getAvatarStyle(fromName, selectedThread?.isRead, selectedFolder)}>
                           {getInitials(fromName)}
                         </div>
 
@@ -2316,5 +2441,13 @@ export default function MailPage() {
         </Form>
       </Drawer>
     </MainLayout>
+  );
+}
+
+export default function MailPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>}>
+      <MailPageContent />
+    </Suspense>
   );
 }

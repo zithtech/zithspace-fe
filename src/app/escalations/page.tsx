@@ -50,6 +50,7 @@ import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { usePermission } from '@/hooks/usePermission';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
@@ -58,7 +59,7 @@ import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { History } from 'lucide-react';
+import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 dayjs.extend(relativeTime);
@@ -122,7 +123,10 @@ export default function EscalationListPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [searchText, setSearchText] = useState('');
   const [savedView, setSavedView] = useState('all');
@@ -664,10 +668,11 @@ export default function EscalationListPage() {
     <MainLayout>
       <div className="es-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="es-sidebar">
+        {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
+        <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="es-sidebar-top">
             <div className="es-side-head">
-              <div className="es-side-logo"><AlertOutlined /></div>
+              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
               <div className="es-side-head-text">
                 <div className="es-side-title">Escalations</div>
                 <div className="es-side-subtitle">Quality & Performance</div>
@@ -753,16 +758,24 @@ export default function EscalationListPage() {
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
           <div className="es-topbar">
-            <div className="es-search-wrap">
-              <SearchOutlined className="es-search-icon" />
-              <input
-                ref={searchRef}
-                className="es-search"
-                placeholder="Search subject, target, project…"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+            <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
+              <Button
+                className="es-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
               />
-              <span className="es-kbd">⌘K</span>
+              <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
+                <SearchOutlined className="es-search-icon" />
+                <input
+                  ref={searchRef}
+                  className="es-search"
+                  placeholder="Search subject, target, project…"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+                <span className="es-kbd">⌘K</span>
+              </div>
             </div>
 
             <div className="es-topbar-meta">
@@ -1358,7 +1371,7 @@ export default function EscalationListPage() {
         .es-side-logo {
           flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
-        .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .es-side-logo .anticon { font-size: 24px !important; }
         .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
         .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
         .es-side-subtitle {
@@ -1366,7 +1379,7 @@ export default function EscalationListPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .es-create-btn {
-          height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important;
+          height: 32px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 4px;
@@ -1616,9 +1629,29 @@ export default function EscalationListPage() {
         @media (max-width: 1100px) {
           .es-stats { grid-template-columns: repeat(2, 1fr); }
         }
+        .es-mobile-menu-btn { display: none !important; }
+
         @media (max-width: 820px) {
-          .es-sidebar { display: none; }
+          .es-shell { flex-direction: column; }
+          .es-mobile-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+          }
+          .es-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 999; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .es-sidebar.is-open { left: 0; }
+          .es-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .es-topbar-left { max-width: none !important; width: 100%; }
+          .es-topbar-actions { width: 100%; justify-content: flex-start; }
           .es-topbar-meta { display: none; }
+          .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
         }
       `}</style>
     </MainLayout>

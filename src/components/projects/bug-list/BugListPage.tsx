@@ -871,7 +871,7 @@ export default function BugListPage() {
                   icon={<Activity size={14} />}
                   label="Health"
                   value={
-                    workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "—"
+                    workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "0%"
                   }
                   detail={
                     workspaceStats && workspaceStats.total > 0 ? (

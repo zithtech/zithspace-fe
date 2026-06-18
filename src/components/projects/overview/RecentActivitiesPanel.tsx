@@ -18,6 +18,7 @@ interface Activity {
 
 interface RecentActivitiesPanelProps {
   activities: Activity[];
+  height?: number | string;
 }
 
 const ACTION_COLOR: Record<string, string> = {
@@ -37,14 +38,14 @@ const colorForAction = (action: string) => {
   return "#94a3b8";
 };
 
-export const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ activities }) => {
+export const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ activities, height = 292 }) => {
   return (
     <div
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
         borderRadius: 6,
-        height: 292,
+        height,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",

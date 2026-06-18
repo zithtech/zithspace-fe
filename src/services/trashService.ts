@@ -34,6 +34,10 @@ export interface TrashListResponse {
     summary: {
       total: number;
       expiringSoon: number;
+      projectCounts?: {
+        projectId: string;
+        count: number;
+      }[];
     };
   };
 }

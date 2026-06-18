@@ -24,6 +24,7 @@ interface EditableSelectProps {
     plain?: boolean; // If true, removes default hover background and padding
     textStyle?: React.CSSProperties;
     disabled?: boolean;
+    showFirstNameOnly?: boolean;
 }
 
 export const EditableSelect: React.FC<EditableSelectProps> = ({
@@ -37,6 +38,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     plain = false,
     textStyle,
     disabled = false,
+    showFirstNameOnly = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -152,7 +154,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                     >
                         {opt.label.charAt(0)}
                     </Avatar>
-                    <Text style={textStyle}>{opt.label}</Text>
+                    <Text style={textStyle}>{showFirstNameOnly ? opt.label.split(" ")[0] : opt.label}</Text>
                 </Space>
             );
         }

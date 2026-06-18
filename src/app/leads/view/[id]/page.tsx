@@ -76,13 +76,13 @@ dayjs.extend(relativeTime);
 const { Title, Text, Paragraph } = Typography;
 
 const PLATFORM_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  Upwork: { bg: "rgba(16, 185, 129, 0.08)", color: "#047857", border: "rgba(16, 185, 129, 0.22)" },
-  LinkedIn: { bg: "rgba(59, 130, 246, 0.08)", color: "#1d4ed8", border: "rgba(59, 130, 246, 0.22)" },
-  Freelancer: { bg: "rgba(6, 182, 212, 0.08)", color: "#0e7490", border: "rgba(6, 182, 212, 0.22)" },
-  Fiverr: { bg: "rgba(245, 158, 11, 0.08)", color: "#b45309", border: "rgba(245, 158, 11, 0.22)" },
-  Zukvo: { bg: "rgba(139, 92, 246, 0.08)", color: "#7c3aed", border: "rgba(139, 92, 246, 0.22)" },
-  Zithtech: { bg: "rgba(14, 165, 233, 0.08)", color: "#0369a1", border: "rgba(14, 165, 233, 0.22)" },
-  Website: { bg: "rgba(99, 102, 241, 0.08)", color: "#4f46e5", border: "rgba(99, 102, 241, 0.22)" },
+  Upwork: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
+  LinkedIn: { bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.22)" },
+  Freelancer: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
+  Fiverr: { bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.22)" },
+  Zukvo: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
+  Zithtech: { bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.22)" },
+  Website: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
 };
 
 const getPlatformChip = (platform?: string) =>
@@ -109,9 +109,9 @@ interface AiScoreLevel {
 
 const getAIScoreLevel = (score?: number): AiScoreLevel | null => {
   if (score === undefined || score === null) return null;
-  if (score >= 80) return { label: "Hot", color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", icon: <Flame size={12} /> };
-  if (score >= 60) return { label: "Warm", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", icon: <TrendingUp size={12} /> };
-  if (score >= 40) return { label: "Mild", color: "#6366f1", bg: "rgba(99, 102, 241, 0.08)", icon: <Activity size={12} /> };
+  if (score >= 80) return { label: "Hot", color: "#10b981", bg: "rgba(16, 185, 129, 0.08)", icon: <Flame size={12} /> };
+  if (score >= 60) return { label: "Warm", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", icon: <TrendingUp size={12} /> };
+  if (score >= 40) return { label: "Mild", color: "#64748b", bg: "rgba(100, 116, 139, 0.08)", icon: <Activity size={12} /> };
   return { label: "Cold", color: "#64748b", bg: "rgba(100, 116, 139, 0.08)", icon: <Activity size={12} /> };
 };
 
@@ -370,7 +370,7 @@ export default function LeadProfilePage() {
   if (!lead) return null;
 
   const platformChip = getPlatformChip(lead.platform);
-  const statusColor = statusConfig?.color || "#6366f1";
+  const statusColor = statusConfig?.color || "#3b82f6";
   const skillsList: string[] = Array.isArray(lead.skills) ? lead.skills : [];
   const matchPercentage = lead.skill_analysis?.matchPercentage || 0;
   const winProb = Math.round(lead.ai_score || 0);
@@ -423,9 +423,9 @@ export default function LeadProfilePage() {
                       <span
                         className="lv-status-opt"
                         style={{
-                          color: s.color || "#6366f1",
-                          backgroundColor: `${s.color || "#6366f1"}12`,
-                          border: `1px solid ${s.color || "#6366f1"}25`,
+                          color: s.color || "#3b82f6",
+                          backgroundColor: `${s.color || "#3b82f6"}12`,
+                          border: `1px solid ${s.color || "#3b82f6"}25`,
                         }}
                       >
                         {s.name}
@@ -529,7 +529,7 @@ export default function LeadProfilePage() {
           <Drawer
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <History size={16} style={{ color: '#6366f1' }} />
+                <History size={16} style={{ color: '#3b82f6' }} />
                 <span>Lead Activity Timeline</span>
               </div>
             }
@@ -549,13 +549,13 @@ export default function LeadProfilePage() {
                 mode="left"
                 items={timelineData.map((item: any) => {
                   const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-                    CREATED_LEAD:    { label: 'Lead Created',      color: '#6366f1', icon: <Layers size={13} /> },
-                    UPDATED_LEAD:    { label: 'Lead Updated',      color: '#f59e0b', icon: <FileEdit size={13} /> },
-                    CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#8b5cf6', icon: <Zap size={13} /> },
+                    CREATED_LEAD:    { label: 'Lead Created',      color: '#3b82f6', icon: <Layers size={13} /> },
+                    UPDATED_LEAD:    { label: 'Lead Updated',      color: '#10b981', icon: <FileEdit size={13} /> },
+                    CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#3b82f6', icon: <Zap size={13} /> },
                     CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
                     CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
-                    PROJECT_CREATED: { label: 'Project Created',   color: '#06b6d4', icon: <FolderPlus size={13} /> },
-                    MAIL_SENT:       { label: 'Email Sent',        color: '#ec4899', icon: <Send size={13} /> },
+                    PROJECT_CREATED: { label: 'Project Created',   color: '#10b981', icon: <FolderPlus size={13} /> },
+                    MAIL_SENT:       { label: 'Email Sent',        color: '#3b82f6', icon: <Send size={13} /> },
                   };
                   const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
                   const user = item.performedByUser;
@@ -675,7 +675,7 @@ export default function LeadProfilePage() {
                     <span className="lv-kpi-value">{lead.budget || "—"}</span>
                   </div>
                 </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#6366f1" }}>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
                   <div className="lv-kpi-icon">
                     <Target size={14} />
                   </div>
@@ -684,7 +684,7 @@ export default function LeadProfilePage() {
                     <span className="lv-kpi-value">{winProb}%</span>
                   </div>
                 </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#0ea5e9" }}>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
                   <div className="lv-kpi-icon">
                     <Sparkles size={14} />
                   </div>
@@ -693,7 +693,7 @@ export default function LeadProfilePage() {
                     <span className="lv-kpi-value">{matchPercentage}%</span>
                   </div>
                 </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#f59e0b" }}>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
                   <div className="lv-kpi-icon">
                     <Briefcase size={14} />
                   </div>
@@ -711,7 +711,7 @@ export default function LeadProfilePage() {
                 {/* ------- Job description ------- */}
                 <section className="lv-section">
                   <header className="lv-section-head">
-                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#6366f1" }}>
+                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
                       <FileText size={14} />
                     </div>
                     <h3 className="lv-section-title">Job description</h3>
@@ -739,19 +739,19 @@ export default function LeadProfilePage() {
                 {/* ------- Intelligence summary ------- */}
                 {lead.ai_summary && (
                   <section className="lv-section" style={{
-                    background: "linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%)",
-                    border: "1px solid rgba(99, 102, 241, 0.1)"
+                    background: "rgba(59, 130, 246, 0.02)",
+                    border: "1px solid rgba(59, 130, 246, 0.1)"
                   }}>
                     <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#8b5cf6" }}>
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
                         <Sparkles size={14} />
                       </div>
                       <h3 className="lv-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         Intelligence Summary
                         <span style={{
-                          padding: "1px 6px", borderRadius: 999, background: "rgba(99, 102, 241, 0.1)",
-                          color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                          textTransform: "uppercase", border: "1px solid rgba(99, 102, 241, 0.15)",
+                          padding: "1px 6px", borderRadius: 999, background: "rgba(59, 130, 246, 0.1)",
+                          color: "#3b82f6", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                          textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.15)",
                           marginLeft: 4
                         }}>AI Distilled</span>
                       </h3>
@@ -821,7 +821,7 @@ export default function LeadProfilePage() {
                 <div className="lv-row-60-40">
                   <section className="lv-section">
                     <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#0ea5e9" }}>
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
                         <Layers size={14} />
                       </div>
                       <h3 className="lv-section-title">Required skills</h3>
@@ -868,7 +868,7 @@ export default function LeadProfilePage() {
 
                   <section className="lv-section">
                     <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#8b5cf6" }}>
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
                         <Calendar size={14} />
                       </div>
                       <h3 className="lv-section-title">Project timeline</h3>
@@ -1020,7 +1020,7 @@ export default function LeadProfilePage() {
                           cy="50"
                           r="42"
                           fill="transparent"
-                          stroke="#6366f1"
+                          stroke="#3b82f6"
                           strokeWidth="8"
                           strokeLinecap="round"
                           strokeDasharray={`${(winProb / 100) * 264} 264`}
@@ -1048,7 +1048,7 @@ export default function LeadProfilePage() {
                     <div className="lv-progress-track">
                       <div
                         className="lv-progress-fill"
-                        style={{ width: `${matchPercentage}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }}
+                        style={{ width: `${matchPercentage}%`, background: "linear-gradient(90deg, #3b82f6, #3b82f6)" }}
                       />
                     </div>
                   </div>
@@ -1114,7 +1114,7 @@ export default function LeadProfilePage() {
                               icon={<Download size={14} />} 
                               onClick={() => handleDownload(d.url, d.name, 'attachment')}
                               style={{ 
-                                color: '#6366f1', 
+                                color: '#3b82f6', 
                                 background: 'rgba(99, 102, 241, 0.05)',
                                 borderRadius: '6px',
                                 display: 'flex',
@@ -1228,7 +1228,7 @@ export default function LeadProfilePage() {
                   <div className="lv-init-caps">
                     <div className="lv-init-caps-head">What we'll create for you</div>
                     <div className="lv-init-caps-grid">
-                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="lv-init-cap-icon">
                           <UserCheck size={14} />
                         </div>
@@ -1239,7 +1239,7 @@ export default function LeadProfilePage() {
                           </span>
                         </div>
                       </div>
-                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#3b82f6" }}>
                         <div className="lv-init-cap-icon">
                           <Briefcase size={14} />
                         </div>
@@ -1261,7 +1261,7 @@ export default function LeadProfilePage() {
                           </span>
                         </div>
                       </div>
-                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
                         <div className="lv-init-cap-icon">
                           <Brain size={14} />
                         </div>
@@ -1499,7 +1499,7 @@ const leadViewStyles = (
         width: 34px !important;
         height: 34px !important;
         padding: 0 !important;
-        border-radius: 9px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
         color: var(--text-slate-700) !important;
@@ -1587,7 +1587,7 @@ const leadViewStyles = (
       /* Buttons */
       .lv-secondary-btn.ant-btn {
         height: 34px !important;
-        border-radius: 9px !important;
+        border-radius: 4px !important;
         padding: 0 14px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
@@ -1603,9 +1603,9 @@ const leadViewStyles = (
       }
       .lv-primary-btn.ant-btn {
         height: 34px !important;
-        border-radius: 9px !important;
+        border-radius: 0px !important;
         padding: 0 16px !important;
-        background: #4f46e5 !important;
+        background: #3B82F6 !important;
         border: 0 !important;
         color: #fff !important;
         font-weight: 700 !important;
@@ -1614,7 +1614,7 @@ const leadViewStyles = (
         gap: 6px !important;
       }
       .lv-primary-btn.ant-btn:hover {
-        background: #4338ca !important;
+        background: #2563EB !important;
       }
       .lv-primary-btn-success.ant-btn {
         background: #059669 !important;
@@ -1632,7 +1632,7 @@ const leadViewStyles = (
       .lv-hero {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 14px;
+        border-radius: 4px;
         padding: 22px 24px;
         margin-bottom: 16px;
       }
@@ -1713,11 +1713,11 @@ const leadViewStyles = (
         padding: 12px 14px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
       }
       .lv-kpi-icon {
         width: 32px; height: 32px;
-        border-radius: 9px;
+        border-radius: 4px;
         display: flex; align-items: center; justify-content: center;
         background: color-mix(in oklab, var(--lv-kpi-accent) 14%, transparent);
         color: var(--lv-kpi-accent);
@@ -1777,7 +1777,7 @@ const leadViewStyles = (
       .lv-section {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 14px;
+        border-radius: 4px;
         overflow: hidden;
       }
       .lv-section-head {
@@ -1789,7 +1789,7 @@ const leadViewStyles = (
       }
       .lv-section-icon {
         width: 26px; height: 26px;
-        border-radius: 7px;
+        border-radius: 4px;
         display: flex; align-items: center; justify-content: center;
         background: color-mix(in oklab, var(--lv-section-accent) 12%, transparent);
         color: var(--lv-section-accent);
@@ -1835,7 +1835,7 @@ const leadViewStyles = (
         padding: 0;
         border: 0;
         background: none;
-        color: #6366f1;
+        color: #3b82f6;
         font-size: 12.5px;
         font-weight: 700;
         cursor: pointer;
@@ -1910,7 +1910,7 @@ const leadViewStyles = (
         padding: 12px 14px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 10px;
+        border-radius: 4px;
         font-size: 13px;
       }
 
@@ -1924,7 +1924,7 @@ const leadViewStyles = (
         padding: 14px 16px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         transition: all 0.2s ease;
       }
       .lv-mail-item:hover {
@@ -1972,14 +1972,14 @@ const leadViewStyles = (
         align-items: center;
         background: var(--bg-slate-50);
         border: 1px dashed var(--border-slate-200);
-        border-radius: 12px;
+        border-radius: 4px;
       }
 
       /* Sidebar cards */
       .lv-side-card {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 14px;
+        border-radius: 4px;
         padding: 14px 16px 16px;
       }
       .lv-side-head {
@@ -1995,9 +1995,9 @@ const leadViewStyles = (
       .lv-client-id { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
       .lv-avatar {
         width: 42px; height: 42px;
-        border-radius: 11px;
+        border-radius: 4px;
         display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #3b82f6 100%);
         color: #fff;
         font-weight: 800;
         font-size: 14px;
@@ -2118,7 +2118,7 @@ const leadViewStyles = (
       .lv-progress-val {
         font-size: 11.5px;
         font-weight: 800;
-        color: #6366f1;
+        color: #3b82f6;
         font-variant-numeric: tabular-nums;
       }
       .lv-progress-track {
@@ -2157,7 +2157,7 @@ const leadViewStyles = (
         padding: 9px 11px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 9px;
+        border-radius: 4px;
         color: var(--text-slate-700);
         font-size: 12.5px;
         font-weight: 600;
@@ -2179,7 +2179,7 @@ const leadViewStyles = (
       /* ===================== Initialize Project modal ===================== */
       .lv-init-modal .ant-modal-content {
         padding: 0 !important;
-        border-radius: 16px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100);
         overflow: hidden;
         background: var(--bg-pure-white);
@@ -2197,8 +2197,8 @@ const leadViewStyles = (
       }
       .lv-init-icon {
         width: 44px; height: 44px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px;
+        background: linear-gradient(135deg, #3b82f6 0%, #3b82f6 100%);
         color: #fff;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
@@ -2234,7 +2234,7 @@ const leadViewStyles = (
         position: absolute;
         top: 16px; right: 16px;
         width: 30px; height: 30px;
-        border-radius: 8px;
+        border-radius: 4px;
         border: 1px solid var(--border-slate-100);
         background: var(--bg-pure-white);
         color: var(--text-slate-500);
@@ -2291,7 +2291,7 @@ const leadViewStyles = (
         margin: 18px 24px 0;
         padding: 14px 16px;
         border: 1px solid var(--border-slate-100);
-        border-radius: 12px;
+        border-radius: 4px;
         background: var(--bg-slate-50);
       }
       .lv-init-snapshot-head {
@@ -2367,7 +2367,7 @@ const leadViewStyles = (
         display: flex; align-items: flex-start; gap: 10px;
         padding: 12px 14px;
         border: 1px solid var(--border-slate-100);
-        border-radius: 11px;
+        border-radius: 4px;
         background: var(--bg-pure-white);
         transition: border-color .15s ease;
       }
@@ -2376,7 +2376,7 @@ const leadViewStyles = (
       }
       .lv-init-cap-icon {
         width: 28px; height: 28px;
-        border-radius: 8px;
+        border-radius: 4px;
         background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
         color: var(--cap-accent);
         display: flex; align-items: center; justify-content: center;
@@ -2403,7 +2403,7 @@ const leadViewStyles = (
         padding: 11px 13px;
         background: rgba(99, 102, 241, 0.06);
         border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 11px;
+        border-radius: 4px;
         color: var(--text-slate-700);
         margin-bottom: 14px;
       }
@@ -2452,7 +2452,7 @@ const leadViewStyles = (
 
       /* ===================== Legacy modal styles (kept for compat) ===================== */
       .lv-modal .ant-modal-content {
-        border-radius: 16px !important;
+        border-radius: 4px !important;
         padding: 20px 22px !important;
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
@@ -2463,8 +2463,8 @@ const leadViewStyles = (
       .lv-modal-head { display: flex; align-items: center; gap: 12px; }
       .lv-modal-icon {
         width: 38px; height: 38px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.1);
+        border-radius: 4px;
+        background: rgba(59, 130, 246, 0.1);
         color: #4f46e5;
         display: flex; align-items: center; justify-content: center;
       }
@@ -2480,7 +2480,7 @@ const leadViewStyles = (
       }
       .lv-steps .ant-steps-item-icon {
         width: 32px !important; height: 32px !important;
-        border-radius: 9px !important;
+        border-radius: 4px !important;
         display: flex !important; align-items: center !important; justify-content: center !important;
       }
       .lv-steps .ant-steps-item-process .ant-steps-item-icon {
@@ -2505,7 +2505,7 @@ const leadViewStyles = (
         padding: 11px 13px;
         background: rgba(99, 102, 241, 0.06);
         border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 11px;
+        border-radius: 4px;
         color: var(--text-slate-700);
         margin-bottom: 14px;
       }
@@ -2528,7 +2528,7 @@ const leadViewStyles = (
       }
       .lv-input.ant-input,
       .lv-input.ant-input-affix-wrapper {
-        border-radius: 10px !important;
+        border-radius: 4px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
         padding: 8px 12px !important;
@@ -2537,7 +2537,7 @@ const leadViewStyles = (
       .lv-input.ant-input:focus,
       .lv-input.ant-input-affix-wrapper-focused,
       .lv-input.ant-input-affix-wrapper:focus-within {
-        border-color: #6366f1 !important;
+        border-color: #3b82f6 !important;
       }
       .lv-input.ant-input-affix-wrapper > .ant-input { padding: 0 !important; }
       .lv-input.lv-input-textarea.ant-input { padding: 10px 12px !important; }

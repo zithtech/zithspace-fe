@@ -400,4 +400,19 @@ export class ProjectService {
     }
   }
 
+  /**
+   * Get all project tickets for the timeline view (loaded on demand,
+   * only when the Timeline tab is opened)
+   */
+  static async getProjectTimeline(projectId: string): Promise<any> {
+    try {
+      return await api.get(`/api/projects/${projectId}/timeline`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch project timeline");
+    }
+  }
+
 }

@@ -53,7 +53,7 @@ export default function PortalEnvironmentsListPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+    <div style={{ height: "100vh", overflowY: "auto", backgroundColor: "#ffffff" }}>
       {/* Workstation Header */}
       <div
         className="saas-header-container portal-mom-header-container"

@@ -11,6 +11,7 @@ const { Text } = Typography;
 
 interface InsightsPanelProps {
   insights: string[];
+  height?: number | string;
 }
 
 const classify = (text: string) => {
@@ -27,14 +28,14 @@ const classify = (text: string) => {
   return { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", icon: <BulbOutlined /> };
 };
 
-export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights }) => {
+export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights, height = 292 }) => {
   return (
     <div
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
         borderRadius: 6,
-        height: 292,
+        height,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",

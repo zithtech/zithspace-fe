@@ -1,10 +1,18 @@
 "use client";
 
-import { Drawer, Typography, Button, Collapse, Tooltip } from "antd";
+import { Drawer, Typography, Button, Collapse, Tooltip, Avatar } from "antd";
 import { History, User, RefreshCw, X, Inbox } from "lucide-react";
+import {
+  PlusCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ClockCircleOutlined,
+  UndoOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTransactionHistory } from "@/hooks/useTransactionHistory";
 import { TransactionRow } from "@/services/transactionHistoryService";
 import { useSocket } from "@/providers/SocketProvider";
@@ -21,19 +29,40 @@ interface ActionStyle {
   bg: string;
   border: string;
   dot: string;
+  icon: React.ReactNode;
+  label: string;
   zIndex?: number;
 }
-const GREEN: ActionStyle = { color: "#047857", bg: "rgba(16,185,129,0.10)", border: "rgba(16,185,129,0.22)", dot: "#10b981" };
-const BLUE: ActionStyle = { color: "#1d4ed8", bg: "rgba(59,130,246,0.10)", border: "rgba(59,130,246,0.22)", dot: "#3b82f6" };
-const RED: ActionStyle = { color: "#b91c1c", bg: "rgba(239,68,68,0.10)", border: "rgba(239,68,68,0.22)", dot: "#ef4444" };
-const ASH: ActionStyle = { color: "#475569", bg: "rgba(100,116,139,0.10)", border: "rgba(100,116,139,0.20)", dot: "#94a3b8" };
+const GREEN_ICON = <PlusCircleOutlined style={{ fontSize: 13 }} />;
+const BLUE_ICON = <EditOutlined style={{ fontSize: 13 }} />;
+const RED_ICON = <DeleteOutlined style={{ fontSize: 13 }} />;
+const ASH_ICON = <ClockCircleOutlined style={{ fontSize: 13 }} />;
+
+const GREEN = { color: "#047857", bg: "rgba(16,185,129,0.10)", border: "rgba(16,185,129,0.22)", dot: "#10b981", icon: GREEN_ICON };
+const BLUE = { color: "#1d4ed8", bg: "rgba(59,130,246,0.10)", border: "rgba(59,130,246,0.22)", dot: "#3b82f6", icon: BLUE_ICON };
+const RED = { color: "#b91c1c", bg: "rgba(239,68,68,0.10)", border: "rgba(239,68,68,0.22)", dot: "#ef4444", icon: RED_ICON };
+const ASH = { color: "#475569", bg: "rgba(100,116,139,0.10)", border: "rgba(100,116,139,0.20)", dot: "#94a3b8", icon: ASH_ICON };
 
 function actionStyle(action: string): ActionStyle {
-  if (action === "delete" || action === "permanent_delete") return RED;
-  if (["create", "restore", "verify", "start", "complete"].includes(action)) return GREEN;
-  if (action.startsWith("bulk_")) return ASH;
-  if (["update", "status_change", "move", "convert", "generate_ai", "archive", "reopen"].includes(action)) return BLUE;
-  return ASH;
+  let label = action.replace(/_/g, " ");
+  label = label.charAt(0).toUpperCase() + label.slice(1);
+
+  if (action === "delete" || action === "permanent_delete") {
+    return { ...RED, label };
+  }
+  if (["create", "restore", "verify", "start", "complete"].includes(action)) {
+    const icon = action === "restore" ? <UndoOutlined style={{ fontSize: 13 }} /> : GREEN.icon;
+    const resolvedLabel = action === "create" ? "Created" : label;
+    return { ...GREEN, icon, label: resolvedLabel };
+  }
+  if (action.startsWith("bulk_")) {
+    return { ...ASH, label };
+  }
+  if (["update", "status_change", "move", "convert", "generate_ai", "archive", "reopen"].includes(action)) {
+    const resolvedLabel = action === "update" ? "Updated" : label;
+    return { ...BLUE, label: resolvedLabel };
+  }
+  return { ...ASH, label };
 }
 
 function initials(name?: string | null, email?: string | null): string {
@@ -46,87 +75,70 @@ function initials(name?: string | null, email?: string | null): string {
 function HistoryRow({ row }: { row: TransactionRow }) {
   const created = dayjs(row.createdAt);
   const st = actionStyle(row.action);
-  const hasRaw =
-    (row.beforeData && Object.keys(row.beforeData).length > 0) ||
-    (row.afterData && Object.keys(row.afterData).length > 0) ||
-    (row.metadata && Object.keys(row.metadata).length > 0);
   const singleField =
     row.changedFields && row.changedFields.length === 1 ? row.changedFields[0] : null;
   const displayLabel = singleField
     ? (row.actionLabel || row.action).replace(/\s*\(.*?\)\s*$/, "")
     : row.actionLabel || row.action;
 
+  const actorName = row.actor?.name || row.actor?.email || "System";
+
   return (
     <div className="thd-item">
       <div className="thd-rail">
-        <span className="thd-avatar" style={{ boxShadow: `0 0 0 3px ${st.dot}22` }}>
-          {initials(row.actor?.name, row.actor?.email)}
-          <span className="thd-avatar-dot" style={{ background: st.dot }} />
+        <span
+          className="thd-rail-dot"
+          style={{
+            background: st.bg,
+            color: st.color,
+            borderColor: st.border,
+            boxShadow: `0 0 0 3px var(--bg-pure-white), 0 0 0 4px ${st.bg}`
+          }}
+        >
+          {st.icon}
         </span>
       </div>
 
-      <div className="thd-card">
+      <div className="thd-card" style={{ borderLeft: `2px solid ${st.color}` }}>
         <div className="thd-row-top">
-          <span className="thd-actor">{row.actor?.name || row.actor?.email || "Unknown"}</span>
-          <span
-            className="thd-pill"
-            style={{ color: st.color, background: st.bg, borderColor: st.border }}
-          >
-            {(row.action || "").replace(/_/g, " ")}
-          </span>
+          <div className="thd-actor-wrap">
+            <Avatar
+              size={22}
+              icon={<UserOutlined />}
+              src={(row.actor as any)?.avatarUrl || (row.actor as any)?.avatar}
+              style={{
+                backgroundColor: row.actor?.name ? '#3b82f6' : '#94a3b8',
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              {initials(row.actor?.name, row.actor?.email)}
+            </Avatar>
+            <span className="thd-actor">{actorName}</span>
+            <span
+              className="thd-pill"
+              style={{ color: st.color, background: st.bg, borderColor: st.border }}
+            >
+              {st.label}
+            </span>
+          </div>
           <Tooltip title={created.format("MMM D, YYYY · h:mm:ss A")}>
             <span className="thd-time">{created.fromNow()}</span>
           </Tooltip>
         </div>
 
-        <div className="thd-label">
+        <div className="thd-label" style={{ marginTop: 8 }}>
           <span>{displayLabel}</span>
-          {singleField && (
-            <>
-              <span className="thd-dot-sep">·</span>
-              <span className="thd-inline">
-                <InlineDiff row={row} field={singleField} />
-              </span>
-            </>
-          )}
         </div>
 
-        {!singleField && <ActivityDiff row={row} />}
-
-        {hasRaw && (
-          <Collapse
-            ghost
-            size="small"
-            className="thd-collapse"
-            items={[
-              {
-                key: "1",
-                label: <span className="thd-raw-toggle">Show raw payload</span>,
-                children: (
-                  <div className="thd-raw">
-                    {row.beforeData && Object.keys(row.beforeData).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">before: </Text>
-                        {JSON.stringify(row.beforeData, null, 2)}
-                      </pre>
-                    )}
-                    {row.afterData && Object.keys(row.afterData).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">after: </Text>
-                        {JSON.stringify(row.afterData, null, 2)}
-                      </pre>
-                    )}
-                    {row.metadata && Object.keys(row.metadata).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">metadata: </Text>
-                        {JSON.stringify(row.metadata, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-          />
+        {row.action === "update" && (
+          <div style={{ marginTop: 4 }}>
+            {singleField ? (
+              <InlineDiff row={row} field={singleField} />
+            ) : (
+              <ActivityDiff row={row} />
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -365,29 +377,20 @@ const styles = `
   }
   .thd-item:last-child .thd-rail::after { display: none; }
 
-  .thd-avatar {
-    position: relative;
-    width: 34px;
-    height: 34px;
+  .thd-rail-dot {
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 800;
-    color: #1d4ed8;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     z-index: 1;
+    border: 1px solid transparent;
+    transition: transform 0.18s ease;
+    margin-top: 8px;
   }
-  .thd-avatar-dot {
-    position: absolute;
-    right: -1px;
-    bottom: -1px;
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    border: 2px solid var(--bg-slate-50);
+  .thd-item:hover .thd-rail-dot {
+    transform: scale(1.08);
   }
 
   .thd-card {
@@ -399,15 +402,25 @@ const styles = `
     padding: 11px 13px;
     margin-bottom: 14px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    transition: box-shadow .15s ease, border-color .15s ease;
+    transition: all 0.18s ease;
   }
-  .thd-card:hover { box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07); border-color: #cbd5e1; }
+  .thd-card:hover {
+    box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
+    border-color: #cbd5e1;
+    transform: translateX(2px);
+  }
 
   .thd-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .thd-actor-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
   .thd-actor {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
-    color: var(--text-slate-900);
+    color: var(--text-primary);
     letter-spacing: -0.01em;
   }
   .thd-pill {
@@ -415,13 +428,14 @@ const styles = `
     align-items: center;
     height: 19px;
     padding: 0 8px;
-    border-radius: 6px;
+    border-radius: 999px;
     border: 1px solid transparent;
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: nowrap;
+    line-height: 1.4;
   }
   .thd-time { margin-left: auto; font-size: 11px; color: var(--text-slate-400); white-space: nowrap; font-weight: 500; }
 
@@ -434,6 +448,43 @@ const styles = `
     flex-wrap: wrap;
     gap: 6px;
     align-items: baseline;
+  }
+
+  /* ---------- Change Row styling ---------- */
+  .activity-change-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 5px 10px;
+  }
+  .activity-change-row__field {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-slate-500);
+    text-transform: capitalize;
+    margin-right: 2px;
+  }
+  .activity-change-row__tag.ant-tag {
+    margin: 0 !important;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 0 8px;
+    line-height: 18px;
+  }
+  .activity-change-row__tag--from.ant-tag {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-slate-500);
+    text-decoration: line-through;
+    text-decoration-color: rgba(148, 163, 184, 0.7);
+  }
+  .activity-change-row__tag--to.ant-tag {
+    background: rgba(16, 185, 129, 0.14);
+    color: #059669;
   }
   .thd-dot-sep { color: var(--text-slate-300); }
   .thd-inline { font-size: 12px; }

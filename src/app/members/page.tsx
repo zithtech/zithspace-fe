@@ -49,6 +49,7 @@ import {
   AppstoreOutlined,
   EllipsisOutlined,
   CopyOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import {
@@ -194,7 +195,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "work" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 12,
+          borderRadius: 0,
           background: value === "work" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -209,7 +210,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
           <span style={{
             width: 16,
             height: 16,
-            borderRadius: "50%",
+            borderRadius: "50",
             border: value === "work" ? "5px solid #3b82f6" : "1px solid var(--border-slate-300)",
             display: "inline-block"
           }} />
@@ -224,7 +225,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "personal" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 12,
+          borderRadius: 0,
           background: value === "personal" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -239,7 +240,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
           <span style={{
             width: 16,
             height: 16,
-            borderRadius: "50%",
+            borderRadius: 0,
             border: value === "personal" ? "5px solid #3b82f6" : "1px solid var(--border-slate-300)",
             display: "inline-block"
           }} />
@@ -347,7 +348,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 9,
+              borderRadius: 0,
               background: "rgba(59,130,246,0.10)",
               color: "#3b82f6",
               display: "flex",
@@ -378,30 +379,40 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 marginTop: 2,
               }}
             >
-              {mode === "add"
-                ? "Invite a new member to your workspace"
-                : `Updating ${selectedMember?.name || ""}`}
+              {mode === "add" ? (
+                "Invite a new member to your workspace"
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div>Updating {selectedMember?.name || ""}</div>
+                  {selectedMember && (
+                    <div style={{ fontSize: 10.5, color: "var(--text-slate-400)" }}>
+                      Created by: <span style={{ fontWeight: 600, color: "var(--text-slate-600)" }}>{(selectedMember as any).createdBy || "System"}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {mode === "edit" && selectedMember && canReadActivityLog && (
-            <Button
-              icon={<History size={14} />}
+            <button
+              type="button"
               onClick={() => setHistoryOpen(true)}
-              size="small"
-              style={{ borderRadius: 6 }}
+              className="mm-drawer-icon-btn"
+              title="Activity history"
             >
-              History
-            </Button>
+              <History size={14} strokeWidth={2} />
+              <span style={{ fontSize: 12, fontWeight: 600 }}>History</span>
+            </button>
           )}
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="mm-drawer-close"
+            className="mm-drawer-icon-btn"
           >
-            <CloseOutlined />
+            <CloseOutlined style={{ fontSize: 13 }} />
           </button>
         </div>
       </div>
@@ -411,7 +422,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "20px 24px 28px",
+          padding: "24px",
+          background: "var(--bg-slate-50)",
         }}
       >
         <Form
@@ -421,218 +433,241 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           size="middle"
           requiredMark={false}
         >
-          <SectionLabel>Profile</SectionLabel>
+          <div className="sp-form-section">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
+                <UserOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
+              </div>
+              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Profile Details</Text>
+            </div>
 
-          <Form.Item
-            name="name"
-            label="Full name"
-            rules={[{ required: true, message: "Please enter full name" }]}
-          >
-            <Input placeholder="e.g. Jane Doe" />
-          </Form.Item>
+            <Form.Item
+              name="name"
+              label="Full name"
+              rules={[{ required: true, message: "Please enter full name" }]}
+            >
+              <Input placeholder="e.g. Jane Doe" />
+            </Form.Item>
 
-          <Form.Item
-            name="workEmail"
-            label="Work email"
-            rules={[
-              { required: true, message: "Please enter work email" },
-              { type: "email", message: "Please enter valid email" },
-            ]}
-          >
-            <Input placeholder="jane@company.com" />
-          </Form.Item>
+            <Form.Item
+              name="workEmail"
+              label="Work email"
+              rules={[
+                { required: true, message: "Please enter work email" },
+                { type: "email", message: "Please enter valid email" },
+              ]}
+            >
+              <Input placeholder="jane@company.com" />
+            </Form.Item>
 
-          <Form.Item
-            name="personalEmail"
-            label="Personal email"
-            rules={[
-              { required: true, message: "Please enter personal email" },
-              { type: "email", message: "Please enter valid email" },
-            ]}
-          >
-            <Input placeholder="jane@personal.com" />
-          </Form.Item>
+            <Form.Item
+              name="personalEmail"
+              label="Personal email"
+              rules={[
+                { required: true, message: "Please enter personal email" },
+                { type: "email", message: "Please enter valid email" },
+              ]}
+            >
+              <Input placeholder="jane@personal.com" />
+            </Form.Item>
 
-          <Form.Item
-            name="phone"
-            label="Phone number"
-            rules={[
-              { required: true, message: "Please enter phone number" },
-              {
-                validator: (_, value) => {
-                  if (!value) return Promise.resolve();
-                  const digits = value.replace(/\D/g, "");
-                  if (digits.length !== 10) {
-                    return Promise.reject(new Error("Phone number must be exactly 10 digits"));
-                  }
-                  return Promise.resolve();
+            <Form.Item
+              name="phone"
+              label="Phone number"
+              rules={[
+                { required: true, message: "Please enter phone number" },
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+                    const digits = value.replace(/\D/g, "");
+                    if (digits.length !== 10) {
+                      return Promise.reject(new Error("Phone number must be exactly 10 digits"));
+                    }
+                    return Promise.resolve();
+                  },
                 },
-              },
-            ]}
-          >
-            <Input
-              placeholder="e.g. 9876543210"
-              maxLength={10}
-              onKeyPress={(e) => {
-                if (!/[0-9]/.test(e.key)) {
-                  e.preventDefault();
-                }
-              }}
-            />
-          </Form.Item>
+              ]}
+            >
+              <Input
+                placeholder="e.g. 9876543210"
+                maxLength={10}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+              />
+            </Form.Item>
+          </div>
 
-          <div style={{ height: 8 }} />
-          <SectionLabel>Access</SectionLabel>
+          <div className="sp-form-section">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <div className="sp-section-icon orange" style={{ borderRadius: 0 }}>
+                <SafetyCertificateOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
+              </div>
+              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Access</Text>
+            </div>
 
-          <Form.Item
-            name="role"
-            label="Role"
-            rules={[{ required: true, message: "Please select role" }]}
-            initialValue="user"
-          >
-            <Select placeholder="Select a role" optionLabelProp="label">
-              {ROLE_OPTIONS.map((opt) => (
-                <Select.Option key={opt.value} value={opt.value} label={opt.title}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
-                      {opt.icon}
-                    </span>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{opt.title}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
-                        {opt.desc}
+            <Form.Item
+              name="role"
+              label="Role"
+              rules={[{ required: true, message: "Please select role" }]}
+              initialValue="user"
+            >
+              <Select placeholder="Select a role" optionLabelProp="label">
+                {ROLE_OPTIONS.map((opt) => (
+                  <Select.Option key={opt.value} value={opt.value} label={opt.title}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
+                        {opt.icon}
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{opt.title}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
+                          {opt.desc}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            name="positionType"
-            label="Position Specification"
-            initialValue="grade"
-            style={{ marginBottom: 16 }}
-          >
-            <Segmented
-              options={[
-                { label: "Grade-based Position", value: "grade" },
-                { label: "Custom Title", value: "custom" },
-              ]}
-              block
-            />
-          </Form.Item>
-
-          {positionType === "grade" ? (
             <Form.Item
-              name="position"
-              label="Position"
-              rules={[{ required: true, message: "Please select position" }]}
+              name="positionType"
+              label="Position Specification"
+              initialValue="grade"
+              style={{ marginBottom: 16 }}
             >
-              <Select
-                placeholder="Select position"
-                loading={positionsLoading}
-                showSearch
-                optionFilterProp="children"
+              <Segmented
+                options={[
+                  { label: "Grade-based Position", value: "grade" },
+                  { label: "Custom Title", value: "custom" },
+                ]}
+                block
+              />
+            </Form.Item>
+
+            {positionType === "grade" ? (
+              <Form.Item
+                name="position"
+                label="Position"
+                rules={[{ required: true, message: "Please select position" }]}
               >
-                {positions.map((position) => (
-                  <Option key={position.id} value={position.id}>
-                    {position.title}
+                <Select
+                  placeholder="Select position"
+                  loading={positionsLoading}
+                  showSearch
+                  optionFilterProp="children"
+                >
+                  {positions.map((position) => (
+                    <Option key={position.id} value={position.id}>
+                      {position.title}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            ) : (
+              <Form.Item
+                name="positionTitle"
+                label="Position Title"
+                rules={[{ required: true, message: "Please enter position title" }]}
+              >
+                <Input placeholder="e.g. Senior Software Architect" />
+              </Form.Item>
+            )}
+
+            <Form.Item name="reportsTo" label="Reports to">
+              <Select
+                placeholder="Select manager"
+                showSearch
+                allowClear
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {managers
+                  .filter((m) => m.id !== selectedMember?.id)
+                  .map((manager) => (
+                    <Option key={manager.id} value={manager.id}>
+                      {manager.name}
+                    </Option>
+                  ))}
+              </Select>
+            </Form.Item>
+          </div>
+
+          <div className="sp-form-section">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <div className="sp-section-icon green" style={{ borderRadius: 0 }}>
+                <CalendarOutlined style={{ color: '#10b981', fontSize: 14 }} />
+              </div>
+              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Schedule</Text>
+            </div>
+
+            <Form.Item name="assignedShift" label="Assigned shift">
+              <Select placeholder="Select shift (optional)" allowClear>
+                {shifts.map((shift) => (
+                  <Option key={shift.id} value={shift.id}>
+                    {shift.name} · {shift.startTime}–{shift.endTime}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
-          ) : (
+
             <Form.Item
-              name="positionTitle"
-              label="Position Title"
-              rules={[{ required: true, message: "Please enter position title" }]}
+              name="workDays"
+              label="Work days"
+              initialValue={[1, 2, 3, 4, 5]}
             >
-              <Input placeholder="e.g. Senior Software Architect" />
+              <DayPills />
             </Form.Item>
-          )}
 
-          <Form.Item name="reportsTo" label="Reports to">
-            <Select
-              placeholder="Select manager"
-              showSearch
-              allowClear
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.children ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+            <Form.Item
+              name="isActive"
+              label="Status"
+              initialValue={true}
+              rules={[{ required: true, message: "Please select status" }]}
             >
-              {managers
-                .filter((m) => m.id !== selectedMember?.id)
-                .map((manager) => (
-                  <Option key={manager.id} value={manager.id}>
-                    {manager.name}
-                  </Option>
-                ))}
-            </Select>
-          </Form.Item>
+              <Select placeholder="Select status">
+                <Option value={true}>Active</Option>
+                <Option value={false}>Inactive</Option>
+              </Select>
+            </Form.Item>
 
-          <div style={{ height: 8 }} />
-          <SectionLabel>Schedule</SectionLabel>
-
-          <Form.Item name="assignedShift" label="Assigned shift">
-            <Select placeholder="Select shift (optional)" allowClear>
-              {shifts.map((shift) => (
-                <Option key={shift.id} value={shift.id}>
-                  {shift.name} · {shift.startTime}–{shift.endTime}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="workDays"
-            label="Work days"
-            initialValue={[1, 2, 3, 4, 5]}
-          >
-            <DayPills />
-          </Form.Item>
-
-          <Form.Item
-            name="isActive"
-            label="Status"
-            initialValue={true}
-            rules={[{ required: true, message: "Please select status" }]}
-          >
-            <Select placeholder="Select status">
-              <Option value={true}>Active</Option>
-              <Option value={false}>Inactive</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="minWorkingHours"
-            label="Minimum Working Hours Per Day"
-            initialValue={6}
-            rules={[
-              { required: true, message: "Please enter minimum working hours" },
-              {
-                validator: (_, value) => {
-                  if (value === undefined || value === null) return Promise.resolve();
-                  if (value < 1 || value > 10) {
-                    return Promise.reject(new Error("Minimum working hours must be between 1 and 10"));
-                  }
-                  return Promise.resolve();
+            <Form.Item
+              name="minWorkingHours"
+              label="Minimum Working Hours Per Day"
+              initialValue={6}
+              rules={[
+                { required: true, message: "Please enter minimum working hours" },
+                {
+                  validator: (_, value) => {
+                    if (value === undefined || value === null) return Promise.resolve();
+                    if (value < 1 || value > 10) {
+                      return Promise.reject(new Error("Minimum working hours must be between 1 and 10"));
+                    }
+                    return Promise.resolve();
+                  },
                 },
-              },
-            ]}
-          >
-            <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="e.g. 6" />
-          </Form.Item>
+              ]}
+            >
+              <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="e.g. 6" />
+            </Form.Item>
+          </div>
 
           {mode === "add" && (
-            <>
-              <div style={{ height: 16 }} />
-              <SectionLabel>Send Welcome Mail To</SectionLabel>
+            <div className="sp-form-section">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
+                  <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
+                </div>
+                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Welcome Notification</Text>
+              </div>
               <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }}>
                 <EmailSelector workEmail={workEmail} personalEmail={personalEmail} />
               </Form.Item>
@@ -643,7 +678,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   padding: "12px 14px",
                   background: "var(--bg-slate-50)",
                   border: "1px solid var(--border-slate-100)",
-                  borderRadius: 10,
+                  borderRadius: 0,
                   display: "flex",
                   gap: 10,
                   alignItems: "flex-start",
@@ -663,7 +698,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   prompted to set a new password on first login.
                 </div>
               </div>
-            </>
+            </div>
           )}
         </Form>
       </div>
@@ -682,7 +717,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
       >
         <Button
           onClick={onClose}
-          style={{ borderRadius: 8, height: 38, fontWeight: 500, padding: "0 16px" }}
+          className="mm-footer-btn"
+          style={{ height: 38, fontWeight: 500, padding: "0 16px" }}
         >
           Cancel
         </Button>
@@ -690,8 +726,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           type="primary"
           loading={formLoading}
           onClick={() => form.submit()}
+          className="mm-footer-btn"
           style={{
-            borderRadius: 8,
             height: 38,
             padding: "0 20px",
             fontWeight: 600,
@@ -713,6 +749,421 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           subtitle={selectedMember.name}
         />
       )}
+    </div>
+  );
+};
+
+interface MemberPreviewDrawerContentProps {
+  member: Member | null;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  shifts: Shift[];
+  canUpdateUser: boolean;
+  canDeleteUser: boolean;
+  canManageUsers: boolean;
+}
+
+const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
+  member,
+  onClose,
+  onEdit,
+  onDelete,
+  shifts,
+  canUpdateUser,
+  canDeleteUser,
+  canManageUsers,
+}) => {
+  if (!member) return null;
+  const { message } = App.useApp();
+
+  const roleMeta = ROLE_META[member.role] || {
+    label: member.role,
+    bg: "rgba(59,130,246,0.10)",
+    color: "#3b82f6",
+    dot: "#3b82f6",
+  };
+
+  const reportsToObj = member.reportsTo && typeof member.reportsTo === "object" ? member.reportsTo : null;
+  const assignedShiftObj = shifts.find(
+    (s) => s.id === ((member as any).assignedShift?.id || (member as any).assignedShiftId)
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg-slate-50)" }}>
+      {/* Clean minimal header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "16px 20px",
+          background: "var(--bg-pure-white)",
+          borderBottom: "1px solid var(--border-slate-100)",
+          flexShrink: 0,
+        }}
+      >
+        <Avatar
+          size={46}
+          shape="square"
+          src={member.avatarUrl}
+          style={{
+            background: gradientFor(member.id || member.name || "x"),
+            color: "#fff",
+            fontSize: 18,
+            fontWeight: 800,
+            borderRadius: 12,
+            flexShrink: 0,
+          }}
+        >
+          {initialsOf(member.name || "")}
+        </Avatar>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+              {member.name}
+            </span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: member.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
+                color: member.isActive ? "#10b981" : "#ef4444",
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.02em",
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: member.isActive ? "#10b981" : "#ef4444" }} />
+              {member.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginTop: 2 }}>
+            {member.position?.title || "—"}
+          </div>
+          {/* Meta row: Created By · Updated By · Updated — single line */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 6,
+            flexWrap: "nowrap",
+            overflow: "hidden",
+            minWidth: 0,
+          }}>
+            {member.createdBy && (
+              <>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                  <UserOutlined style={{ fontSize: 10 }} />
+                  <span>Created by</span>
+                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {member.createdBy}
+                  </span>
+                </span>
+                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+              </>
+            )}
+            {member.updatedBy && (
+              <>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                  <EditOutlined style={{ fontSize: 10 }} />
+                  <span>Updated by</span>
+                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {member.updatedBy}
+                  </span>
+                </span>
+                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+              </>
+            )}
+            {member.updatedAt && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                <CalendarOutlined style={{ fontSize: 10 }} />
+                <span style={{ fontWeight: 600, color: "var(--text-slate-600)", whiteSpace: "nowrap" }}>
+                  {dayjs(member.updatedAt).format("DD MMM YYYY")}
+                </span>
+              </span>
+            )}
+          </div>
+
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {(canUpdateUser || canManageUsers) && (
+            <button
+              type="button"
+              onClick={onEdit}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                height: 32,
+                padding: "0 12px",
+                borderRadius: 8,
+                background: "var(--bg-slate-50)",
+                border: "1px solid var(--border-slate-200)",
+                color: "var(--text-slate-600)",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bg-blue-50)";
+                e.currentTarget.style.borderColor = "#bfdbfe";
+                e.currentTarget.style.color = "#3b82f6";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--bg-slate-50)";
+                e.currentTarget.style.borderColor = "var(--border-slate-200)";
+                e.currentTarget.style.color = "var(--text-slate-600)";
+              }}
+            >
+              <EditOutlined style={{ fontSize: 12 }} />
+              Edit Profile
+            </button>
+          )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: "var(--bg-slate-50)",
+            border: "1px solid var(--border-slate-200)",
+            color: "var(--text-slate-500)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--bg-blue-50)";
+            e.currentTarget.style.borderColor = "#bfdbfe";
+            e.currentTarget.style.color = "#3b82f6";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-slate-50)";
+            e.currentTarget.style.borderColor = "var(--border-slate-200)";
+            e.currentTarget.style.color = "var(--text-slate-500)";
+          }}
+        >
+          <CloseOutlined style={{ fontSize: 13 }} />
+        </button>
+        </div>{/* end Actions */}
+      </div>
+
+      {/* Details Scrollable Body */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        
+        {/* Panel 1: Profile & Access */}
+        <div className="sp-form-section" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <div className="sp-section-icon orange" style={{ borderRadius: 8 }}>
+              <CrownOutlined style={{ color: '#f59e0b', fontSize: 13 }} />
+            </div>
+            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Role & Reports</Text>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 600, textTransform: "uppercase" }}>System Role</div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: roleMeta.bg,
+                  color: roleMeta.color,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  marginTop: 6,
+                }}
+              >
+                {roleMeta.label}
+              </span>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 600, textTransform: "uppercase" }}>Reports To</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                {reportsToObj ? (
+                  <>
+                    <Avatar
+                      size={20}
+                      src={reportsToObj.avatarUrl}
+                      style={{ background: "rgba(59,130,246,0.1)", color: "#3b82f6", fontSize: 9, fontWeight: 700 }}
+                    >
+                      {initialsOf(reportsToObj.name || "")}
+                    </Avatar>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>{reportsToObj.name}</span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12, color: "var(--text-slate-400)" }}>No manager assigned</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 2: Contact Information */}
+        <div className="sp-form-section" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <div className="sp-section-icon slate" style={{ borderRadius: 8 }}>
+              <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 13 }} />
+            </div>
+            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Contact Information</Text>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <MailOutlined style={{ color: "var(--text-slate-400)", fontSize: 14 }} />
+                <div>
+                  <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>Work Email</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-slate-700)" }}>{member.workEmail || "—"}</div>
+                </div>
+              </div>
+              {member.workEmail && (
+                <Button 
+                  size="small" 
+                  type="text" 
+                  icon={<CopyOutlined />} 
+                  onClick={() => {
+                    navigator.clipboard.writeText(member.workEmail);
+                    message.success("Work email copied");
+                  }} 
+                />
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <MailOutlined style={{ color: "var(--text-slate-400)", fontSize: 14 }} />
+                <div>
+                  <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>Personal Email</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-slate-700)" }}>{member.personalEmail || "—"}</div>
+                </div>
+              </div>
+              {member.personalEmail && (
+                <Button 
+                  size="small" 
+                  type="text" 
+                  icon={<CopyOutlined />} 
+                  onClick={() => {
+                    navigator.clipboard.writeText(member.personalEmail);
+                    message.success("Personal email copied");
+                  }} 
+                />
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <PhoneOutlined style={{ color: "var(--text-slate-400)", fontSize: 14 }} />
+                <div>
+                  <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>Phone Number</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-slate-700)" }}>{member.phone || "—"}</div>
+                </div>
+              </div>
+              {member.phone && (
+                <Button 
+                  size="small" 
+                  type="text" 
+                  icon={<CopyOutlined />} 
+                  onClick={() => {
+                    navigator.clipboard.writeText(member.phone);
+                    message.success("Phone number copied");
+                  }} 
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 3: Schedule & Tracking */}
+        <div className="sp-form-section" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <div className="sp-section-icon green" style={{ borderRadius: 8 }}>
+              <CalendarOutlined style={{ color: '#10b981', fontSize: 13 }} />
+            </div>
+            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Schedule & Shift</Text>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>Assigned Shift</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-slate-700)", marginTop: 4 }}>
+                  {assignedShiftObj ? `${assignedShiftObj.name} (${assignedShiftObj.startTime} - ${assignedShiftObj.endTime})` : "No shift assigned"}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>Min Daily Hours</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-slate-700)", marginTop: 4 }}>
+                  {member.minWorkingHours || 6} hours
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500, marginBottom: 6 }}>Work Days</div>
+              <DayPills value={(member as any).workDays || [1, 2, 3, 4, 5]} />
+            </div>
+          </div>
+        </div>
+
+
+
+      </div>
+
+      {/* Sticky footer actions */}
+      <div
+        style={{
+          padding: "14px 24px",
+          borderTop: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          style={{ height: 38, borderRadius: 8, fontWeight: 500, padding: "0 16px" }}
+        >
+          Close
+        </Button>
+        
+        {(canDeleteUser || canManageUsers) && (
+          <Button
+            danger
+            onClick={onDelete}
+            style={{ height: 38, borderRadius: 8, fontWeight: 500, padding: "0 16px" }}
+          >
+            Delete
+          </Button>
+        )}
+
+
+      </div>
     </div>
   );
 };
@@ -833,6 +1284,7 @@ export default function MembersPage() {
     total: 0,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
   const [positionFilter, setPositionFilter] = useState<string | undefined>(
     undefined,
@@ -845,6 +1297,14 @@ export default function MembersPage() {
   const [modalType, setModalType] = useState<"add" | "edit" | "delete">("add");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewMember, setPreviewMember] = useState<Member | null>(null);
+
+  const showPreviewDrawer = (member: Member) => {
+    setPreviewMember(member);
+    setPreviewVisible(true);
+  };
 
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -895,7 +1355,7 @@ export default function MembersPage() {
       const response = await MembersService.getMembers({
         page: pagination.current,
         limit: pagination.pageSize,
-        search: searchTerm,
+        search: debouncedSearchTerm,
         role: roleFilter,
         position: positionFilter,
         reportsToId: reportsToFilter,
@@ -981,6 +1441,14 @@ export default function MembersPage() {
     }
   }, [user]);
 
+  // Debounce search input — wait 400ms after last keystroke before updating
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     if (user) {
       fetchMembers();
@@ -989,7 +1457,7 @@ export default function MembersPage() {
     user,
     pagination.current,
     pagination.pageSize,
-    searchTerm,
+    debouncedSearchTerm,
     roleFilter,
     positionFilter,
     reportsToFilter,
@@ -1080,12 +1548,16 @@ export default function MembersPage() {
 
     try {
       setFormLoading(true);
-      await MembersService.deleteMember(selectedMember.id);
-      messageApi.success("Member deleted successfully");
+      const deletedId = selectedMember.id;
+      await MembersService.deleteMember(deletedId);
+      messageApi.success("Member moved to trash");
       setIsModalVisible(false);
       setSelectedMember(null);
-      fetchMembers();
-      fetchAllMembers();
+
+      // Remove from local state immediately so the row disappears from the table
+      setMembers((prev) => prev.filter((m) => m.id !== deletedId));
+      setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
+      setAllMembers((prev) => prev.filter((m) => m.id !== deletedId));
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
@@ -1428,19 +1900,22 @@ export default function MembersPage() {
         if (menuItems.length === 0) return null;
 
         return (
-          <Dropdown
-            menu={{ items: menuItems }}
-            trigger={["click"]}
-            placement="bottomRight"
-          >
-            <Button
-              type="text"
-              icon={<MoreOutlined style={{ fontSize: 16 }} />}
-              size="small"
-              className="mm-action-btn"
-              style={{ width: 28, height: 28 }}
-            />
-          </Dropdown>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Dropdown
+              menu={{ items: menuItems }}
+              trigger={["click"]}
+              placement="bottomRight"
+              overlayStyle={{ borderRadius: 0, padding: 0 }}
+            >
+              <Button
+                type="text"
+                icon={<MoreOutlined style={{ fontSize: 16 }} />}
+                size="small"
+                className="mm-action-btn"
+                style={{ width: 28, height: 28 }}
+              />
+            </Dropdown>
+          </div>
         );
       },
     },
@@ -1722,6 +2197,10 @@ export default function MembersPage() {
                   pagination={false}
                   scroll={{ x: 1024 }}
                   locale={{ emptyText: emptyState }}
+                  rowClassName="pp-row"
+                  onRow={(record) => ({
+                    onClick: () => showPreviewDrawer(record),
+                  })}
                 />
               </div>
             ) : (
@@ -1769,7 +2248,7 @@ export default function MembersPage() {
                     };
 
                     return (
-                      <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
+                      <div key={item.id} className="pc-card" onClick={() => showPreviewDrawer(item)}>
                         <div className="pc-top">
                           <Avatar
                             size={30}
@@ -1802,6 +2281,7 @@ export default function MembersPage() {
                               menu={dropdownMenu}
                               trigger={['click']}
                               placement="bottomRight"
+                              overlayStyle={{ borderRadius: 0, padding: 0 }}
                             >
                               <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
                                 <EllipsisOutlined />
@@ -1835,21 +2315,34 @@ export default function MembersPage() {
                               </span>
                             </span>
                           </div>
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item">
+                          <div className="pc-foot-row" style={{ flexWrap: "nowrap", overflow: "hidden" }}>
+                            <span className="pc-foot-item" style={{ flexShrink: 0 }}>
                               <span className="pc-foot-key">Role:</span>
                               <span style={{ fontSize: "10px", fontWeight: 700, color: roleMeta.color }}>
                                 {roleLabel.toUpperCase()}
                               </span>
                             </span>
                             <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
+                            <span className="pc-foot-item" style={{ flexShrink: 0 }}>
                               <span className="pc-foot-key">Status:</span>
                               <span style={{ fontSize: "10px", fontWeight: 700, color: item.isActive ? "#10b981" : "#ef4444" }}>
                                 {item.isActive ? "ACTIVE" : "INACTIVE"}
                               </span>
                             </span>
-
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
+                              <span className="pc-foot-key">Created:</span>
+                              <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {item.createdBy || "—"}
+                              </span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
+                              <span className="pc-foot-key">Updated:</span>
+                              <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {item.updatedBy || "—"}
+                              </span>
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1950,6 +2443,48 @@ export default function MembersPage() {
         </div>
       </Modal>
 
+      {/* Preview Drawer */}
+      <Drawer
+        className="mm-preview-drawer"
+        width={480}
+        open={previewVisible}
+        onClose={() => {
+          setPreviewVisible(false);
+          setPreviewMember(null);
+        }}
+        closable={false}
+        destroyOnClose
+        styles={{
+          body: { padding: 0, background: "var(--bg-slate-50)" },
+          header: { display: "none" },
+          content: { background: "var(--bg-pure-white)" },
+        }}
+      >
+        <MemberPreviewDrawerContent
+          member={previewMember}
+          onClose={() => {
+            setPreviewVisible(false);
+            setPreviewMember(null);
+          }}
+          onEdit={() => {
+            if (previewMember) {
+              setPreviewVisible(false);
+              showEditModal(previewMember);
+            }
+          }}
+          onDelete={() => {
+            if (previewMember) {
+              setPreviewVisible(false);
+              showDeleteModal(previewMember);
+            }
+          }}
+          shifts={shifts}
+          canUpdateUser={canUpdateUser}
+          canDeleteUser={canDeleteUser}
+          canManageUsers={canManageUsers}
+        />
+      </Drawer>
+
       {/* Add / Edit Drawer */}
       <Drawer
         className="mm-drawer"
@@ -1989,6 +2524,100 @@ export default function MembersPage() {
       </Drawer>
 
       <style jsx global>{`
+        /* --- Member Drawer Style Overrides --- */
+        .mm-drawer .ant-input,
+        .mm-drawer .ant-select-selector,
+        .mm-drawer .ant-btn,
+        .mm-drawer .ant-segmented,
+        .mm-drawer .ant-segmented-item,
+        .mm-drawer .ant-segmented-thumb,
+        .mm-drawer .ant-input-number,
+        .mm-drawer .ant-select,
+        .mm-drawer .email-selector-card {
+          border-radius: 0 !important;
+        }
+
+        /* Restore border-radius for footer action buttons */
+        .mm-drawer .mm-footer-btn.ant-btn {
+          border-radius: 8px !important;
+        }
+
+        /* Header icon buttons (History + Close) */
+        .mm-drawer-icon-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 30px;
+          padding: 0 10px;
+          border-radius: 8px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-500);
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color .15s ease, border-color .15s ease, background .15s ease;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .mm-drawer-icon-btn:hover {
+          color: #3b82f6;
+          border-color: #bfdbfe;
+          background: var(--bg-blue-50);
+        }
+
+        .mm-day-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 6px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .mm-day-pill:hover {
+          border-color: #93c5fd;
+          color: #3b82f6;
+          background: var(--bg-blue-50);
+        }
+
+        .mm-day-pill.active {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+          border-color: transparent !important;
+          color: #fff !important;
+          box-shadow: 0 3px 8px rgba(59, 130, 246, 0.30) !important;
+        }
+
+        .sp-form-section {
+          background: var(--bg-pure-white);
+          padding: 20px;
+          border-radius: 0 !important;
+          border: 1px solid var(--border-slate-200);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+          margin-bottom: 16px;
+        }
+        [data-theme='dark'] .sp-form-section {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .sp-section-icon {
+          padding: 6px;
+          border-radius: 0 !important;
+          display: flex;
+        }
+        .sp-section-icon.slate { background: var(--bg-slate-50); }
+        .sp-section-icon.orange { background: var(--bg-orange-50); }
+        .sp-section-icon.green { background: var(--bg-green-50); }
+        [data-theme='dark'] .sp-section-icon.slate { background: #1f2937 !important; }
+        [data-theme='dark'] .sp-section-icon.orange { background: rgba(249,115,22,0.12) !important; }
+        [data-theme='dark'] .sp-section-icon.green { background: rgba(16,185,129,0.12) !important; }
+
         .pp-shell {
           display: flex;
           margin: 0 -24px;
@@ -2299,6 +2928,21 @@ export default function MembersPage() {
         @media (max-width: 820px) {
           .pp-sidebar { display: none; }
           .pp-topbar-meta { display: none; }
+        }
+        /* ---- Dropdown popup: sharp corners (border-radius 0) ---- */
+        .pp-shell .ant-dropdown .ant-dropdown-menu,
+        .pp-shell .ant-dropdown-menu-root,
+        .pp-shell .ant-dropdown-menu-submenu-popup,
+        .ant-dropdown.pp-dd .ant-dropdown-menu {
+          border-radius: 0 !important;
+        }
+        .ant-dropdown .ant-dropdown-menu {
+          border-radius: 0 !important;
+          padding: 2px 0 !important;
+        }
+        .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item:first-child,
+        .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item:last-child {
+          border-radius: 0 !important;
         }
       `}</style>
     </MainLayout>

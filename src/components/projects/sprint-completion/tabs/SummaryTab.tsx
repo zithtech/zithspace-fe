@@ -89,54 +89,60 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
   const ready = statistics.pendingTickets === 0;
 
   return (
-    <div className="sc-tab">
+    <div className="sc-tab sc-tab-summary">
       {/* Hero */}
       <div className="sc-hero">
         <div className="sc-hero-left">
-          <div className="sc-hero-eyebrow">Sprint Focus</div>
-          <h3 className="sc-hero-name">{sprint.name}</h3>
-          <div className="sc-hero-meta">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <CalendarOutlined />
-              {dayjs(sprint.startDate).format('MMM D')} – {dayjs(sprint.endDate).format('MMM D, YYYY')}
-            </span>
-            <span style={{ opacity: 0.6 }}>•</span>
-            <span>{duration} day{duration === 1 ? '' : 's'}</span>
+          <div className="sc-hero-badge">
+            <RocketOutlined />
+          </div>
+          <div className="sc-hero-info">
+            <div className="sc-hero-eyebrow">Sprint Focus</div>
+            <h3 className="sc-hero-name">{sprint.name}</h3>
+            <div className="sc-hero-meta">
+              <span className="sc-hero-meta-item">
+                <CalendarOutlined />
+                {dayjs(sprint.startDate).format('MMM D')} – {dayjs(sprint.endDate).format('MMM D, YYYY')}
+              </span>
+              <span className="sc-hero-dot" />
+              <span className="sc-hero-meta-item">{duration} day{duration === 1 ? '' : 's'}</span>
 
-            {daysRemaining > 0 && (
-              <span className="sc-hero-chip">
-                {daysRemaining} day{daysRemaining === 1 ? '' : 's'} left
-              </span>
-            )}
-            {daysRemaining === 0 && <span className="sc-hero-chip sc-hero-chip-warn">Ends today</span>}
-            {daysRemaining < 0 && (
-              <span className="sc-hero-chip sc-hero-chip-danger">
-                Overdue by {Math.abs(daysRemaining)} day{Math.abs(daysRemaining) === 1 ? '' : 's'}
-              </span>
-            )}
-            {ready && <span className="sc-hero-chip sc-hero-chip-success">Ready to complete</span>}
+              {daysRemaining > 0 && (
+                <span className="sc-hero-chip">
+                  {daysRemaining} day{daysRemaining === 1 ? '' : 's'} left
+                </span>
+              )}
+              {daysRemaining === 0 && <span className="sc-hero-chip sc-hero-chip-warn">Ends today</span>}
+              {daysRemaining < 0 && (
+                <span className="sc-hero-chip sc-hero-chip-danger">
+                  Overdue by {Math.abs(daysRemaining)} day{Math.abs(daysRemaining) === 1 ? '' : 's'}
+                </span>
+              )}
+              {ready && <span className="sc-hero-chip sc-hero-chip-success">Ready to complete</span>}
+            </div>
           </div>
         </div>
 
         <div className="sc-hero-right">
-          <div className="sc-hero-progress">
-            <Progress
-              type="circle"
-              percent={statistics.completionPercentage}
-              size={88}
-              strokeWidth={9}
-              strokeColor={{ '0%': '#4F46E5', '100%': '#10B981' }}
-              trailColor="var(--sc-border-soft)"
-              format={(percent) => (
-                <span style={{ color: 'var(--sc-text)', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
-                  {percent}%
-                </span>
-              )}
-            />
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--sc-text-muted)' }}>
-              Progress
+          <div className="sc-hero-progress-text">
+            <span className="sc-hero-progress-label">Completion</span>
+            <span className="sc-hero-progress-sub">
+              {statistics.completedTickets}/{statistics.totalTickets} resolved
             </span>
           </div>
+          <Progress
+            type="circle"
+            percent={statistics.completionPercentage}
+            size={56}
+            strokeWidth={11}
+            strokeColor={{ '0%': '#2563EB', '100%': '#10B981' }}
+            trailColor="var(--sc-border-soft)"
+            format={(percent) => (
+              <span style={{ color: 'var(--sc-text)', fontSize: 13, fontWeight: 800, letterSpacing: '-0.02em' }}>
+                {percent}%
+              </span>
+            )}
+          />
         </div>
       </div>
 
@@ -157,7 +163,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
       </div>
 
       {/* Two column section */}
-      <div className="sc-grid-2">
+      <div className="sc-grid-2 sc-summary-cols">
         {/* Destinations */}
         <div className="sc-card">
           <div className="sc-card-head">
@@ -178,7 +184,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
                 </div>
                 {destinations?.sprints && destinations.sprints.length > 0 ? (
                   <div className="sc-dest-list">
-                    {destinations.sprints.slice(0, 5).map((s) => (
+                    {destinations.sprints.map((s) => (
                       <div className="sc-dest-item" key={s.id}>
                         <span className="sc-dest-mini-tag">{s.status}</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -202,7 +208,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
                 </div>
                 {destinations?.buckets && destinations.buckets.length > 0 ? (
                   <div className="sc-dest-list">
-                    {destinations.buckets.slice(0, 5).map((b) => (
+                    {destinations.buckets.map((b) => (
                       <div className="sc-dest-item" key={b.id}>
                         <span className="sc-dest-dot" style={{ background: b.color || 'var(--sc-text-faint)' }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</span>
@@ -269,14 +275,13 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
       {ready && statistics.completedTickets > 0 && (
         <div
           style={{
-            marginTop: 16,
+            marginTop: 12,
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            padding: '14px 18px',
-            borderRadius: 14,
-            background:
-              'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%)',
+            padding: '11px 14px',
+            borderRadius: 12,
+            background: 'rgba(16, 185, 129, 0.08)',
             border: '1px solid rgba(16, 185, 129, 0.20)',
           }}
         >

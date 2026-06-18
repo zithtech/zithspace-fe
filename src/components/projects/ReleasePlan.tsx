@@ -53,6 +53,10 @@ import { usePermission } from "@/hooks/usePermission";
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+/** Description may contain rich-text HTML — strip tags for compact plain-text previews. */
+const stripHtml = (html: string): string =>
+  (html || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
+
 type NotificationPlacement = NotificationArgsProps["placement"];
 
 export default function ReleasePlanComponent() {
@@ -494,9 +498,10 @@ export default function ReleasePlanComponent() {
           <Text strong>{text}</Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.description?.length > 50
-              ? `${record.description.substring(0, 50)}...`
-              : record.description}
+            {(() => {
+              const desc = stripHtml(record.description || "");
+              return desc.length > 50 ? `${desc.substring(0, 50)}...` : desc;
+            })()}
           </Text>
         </div>
       ),

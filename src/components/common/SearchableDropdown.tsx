@@ -32,6 +32,8 @@ export interface SearchableDropdownOption {
   disabled?: boolean;
   /** Avatar image URL — renders an image instead of initials when provided. */
   avatarUrl?: string | null;
+  /** Pin this option to a fixed footer area (e.g. a "Create new…" action) instead of the scrollable list. */
+  pinned?: boolean;
 }
 
 export interface SearchableDropdownProps {
@@ -55,6 +57,8 @@ export interface SearchableDropdownProps {
   allowClear?: boolean;
   /** Hide the leading avatar/initials chip on each option (e.g. for month/year lists). */
   hideAvatar?: boolean;
+  /** Force every initials avatar to a single color instead of the deterministic per-item palette. */
+  avatarColor?: string;
   className?: string;
   /** Forwarded onto the trigger element so consumers can size it themselves. */
   style?: React.CSSProperties;
@@ -99,6 +103,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   width = 290,
   allowClear = true,
   hideAvatar = false,
+  avatarColor,
   className,
   style,
   defaultOpen = false,
@@ -116,16 +121,19 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     }
   }, [open]);
 
+  const listOptions = useMemo(() => options.filter((o) => !o.pinned), [options]);
+  const pinnedOptions = useMemo(() => options.filter((o) => o.pinned), [options]);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return options;
+    if (!search.trim()) return listOptions;
     const q = search.toLowerCase();
-    return options.filter(
+    return listOptions.filter(
       (o) =>
         o.label.toLowerCase().includes(q) ||
         (o.description?.toLowerCase().includes(q) ?? false) ||
         o.value.toLowerCase().includes(q),
     );
-  }, [options, search]);
+  }, [listOptions, search]);
 
   const exactMatch = useMemo(
     () => options.find((o) => o.value.toLowerCase() === search.trim().toLowerCase()),
@@ -150,6 +158,61 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const commit = (next: string | undefined) => {
     onChange?.(next);
     setOpen(false);
+  };
+
+  const renderOption = (opt: SearchableDropdownOption) => {
+    const isSelected = Array.isArray(value) ? value.includes(opt.value) : value === opt.value;
+    return (
+      <button
+        type="button"
+        key={opt.value}
+        className={`sd-option ${isSelected ? "is-selected" : ""}`}
+        disabled={opt.disabled}
+        onClick={() => {
+          if (opt.disabled) return;
+          if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+            // mode === 'multiple'
+            const valArray = Array.isArray(value) ? value : [];
+            if (isSelected) {
+              onChange?.(valArray.filter(v => v !== opt.value));
+            } else {
+              onChange?.([...valArray, opt.value]);
+            }
+            // DO NOT close dropdown in multiple mode
+          } else {
+            commit(isSelected ? undefined : opt.value);
+          }
+        }}
+      >
+        {!hideAvatar && (
+          <div
+            className="sd-option-avatar"
+            style={opt.badge ? undefined : {
+              backgroundColor: opt.avatarUrl ? 'transparent' : (avatarColor || avatarColorFor(opt.value || opt.label)),
+              color: opt.avatarUrl ? undefined : '#fff',
+              borderColor: opt.avatarUrl ? undefined : 'transparent',
+            }}
+          >
+            {opt.badge
+              ? opt.badge
+              : opt.avatarUrl
+                ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
+                : initialsFor(opt.label)
+            }
+          </div>
+        )}
+        <div className="sd-option-content">
+          <span className="sd-option-name">{opt.label}</span>
+          {opt.description && (
+            <span className="sd-option-desc">{opt.description}</span>
+          )}
+        </div>
+        {opt.meta && <span className="sd-option-meta">{opt.meta}</span>}
+        {isSelected && (
+          <Check className="sd-option-check" size={14} strokeWidth={2.5} />
+        )}
+      </button>
+    );
   };
 
   const overlay = (
@@ -182,60 +245,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           <div className="sd-empty">No matches</div>
         ) : (
           <>
-            {filtered.map((opt) => {
-              const isSelected = Array.isArray(value) ? value.includes(opt.value) : value === opt.value;
-              return (
-                <button
-                  type="button"
-                  key={opt.value}
-                  className={`sd-option ${isSelected ? "is-selected" : ""}`}
-                  disabled={opt.disabled}
-                  onClick={() => {
-                    if (opt.disabled) return;
-                    if (Array.isArray(value) || typeof value === 'object' && value !== null) {
-                      // mode === 'multiple'
-                      const valArray = Array.isArray(value) ? value : [];
-                      if (isSelected) {
-                        onChange?.(valArray.filter(v => v !== opt.value));
-                      } else {
-                        onChange?.([...valArray, opt.value]);
-                      }
-                      // DO NOT close dropdown in multiple mode
-                    } else {
-                      commit(isSelected ? undefined : opt.value);
-                    }
-                  }}
-                >
-                  {!hideAvatar && (
-                    <div
-                      className="sd-option-avatar"
-                      style={opt.badge ? undefined : {
-                        backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
-                        color: opt.avatarUrl ? undefined : '#fff',
-                        borderColor: opt.avatarUrl ? undefined : 'transparent',
-                      }}
-                    >
-                      {opt.badge
-                        ? opt.badge
-                        : opt.avatarUrl
-                          ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
-                          : initialsFor(opt.label)
-                      }
-                    </div>
-                  )}
-                  <div className="sd-option-content">
-                    <span className="sd-option-name">{opt.label}</span>
-                    {opt.description && (
-                      <span className="sd-option-desc">{opt.description}</span>
-                    )}
-                  </div>
-                  {opt.meta && <span className="sd-option-meta">{opt.meta}</span>}
-                  {isSelected && (
-                    <Check className="sd-option-check" size={14} strokeWidth={2.5} />
-                  )}
-                </button>
-              );
-            })}
+            {filtered.map((opt) => renderOption(opt))}
             {showFreeTextRow && (
               <button
                 type="button"
@@ -256,6 +266,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           </>
         )}
       </div>
+      {pinnedOptions.length > 0 && (
+        <div className="sd-pinned">
+          {pinnedOptions.map((opt) => renderOption(opt))}
+        </div>
+      )}
       <div className="sd-footer">
         <span className="sd-footer-count">
           {filtered.length} {itemNoun}
@@ -596,6 +611,22 @@ const SEARCHABLE_DROPDOWN_CSS = `
 }
 .sd-option-meta + .sd-option-check { margin-left: 6px; }
 [data-theme='dark'] .sd-option-check { color: #60a5fa; }
+
+.sd-pinned {
+  border-top: 1px solid var(--border-color, #f0f0f0);
+  padding: 4px;
+  background: var(--bg-pure-white, #ffffff);
+  flex-shrink: 0;
+}
+.sd-pinned .sd-option-avatar {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #2563eb;
+}
+[data-theme='dark'] .sd-pinned {
+  border-top-color: #27273a;
+  background: #181824;
+}
 
 .sd-footer {
   display: flex;

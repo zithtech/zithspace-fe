@@ -116,6 +116,14 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 
+// Stable hue (0-359) derived from a string — gives each project a consistent
+// accent color for its code badge in the project switcher.
+const projHue = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+};
+
 type TicketDensity = "compact" | "comfortable" | "spacious";
 const TICKETS_TABLE_KEY = "tickets_list_v1";
 const SIDEBAR_OPEN_STORAGE_KEY = "tl_sidebar_open_v1";
@@ -2566,6 +2574,113 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
         [data-theme='dark'] .ts-foot-hint { color: #64748b; }
         
+        /* ── Premium project switcher panel ── */
+        .proj-switch-panel {
+          width: 340px;
+          padding: 6px;
+          background: var(--bg-pure-white, #fff);
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 14px;
+          box-shadow: 0 16px 44px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.06);
+          animation: proj-switch-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes proj-switch-in {
+          from { opacity: 0; transform: translateY(-4px) scale(0.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .proj-switch-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 4px 8px 8px;
+          margin-bottom: 4px;
+          border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        .proj-switch-title {
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--text-slate-400, #94a3b8);
+        }
+        .proj-switch-count {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-slate-500, #64748b);
+          background: var(--bg-slate-100, #f1f5f9);
+          border-radius: 6px;
+          padding: 1px 7px;
+          line-height: 1.5;
+        }
+        .proj-switch-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          max-height: 360px;
+          overflow-y: auto;
+          padding-right: 2px;
+        }
+        .proj-switch-item:not(:last-child) {
+          border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+        .proj-switch-list::-webkit-scrollbar { width: 6px; }
+        .proj-switch-list::-webkit-scrollbar-track { background: transparent; }
+        .proj-switch-list::-webkit-scrollbar-thumb { background: var(--border-slate-200, #e2e8f0); border-radius: 3px; }
+        .proj-switch-list::-webkit-scrollbar-thumb:hover { background: var(--text-slate-400, #94a3b8); }
+        .proj-switch-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          padding: 6px 8px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.14s ease;
+        }
+        .proj-switch-item:hover { background: var(--bg-slate-50, #f8fafc); }
+        .proj-switch-item.is-active { background: var(--bg-blue-50, #eff6ff); }
+        .proj-switch-badge {
+          flex-shrink: 0;
+          min-width: 30px;
+          max-width: 72px;
+          height: 24px;
+          padding: 0 7px;
+          border-radius: 7px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .proj-switch-meta { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+        .proj-switch-name {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-slate-900, #0f172a);
+          line-height: 1.35;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .proj-switch-code {
+          font-size: 10px;
+          font-weight: 500;
+          color: var(--text-slate-400, #94a3b8);
+          line-height: 1.25;
+        }
+        .proj-switch-check {
+          flex-shrink: 0;
+          color: var(--premium-blue, #2563eb);
+          font-size: 13px;
+        }
+
         /* Remove default shadow from fixed columns (e.g. Actions) */
         .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
         .ant-table-cell-fix-right-first::after, .ant-table-cell-fix-right-last::after {
@@ -3347,8 +3462,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           background: rgba(59,130,246,0.10);
         }
       `}} />
-
-
 
       {/* Inline Filter Row moved into tl-main (renders after the sprint details header) */}
 
@@ -4609,7 +4722,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         footer={null}
         title={null}
         closable={false}
-        width={580}
+        width={680}
         centered
         destroyOnHidden
         className="sprint-creation-modal"

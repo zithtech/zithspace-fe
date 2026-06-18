@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Table, Typography, Empty, Avatar, Tooltip } from "antd";
 import {
   CheckCircleOutlined,
@@ -13,6 +13,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { SprintTicket } from "@/services/sprintCompletionService";
+import { TicketDetailDrawer } from "../../drawer/TicketDetailDrawer";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -42,6 +43,8 @@ const TYPE_META = (type: string): { cls: string; icon: React.ReactNode } => {
 };
 
 export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ tickets }) => {
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const totalPoints = tickets.reduce((sum, ticket) => sum + (ticket.storyPoint || 0), 0);
   const contributors = new Set(tickets.map((t) => t.assignee?.id).filter(Boolean)).size;
 
@@ -76,7 +79,16 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
       key: 'ticketNumber',
       width: 120,
       fixed: 'left',
-      render: (text) => <span className="sc-chip sc-chip-ticket">{text}</span>,
+      render: (text, record) => (
+        <span
+          className="sc-chip sc-chip-ticket sc-chip-ticket-link"
+          onClick={() => setSelectedTicketId(record.id)}
+          role="button"
+          tabIndex={0}
+        >
+          {text}
+        </span>
+      ),
     },
     {
       title: 'Title',
@@ -172,11 +184,11 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
       {tickets.length === 0 ? (
         <div
           style={{
-            padding: '60px 0',
+            padding: '40px 0',
             textAlign: 'center',
             background: 'var(--sc-surface)',
             border: '1px solid var(--sc-border)',
-            borderRadius: 16,
+            borderRadius: 14,
             boxShadow: 'var(--sc-shadow-sm)',
           }}
         >
@@ -192,63 +204,22 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
       ) : (
         <>
           {/* Summary header */}
-          <div
-            style={{
-              background: 'var(--sc-surface)',
-              border: '1px solid var(--sc-border)',
-              borderRadius: 16,
-              padding: '14px 18px',
-              marginBottom: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              flexWrap: 'wrap',
-              boxShadow: 'var(--sc-shadow-sm)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+          <div className="sc-completed-head">
+            <div className="sc-completed-stats">
               {stats.map((s) => (
-                <div
-                  key={s.key}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}
-                >
-                  <span
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 12,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
-                      color: s.color,
-                      fontSize: 18,
-                    }}
-                  >
-                    {s.icon}
-                  </span>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                        color: 'var(--sc-text-muted)',
-                      }}
-                    >
-                      {s.label}
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sc-text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                      {s.value}
+                <div key={s.key} className="sc-stat" style={{ ['--sc-stat-color' as any]: s.color }}>
+                  <div className="sc-stat-icon">{s.icon}</div>
+                  <div className="sc-stat-body">
+                    <span className="sc-stat-label">{s.label}</span>
+                    <div className="sc-stat-value-row">
+                      <span className="sc-stat-value">{s.value}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <span className="sc-success-tag">
+            <span className="sc-success-badge">
               <TrophyOutlined />
               Sprint Success
             </span>
@@ -277,11 +248,10 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
           {/* Bottom flair */}
           <div
             style={{
-              marginTop: 14,
-              padding: '12px 16px',
-              borderRadius: 14,
-              background:
-                'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(79, 70, 229, 0.04) 100%)',
+              marginBottom: 12,
+              padding: '11px 14px',
+              borderRadius: 12,
+              background: 'rgba(16, 185, 129, 0.08)',
               border: '1px solid rgba(16, 185, 129, 0.20)',
               display: 'flex',
               alignItems: 'center',
@@ -299,8 +269,42 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
               <strong style={{ fontWeight: 800 }}>{totalPoints} story point{totalPoints === 1 ? '' : 's'}</strong>.
             </span>
           </div>
+
+          {/* Table */}
+          <div className="sc-table-shell">
+            <Table
+              columns={columns}
+              dataSource={tickets}
+              rowKey="id"
+              pagination={{
+                pageSize,
+                total: tickets.length,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50, 100],
+                onShowSizeChange: (_current, size) => setPageSize(size),
+                onChange: (_page, size) => {
+                  if (size !== pageSize) setPageSize(size);
+                },
+                showTotal: (total) => (
+                  <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>
+                    Total <b style={{ color: 'var(--sc-text)' }}>{total}</b> completed
+                  </Text>
+                ),
+              }}
+              scroll={{ x: 1200, y: 'calc(90vh - 450px)' }}
+              size="middle"
+            />
+          </div>
         </>
       )}
+
+      <TicketDetailDrawer
+        ticketId={selectedTicketId}
+        open={!!selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+        ticketIds={tickets.map((t) => t.id)}
+        onNavigate={setSelectedTicketId}
+      />
     </div>
   );
 };

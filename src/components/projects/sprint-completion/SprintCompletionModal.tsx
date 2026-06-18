@@ -9,6 +9,7 @@ import {
   RocketOutlined,
   TrophyOutlined,
   ArrowRightOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprintCompletion";
 import { SummaryTab } from "./tabs/SummaryTab";
@@ -90,12 +91,17 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
     ? "sc-header-success"
     : "sc-header";
 
+  const TAB_ORDER = ["summary", "pending", "completed"];
+  const activeIdx = TAB_ORDER.indexOf(activeTab);
+  const isLastTab = activeIdx >= TAB_ORDER.length - 1;
+  const isFirstTab = activeIdx <= 0;
+
   return (
     <Modal
       className="sprint-completion-modal"
       open={open}
       onCancel={onClose}
-      width={1100}
+      width={1280}
       centered
       closable
       title={null}
@@ -135,6 +141,25 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             </div>
             <div className="sc-footer-actions">
               <Button onClick={onClose} className="sc-btn-cancel">Cancel</Button>
+              {!isFirstTab && (
+                <Button
+                  onClick={() => setActiveTab(TAB_ORDER[activeIdx - 1])}
+                  className="sc-btn-back"
+                  icon={<ArrowLeftOutlined />}
+                >
+                  Back
+                </Button>
+              )}
+              {!isLastTab && (
+                <Button
+                  onClick={() => setActiveTab(TAB_ORDER[activeIdx + 1])}
+                  className="sc-btn-next"
+                  icon={<ArrowRightOutlined />}
+                  iconPosition="end"
+                >
+                  Next
+                </Button>
+              )}
               <Button
                 type="primary"
                 onClick={handleCompleteSprint}
@@ -192,7 +217,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            height: 'calc(85vh - 160px)',
+            height: 'calc(90vh - 150px)',
             background: 'var(--sc-canvas)',
           }}
         >
@@ -221,7 +246,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                   Pending
                   <span
                     style={{
-                      background: pendingCount > 0 ? 'rgba(245, 158, 11, 0.14)' : 'rgba(100, 116, 139, 0.14)',
+                      background: pendingCount > 0 ? 'rgba(239, 68, 68, 0.14)' : 'rgba(100, 116, 139, 0.14)',
                       color: pendingCount > 0 ? 'var(--sc-warning)' : 'var(--sc-text-muted)',
                       fontSize: 10,
                       fontWeight: 800,

@@ -19,8 +19,13 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import TiptapEditor from "@/components/common/TiptapEditor";
 
 const { Text } = Typography;
+
+/** Strip HTML tags so we count/validate the goal by its visible text length. */
+const stripHtml = (html: string): string =>
+  html.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim();
 
 export interface SprintFormData {
   name: string;
@@ -61,6 +66,7 @@ export function SprintCreationForm({
   // Track values for live preview / counters.
   const nameValue = Form.useWatch("name", form) || "";
   const goalValue = Form.useWatch("goal", form) || "";
+  const goalText = stripHtml(goalValue);
   const startDate = Form.useWatch("startDate", form) as Dayjs | undefined;
   const endDate = Form.useWatch("endDate", form) as Dayjs | undefined;
 
@@ -69,9 +75,10 @@ export function SprintCreationForm({
       const values = await form.validateFields();
       setSubmitting(true);
 
+      const goalHtml = values.goal || "";
       await onSubmit({
         name: values.name,
-        goal: values.goal || "",
+        goal: stripHtml(goalHtml).length > 0 ? goalHtml : "",
         startDate: values.startDate,
         endDate: values.endDate,
       });
@@ -134,7 +141,7 @@ export function SprintCreationForm({
         <div className="scf-hero__copy">
           <div className="scf-hero__title">Plan a new sprint</div>
           <div className="scf-hero__subtitle">
-            Set a clear goal and timeline. You can always adjust scope later from the backlog.
+            Set a clear goal and timeline. Adjust scope later from the backlog.
           </div>
         </div>
         <div className={`scf-hero__badge ${isDraft ? "is-draft" : "is-active"}`}>
@@ -184,20 +191,27 @@ export function SprintCreationForm({
                     <InfoCircleOutlined className="scf-label__hint" />
                   </Tooltip>
                 </span>
-                <span className="scf-counter">
-                  {goalValue.length}/{GOAL_MAX}
+                <span className={`scf-counter ${goalText.length > GOAL_MAX ? "is-over" : ""}`}>
+                  {goalText.length}/{GOAL_MAX}
                 </span>
               </div>
             }
             name="goal"
-            rules={[{ max: GOAL_MAX, message: `Goal must be ${GOAL_MAX} characters or fewer` }]}
+            valuePropName="content"
+            trigger="onChange"
+            rules={[
+              {
+                validator: (_rule, value: string | undefined) =>
+                  stripHtml(value || "").length > GOAL_MAX
+                    ? Promise.reject(new Error(`Goal must be ${GOAL_MAX} characters or fewer`))
+                    : Promise.resolve(),
+              },
+            ]}
           >
-            <Input.TextArea
-              rows={3}
+            <TiptapEditor
               placeholder="What outcome would make this sprint a clear win?"
-              maxLength={GOAL_MAX}
-              className="scf-textarea"
-              style={{ resize: "none" }}
+              minHeight={92}
+              maxHeight={200}
             />
           </Form.Item>
         </div>

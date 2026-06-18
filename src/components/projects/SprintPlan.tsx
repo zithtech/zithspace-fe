@@ -2423,9 +2423,11 @@ export default function SprintPlanComponent() {
                         <InfoCircleOutlined style={{ color: '#64748b', fontSize: 13 }} />
                         <Text className="sp-card-title">Description</Text>
                       </div>
-                      <Text style={{ fontSize: 12.5, color: 'var(--text-slate-700)', lineHeight: 1.6 }}>
-                        {drawerSprintPlan.description}
-                      </Text>
+                      <div
+                        className="sp-rte-content"
+                        style={{ fontSize: 12.5, color: 'var(--text-slate-700)', lineHeight: 1.6 }}
+                        dangerouslySetInnerHTML={{ __html: drawerSprintPlan.description }}
+                      />
                     </div>
                   )}
                 </aside>
@@ -2653,6 +2655,16 @@ export default function SprintPlanComponent() {
         />
 
         <style jsx global>{`
+        /* ── Rich-text (Tiptap HTML) rendered inside detail cards ─ */
+        .sp-rte-content > :first-child { margin-top: 0; }
+        .sp-rte-content > :last-child { margin-bottom: 0; }
+        .sp-rte-content p { margin: 0 0 6px 0; }
+        .sp-rte-content ul, .sp-rte-content ol { margin: 4px 0; padding-left: 18px; }
+        .sp-rte-content li { margin: 2px 0; }
+        .sp-rte-content h1, .sp-rte-content h2, .sp-rte-content h3 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+        .sp-rte-content a { color: var(--premium-blue, #2563eb); text-decoration: underline; }
+        .sp-rte-content img { max-width: 100%; height: auto; border-radius: 4px; }
+
         /* ── Proposals Toolbar Classes ─────────────────────────── */
         .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
         .pp-segmented button {

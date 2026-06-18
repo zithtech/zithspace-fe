@@ -44,14 +44,14 @@ const { Title, Text, Paragraph } = Typography;
 type SortKey = 'recent' | 'name' | 'progress';
 type StatusFilter = 'all' | 'active' | 'paused' | 'completed';
 
-// Curated palette for project identity accents
+// Curated palette for project identity accents — blue, green, light-red, grey only
 const ACCENT_PALETTE = [
-  { from: '#3b82f6', to: '#6366f1', soft: '#eff6ff', text: '#1d4ed8' }, // blue/indigo
-  { from: '#8b5cf6', to: '#a855f7', soft: '#f5f3ff', text: '#6d28d9' }, // violet
-  { from: '#06b6d4', to: '#0ea5e9', soft: '#ecfeff', text: '#0e7490' }, // cyan
-  { from: '#10b981', to: '#14b8a6', soft: '#ecfdf5', text: '#047857' }, // emerald
-  { from: '#f59e0b', to: '#f97316', soft: '#fff7ed', text: '#b45309' }, // amber
-  { from: '#f43f5e', to: '#ec4899', soft: '#fff1f2', text: '#be123c' }, // rose
+  { from: '#3b82f6', to: '#60a5fa', soft: '#eff6ff', text: '#1d4ed8' }, // blue
+  { from: '#22c55e', to: '#4ade80', soft: '#f0fdf4', text: '#15803d' }, // green
+  { from: '#f87171', to: '#fca5a5', soft: '#fff1f2', text: '#b91c1c' }, // light-red
+  { from: '#94a3b8', to: '#cbd5e1', soft: '#f8fafc', text: '#475569' }, // grey
+  { from: '#3b82f6', to: '#60a5fa', soft: '#eff6ff', text: '#1d4ed8' }, // blue again
+  { from: '#22c55e', to: '#4ade80', soft: '#f0fdf4', text: '#15803d' }, // green again
 ];
 
 function accentFor(seed: string) {
@@ -146,12 +146,12 @@ function ProjectSelectContent() {
       total === 0
         ? 0
         : Math.round(
-            projects.reduce((acc, p) => {
-              const t = p?.totalTickets || 0;
-              const c = p?.completedTickets || 0;
-              return acc + (t > 0 ? (c / t) * 100 : 0);
-            }, 0) / total,
-          );
+          projects.reduce((acc, p) => {
+            const t = p?.totalTickets || 0;
+            const c = p?.completedTickets || 0;
+            return acc + (t > 0 ? (c / t) * 100 : 0);
+          }, 0) / total,
+        );
     const memberIds = new Set<string>();
     projects.forEach(p => p?.members?.forEach((m: any) => m?.user?.id && memberIds.add(m.user.id)));
     return { total, active, completed, avgProgress, teamSize: memberIds.size };
@@ -250,7 +250,7 @@ function ProjectSelectContent() {
 
           {canCreateProject && (
             <div className="zs-hero-cta">
-            <Button
+              <Button
                 type="primary"
                 size="large"
                 icon={<PlusOutlined />}
@@ -281,13 +281,13 @@ function ProjectSelectContent() {
             icon={<CheckCircleOutlined />}
             label="Avg. completion"
             value={isLoading ? '—' : `${stats.avgProgress}%`}
-            tint="violet"
+            tint="blue"
           />
           <StatTile
             icon={<TeamOutlined />}
             label="Teammates"
             value={isLoading ? '—' : String(stats.teamSize)}
-            tint="amber"
+            tint="grey"
           />
         </section>
 
@@ -341,9 +341,9 @@ function ProjectSelectContent() {
         {/* Grid */}
         <section className="zs-grid-wrap">
           {isLoading ? (
-            <Row gutter={[24, 24]}>
+            <Row gutter={[20, 20]}>
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Col xs={24} sm={12} lg={8} key={i}>
+                <Col xs={12} sm={12} lg={8} key={i}>
                   <div className="zs-skeleton" />
                 </Col>
               ))}
@@ -375,7 +375,7 @@ function ProjectSelectContent() {
               )}
             </div>
           ) : (
-            <Row gutter={[24, 24]}>
+            <Row gutter={[20, 20]}>
               {filteredProjects.map(project => {
                 const total = project?.totalTickets || 0;
                 const done = project?.completedTickets || 0;
@@ -384,7 +384,7 @@ function ProjectSelectContent() {
                 const status = (project?.status || 'active').toLowerCase();
 
                 return (
-                  <Col xs={24} sm={12} lg={8} key={project?.id || 'unknown'}>
+                  <Col xs={12} sm={12} lg={8} key={project?.id || 'unknown'}>
                     <div
                       role="button"
                       tabIndex={0}
@@ -475,15 +475,15 @@ function ProjectSelectContent() {
                         </div>
 
                         <Avatar.Group
-                          size={28}
+                          size={24}
                           max={{
                             count: 3,
                             style: {
                               color: 'var(--text-slate-700)',
                               backgroundColor: 'var(--bg-slate-100)',
-                              fontSize: 11,
+                              fontSize: 8,
                               fontWeight: 700,
-                              border: '2px solid var(--bg-pure-white)',
+                              border: '1.5px solid var(--bg-pure-white)',
                             },
                           }}
                         >
@@ -493,7 +493,8 @@ function ProjectSelectContent() {
                                 src={member?.user?.avatar}
                                 style={{
                                   backgroundColor: '#64748b',
-                                  border: '2px solid var(--bg-pure-white)',
+                                  border: '1.5px solid var(--bg-pure-white)',
+                                  fontSize: 8,
                                 }}
                               >
                                 {member?.user?.name?.[0]?.toUpperCase()}
@@ -528,7 +529,7 @@ function ProjectSelectContent() {
       <style>{`
         .zs-projects-shell {
           margin: 0 -40px;
-          padding: 40px 40px 64px 40px;
+          padding: 20px 40px 16px 40px;
           min-height: calc(100vh - 64px);
           background:
             radial-gradient(1200px 600px at 100% -200px, var(--bg-blue-50), transparent 60%),
@@ -540,7 +541,7 @@ function ProjectSelectContent() {
         /* Hero */
         .zs-hero {
           max-width: 1280px;
-          margin: 0 auto 32px auto;
+          margin: 0 auto 20px auto;
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
@@ -552,39 +553,39 @@ function ProjectSelectContent() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 4px 10px;
+          padding: 3px 8px;
           border-radius: 999px;
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
           color: var(--text-slate-600);
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           letter-spacing: 0.02em;
-          margin-bottom: 12px;
+          margin-bottom: 4px;
         }
         .zs-eyebrow-dot {
           width: 6px; height: 6px; border-radius: 999px;
-          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          background: #3b82f6;
         }
         .zs-hero-title.ant-typography {
           margin: 0;
           font-weight: 800;
-          font-size: 40px;
-          line-height: 1.1;
-          letter-spacing: -0.035em;
+          font-size: 24px;
+          line-height: 1.15;
+          letter-spacing: -0.025em;
           color: var(--text-primary);
         }
         .zs-hero-sub.ant-typography {
-          margin: 8px 0 0 0;
+          margin: 2px 0 0 0;
           max-width: 560px;
-          font-size: 15px;
-          line-height: 1.55;
+          font-size: 12.5px;
+          line-height: 1.4;
           color: var(--text-secondary);
         }
         .zs-hero-cta { flex: 0 0 auto; }
         .zs-cta-btn.ant-btn {
-          height: 44px;
-          padding: 0 20px;
+          height: 38px;
+          padding: 0 16px;
           border-radius: 10px;
           font-weight: 600;
           background: linear-gradient(135deg, #3b82f6, #6366f1);
@@ -595,46 +596,53 @@ function ProjectSelectContent() {
         /* Stats */
         .zs-stats {
           max-width: 1280px;
-          margin: 0 auto 32px auto;
+          margin: 0 auto 18px auto;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          overflow: visible;
         }
         @media (max-width: 900px) {
-          .zs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .zs-stats { grid-template-columns: repeat(2, 1fr); }
         }
         .zs-stat {
-          background: var(--bg-pure-white);
+          padding: 14px 18px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
           border: 1px solid var(--border-color);
-          border-radius: 16px;
-          padding: 18px 20px;
+          border-radius: 0;
+          background: var(--bg-pure-white);
+        }
+        .zs-stat-top {
           display: flex;
           align-items: center;
-          gap: 14px;
-          transition: border-color 0.2s ease, transform 0.2s ease;
+          gap: 6px;
         }
-        .zs-stat:hover { border-color: var(--text-slate-400); }
         .zs-stat-icon {
-          width: 40px; height: 40px;
-          border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 18px;
+          font-size: 13px;
           flex-shrink: 0;
         }
-        .zs-stat-icon.tint-blue    { background: #eff6ff; color: #2563eb; }
-        .zs-stat-icon.tint-emerald { background: #ecfdf5; color: #059669; }
-        .zs-stat-icon.tint-violet  { background: #f5f3ff; color: #7c3aed; }
-        .zs-stat-icon.tint-amber   { background: #fff7ed; color: #d97706; }
+        .zs-stat-icon.tint-blue    { color: #3b82f6; }
+        .zs-stat-icon.tint-emerald { color: #22c55e; }
+        .zs-stat-icon.tint-violet  { color: #3b82f6; }
+        .zs-stat-icon.tint-amber   { color: #94a3b8; }
+        .zs-stat-icon.tint-grey    { color: #94a3b8; }
         .zs-stat-label {
-          font-size: 12px;
+          font-size: 11.5px;
           color: var(--text-secondary);
-          font-weight: 600;
-          letter-spacing: 0.01em;
-          text-transform: uppercase;
-          margin-bottom: 2px;
+          font-weight: 500;
+          letter-spacing: 0;
+          text-transform: none;
+          margin-bottom: 0;
         }
         .zs-stat-value {
-          font-size: 22px;
+          font-size: 18px;
           font-weight: 800;
           color: var(--text-primary);
           letter-spacing: -0.02em;
@@ -644,11 +652,11 @@ function ProjectSelectContent() {
         /* Toolbar */
         .zs-toolbar {
           max-width: 1280px;
-          margin: 0 auto 24px auto;
+          margin: 0 auto 18px auto;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 12px;
           flex-wrap: wrap;
         }
         .zs-pills { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -656,9 +664,9 @@ function ProjectSelectContent() {
           appearance: none;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-color);
-          padding: 8px 16px;
-          border-radius: 999px;
-          font-size: 13px;
+          padding: 6px 12px;
+          border-radius: 10px;
+          font-size: 12.5px;
           font-weight: 600;
           color: var(--text-slate-600);
           cursor: pointer;
@@ -666,18 +674,18 @@ function ProjectSelectContent() {
         }
         .zs-pill:hover { color: var(--text-primary); border-color: var(--text-slate-400); }
         .zs-pill.is-active {
-          background: var(--text-primary);
-          color: var(--bg-pure-white);
-          border-color: var(--text-primary);
+          background: #3b82f6;
+          color: #fff;
+          border-color: #3b82f6;
         }
 
         .zs-toolbar-right { display: flex; align-items: center; gap: 12px; }
         .zs-search.ant-input-affix-wrapper {
           width: 320px;
-          height: 44px;
+          height: 38px;
           border-radius: 10px;
           border: 1px solid var(--border-color);
-          padding: 0 14px;
+          padding: 0 12px;
         }
         .zs-search.ant-input-affix-wrapper:hover,
         .zs-search.ant-input-affix-wrapper-focused {
@@ -688,8 +696,8 @@ function ProjectSelectContent() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          height: 44px;
-          padding: 0 14px;
+          height: 38px;
+          padding: 0 12px;
           border-radius: 10px;
           border: 1px solid var(--border-color);
           background: var(--bg-pure-white);
@@ -710,14 +718,14 @@ function ProjectSelectContent() {
           height: 100%;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-color);
-          border-radius: 18px;
-          padding: 22px 22px 20px 22px;
+          border-radius: 0;
+          padding: 14px 15px 12px 15px;
           cursor: pointer;
           overflow: hidden;
           transition: border-color 0.2s ease, transform 0.2s ease;
           display: flex;
           flex-direction: column;
-          min-height: 280px;
+          min-height: 0;
         }
         .zs-card:focus-visible {
           outline: none;
@@ -725,45 +733,41 @@ function ProjectSelectContent() {
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
         }
         .zs-card:hover {
-          transform: translateY(-3px);
-          border-color: var(--card-accent-from);
+          transform: translateY(-2px);
+          border-color: #3b82f6;
         }
         .zs-card-accent {
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, var(--card-accent-from), var(--card-accent-to));
-          opacity: 0.85;
+          display: none;
         }
 
         .zs-card-head {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 14px;
+          gap: 10px;
+          margin-bottom: 8px;
         }
         .zs-card-id {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           min-width: 0;
           flex: 1;
         }
         .zs-card-mark {
-          width: 44px; height: 44px;
-          border-radius: 12px;
+          width: 30px; height: 30px;
+          border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
           color: #fff;
           font-weight: 800;
-          font-size: 14px;
+          font-size: 11px;
           letter-spacing: 0.04em;
-          background: linear-gradient(135deg, var(--card-accent-from), var(--card-accent-to));
+          background: #3b82f6;
           flex-shrink: 0;
         }
         .zs-card-id-text { min-width: 0; flex: 1; }
         .zs-card-name {
-          font-size: 16px;
+          font-size: 14.5px;
           font-weight: 700;
           color: var(--text-primary);
           letter-spacing: -0.01em;
@@ -773,10 +777,10 @@ function ProjectSelectContent() {
           text-overflow: ellipsis;
         }
         .zs-card-code {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           color: var(--text-slate-500);
-          margin-top: 3px;
+          margin-top: 1px;
           letter-spacing: 0.02em;
         }
 
@@ -791,7 +795,7 @@ function ProjectSelectContent() {
           align-items: center;
           gap: 6px;
           padding: 3px 10px;
-          border-radius: 999px;
+          border-radius: 8px;
           font-size: 11px;
           font-weight: 700;
           text-transform: capitalize;
@@ -813,22 +817,22 @@ function ProjectSelectContent() {
         .zs-card-delete.ant-btn { border-radius: 8px; }
 
         .zs-card-desc {
-          font-size: 13.5px;
-          line-height: 1.6;
+          font-size: 12px;
+          line-height: 1.45;
           color: var(--text-secondary);
-          margin-bottom: 18px;
+          margin-bottom: 8px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
 
-        .zs-card-progress { margin-bottom: 18px; }
+        .zs-card-progress { margin-bottom: 8px; }
         .zs-card-progress-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
         }
         .zs-card-progress-label {
           font-size: 12px;
@@ -849,14 +853,14 @@ function ProjectSelectContent() {
         }
         .zs-card-progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, var(--card-accent-from), var(--card-accent-to));
+          background: #3b82f6;
           border-radius: 999px;
           transition: width 0.4s ease;
         }
 
         .zs-card-foot {
           margin-top: auto;
-          padding-top: 16px;
+          padding-top: 6px;
           border-top: 1px solid var(--border-color);
           display: flex;
           align-items: center;
@@ -872,7 +876,7 @@ function ProjectSelectContent() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-size: 12.5px;
+          font-size: 11.5px;
           color: var(--text-slate-600);
         }
         .zs-card-meta-item .anticon { color: var(--text-slate-400); }
@@ -881,8 +885,8 @@ function ProjectSelectContent() {
 
         .zs-card-arrow {
           position: absolute;
-          top: 18px;
-          right: 18px;
+          top: 12px;
+          right: 12px;
           width: 28px; height: 28px;
           border-radius: 999px;
           display: flex; align-items: center; justify-content: center;
@@ -899,7 +903,7 @@ function ProjectSelectContent() {
 
         /* Skeleton */
         .zs-skeleton {
-          height: 280px;
+          height: 180px;
           border-radius: 18px;
           border: 1px solid var(--border-color);
           background:
@@ -957,15 +961,15 @@ function StatTile({
   icon: React.ReactNode;
   label: string;
   value: string;
-  tint: 'blue' | 'emerald' | 'violet' | 'amber';
+  tint: 'blue' | 'emerald' | 'violet' | 'amber' | 'grey';
 }) {
   return (
     <div className="zs-stat">
-      <div className={`zs-stat-icon tint-${tint}`}>{icon}</div>
-      <div style={{ minWidth: 0 }}>
+      <div className="zs-stat-top">
+        <div className={`zs-stat-icon tint-${tint}`}>{icon}</div>
         <div className="zs-stat-label">{label}</div>
-        <div className="zs-stat-value">{value}</div>
       </div>
+      <div className="zs-stat-value">{value}</div>
     </div>
   );
 }

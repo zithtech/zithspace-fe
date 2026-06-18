@@ -97,6 +97,7 @@ interface TrashViewProps {
   onTabChange: (tab: "folders" | "sheets" | "bugs") => void;
   onSelectSheet: (sheetId: string | null) => void;
   onSelectBug?: (bug: BugListItem) => void;
+  searchQuery?: string;
 }
 
 type SheetWithMeta = BugSheet & {
@@ -118,6 +119,7 @@ export default function TrashView({
   onTabChange,
   onSelectSheet,
   onSelectBug,
+  searchQuery = "",
 }: TrashViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -165,9 +167,11 @@ export default function TrashView({
   const isLoading = loadingFolders || loadingSheets || loadingBugs;
 
   // The hooks now return the correct items (standalone if no folderId, folder contents if folderId)
-  const filteredFolders = selectedFolderId ? trashedFolders?.filter(f => f.id === selectedFolderId) : trashedFolders;
-  const filteredSheets = trashedSheets;
-  const filteredBugs = trashedBugs;
+  const q = searchQuery.toLowerCase().trim();
+  const baseFolders = selectedFolderId ? trashedFolders?.filter(f => f.id === selectedFolderId) : trashedFolders;
+  const filteredFolders = q ? baseFolders?.filter(f => f.name?.toLowerCase().includes(q)) : baseFolders;
+  const filteredSheets = q ? trashedSheets?.filter(s => (s.name as string)?.toLowerCase().includes(q)) : trashedSheets;
+  const filteredBugs = q ? trashedBugs.filter(b => b.title?.toLowerCase().includes(q)) : trashedBugs;
 
   const selectedFolderName = trashedFolders?.find(f => f.id === selectedFolderId)?.name;
 
@@ -176,6 +180,31 @@ export default function TrashView({
   const currentItems = activeTab === "folders" ? filteredFolders : activeTab === "sheets" ? filteredSheets : filteredBugs;
   const currentIds = (currentItems || []).map((i: any) => i.id);
   const isAllSelected = currentIds.length > 0 && currentIds.every(id => selectedIds.has(id));
+
+  // Auto-switch tabs based on search matches
+  React.useEffect(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return;
+
+    // Count matches in each tab
+    const bugMatches = trashedBugs.filter(b => b.title?.toLowerCase().includes(q)).length;
+    const folderMatches = trashedFolders?.filter(f => f.name?.toLowerCase().includes(q)).length ?? 0;
+    const sheetMatches = trashedSheets?.filter(s => (s.name as string)?.toLowerCase().includes(q)).length ?? 0;
+
+    // Get matches for the current tab
+    const currentMatches = activeTab === "folders" ? folderMatches : activeTab === "sheets" ? sheetMatches : bugMatches;
+
+    // If current tab has no matches, but other tabs do, auto-switch to the tab with matches
+    if (currentMatches === 0) {
+      if (bugMatches > 0) {
+        onTabChange("bugs");
+      } else if (sheetMatches > 0) {
+        onTabChange("sheets");
+      } else if (folderMatches > 0) {
+        onTabChange("folders");
+      }
+    }
+  }, [searchQuery, trashedBugs, trashedFolders, trashedSheets, activeTab, onTabChange]);
 
   if (isLoading) {
     return (
@@ -267,7 +296,7 @@ export default function TrashView({
 
       {/* ── bulk bar ── */}
       {selectedIds.size > 0 && (
-        <div className="hb-bulkbar" style={{ margin: "0 14px 12px 12px" }}>
+        <div className="hb-bulkbar" style={{ margin: "0 0 12px 0" }}>
           <span>{selectedIds.size} selected</span>
           <div className="hb-bulkbar-actions">
             <button
@@ -401,12 +430,11 @@ function EmptyTrash({ title }: { title: string }) {
 function TrashedFolderCard({ folder, isSelected, onSelect, onView, onRestore, onDelete }: { folder: FolderWithMeta, isSelected: boolean, onSelect: () => void, onView: () => void, onRestore: () => void, onDelete: () => void }) {
   const creatorName = folder.createdBy?.name || "Unknown";
   const sheetCount = folder._count?.sheets || 0;
-  const bugCount = folder._count?.bugs || 0;
 
   return (
     <div className={`arc-card ${isSelected ? "arc-card-bulk-selected" : ""}`} onClick={onView}>
-      <div className="arc-card-toprow">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="arc-card-top" style={{ flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -415,46 +443,62 @@ function TrashedFolderCard({ folder, isSelected, onSelect, onView, onRestore, on
               onSelect();
             }}
             onClick={e => e.stopPropagation()}
-            style={{ width: 14, height: 14, accentColor: 'var(--hb-accent)' }}
+            style={{ width: 14, height: 14, accentColor: '#3b82f6', flexShrink: 0 }}
           />
-          <span className="arc-badge-trashed"><Trash2 size={10} /> Folder</span>
+          <div className="arc-card-avatar" style={{ background: `linear-gradient(135deg, ${folder.color || '#3b82f6'} 0%, ${folder.color || '#1d4ed8'} 100%)` }}>
+            <FolderOpen size={14} />
+          </div>
+          <div className="arc-card-name" style={{ flex: 1 }}>{folder.name}</div>
+          <span className="arc-badge-bugs"><Layers size={10} /> {sheetCount} sheets</span>
         </div>
-        <span className="arc-badge-bugs"><Layers size={10} /> {sheetCount} sheets</span>
+        <div className="arc-card-desc">{folder.description || "No description"}</div>
       </div>
-      <div className="arc-card-name" style={{ color: folder.color || "inherit" }}>{folder.name}</div>
-      <div className="arc-card-desc">{folder.description || "No description"}</div>
-      <div className="arc-card-footer">
-        <div className="arc-card-creator">
-          <Avatar size={20} style={{ background: avatarColor(folder.id), fontSize: 9 }}>{initials(creatorName)}</Avatar>
-          <span className="arc-card-creator-name">{creatorName}</span>
+      <div className="arc-card-foot">
+        <div className="arc-foot-row">
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Creator:</span>
+            <Avatar size={16} style={{ background: avatarColor(folder.id), fontSize: 8 }}>{initials(creatorName)}</Avatar>
+            <span className="arc-foot-val">{creatorName}</span>
+          </span>
+          <span className="arc-foot-div" />
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Trashed:</span>
+            <Tooltip title={formatDate(folder.updatedAt)}>
+              <span className="arc-foot-val">{formatRelative(folder.updatedAt)}</span>
+            </Tooltip>
+          </span>
         </div>
-        <div className="arc-card-dates">
-          <Tooltip title={`Trashed: ${formatDate(folder.updatedAt)}`}>
-            <span className="arc-card-date"><Clock size={10} /> {formatRelative(folder.updatedAt)}</span>
-          </Tooltip>
+        <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View Content</button>
+            <button className="arc-action-btn arc-action-restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
+              <RotateCcw size={12} /> Restore
+            </button>
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Popconfirm
+              title="Delete folder permanently?"
+              onConfirm={onDelete}
+            >
+              <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
+            </Popconfirm>
+          </div>
         </div>
-      </div>
-      <div className="arc-card-actions" onClick={e => e.stopPropagation()}>
-        <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={13} /> View Content</button>
-        <button className="arc-action-btn arc-action-restore" onClick={onRestore} style={{ flex: 1 }}>
-          <RotateCcw size={13} /> Restore
-        </button>
-        <Popconfirm title="Delete folder permanently?" onConfirm={onDelete}>
-          <button className="arc-action-btn arc-action-delete"><Trash2 size={13} /></button>
-        </Popconfirm>
       </div>
     </div>
   );
 }
 
 function TrashedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onRestore, onDelete, isNestedInFolder }: any) {
+  const creatorName = sheet.createdBy?.name || "Unknown";
+  const creatorId = sheet.createdBy?.id || sheet.createdById || "x";
   const bugCount = sheet._count?.bugs ?? 0;
   const restoreTooltip = isNestedInFolder ? "First restore folder" : "";
 
   return (
     <div className={`arc-card ${isCurrent ? "arc-card-selected" : ""} ${isSelected ? "arc-card-bulk-selected" : ""}`} onClick={onView}>
-      <div className="arc-card-toprow">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="arc-card-top" style={{ flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -463,28 +507,60 @@ function TrashedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onRe
               onSelect();
             }}
             onClick={e => e.stopPropagation()}
-            style={{ width: 14, height: 14, accentColor: 'var(--hb-accent)' }}
+            style={{ width: 14, height: 14, accentColor: '#3b82f6', flexShrink: 0 }}
           />
-          <span className="arc-badge-trashed"><Trash2 size={10} /> Sheet</span>
+          <div className="arc-card-avatar" style={{ background: `linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)` }}>
+            <Layers size={14} />
+          </div>
+          <div className="arc-card-name" style={{ flex: 1 }}>{sheet.name}</div>
+          <span className="arc-badge-bugs"><BugIcon size={10} /> {bugCount} bugs</span>
         </div>
-        <span className="arc-badge-bugs"><BugIcon size={10} /> {bugCount} bugs</span>
+        <div className="arc-card-folder"><FolderOpen size={11} /> <span>{sheet.folderName}</span></div>
       </div>
-      <div className="arc-card-name">{sheet.name}</div>
-      <div className="arc-card-folder"><FolderOpen size={12} /> {sheet.folderName}</div>
-      <div className="arc-card-actions" onClick={e => e.stopPropagation()}>
-        <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={13} /> View</button>
-        <Tooltip title={restoreTooltip}>
-          <button 
-            className="arc-action-btn arc-action-restore" 
-            onClick={onRestore}
-            disabled={!!restoreTooltip}
-          >
-            <RotateCcw size={13} /> Restore
-          </button>
-        </Tooltip>
-        <Popconfirm title="Delete sheet permanently?" onConfirm={onDelete}>
-          <button className="arc-action-btn arc-action-delete"><Trash2 size={13} /></button>
-        </Popconfirm>
+      <div className="arc-card-foot">
+        <div className="arc-foot-row">
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Creator:</span>
+            <Avatar size={16} src={sheet.createdBy?.avatarUrl} style={{ background: avatarColor(creatorId), fontSize: 8 }}>{initials(creatorName)}</Avatar>
+            <span className="arc-foot-val">{creatorName}</span>
+          </span>
+          <span className="arc-foot-div" />
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Created:</span>
+            <Tooltip title={formatDate(sheet.createdAt)}>
+              <span className="arc-foot-val">{formatRelative(sheet.createdAt)}</span>
+            </Tooltip>
+          </span>
+          <span className="arc-foot-div" />
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Trashed:</span>
+            <Tooltip title={formatDate(sheet.updatedAt)}>
+              <span className="arc-foot-val">{formatRelative(sheet.updatedAt)}</span>
+            </Tooltip>
+          </span>
+        </div>
+        <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View</button>
+            <Tooltip title={restoreTooltip}>
+              <button 
+                className="arc-action-btn arc-action-restore" 
+                onClick={(e) => { e.stopPropagation(); onRestore(); }}
+                disabled={!!restoreTooltip}
+              >
+                <RotateCcw size={12} /> Restore
+              </button>
+            </Tooltip>
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Popconfirm
+              title="Delete sheet permanently?"
+              onConfirm={onDelete}
+            >
+              <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
+            </Popconfirm>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -498,8 +574,8 @@ function TrashedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelete
       className={`arc-card ${isSelected ? "arc-card-bulk-selected" : ""}`}
       style={{ cursor: "default" }}
     >
-      <div className="arc-card-toprow">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="arc-card-top" style={{ flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -508,33 +584,46 @@ function TrashedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelete
               onSelect();
             }}
             onClick={e => e.stopPropagation()}
-            style={{ width: 14, height: 14, accentColor: 'var(--hb-accent)' }}
+            style={{ width: 14, height: 14, accentColor: '#3b82f6', flexShrink: 0 }}
           />
-          <span className="arc-badge-trashed"><Trash2 size={10} /> Bug</span>
+          <div className="arc-card-avatar" style={{ background: 'rgba(255,90,78,0.12)', color: '#ff5a4e', border: '1px solid rgba(255,90,78,0.25)' }}>
+            <BugIcon size={14} />
+          </div>
+          <div className="arc-card-name" style={{ flex: 1 }}>{bug.title || "No Title"}</div>
         </div>
-        <Tag color="red" style={{ margin: 0, fontSize: 10 }}>{bug.severity}</Tag>
+        <div className="arc-card-desc">{bug.description}</div>
       </div>
-      <div className="arc-card-name" style={{ fontSize: 13 }}>{bug.title || "No Title"}</div>
-      <div className="arc-card-desc" style={{ WebkitLineClamp: 2 }}>{bug.description}</div>
-      <div className="arc-card-footer">
-        <div className="arc-card-dates">
-          <span className="arc-card-date"><Clock size={10} /> {formatRelative(bug.updatedAt)}</span>
+      <div className="arc-card-foot">
+        <div className="arc-foot-row">
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Severity:</span>
+            <span className="arc-foot-val">{bug.severity}</span>
+          </span>
+          <span className="arc-foot-div" />
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Trashed:</span>
+            <Tooltip title={formatDate(bug.updatedAt)}>
+              <span className="arc-foot-val">{formatRelative(bug.updatedAt)}</span>
+            </Tooltip>
+          </span>
         </div>
-      </div>
-      <div className="arc-card-actions" onClick={e => e.stopPropagation()}>
-        <Tooltip title={restoreTooltip}>
-          <button 
-            className="arc-action-btn arc-action-restore" 
-            onClick={onRestore} 
-            style={{ flex: 1 }}
-            disabled={!!restoreTooltip}
+        <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Tooltip title={restoreTooltip}>
+            <button 
+              className="arc-action-btn arc-action-restore" 
+              onClick={onRestore} 
+              disabled={!!restoreTooltip}
+            >
+              <RotateCcw size={12} /> Restore Bug
+            </button>
+          </Tooltip>
+          <Popconfirm
+            title="Delete bug permanently?"
+            onConfirm={onDelete}
           >
-            <RotateCcw size={13} /> Restore Bug
-          </button>
-        </Tooltip>
-        <Popconfirm title="Delete bug permanently?" onConfirm={onDelete}>
-          <button className="arc-action-btn arc-action-delete"><Trash2 size={13} /></button>
-        </Popconfirm>
+            <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
+          </Popconfirm>
+        </div>
       </div>
     </div>
   );

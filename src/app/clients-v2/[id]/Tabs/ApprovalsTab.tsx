@@ -351,6 +351,33 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
             padding-right: 16px !important;
           }
         }
+
+        /* ── Responsive Data Cards ── */
+        .approval-card-row {
+          display: grid;
+          grid-template-columns: 44px minmax(0, 1.6fr) 130px 130px 130px 30px;
+        }
+        @media (max-width: 992px) {
+          .approval-card-row {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: center;
+          }
+          .approval-card-row > div:nth-child(1) { order: 1; flex: 0 0 44px; }
+          .approval-card-row > div:nth-child(2) { order: 2; flex: 1 1 0%; min-width: 0; }
+          .approval-card-row > svg { order: 3; flex: 0 0 20px; margin-left: auto; }
+          
+          .approval-card-row::after {
+            content: "";
+            display: block;
+            width: 100%;
+            order: 4;
+          }
+
+          .approval-card-row > div:nth-child(3) { order: 5; margin-left: 58px; margin-top: 4px; flex: 0 0 auto; }
+          .approval-card-row > div:nth-child(4) { order: 6; margin-top: 4px; flex: 0 0 auto; }
+          .approval-card-row > div:nth-child(5) { order: 7; margin-top: 4px; flex: 0 0 auto; margin-right: auto; text-align: left !important; }
+        }
       `}} />
     </div>
   );
@@ -383,9 +410,8 @@ function ApprovalRow({
       onClick={onOpen}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="approval-card-row"
       style={{
-        display: "grid",
-        gridTemplateColumns: "44px minmax(0, 1.6fr) 130px 130px 130px 30px",
         gap: 14,
         padding: "14px 18px",
         background: hover ? c.surfaceMuted : c.surfaceElevated,

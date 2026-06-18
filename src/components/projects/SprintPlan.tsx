@@ -862,9 +862,9 @@ export default function SprintPlanComponent() {
                 <div className="sp-sidebar-list">
                   {([
                     { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false, icon: <AppstoreOutlined /> },
-                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true, icon: <PlayCircleOutlined /> },
+                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#3b82f6', pulse: true, icon: <PlayCircleOutlined /> },
                     { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false, icon: <ClockCircleOutlined /> },
-                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false, icon: <CheckCircleOutlined /> },
+                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#10b981', pulse: false, icon: <CheckCircleOutlined /> },
                   ] as const).map(seg => {
                     const active = (tableFilters.status || 'all') === seg.k;
                     return (
@@ -1221,8 +1221,8 @@ export default function SprintPlanComponent() {
                                 const left = (r.startCol / 7) * 100;
                                 const width = (r.span / 7) * 100;
                                 const cfg =
-                                  r.plan.status === 'active' ? { dot: '#10b981', pulse: true } :
-                                    r.plan.status === 'completed' ? { dot: '#3b82f6', pulse: false } :
+                                  r.plan.status === 'active' ? { dot: '#3b82f6', pulse: true } :
+                                    r.plan.status === 'completed' ? { dot: '#10b981', pulse: false } :
                                       r.plan.status === 'planning' ? { dot: '#f59e0b', pulse: false } :
                                         { dot: '#94a3b8', pulse: false };
                                 const hoverStart = r.plan.startDate ? dayjs(r.plan.startDate) : null;
@@ -1235,9 +1235,9 @@ export default function SprintPlanComponent() {
                                 const hoverStartedAt = r.plan.startedAt ? dayjs(r.plan.startedAt) : null;
                                 const hoverCompletedAt = r.plan.completedAt ? dayjs(r.plan.completedAt) : null;
                                 const hoverStatusCfg =
-                                  r.plan.status === 'active' ? { color: '#047857', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', dot: '#10b981', label: 'Active', pulse: true } :
+                                  r.plan.status === 'active' ? { color: '#1d4ed8', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6', label: 'Active', pulse: true } :
                                     r.plan.status === 'planning' ? { color: '#b45309', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b', label: 'Planning', pulse: false } :
-                                      r.plan.status === 'completed' ? { color: '#1d4ed8', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6', label: 'Completed', pulse: false } :
+                                      r.plan.status === 'completed' ? { color: '#047857', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', dot: '#10b981', label: 'Completed', pulse: false } :
                                         { color: '#475569', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', dot: '#94a3b8', label: r.plan.status || '—', pulse: false };
 
                                 return (
@@ -1248,7 +1248,7 @@ export default function SprintPlanComponent() {
                                     placement="top"
                                     title={
                                       <div className="sp-cal-tooltip">
-                                        <span className="sp-cal-tooltip-accent" style={{ background: r.color }} />
+                                        <span className="sp-cal-tooltip-accent" style={{ background: cfg.dot }} />
                                         <div className="sp-cal-tooltip-head">
                                           <div className="sp-cal-tooltip-title-block">
                                             <div className="sp-cal-tooltip-name">{r.plan.name}</div>
@@ -1324,13 +1324,13 @@ export default function SprintPlanComponent() {
                                           <div className="sp-cal-tooltip-actuals">
                                             {hoverStartedAt && (
                                               <span className="sp-cal-tooltip-actual">
-                                                <PlayCircleOutlined style={{ fontSize: 9, color: '#10b981' }} />
+                                                <PlayCircleOutlined style={{ fontSize: 9, color: '#3b82f6' }} />
                                                 Started <b>{hoverStartedAt.format('MMM D')}</b>
                                               </span>
                                             )}
                                             {hoverCompletedAt && (
                                               <span className="sp-cal-tooltip-actual">
-                                                <CheckCircleOutlined style={{ fontSize: 9, color: '#3b82f6' }} />
+                                                <CheckCircleOutlined style={{ fontSize: 9, color: '#10b981' }} />
                                                 Closed <b>{hoverCompletedAt.format('MMM D')}</b>
                                               </span>
                                             )}
@@ -1365,9 +1365,9 @@ export default function SprintPlanComponent() {
                                         left: `calc(${left}% + 4px)`,
                                         width: `calc(${width}% - 8px)`,
                                         top: 6 + r.lane * 26,
-                                        background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
-                                        borderColor: `${r.color}66`,
-                                        color: r.color,
+                                        background: `linear-gradient(135deg, ${cfg.dot}1f, ${cfg.dot}40)`,
+                                        borderColor: `${cfg.dot}66`,
+                                        color: cfg.dot,
                                       }}
                                       onClick={() => handleViewTickets(r.plan)}
                                     >
@@ -1488,9 +1488,9 @@ export default function SprintPlanComponent() {
                             record.status === 'planning' ? '#f59e0b' : '#64748b';
 
                       const statusCfg =
-                        record.status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
+                        record.status === 'active' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Active', pulse: true } :
                           record.status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
-                            record.status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
+                            record.status === 'completed' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Completed', pulse: false } :
                               { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: record.status?.toUpperCase() || '—', pulse: false };
 
                       const pct = record.progress || 0;
@@ -1508,8 +1508,8 @@ export default function SprintPlanComponent() {
                       let phaseBg = 'rgba(100,116,139,0.08)';
                       if (record.status === 'completed') {
                         phaseLabel = 'Closed';
-                        phaseColor = '#3b82f6';
-                        phaseBg = 'rgba(59,130,246,0.08)';
+                        phaseColor = '#10b981';
+                        phaseBg = 'rgba(16,185,129,0.08)';
                       } else if (hasDates) {
                         if (today.isBefore(start!)) {
                           phaseLabel = `Starts in ${start!.diff(today, 'day')}d`;
@@ -1522,8 +1522,8 @@ export default function SprintPlanComponent() {
                         } else {
                           const remaining = end!.diff(today, 'day');
                           phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
-                          phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
-                          phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+                          phaseColor = remaining <= 2 ? '#f59e0b' : (record.status === 'active' ? '#3b82f6' : '#10b981');
+                          phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : (record.status === 'active' ? 'rgba(59,130,246,0.08)' : 'rgba(16,185,129,0.08)');
                         }
                       }
                       const elapsedPct = hasDates ? Math.min(Math.max((today.diff(start!, 'day') / days) * 100, 0), 100) : 0;
@@ -1724,7 +1724,7 @@ export default function SprintPlanComponent() {
                                 <>
                                   <span className="sp-plist-foot-div" />
                                   <span className="sp-plist-foot-item">
-                                    <PlayCircleOutlined style={{ fontSize: 10, color: '#10b981' }} />
+                                    <PlayCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
                                     <span className="sp-plist-foot-label">Started:</span>
                                     <b>{startedAt.format('MMM D, YYYY')}</b>
                                     {startVariance !== null && startVariance !== 0 && (
@@ -1740,7 +1740,7 @@ export default function SprintPlanComponent() {
                                 <>
                                   <span className="sp-plist-foot-div" />
                                   <span className="sp-plist-foot-item">
-                                    <CheckCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
+                                    <CheckCircleOutlined style={{ fontSize: 10, color: '#10b981' }} />
                                     <span className="sp-plist-foot-label">Closed:</span>
                                     <b>{completedAt.format('MMM D, YYYY')}</b>
                                     {endVariance !== null && endVariance !== 0 && (
@@ -1773,7 +1773,7 @@ export default function SprintPlanComponent() {
                                     <Button
                                       type="text"
                                       size="small"
-                                      icon={<RocketOutlined style={{ fontSize: 14, color: '#10b981' }} />}
+                                      icon={<RocketOutlined style={{ fontSize: 14, color: '#3b82f6' }} />}
                                       className="sp-foot-btn sp-foot-btn-start"
                                     >
                                       Start Sprint
@@ -1786,7 +1786,7 @@ export default function SprintPlanComponent() {
                                   <Button
                                     type="text"
                                     size="small"
-                                    icon={<CheckCircleOutlined style={{ fontSize: 14, color: '#3b82f6' }} />}
+                                    icon={<CheckCircleOutlined style={{ fontSize: 14, color: '#10b981' }} />}
                                     onClick={() => handleCompleteSprint(record)}
                                     className="sp-foot-btn sp-foot-btn-complete"
                                   >
@@ -2160,7 +2160,7 @@ export default function SprintPlanComponent() {
               const diff = today.diff(end, 'day');
               if (diff > 0) deliveryNote = { label: `${diff}d overdue`, color: '#ef4444', icon: <WarningOutlined />, sub: `Target was ${end.format('MMM D')}` };
               else if (diff === 0) deliveryNote = { label: 'Ends today', color: '#f59e0b', icon: <FireOutlined />, sub: `Last day of cycle` };
-              else deliveryNote = { label: `${Math.abs(diff)}d remaining`, color: '#10b981', icon: <ThunderboltOutlined />, sub: `Target ${end.format('MMM D, YYYY')}` };
+              else deliveryNote = { label: `${Math.abs(diff)}d remaining`, color: '#3b82f6', icon: <ThunderboltOutlined />, sub: `Target ${end.format('MMM D, YYYY')}` };
             }
 
             // Velocity / pace
@@ -2172,9 +2172,9 @@ export default function SprintPlanComponent() {
             const dash = (pct / 100) * circ;
             const ringColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : '#6366f1';
             const statusCfg =
-              status === 'active' ? { color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Active' } :
+              status === 'active' ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', label: 'Active' } :
                 status === 'planning' ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Planning' } :
-                  status === 'completed' ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', label: 'Completed' } :
+                  status === 'completed' ? { color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Completed' } :
                     { color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', label: status?.toUpperCase() || '—' };
             const project = typeof drawerSprintPlan.project === 'object' ? drawerSprintPlan.project : null;
 
@@ -2992,9 +2992,9 @@ export default function SprintPlanComponent() {
           border-radius: 50%;
         }
         .sp-status-dot.all { background: #94a3b8; }
-        .sp-status-dot.active { background: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.15); }
+        .sp-status-dot.active { background: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
         .sp-status-dot.planning { background: #f59e0b; }
-        .sp-status-dot.completed { background: #3b82f6; }
+        .sp-status-dot.completed { background: #10b981; }
         .sp-reset-btn {
           color: var(--text-slate-500) !important;
           font-weight: 600 !important;

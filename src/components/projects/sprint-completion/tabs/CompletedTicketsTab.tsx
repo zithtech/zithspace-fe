@@ -149,7 +149,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             >
               {assignee.name?.charAt(0).toUpperCase()}
             </Avatar>
-            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name}</span>
+            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name?.split(" ")[0]}</span>
           </span>
         );
       },
@@ -261,7 +261,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
               dataSource={tickets}
               rowKey="id"
               pagination={{
-                pageSize: 10,
+                defaultPageSize: 10,
                 showSizeChanger: true,
                 showTotal: (total) => (
                   <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>

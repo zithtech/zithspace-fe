@@ -353,18 +353,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     return () => ro.disconnect();
   }, []);
 
-  // Measure active-sprint section head so the table column headers stick flush below it
-  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
-  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
-  useEffect(() => {
-    const el = activeSprintCardRef.current?.querySelector('.tl-section-head') as HTMLElement | null;
-    if (!el) return;
-    const update = () => setActiveSprintHeadOffset(saasHeaderHeight + el.offsetHeight);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [activeSprintCardRef.current, saasHeaderHeight]);
+
 
   // ── Sprint header: collapse Progress/Tickets/Timeline cluster to a compact
   // popover button when the section-head wraps to a second row. Detection is
@@ -445,6 +434,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Pagination state
   const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20,
+  });
+  const [activePagination, setActivePagination] = useState({
     current: 1,
     pageSize: 20,
   });
@@ -628,12 +621,39 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     refetch: refetchBacklog
   } = useTickets(backlogParams);
 
+  // Unfiltered backlog data query to keep total backlog count in sidebar constant
+  const { data: unfilteredBacklogData } = useTickets({
+    projectId,
+    sprintId: 'null',
+    limit: 1
+  }, {
+    enabled: !!projectId && canReadTicket,
+  });
+  const totalBacklogCount = unfilteredBacklogData?.pagination?.total || 0;
+
+  // Logged-in user's backlog data query to show correct count for My Backlog Tickets in sidebar
+  const { data: myBacklogData } = useTickets({
+    projectId,
+    sprintId: 'null',
+    assigneeId: user?.id?.toString() || undefined,
+    limit: 1
+  }, {
+    enabled: !!projectId && !!user?.id && canReadTicket,
+  });
+  const myBacklogCount = myBacklogData?.pagination?.total || 0;
+
   // Default "All Tickets" query (Legacy support or if we toggle off split view? 
   // User wants SPLIT view. So we might not need the unified query anymore for List view.
   // But we keep it if we want to support filtering without sprint context?
   // User asked for specific split. We will use these two data sources.)
 
   const activeTickets = activeSprintData?.data || [];
+  const pagedActiveTickets = useMemo(() => {
+    const start = (activePagination.current - 1) * activePagination.pageSize;
+    const end = start + activePagination.pageSize;
+    return activeTickets.slice(start, end);
+  }, [activeTickets, activePagination]);
+
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
 
@@ -1378,10 +1398,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         title: "ID",
         dataIndex: "ticketNumber",
         key: "ticketNumber",
-        width: 180,
+        width: 100,
         render: (text: string, record: Ticket) => (
           <span
-            onClick={() => handleViewTicket(record)}
+            onClick={(e) => { e.stopPropagation(); handleViewTicket(record); }}
             style={{
               cursor: 'pointer',
               color: 'var(--premium-blue)',
@@ -1406,6 +1426,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         dataIndex: "title",
         key: "title",
         width: 350,
+        ellipsis: true,
         render: (text: string, record: Ticket) => {
           const isEditing =
             editingField?.ticketId === record.id &&
@@ -1428,32 +1449,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
           return (
             <div
-              className="group"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: canUpdateTicket ? 'pointer' : 'default', minHeight: 24 }}
-              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "title" })}
+              className="group pp-name-cell"
+              style={{ cursor: canUpdateTicket ? 'pointer' : 'default', minHeight: 24, maxWidth: 500, overflow: 'hidden' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canUpdateTicket) setEditingField({ ticketId: record.id, field: "title" });
+              }}
               title={text}
             >
-              <Text
-                strong
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  color: 'var(--text-slate-900)',
-                  letterSpacing: '-0.01em'
-                }}
-                ellipsis={{ tooltip: true }}
-              >
-                {text}
-              </Text>
+              <span className="pp-name-title">{text}</span>
               {canUpdateTicket && (
                 <EditOutlined
                   className="opacity-0 group-hover:opacity-40 transition-opacity"
-                  style={{ color: 'var(--premium-blue)', fontSize: 12 }}
+                  style={{ color: 'var(--premium-blue)', fontSize: 12, marginLeft: 6, flexShrink: 0 }}
                 />
               )}
             </div>
           );
-
         },
       },
       {
@@ -1487,16 +1499,43 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             );
           }
 
+          const getTicketStatusMeta = (sVal: string) => {
+            const k = (sVal || '').toLowerCase();
+            if (k === 'completed' || k === 'done') {
+              return { label: 'Done', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)' };
+            }
+            if (k === 'in_progress' || k === 'active') {
+              return { label: 'In Progress', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' };
+            }
+            if (k === 'review') {
+              return { label: 'Review', color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', ring: 'rgba(139,92,246,0.25)' };
+            }
+            if (k === 'open' || k === 'todo' || k === 'pending') {
+              return { label: 'To Do', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', ring: 'rgba(245,158,11,0.25)' };
+            }
+            return { label: getStatusLabel(sVal, finalStatusOptions), color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' };
+          };
+
+          const meta = getTicketStatusMeta(status);
+
           return (
-            <Tag
-              className={`saas-tag ${getStatusColorClass(status)}`}
-              style={{ cursor: canUpdateTicket ? "pointer" : "default", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
-              onClick={() =>
-                canUpdateTicket && setEditingField({ ticketId: record.id, field: "status" })
-              }
+            <span
+              className="pp-vis-pill"
+              style={{
+                color: meta.color,
+                background: meta.bg,
+                borderColor: meta.ring,
+                cursor: canUpdateTicket ? "pointer" : "default"
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canUpdateTicket) setEditingField({ ticketId: record.id, field: "status" });
+              }}
             >
-              {getStatusLabel(status, finalStatusOptions)}
-            </Tag>
+              <span className="pp-vis-dot" style={{ background: meta.color }} />
+              {meta.label}
+              {canUpdateTicket && <CaretDownOutlined style={{ fontSize: 9, opacity: 0.6, marginLeft: 2 }} />}
+            </span>
           );
         },
       },
@@ -1548,10 +1587,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           const initials = isUnassigned ? "UN" : initialsFor(name);
 
           return (
-            <Space
-              style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
-              className={canUpdateTicket ? "hover:translate-x-1" : ""}
-              onClick={() => {
+            <div
+              className="pp-creator"
+              style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
+              onClick={(e) => {
+                e.stopPropagation();
                 if (canUpdateTicket) {
                   if (!canAssignTicket) {
                     message.error("Access Denied: You do not have permission to assign tickets.");
@@ -1562,14 +1602,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               }}
             >
               <Avatar
-                size="small"
-                style={{ backgroundColor: avatarBgColor }}
+                size={20}
+                style={{ backgroundColor: avatarBgColor, fontSize: 9, fontWeight: 700 }}
                 src={typeof assignee === "object" ? assignee?.avatarUrl || undefined : undefined}
               >
                 {initials}
               </Avatar>
-              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
-            </Space>
+              <span className="pp-creator-name">{name.split(" ")[0]}</span>
+            </div>
           );
         },
       },
@@ -1612,7 +1652,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             <Tag
               className={`saas-tag ${getPriorityColorClass(priority)}`}
               style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canUpdateTicket) setEditingField({ ticketId: record.id, field: "priority" });
+              }}
             >
               <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
               {priority}
@@ -1657,13 +1700,27 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }
 
           if (!type) {
-            return <Text type="secondary" style={{ cursor: canUpdateTicket ? 'pointer' : 'default', fontSize: 13 }} onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
+            return (
+              <Text
+                type="secondary"
+                style={{ cursor: canUpdateTicket ? 'pointer' : 'default', fontSize: 13 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canUpdateTicket) setEditingField({ ticketId: record.id, field: "type" });
+                }}
+              >
+                -
+              </Text>
+            );
           }
           return (
             <Tag
               className={`saas-tag ${getTypeColorClass(type)}`}
               style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
-              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canUpdateTicket) setEditingField({ ticketId: record.id, field: "type" });
+              }}
             >
               {type}
             </Tag>
@@ -1712,7 +1769,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 fontWeight: 700,
                 color: 'var(--text-slate-500)'
               }}
-              onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingField({ ticketId: record.id, field: "storyPoint" });
+              }}
             >
               {storyPoint || 0}
             </div>
@@ -1807,14 +1867,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         width: 170,
         render: (reportTo: Ticket["reportTo"]) => {
           if (!reportTo || typeof reportTo === 'string') {
-            return <Text type="secondary" style={{ fontSize: 12 }}>{typeof reportTo === 'string' ? reportTo : '-'}</Text>;
+            return <Text type="secondary" style={{ fontSize: 12 }}>{typeof reportTo === 'string' ? reportTo.split(" ")[0] : '-'}</Text>;
           }
           return (
             <Space size={6}>
               <Avatar size="small" style={{ backgroundColor: avatarColorFor(reportTo.name) }} src={reportTo.avatarUrl || undefined}>
                 {!reportTo.avatarUrl && initialsFor(reportTo.name)}
               </Avatar>
-              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name}</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name.split(" ")[0]}</Text>
             </Space>
           );
         },
@@ -1831,7 +1891,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <Avatar size="small" style={{ backgroundColor: avatarColorFor(createdBy.name) }} src={createdBy.avatarUrl || undefined}>
                 {!createdBy.avatarUrl && initialsFor(createdBy.name)}
               </Avatar>
-              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name.split(" ")[0]}</Text>
             </Space>
           );
         },
@@ -2134,20 +2194,377 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     );
   };
 
+  const renderCustomPagination = (
+    current: number,
+    pageSize: number,
+    total: number,
+    selectedCount: number,
+    onPageChange: (page: number) => void,
+    onPageSizeChange: (size: number) => void
+  ) => {
+    if (total === 0) return null;
+    const pageStart = (current - 1) * pageSize + 1;
+    const pageEnd = Math.min(current * pageSize, total);
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+    return (
+      <div className="pp-footer">
+        <div className="pp-footer-info">
+          Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          {selectedCount > 0 && <span className="pp-footer-sel"> · {selectedCount} selected</span>}
+        </div>
+        <div className="pp-pager">
+          <button
+            type="button"
+            className="pp-pager-btn"
+            disabled={current <= 1}
+            onClick={() => onPageChange(Math.max(1, current - 1))}
+          >
+            ‹
+          </button>
+          {Array.from({ length: pageCount }, (_, i) => i + 1)
+            .slice(Math.max(0, current - 3), Math.max(0, current - 3) + 5)
+            .map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`pp-pager-num ${p === current ? 'is-active' : ''}`}
+                onClick={() => onPageChange(p)}
+              >
+                {p}
+              </button>
+            ))}
+          <button
+            type="button"
+            className="pp-pager-btn"
+            disabled={current >= pageCount}
+            onClick={() => onPageChange(Math.min(pageCount, current + 1))}
+          >
+            ›
+          </button>
+          <Select
+            className="pp-pagesize"
+            value={pageSize}
+            onChange={(v) => onPageSizeChange(v)}
+            options={[10, 20, 25, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+            popupMatchSelectWidth={120}
+            size="small"
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-pure-white)',
-      minHeight: 'calc(100vh - 64px)',
-      padding: '0 24px 16px 24px',
-      margin: '0 -24px',
+      height: 'calc(100vh - 54px)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
       ['--tl-header-h' as any]: `${saasHeaderHeight}px`,
     }}>
       <style dangerouslySetInnerHTML={{
         __html: `
+        /* ── Proposals-like Table Styling overrides ── */
+        .pp-table-wrap {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-left: none;
+          border-right: none;
+          border-radius: 0;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: auto;
+          margin: 0;
+        }
+        [data-theme='dark'] .pp-table-wrap {
+          background: #0f1419;
+          border-color: #1f2937;
+        }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 10px !important;
+          white-space: nowrap !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 2 !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > th {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        .pp-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 8px 10px !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1f2937 !important;
+        }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: #1e293b !important; }
+        .pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+        .pp-table .ant-table-selection-column { padding-inline: 6px !important; }
+
+        /* Hide Ant Design default pagination */
+        .pp-table .ant-table-pagination {
+          display: none !important;
+        }
+
+        /* Footer + pager styling matching proposals */
+        .pp-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          box-sizing: border-box;
+          flex-shrink: 0;
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.04);
+          margin: 0;
+        }
+        [data-theme='dark'] .pp-footer {
+          background: #0f1419;
+          border-top-color: #1f2937;
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        [data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
+        .pp-footer-sel { color: #3B82F6; font-weight: 600; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          cursor: pointer;
+          font-size: 12.5px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+          background: #1e293b;
+          border-color: #334155;
+          color: #cbd5e1;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        [data-theme='dark'] .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        /* Name cell */
+        .pp-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; overflow: hidden; }
+        .pp-name-icon {
+          width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; color: #3B82F6;
+          background: var(--bg-blue-50);
+        }
+        [data-theme='dark'] .pp-name-icon {
+          background: rgba(59,130,246,0.15);
+        }
+        .pp-name-icon .anticon { font-size: 12px !important; }
+        .pp-name-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        [data-theme='dark'] .pp-name-title { color: #f1f5f9; }
+
+        /* Status pill styling */
+        .pp-vis-pill {
+          display: inline-flex; align-items: center; gap: 5px; height: 23px; padding: 0 8px;
+          border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap;
+        }
+        .pp-vis-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        /* Creator/Assignee styling */
+        .pp-creator { display: flex; align-items: center; gap: 6px; }
+        .pp-creator-name { font-size: 11.5px; color: var(--text-slate-700); white-space: nowrap; font-weight: 500; }
+        [data-theme='dark'] .pp-creator-name { color: #cbd5e1; }
+
+        /* Premium tag adjustments */
+        .saas-table .saas-tag {
+          display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+          border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap;
+        }
+        .saas-table .saas-tag-red { color: #ef4444; background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); }
+        .saas-table .saas-tag-orange { color: #f59e0b; background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.25); }
+        .saas-table .saas-tag-blue { color: #3b82f6; background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.25); }
+        .saas-table .saas-tag-green { color: #10b981; background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.25); }
+        .saas-table .saas-tag-purple { color: #8b5cf6; background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.25); }
+        .saas-table .saas-tag-cyan { color: #06b6d4; background: rgba(6,182,212,0.10); border-color: rgba(6,182,212,0.25); }
+        .saas-table .saas-tag-geekblue { color: #6366f1; background: rgba(99,102,241,0.10); border-color: rgba(99,102,241,0.25); }
+        .saas-table .saas-tag-default { color: #64748b; background: rgba(100,116,139,0.10); border-color: rgba(100,116,139,0.25); }
+
         .project-switch-trigger:hover {
           background: var(--bg-slate-50);
           color: var(--premium-blue);
         }
+
+        /* Instant Creation overrides to act like a flush header bar */
+        .ict-shell {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px !important;
+          margin: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: none !important;
+          border-left: none !important;
+          border-right: none !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          animation: none !important;
+        }
+        [data-theme='dark'] .ict-shell {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+
+        /* Scoped Table Settings custom dropdown overlays */
+        .ts-popover-overlay .ant-popover-inner {
+          padding: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          border-radius: 12px !important;
+        }
+        .ts-popover-overlay .ant-popover-arrow { display: none !important; }
+
+        .ts-panel {
+          width: 250px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+        }
+        [data-theme='dark'] .ts-panel {
+          background: #0f1419;
+          border-color: #2d3748;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.3);
+        }
+
+        .ts-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 10px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .ts-head {
+          background: #111720;
+          border-bottom-color: #1f2937;
+        }
+        .ts-head-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .ts-head-title { color: #94a3b8; }
+
+        .ts-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          height: 24px;
+          padding: 0 9px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .ts-reset:hover {
+          color: #3b82f6;
+          border-color: rgba(59,130,246,0.4);
+          background: rgba(59,130,246,0.06);
+          border-style: solid;
+        }
+        [data-theme='dark'] .ts-reset {
+          border-color: #2d3748;
+          color: #94a3b8;
+        }
+
+        .ts-body {
+          padding: 10px 14px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .ts-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 5px 6px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background 0.1s ease;
+        }
+        .ts-row:hover {
+          background: var(--bg-slate-50);
+        }
+        [data-theme='dark'] .ts-row:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .ts-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          min-width: 0;
+        }
+        [data-theme='dark'] .ts-row-label { color: #cbd5e1; }
+
+        .ts-foot {
+          padding: 8px 14px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        [data-theme='dark'] .ts-foot {
+          border-top-color: #1f2937;
+          background: #111720;
+        }
+        .ts-foot-hint {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .ts-foot-hint { color: #64748b; }
         
         /* Remove default shadow from fixed columns (e.g. Actions) */
         .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
@@ -2156,7 +2573,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
         .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 7px 14px !important; }
         .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 11px 18px !important; }
-        .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }
         .tickets-cols-scroll::-webkit-scrollbar { width: 6px; }
         .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
@@ -2200,16 +2616,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
            removed so the main column doesn't slide under the SideNav.
            Animate margin-left for a smooth shift. */
         .tl-shell-wrap {
-          margin: 0 -8px 0 -24px;
+          margin: 0;
           transition: margin-left 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          height: 100%;
+          overflow: hidden;
         }
         .tl-shell-wrap.is-sidebar-closed { margin-left: 0; }
         .tl-shell {
           display: grid;
-          grid-template-columns: 264px minmax(0, 1fr);
+          grid-template-columns: 250px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
-          min-height: calc(100vh - 64px - 56px);
+          height: 100%;
+          overflow: hidden;
           transition: grid-template-columns 0.28s cubic-bezier(0.25, 1, 0.5, 1);
         }
         /* Sidebar collapse animation — width via grid-template-columns,
@@ -2218,13 +2641,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           transition: opacity 0.22s ease, padding 0.28s cubic-bezier(0.25, 1, 0.5, 1);
           overflow-y: auto;
           overflow-x: hidden;
+          height: 100%;
         }
         .tl-main {
           min-width: 0;
-          padding: 0 0 16px 0;
+          padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 0;
+          flex: 1;
+          height: 100%;
+          overflow: hidden;
         }
         /* ── Sidebar show/hide toggle (always visible in top header) ── */
         .tl-sidebar-show-toggle {
@@ -2305,7 +2732,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         @media (min-width: 1100px) {
           .tl-sidebar-toggle-btn { display: none !important; }
           .tl-shell-wrap.is-sidebar-closed .tl-shell {
-            /* Animate the first track from 264px → 0 instead of removing
+            /* Animate the first track from 220px → 0 instead of removing
                the column entirely; keeps grid-template-columns smoothly
                interpolatable so the main column slides in. */
             grid-template-columns: 0px minmax(0, 1fr);
@@ -2395,6 +2822,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           border-top: 1px solid var(--border-slate-200);
           border-bottom: 1px solid var(--border-slate-200);
           margin-bottom: 0;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
         }
         [data-theme='dark'] .tl-section {
           background: transparent;
@@ -2402,35 +2834,36 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           border-bottom-color: #1f2937;
         }
         .tl-section-head {
-          padding: 6px 14px;
+          padding: 6px 12px;
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
-          /* Sticks below the page-level header so the sprint info / actions
-             stay reachable while the user scrolls long ticket lists. Used in
-             the List and Board views. The Calendar view opts out via the
-             tl-section-head--static modifier — calendar has its own sticky
-             chrome and the sprint banner doesn't need to follow the scroll. */
-          position: sticky;
-          top: var(--tl-header-h, 56px);
-          z-index: 4;
+          position: relative;
         }
         .tl-section-head.tl-section-head--static {
-          position: static;
-          top: auto;
-          z-index: auto;
+          position: relative;
+        }
+        .saas-card-sticky > .ant-card-head {
+          top: var(--tl-header-h, 56px) !important;
         }
         [data-theme='dark'] .tl-section-head {
           background: #0f1419;
           border-bottom-color: #1f2937;
         }
-        .tl-section-body { padding: 4px 0 0; }
+        .tl-section-body {
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
 
         /* ── Sprint head v2: vertical 3-row layout ──────────── */
         .tl-sprint-head-v2 {
           display: flex !important;
           flex-direction: column;
           gap: 6px;
-          padding: 10px 14px !important;
+          padding: 10px 12px !important;
         }
         .tl-sprint-row1 {
           display: flex;
@@ -2659,7 +3092,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
 
         /* Ensure ancestor stacking contexts don't clip sticky pagination */
-        .tl-section, .tl-section-body, .tickets-table-shell { overflow: visible !important; }
+        .tickets-table-shell { overflow: visible !important; }
 
         /* ── Back-to button (filtered view section head) ─────── */
         .tl-back-btn {
@@ -2832,7 +3265,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           padding: 0 10px;
           background: transparent;
           border: 1px dashed var(--border-slate-200);
-          border-radius: 999px;
+          border-radius: 8px;
           font-family: inherit;
           font-size: 11px;
           font-weight: 700;
@@ -2854,7 +3287,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           height: 28px;
           background: transparent;
           border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
+          border-radius: 8px;
           color: var(--text-slate-500);
           cursor: pointer;
           transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
@@ -2878,7 +3311,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           padding: 6px 10px 6px 12px;
           background: rgba(59,130,246,0.08);
           border: 1px solid rgba(59,130,246,0.22);
-          border-radius: 999px;
+          border-radius: 8px;
           font-size: 12px;
           font-weight: 700;
           color: #1d4ed8;
@@ -2915,441 +3348,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
       `}} />
 
-      {/* Premium Header Row - Sticky Glassmorphism */}
-      <div ref={saasHeaderRef} className="saas-header-container" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        margin: '0 -24px 0 -24px',
-        padding: '9.7px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        flexWrap: 'wrap'
-      }}>
-        {/* Sidebar toggle (only visible on narrow screens via CSS) */}
-        <button
-          type="button"
-          className="tl-sidebar-toggle-btn"
-          onClick={() => setIsSidebarOpen((v) => !v)}
-          aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-        >
-          <BarsOutlined style={{ fontSize: 14 }} />
-        </button>
-        {/* Project Switcher */}
-        <Dropdown
-          menu={{
-            items: (projects || []).map(p => ({
-              key: p.value,
-              label: (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '6px 10px',
-                  minWidth: 210,
-                  borderRadius: 8,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  background: p.value === projectId ? 'var(--bg-blue-50)' : 'transparent',
-                }}>
-                  <div style={{
-                    padding: '0 6px',
-                    height: 26,
-                    borderRadius: 6,
-                    background: p.value === projectId
-                      ? 'var(--premium-gradient)'
-                      : 'var(--bg-slate-100)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
-                    fontSize: 9,
-                    fontWeight: 800,
-                    boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
-                    minWidth: 32
-                  }}>
-                    {p.code?.toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900)', lineHeight: '1.4' }}>{p.label}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 500 }}>#{p.code}</div>
-                  </div>
-                  {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12 }} />}
-                </div>
-              ),
-              onClick: () => router.push(`/projects/${p.value}/tickets`)
-            })),
-            style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
-          }}
-          trigger={['click']}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
-            <div style={{
-              padding: '0 6px',
-              height: 26,
-              borderRadius: 6,
-              background: 'var(--premium-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontSize: 9,
-              fontWeight: 800,
-              boxShadow: 'var(--premium-shadow-lg)',
-              minWidth: 30
-            }}>
-              {projectCode?.toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 7 }} /></div>
-            </div>
-          </div>
-        </Dropdown>
 
-        <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
-
-        {/* Sidebar show/hide toggle — sits between the Switch Project divider
-            and the quick search. Drives the same isSidebarOpen state the
-            mobile drawer uses, so the existing .is-sidebar-closed CSS
-            handles both desktop (single-column grid) and mobile cases. */}
-        <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
-          <button
-            type="button"
-            className="tl-sidebar-show-toggle"
-            onClick={() => setIsSidebarOpen((v) => !v)}
-            aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            aria-pressed={!isSidebarOpen}
-          >
-            {isSidebarOpen ? (
-              <MenuFoldOutlined style={{ fontSize: 14 }} />
-            ) : (
-              <MenuUnfoldOutlined style={{ fontSize: 14 }} />
-            )}
-          </button>
-        </Tooltip>
-
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-          <Input
-            placeholder="Quick search tickets..."
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
-            className="saas-input"
-            style={{ maxWidth: 240, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
-            value={localSearchValue}
-            onChange={(e) => setLocalSearchValue(e.target.value)}
-            allowClear
-          />
-
-          <Space.Compact className="ticket-filter-group">
-            <Popover
-              content={
-                <TicketFilters
-                  filters={filters}
-                  onFilterChange={handleFilterChange}
-                  members={members}
-                  onReset={() => { setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] }); setActiveQuickFilters({ commented: false, attached: false, overdue: false }); }}
-                  statusOptions={finalStatusOptions}
-                  priorityOptions={finalPriorityOptions}
-                  typeOptions={finalTypeOptions}
-                />
-              }
-              trigger="click"
-              placement="bottomLeft"
-              overlayClassName="tf-popover-overlay"
-              styles={{ body: { padding: 0 } }}
-            >
-              <Button
-                icon={<FilterOutlined />}
-                className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
-                style={{ height: 30, fontWeight: 600, fontSize: 12 }}
-              >
-                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-              </Button>
-            </Popover>
-            <Button
-              icon={<ExpandAltOutlined />}
-              style={{ height: 30 }}
-              aria-label="Expand filters"
-              onClick={() => setIsFilterRowOpen(prev => !prev)}
-            />
-          </Space.Compact>
-
-          <Segmented
-            value={viewMode}
-            onChange={(v) => setViewMode(v as 'list' | 'board' | 'calendar')}
-            options={[
-              { label: 'List', value: 'list', icon: <UnorderedListOutlined style={{ fontSize: 13 }} /> },
-              { label: 'Board', value: 'board', icon: <AppstoreOutlined style={{ fontSize: 13 }} /> },
-              { label: 'Calendar', value: 'calendar', icon: <CalendarOutlined style={{ fontSize: 13 }} /> },
-            ]}
-            className="saas-segmented-premium"
-          />
-
-          {viewMode === 'list' && (
-            <Popover
-              trigger={['click']}
-              placement="bottomRight"
-              classNames={{ root: 'tickets-table-settings-popover' }}
-              content={
-                <div style={{ width: 240 }}>
-                  {/*
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: 'var(--text-slate-500)',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <ColumnHeightOutlined style={{ fontSize: 11 }} />
-                    <span>Density</span>
-                  </div>
-                  <Segmented
-                    block
-                    value={tableDensity}
-                    onChange={(v) => setTableDensity(v as TicketDensity)}
-                    options={[
-                      { label: 'Compact', value: 'compact' },
-                      { label: 'Cozy', value: 'comfortable' },
-                      { label: 'Roomy', value: 'spacious' },
-                    ]}
-                  />
-                  */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: 'var(--text-slate-500)',
-                      marginTop: 14,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <UnorderedListOutlined style={{ fontSize: 11 }} />
-                    <span>Columns</span>
-                  </div>
-                  <div
-                    className="tickets-cols-scroll"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                      maxHeight: 256,
-                      overflowY: 'auto',
-                      paddingRight: 4,
-                    }}
-                  >
-                    {toggleableColumns.map((c) => (
-                      <label
-                        key={c.key}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '4px 6px',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          flex: '0 0 auto',
-                        }}
-                      >
-                        <span style={{ fontSize: 12.5, color: 'var(--text-slate-700)' }}>{c.label}</span>
-                        <Switch
-                          size="small"
-                          checked={!hiddenCols[c.key]}
-                          onChange={(checked) =>
-                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      marginTop: 12,
-                      paddingTop: 12,
-                      borderTop: '1px solid var(--border-slate-200)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHiddenCols({ ...TICKETS_DEFAULT_HIDDEN_COLS });
-                        setTableDensity('comfortable');
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#3b82f6',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        padding: 0,
-                      }}
-                    >
-                      Reset to defaults
-                    </button>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>
-                      Saved automatically
-                    </span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Table settings">
-                <Button
-                  icon={<SettingOutlined />}
-                  aria-label="Table settings"
-                  style={{
-                    height: 36,
-                    width: 36,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 8,
-                  }}
-                />
-              </Tooltip>
-            </Popover>
-          )}
-        </div>
-
-        {/* Right Side Actions */}
-        <Space size={12}>
-          {recentTicket && (
-            <div
-              ref={recentTicketCardRef}
-              className="ticket-highlight-glow"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: 'var(--bg-blue-50)',
-                border: '1px solid var(--border-blue-200)',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div className="highlight-point" />
-              <Text
-                strong
-                onClick={() => setSelectedTicketId(recentTicket.id)}
-                style={{
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  color: 'var(--premium-blue)',
-                  letterSpacing: '-0.01em'
-                }}
-                className="hover:underline"
-              >
-                {recentTicket.ticketNumber} Created
-              </Text>
-              <Divider type="vertical" style={{ margin: '0 4px', height: 14, opacity: 0.3 }} />
-              <CloseOutlined
-                onClick={(e) => { e.stopPropagation(); setRecentTicket(null); }}
-                style={{ fontSize: 10, color: 'var(--text-slate-400)', cursor: 'pointer' }}
-                className="hover:text-slate-600 transition-colors"
-              />
-            </div>
-          )}
-          <Tooltip title="Refresh view">
-            <Button
-              icon={<ReloadOutlined spin={isRefreshing} />}
-              onClick={async () => {
-                setIsRefreshing(true);
-                // Tickets + sidebar (recent comments / attachments / overdue) in parallel.
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-                  queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] }),
-                ]);
-                setIsRefreshing(false);
-                message.success("View refreshed");
-              }}
-              style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            />
-          </Tooltip>
-          {canCreateTicket && (
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'manual',
-                    label: 'Manual Creation',
-                    icon: <FileTextOutlined />,
-                    onClick: () => setManualModalOpen(true)
-                  },
-                  {
-                    key: 'instant',
-                    label: 'Instant Creation',
-                    icon: <ThunderboltOutlined />,
-                    onClick: () => setShowCreateForm(true)
-                  },
-                  {
-                    key: 'zai',
-                    label: (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                        Create with Zai
-                        <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
-                      </div>
-                    ),
-                    icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
-                    onClick: () => setAiModalOpen(true)
-                  }
-                ],
-                style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
-              }}
-              trigger={['hover', 'click']}
-              placement="bottomRight"
-            >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                style={{
-                  height: 36,
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  padding: '0 16px',
-                  background: 'var(--premium-gradient)',
-                  border: 'none',
-                  boxShadow: 'var(--premium-shadow-lg)'
-                }}
-              >
-                Create Ticket <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
-              </Button>
-            </Dropdown>
-          )}
-        </Space>
-      </div>
 
       {/* Inline Filter Row moved into tl-main (renders after the sprint details header) */}
 
-      {/* Inline Creation */}
-      <InlineCreateTicket
-        visible={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
-        projectId={projectId}
-        filters={filters}
-        projects={projects}
-        members={members}
-        onTicketCreated={handleTicketCreated}
-      />
+
 
       {/* Tickets View — wrapped in a 2-column shell (sidebar + main) */}
       <div className={`tl-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
@@ -3363,15 +3366,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <TicketSidebar
             activeSprint={activeSprint as any}
             overallSprintTickets={sidebarSprintPool as any}
-            totalBacklog={totalBacklog}
+            totalBacklog={totalBacklogCount}
+            myBacklogCount={myBacklogCount}
             currentUserId={user?.id}
             currentUserName={user?.name}
             typeOptions={finalTypeOptions as any}
             recentComments={recentActivity?.comments || []}
             recentAttachments={recentActivity?.attachments || []}
             activeSection={effectiveSection}
-            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
-            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
             commentedFilterActive={activeQuickFilters.commented}
             attachedFilterActive={activeQuickFilters.attached}
             overdueFilterActive={activeQuickFilters.overdue}
@@ -3408,7 +3412,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               // If the user was in a "My Sprint/Backlog Tickets" view (assignee
               // pinned to self), clicking the plain Sprint/Backlog row should
               // drop that filter and show the full section.
-              if (user?.id && filters.assignee.length === 1 && filters.assignee[0] === user.id) {
+              if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
                 setFilters(prev => ({ ...prev, assignee: [] }));
               }
               setSidebarActiveSection(section);
@@ -3424,10 +3428,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             }}
             onShowMySprintTickets={() => {
               if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+              const newAssignee = isOn ? [] : [user.id];
+              if (sidebarActiveSection !== 'sprint') {
+                filterSnapshotsRef.current.sprint.assignee = newAssignee;
+              }
               setFilters(prev => ({
                 ...prev,
-                assignee: isOn ? [] : [user.id],
+                assignee: newAssignee,
               }));
               if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
               setSidebarActiveSection('sprint');
@@ -3435,10 +3443,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             }}
             onShowMyBacklog={() => {
               if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+              const newAssignee = isOn ? [] : [user.id];
+              if (sidebarActiveSection !== 'backlog') {
+                filterSnapshotsRef.current.backlog.assignee = newAssignee;
+              }
               setFilters(prev => ({
                 ...prev,
-                assignee: isOn ? [] : [user.id],
+                assignee: newAssignee,
               }));
               if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
               setSidebarActiveSection('backlog');
@@ -3448,6 +3460,414 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             onTicketClick={(id) => setSelectedTicketId(id)}
           />
           <div className="tl-main">
+            {/* Premium Header Row - Sticky Solid Background */}
+            <div ref={saasHeaderRef} className="saas-header-container" style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              margin: '0',
+              padding: '9.7px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              background: 'var(--bg-pure-white)',
+              borderBottom: '1px solid var(--border-slate-200)'
+            }}>
+              {/* Mobile Sidebar toggle (only visible on narrow screens via CSS) */}
+              <button
+                type="button"
+                className="tl-sidebar-toggle-btn"
+                onClick={() => setIsSidebarOpen((v) => !v)}
+                aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+              >
+                <BarsOutlined style={{ fontSize: 14 }} />
+              </button>
+
+              {/* Desktop Sidebar show/hide toggle */}
+              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                <button
+                  type="button"
+                  className="tl-sidebar-show-toggle"
+                  onClick={() => setIsSidebarOpen((v) => !v)}
+                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                  aria-pressed={!isSidebarOpen}
+                >
+                  {isSidebarOpen ? (
+                    <MenuFoldOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                  )}
+                </button>
+              </Tooltip>
+
+              <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+              {/* Project Switcher */}
+              <Dropdown
+                menu={{
+                  items: (projects || []).map(p => ({
+                    key: p.value,
+                    label: (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '6px 10px',
+                        minWidth: 210,
+                        borderRadius: 8,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        background: p.value === projectId ? 'var(--bg-blue-50)' : 'transparent',
+                      }}>
+                        <div style={{
+                          padding: '0 6px',
+                          height: 26,
+                          borderRadius: 6,
+                          background: p.value === projectId
+                            ? 'var(--premium-gradient)'
+                            : 'var(--bg-slate-100)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
+                          fontSize: 9,
+                          fontWeight: 800,
+                          boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
+                          minWidth: 32
+                        }}>
+                          {p.code?.toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900)', lineHeight: '1.4' }}>{p.label}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 500 }}>#{p.code}</div>
+                        </div>
+                        {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12 }} />}
+                      </div>
+                    ),
+                    onClick: () => router.push(`/projects/${p.value}/tickets`)
+                  })),
+                  style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+                }}
+                trigger={['click']}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
+                  <div style={{
+                    padding: '0 6px',
+                    height: 26,
+                    borderRadius: 6,
+                    background: 'var(--premium-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontSize: 9,
+                    fontWeight: 800,
+                    boxShadow: 'var(--premium-shadow-lg)',
+                    minWidth: 30
+                  }}>
+                    {projectCode?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 7 }} /></div>
+                  </div>
+                </div>
+              </Dropdown>
+
+              {/* Action Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <Input
+                  placeholder="Quick search tickets..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                  className="saas-input"
+                  style={{ maxWidth: 240, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
+                  value={localSearchValue}
+                  onChange={(e) => setLocalSearchValue(e.target.value)}
+                  allowClear
+                />
+
+                <Space.Compact className="ticket-filter-group">
+                  <Popover
+                    content={
+                      <TicketFilters
+                        filters={filters}
+                        onFilterChange={handleFilterChange}
+                        members={members}
+                        onReset={() => { setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] }); setActiveQuickFilters({ commented: false, attached: false, overdue: false }); }}
+                        statusOptions={finalStatusOptions}
+                        priorityOptions={finalPriorityOptions}
+                        typeOptions={finalTypeOptions}
+                      />
+                    }
+                    trigger="click"
+                    placement="bottomLeft"
+                    overlayClassName="tf-popover-overlay"
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                      style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                    >
+                      Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    </Button>
+                  </Popover>
+                  <Button
+                    icon={<ExpandAltOutlined />}
+                    style={{ height: 30 }}
+                    aria-label="Expand filters"
+                    onClick={() => setIsFilterRowOpen(prev => !prev)}
+                  />
+                </Space.Compact>
+
+              </div>
+
+              {/* Right Side Actions */}
+              <Space size={12}>
+                {recentTicket && (
+                  <div
+                    ref={recentTicketCardRef}
+                    className="ticket-highlight-glow"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 12px',
+                      background: 'var(--bg-blue-50)',
+                      border: '1px solid var(--border-blue-200)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div className="highlight-point" />
+                    <Text
+                      strong
+                      onClick={() => setSelectedTicketId(recentTicket.id)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        color: 'var(--premium-blue)',
+                        letterSpacing: '-0.01em'
+                      }}
+                      className="hover:underline"
+                    >
+                      {recentTicket.ticketNumber} Created
+                    </Text>
+                    <Divider type="vertical" style={{ margin: '0 4px', height: 14, opacity: 0.3 }} />
+                    <CloseOutlined
+                      onClick={(e) => { e.stopPropagation(); setRecentTicket(null); }}
+                      style={{ fontSize: 10, color: 'var(--text-slate-400)', cursor: 'pointer' }}
+                      className="hover:text-slate-600 transition-colors"
+                    />
+                  </div>
+                )}
+
+                {viewMode === 'list' && (
+                  <Popover
+                    trigger={['click']}
+                    placement="bottomRight"
+                    overlayClassName="ts-popover-overlay"
+                    styles={{ body: { padding: 0 } }}
+                    content={
+                      <div className="ts-panel">
+                        {/* Head */}
+                        <div className="ts-head">
+                          <div className="ts-head-title">
+                            <SettingOutlined style={{ fontSize: 12 }} />
+                            <span>Table Settings</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="ts-reset"
+                            onClick={() => {
+                              setHiddenCols({ ...TICKETS_DEFAULT_HIDDEN_COLS });
+                              setTableDensity('comfortable');
+                            }}
+                          >
+                            <ReloadOutlined style={{ fontSize: 10 }} />
+                            Reset
+                          </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="ts-body">
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.08em',
+                              color: 'var(--text-slate-400)',
+                              marginBottom: 4,
+                            }}
+                          >
+                            <span>Visible Columns</span>
+                          </div>
+                          <div
+                            className="tickets-cols-scroll"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 4,
+                              maxHeight: 220,
+                              overflowY: 'auto',
+                              paddingRight: 2,
+                            }}
+                          >
+                            {toggleableColumns.map((c) => (
+                              <label
+                                key={c.key}
+                                className="ts-row"
+                              >
+                                <span className="ts-row-label">{c.label}</span>
+                                <Switch
+                                  size="small"
+                                  checked={!hiddenCols[c.key]}
+                                  onChange={(checked) =>
+                                    setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                                  }
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Foot */}
+                        <div className="ts-foot">
+                          <span className="ts-foot-hint">Saved automatically</span>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Tooltip title="Table settings">
+                      <Button
+                        icon={<SettingOutlined />}
+                        aria-label="Table settings"
+                        style={{
+                          height: 36,
+                          width: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 8,
+                        }}
+                      />
+                    </Tooltip>
+                  </Popover>
+                )}
+
+                <Segmented
+                  value={viewMode}
+                  onChange={(v) => setViewMode(v as 'list' | 'board' | 'calendar')}
+                  options={[
+                    {
+                      value: 'list',
+                      label: (
+                        <Tooltip title="List View" mouseEnterDelay={0.5}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', height: '100%', verticalAlign: 'middle' }}>
+                            <UnorderedListOutlined style={{ fontSize: 13 }} />
+                          </span>
+                        </Tooltip>
+                      )
+                    },
+                    {
+                      value: 'board',
+                      label: (
+                        <Tooltip title="Board View" mouseEnterDelay={0.5}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', height: '100%', verticalAlign: 'middle' }}>
+                            <AppstoreOutlined style={{ fontSize: 13 }} />
+                          </span>
+                        </Tooltip>
+                      )
+                    },
+                    {
+                      value: 'calendar',
+                      label: (
+                        <Tooltip title="Calendar View" mouseEnterDelay={0.5}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', height: '100%', verticalAlign: 'middle' }}>
+                            <CalendarOutlined style={{ fontSize: 13 }} />
+                          </span>
+                        </Tooltip>
+                      )
+                    },
+                  ]}
+                  className="saas-segmented-premium"
+                />
+
+                <Tooltip title="Refresh view">
+                  <Button
+                    icon={<ReloadOutlined spin={isRefreshing} />}
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+                        queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] }),
+                      ]);
+                      setIsRefreshing(false);
+                      message.success("View refreshed");
+                    }}
+                    style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </Tooltip>
+                {canCreateTicket && (
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'manual',
+                          label: 'Manual Creation',
+                          icon: <FileTextOutlined />,
+                          onClick: () => setManualModalOpen(true)
+                        },
+                        {
+                          key: 'instant',
+                          label: 'Instant Creation',
+                          icon: <ThunderboltOutlined />,
+                          onClick: () => setShowCreateForm(true)
+                        },
+                        {
+                          key: 'zai',
+                          label: (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                              Create with Zai
+                              <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
+                            </div>
+                          ),
+                          icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
+                          onClick: () => setAiModalOpen(true)
+                        }
+                      ],
+                      style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+                    }}
+                    trigger={['hover', 'click']}
+                    placement="bottomRight"
+                  >
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      style={{
+                        height: 36,
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        padding: '0 16px',
+                        background: 'var(--premium-gradient)',
+                        border: 'none',
+                        boxShadow: 'var(--premium-shadow-lg)'
+                      }}
+                    >
+                      Create Ticket <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+                    </Button>
+                  </Dropdown>
+                )}
+              </Space>
+            </div>
+
             {/* Inline Filter Row — compact pill row, sits at top of main column */}
             {isFilterRowOpen && (
               <div className="tl-filter-row">
@@ -3555,17 +3975,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               </div>
             )}
+
+            {/* Inline Creation */}
+            <InlineCreateTicket
+              visible={showCreateForm}
+              onClose={() => setShowCreateForm(false)}
+              projectId={projectId}
+              filters={filters}
+              projects={projects}
+              members={members}
+              onTicketCreated={handleTicketCreated}
+            />
+
             {/* Legacy ticketIds chip replaced by the dedicated Filtered View section
           driven by activeQuickFilters. Kept here only as a marker. */}
             {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
               <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
             ) : viewMode === 'calendar' ? (
-              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {activeSprint && !isFilteredView && (
-                  <div className="tl-section">
-                    {renderActiveSprintHeader('compact', false)}
-                  </div>
-                )}
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                {activeSprint && !isFilteredView && renderActiveSprintHeader('compact', false)}
                 <div className="tcal-card">
                   {/* Sticky header */}
                   <div className="tcal-header">
@@ -3720,7 +4148,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                               {t.assignee && (
                                                 <span className="tcal-tooltip-meta-item">
                                                   <UserOutlined style={{ fontSize: 9 }} />
-                                                  {t.assignee.name}
+                                                  {t.assignee.name.split(" ")[0]}
                                                 </span>
                                               )}
                                               {typeof t.storyPoint === 'number' && (
@@ -3771,10 +4199,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               </div>
             ) : viewMode === 'list' ? (
-              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {/* Active Sprint Section (only when Sprint selected in left nav) */}
                 {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
-                  <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+                  <div id="active-section" style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
                     {renderActiveSprintHeader('list')}
                     <div className="tl-section-body">
                       {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
@@ -3796,23 +4224,37 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </button>
                         </div>
                       )}
-                      <Table
-                        rowSelection={activeRowSelection}
-                        columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                        dataSource={activeTickets}
-                        loading={activeSprintFetching}
-                        rowKey="id"
-                        pagination={{
-                          pageSize: 20,
-                          showSizeChanger: true,
-                          pageSizeOptions: ['10', '20', '25', '50'],
-                          showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                        }}
-                        scroll={{ x: 'max-content' }}
-                        tableLayout="fixed"
-                        className="saas-table tl-table tl-table-sticky-pagination"
-                        size="small"
-                      />
+                      <div className="pp-table-wrap">
+                        <Table
+                          rowSelection={activeRowSelection}
+                          columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={pagedActiveTickets}
+                          loading={activeSprintFetching}
+                          rowKey="id"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
+                          tableLayout="fixed"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
+                      </div>
+                      {renderCustomPagination(
+                        activePagination.current,
+                        activePagination.pageSize,
+                        activeTickets.length,
+                        activeSelectedRowKeys.length,
+                        (page) => setActivePagination((prev) => ({ ...prev, current: page })),
+                        (size) => setActivePagination((prev) => ({ ...prev, current: 1, pageSize: size }))
+                      )}
                     </div>
                   </div>
                 )}
@@ -3970,27 +4412,36 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </button>
                         </div>
                       )}
-                      <div className="tickets-table-shell" data-density="compact">
+                      <div className="pp-table-wrap">
                         <Table
                           rowSelection={backlogRowSelection}
                           columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
                           loading={backlogFetching}
                           dataSource={backlogTickets}
                           rowKey="id"
-                          className="saas-table tl-table tl-table-sticky-pagination"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
                           size="small"
-                          pagination={{
-                            current: pagination.current,
-                            pageSize: pagination.pageSize,
-                            total: totalBacklog,
-                            showSizeChanger: true,
-                            pageSizeOptions: ['10', '20', '25', '50'],
-                            showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                            onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
-                          }}
+                          pagination={false}
                           scroll={{ x: 'max-content' }}
+
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
                         />
                       </div>
+                      {renderCustomPagination(
+                        pagination.current,
+                        pagination.pageSize,
+                        totalBacklog,
+                        backlogSelectedRowKeys.length,
+                        (page) => setPagination((prev) => ({ ...prev, current: page })),
+                        (size) => setPagination((prev) => ({ ...prev, current: 1, pageSize: size }))
+                      )}
                     </div>
                   </div>
                 )}
@@ -4060,35 +4511,42 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       </div>
                     </div>
                     <div className="tl-section-body">
-                      <Table
-                        columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                        dataSource={filteredViewTickets}
-                        loading={filteredViewFetching}
-                        rowKey="id"
-                        className="saas-table tl-table tl-table-sticky-pagination"
-                        size="small"
-                        pagination={{
-                          current: pagination.current,
-                          pageSize: pagination.pageSize,
-                          total: filteredViewTotal,
-                          showSizeChanger: true,
-                          pageSizeOptions: ['10', '20', '25', '50'],
-                          showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                          onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
-                        }}
-                        scroll={{ x: 'max-content' }}
-                      />
+                      <div className="pp-table-wrap">
+                        <Table
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={filteredViewTickets}
+                          loading={filteredViewFetching}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
+
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
+                      </div>
+                      {renderCustomPagination(
+                        pagination.current,
+                        pagination.pageSize,
+                        filteredViewTotal,
+                        0,
+                        (page) => setPagination((prev) => ({ ...prev, current: page })),
+                        (size) => setPagination((prev) => ({ ...prev, current: 1, pageSize: size }))
+                      )}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {activeSprint && !isFilteredView && kanbanScope === 'active' && (
-                  <div className="tl-section">
-                    {renderActiveSprintHeader('compact')}
-                  </div>
-                )}
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                {activeSprint && !isFilteredView && kanbanScope === 'active' && renderActiveSprintHeader('compact')}
                 {kanbanData ? (
                   <TicketKanban
                     tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
@@ -4203,6 +4661,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           border-top: 0;
           border-radius: 0 0 12px 12px;
           position: relative;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
         }
         [data-theme='dark'] .tcal-card {
           background: #161b22 !important;
@@ -4216,8 +4679,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           gap: 12px;
-          position: sticky;
-          top: 52px;
+          position: relative;
           z-index: 5;
           border-radius: 0;
         }
@@ -4290,6 +4752,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         /* Body */
         .tcal-body {
           background: var(--bg-slate-50);
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
         }
         [data-theme='dark'] .tcal-body {
           background: #0b0f1a !important;

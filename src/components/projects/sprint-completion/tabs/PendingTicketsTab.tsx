@@ -261,7 +261,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       width: 160,
       ellipsis: true,
       render: (name) =>
-        name ? <Text style={{ color: 'var(--sc-text)' }}>{name}</Text> : <Text type="secondary">Unassigned</Text>,
+        name ? <Text style={{ color: 'var(--sc-text)' }}>{name.split(" ")[0]}</Text> : <Text type="secondary">Unassigned</Text>,
     },
   ];
 
@@ -452,7 +452,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               dataSource={pendingTickets}
               rowKey="id"
               pagination={{
-                pageSize: 10,
+                defaultPageSize: 10,
                 showSizeChanger: true,
                 showTotal: (total) => (
                   <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>

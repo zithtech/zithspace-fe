@@ -52,13 +52,12 @@ import {
   ArrowRightOutlined,
   CalendarTwoTone,
   DownOutlined,
-  CompressOutlined,
-  ExpandAltOutlined,
   LeftOutlined,
   RightOutlined,
   UnorderedListOutlined,
   AppstoreOutlined,
   CloseCircleOutlined,
+  TableOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -197,7 +196,6 @@ export default function SprintPlanComponent() {
   // Drawer state for ticket details
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerSprintPlan, setDrawerSprintPlan] = useState<ReleasePlan | null>(null);
-  const [drawerCompact, setDrawerCompact] = useState(false);
   const [ticketBoardFilter, setTicketBoardFilter] = useState<'all' | 'done' | 'progress' | 'todo'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'progress' | 'endDate'>('recent');
 
@@ -593,14 +591,24 @@ export default function SprintPlanComponent() {
     };
   }, [allPlans, tableFilters.projectId, tableFilters.search]);
 
-  // List vs Calendar view
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  // List vs Calendar vs Table view
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'table'>('table');
   const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
   const [calLegendExpanded, setCalLegendExpanded] = useState(false);
   const CAL_LEGEND_LIMIT = 8;
 
   // Expanded card rows (for actual start/end details)
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  // Expanded table rows -> reveal a details panel (meta info not shown in the parent row)
+  const [expandedTableRows, setExpandedTableRows] = useState<Set<string>>(new Set());
+  const toggleTableRow = useCallback((id: string) => {
+    setExpandedTableRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Sidebar projects show more/less
   const PROJECTS_COLLAPSED_LIMIT = 8;
@@ -943,8 +951,9 @@ export default function SprintPlanComponent() {
 
               <div className="pp-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
                 <div className="pp-segmented">
+                  <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="Table view"><TableOutlined /></button>
+                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="Card view"><UnorderedListOutlined /></button>
                   <button type="button" className={viewMode === 'calendar' ? 'is-active' : ''} onClick={() => setViewMode('calendar')} aria-label="Calendar view"><AppstoreOutlined /></button>
-                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                 </div>
 
                 <Tooltip title="Refresh">
@@ -1802,8 +1811,271 @@ export default function SprintPlanComponent() {
               </div>
             )}
 
+            {/* ─── Table view (expandable child rows = tickets) ─── */}
+            {viewMode === 'table' && (
+              <div className="sp-table-card">
+                <div className="sp-table-toolbar">
+                  <div className="sp-table-toolbar-title">
+                    <span className="sp-table-toolbar-icon">
+                      <TableOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
+                    </span>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
+                    <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
+                  </div>
+                  <div className="sp-table-toolbar-meta">
+                    <span className="sp-table-toolbar-meta-item">
+                      <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
+                      {metrics.active} active
+                    </span>
+                    <span className="sp-table-toolbar-meta-divider" />
+                    <span className="sp-table-toolbar-meta-item">
+                      Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
+                    </span>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="sp-card-loading"><Spin /></div>
+                ) : pagedSprintPlans.length === 0 ? (
+                  <div className="sp-empty-state">
+                    <div className="sp-empty-icon">
+                      <TableOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                    </div>
+                    <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                      No sprint cycles yet
+                    </Title>
+                    <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', maxWidth: 360, textAlign: 'center' }}>
+                      Plan your first sprint to start tracking delivery in one place.
+                    </Text>
+                  </div>
+                ) : (
+                  <div className="sp-tbl-wrap" role="table" aria-label="Sprint cycles table">
+                    <div className="sp-tbl-head" role="row">
+                      <span className="sp-tbl-th sp-tbl-col-name">Sprint</span>
+                      <span className="sp-tbl-th sp-tbl-col-status">Status</span>
+                      <span className="sp-tbl-th sp-tbl-col-progress">Progress</span>
+                      <span className="sp-tbl-th sp-tbl-col-tickets">Tickets</span>
+                      <span className="sp-tbl-th sp-tbl-col-timeline">Timeline</span>
+                      <span className="sp-tbl-th sp-tbl-col-actions">Actions</span>
+                    </div>
+
+                    {pagedSprintPlans.map((record) => {
+                      const project = typeof record.project === 'object' ? record.project : null;
+                      const initial = (record.name || '?').charAt(0).toUpperCase();
+                      const accent =
+                        record.status === 'active' ? '#3b82f6' :
+                          record.status === 'completed' ? '#10b981' :
+                            record.status === 'planning' ? '#f59e0b' : '#64748b';
+                      const statusCfg =
+                        record.status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
+                          record.status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
+                            record.status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
+                              { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: record.status?.toUpperCase() || '—', pulse: false };
+                      const pct = record.progress || 0;
+                      const done = record?.completedTickets || 0;
+                      const total = record?.totalTickets || 0;
+                      const progressAccent = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : pct >= 30 ? '#6366f1' : '#94a3b8';
+
+                      const today = dayjs();
+                      const start = record.startDate ? dayjs(record.startDate) : null;
+                      const end = record.endDate ? dayjs(record.endDate) : null;
+                      const hasDates = !!(start && end);
+                      const days = hasDates ? Math.max(end!.diff(start!, 'day'), 1) : 0;
+                      let phaseLabel = '';
+                      let phaseColor = '#64748b';
+                      let phaseBg = 'rgba(100,116,139,0.08)';
+                      if (record.status === 'completed') {
+                        phaseLabel = 'Closed'; phaseColor = '#3b82f6'; phaseBg = 'rgba(59,130,246,0.08)';
+                      } else if (hasDates) {
+                        if (today.isBefore(start!)) {
+                          phaseLabel = `Starts in ${start!.diff(today, 'day')}d`; phaseColor = '#8b5cf6'; phaseBg = 'rgba(139,92,246,0.08)';
+                        } else if (today.isAfter(end!)) {
+                          phaseLabel = `${today.diff(end!, 'day')}d overdue`; phaseColor = '#ef4444'; phaseBg = 'rgba(239,68,68,0.08)';
+                        } else {
+                          const remaining = end!.diff(today, 'day');
+                          phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
+                          phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
+                          phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+                        }
+                      }
+
+                      // Detail fields surfaced in the expanded child panel
+                      const startedAt = record.startedAt ? dayjs(record.startedAt) : null;
+                      const completedAt = record.completedAt ? dayjs(record.completedAt) : null;
+                      const startVariance = startedAt && start ? startedAt.diff(start, 'day') : null;
+                      const endVariance = completedAt && end ? completedAt.diff(end, 'day') : null;
+                      const isOpen = expandedTableRows.has(record.id);
+
+                      return (
+                        <div className="sp-tbl-group" key={record.id} style={{ ['--row-accent' as any]: accent }}>
+                          <div className={`sp-tbl-row ${isOpen ? 'is-open' : ''}`} role="row">
+                            {/* Sprint name + expand */}
+                            <span className="sp-tbl-td sp-tbl-col-name">
+                              <button
+                                type="button"
+                                className={`sp-tbl-expand ${isOpen ? 'is-open' : ''}`}
+                                onClick={() => toggleTableRow(record.id)}
+                                aria-label={isOpen ? 'Collapse details' : 'Expand details'}
+                                aria-expanded={isOpen}
+                              >
+                                <RightOutlined style={{ fontSize: 10 }} />
+                              </button>
+                              <span className="sp-tbl-avatar sp-custom-avatar"><span className="sp-plist-avatar-letter">{initial}</span></span>
+                              <span className="sp-tbl-name-block">
+                                <button type="button" className="sp-tbl-name" title={record.name} onClick={() => handleViewTickets(record)}>{record.name}</button>
+                                <span className="sp-tbl-project" title={project?.name}>
+                                  <span className="sp-plist-seg-dot" style={{ background: accent }} />
+                                  {project ? project.name : '—'}
+                                </span>
+                              </span>
+                            </span>
+
+                            {/* Status */}
+                            <span className="sp-tbl-td sp-tbl-col-status">
+                              <span
+                                className="sp-plist-status"
+                                style={{ background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`, borderColor: statusCfg.border, color: statusCfg.color }}
+                              >
+                                <span className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`} style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }} />
+                                {statusCfg.label}
+                              </span>
+                            </span>
+
+                            {/* Progress */}
+                            <span className="sp-tbl-td sp-tbl-col-progress">
+                              <span className="sp-tbl-progress">
+                                <span className="sp-tbl-progress-bar">
+                                  <span className="sp-tbl-progress-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)` }} />
+                                </span>
+                                <span className="sp-tbl-progress-pct" style={{ color: progressAccent }}>{pct}%</span>
+                              </span>
+                            </span>
+
+                            {/* Tickets */}
+                            <span className="sp-tbl-td sp-tbl-col-tickets">
+                              <span className="sp-tbl-tickets-chip"><b>{done}</b>/{total}</span>
+                            </span>
+
+                            {/* Timeline */}
+                            <span className="sp-tbl-td sp-tbl-col-timeline">
+                              <span className="sp-tbl-dates">
+                                {start ? start.format('MMM D') : '—'} <ArrowRightOutlined style={{ fontSize: 8, color: 'var(--text-slate-400)' }} /> {end ? end.format('MMM D') : '—'}
+                              </span>
+                              {phaseLabel && (
+                                <span className="sp-tbl-phase-text" style={{ color: phaseColor }}>
+                                  <span className="sp-plist-phase-dot" style={{ background: phaseColor }} />
+                                  {phaseLabel}
+                                </span>
+                              )}
+                            </span>
+
+                            {/* Actions */}
+                            <span className="sp-tbl-td sp-tbl-col-actions">
+                              {[
+                                record.status === 'planning' && canUpdateTicketPlan && (
+                                  <Popconfirm key="start" title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
+                                    <Tooltip title="Start sprint"><Button type="text" size="small" icon={<RocketOutlined style={{ fontSize: 13, color: '#10b981' }} />} className="sp-plist-action-btn" /></Tooltip>
+                                  </Popconfirm>
+                                ),
+                                record.status === 'active' && canUpdateTicketPlan && (
+                                  <Tooltip key="complete" title="Complete sprint"><Button type="text" size="small" icon={<CheckCircleOutlined style={{ fontSize: 13, color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" /></Tooltip>
+                                ),
+                                <Tooltip key="view" title="View details"><Button type="text" size="small" icon={<EyeOutlined style={{ fontSize: 12, color: '#3b82f6' }} />} onClick={() => handleViewTickets(record)} className="sp-plist-action-btn" /></Tooltip>,
+                                (record.status === 'active' || record.status === 'completed') && (
+                                  <Tooltip key="report" title="Report"><Button type="text" size="small" icon={<LineChartOutlined style={{ fontSize: 13, color: '#6366f1' }} />} onClick={() => router.push(`/tickets/reports/${record.id}`)} className="sp-plist-action-btn" /></Tooltip>
+                                ),
+                                canUpdateTicketPlan && (
+                                  <Tooltip key="edit" title="Edit"><Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" /></Tooltip>
+                                ),
+                                canDeleteTicketPlan && (
+                                  <Popconfirm key="delete" title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                    <Tooltip title="Delete"><Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" /></Tooltip>
+                                  </Popconfirm>
+                                ),
+                              ].filter(Boolean)}
+                            </span>
+                          </div>
+
+                          {/* Child row — details panel (meta not shown in the parent row) */}
+                          {isOpen && (
+                            <div className="sp-tbl-children">
+                              {record.goal && (
+                                <div className="sp-tbl-detail-goal" title={record.goal}>
+                                  <BulbDot />
+                                  <span><b>Goal:</b> {record.goal}</span>
+                                </div>
+                              )}
+                              <div className="sp-tbl-detail-row">
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><FlagOutlined style={{ fontSize: 10 }} /> Priority</span>
+                                  <span className="sp-tbl-detail-value">{record.priority || '—'}</span>
+                                </div>
+
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><CalendarOutlined style={{ fontSize: 10 }} /> Cycle</span>
+                                  <span className="sp-tbl-detail-value">{hasDates ? `${days}d` : '—'}</span>
+                                </div>
+
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><UserOutlined style={{ fontSize: 10 }} /> Created by</span>
+                                  <span className="sp-tbl-detail-value" title={record.createdBy?.email}>
+                                    {record.createdBy ? (
+                                      <span className="sp-tbl-detail-creator">
+                                        {record.createdBy.avatarUrl ? (
+                                          <img src={record.createdBy.avatarUrl} alt={record.createdBy.name} className="sp-tbl-detail-avatar sp-custom-avatar" style={{ objectFit: 'cover' }} />
+                                        ) : (
+                                          <span className="sp-tbl-detail-avatar sp-custom-avatar"><span className="sp-plist-avatar-letter">{(record.createdBy.name || '?').charAt(0).toUpperCase()}</span></span>
+                                        )}
+                                        {record.createdBy.name || record.createdBy.email}
+                                      </span>
+                                    ) : '—'}
+                                  </span>
+                                </div>
+
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><CalendarOutlined style={{ fontSize: 10 }} /> Created</span>
+                                  <span className="sp-tbl-detail-value">{record.createdAt ? dayjs(record.createdAt).format('MMM D, YYYY') : '—'}</span>
+                                </div>
+
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><PlayCircleOutlined style={{ fontSize: 10, color: '#10b981' }} /> Started</span>
+                                  <span className="sp-tbl-detail-value">
+                                    {startedAt ? startedAt.format('MMM D, YYYY') : '—'}
+                                    {startVariance !== null && startVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${startVariance > 0 ? 'late' : 'early'}`}>{startVariance > 0 ? `+${startVariance}d` : `${startVariance}d`}</span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="sp-tbl-detail-item">
+                                  <span className="sp-tbl-detail-label"><CheckCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} /> Closed</span>
+                                  <span className="sp-tbl-detail-value">
+                                    {completedAt ? completedAt.format('MMM D, YYYY') : '—'}
+                                    {endVariance !== null && endVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${endVariance > 0 ? 'late' : 'early'}`}>{endVariance > 0 ? `+${endVariance}d` : `${endVariance}d`}</span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                {(record.status === 'active' || record.status === 'completed') && (
+                                  <button className="sp-tbl-detail-report" onClick={() => router.push(`/tickets/reports/${record.id}`)}>
+                                    <LineChartOutlined style={{ fontSize: 12 }} />
+                                    View Report
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Fixed pagination footer */}
-            {!loading && sortedSprintPlans.length > 0 && viewMode === 'list' && (
+            {!loading && sortedSprintPlans.length > 0 && (viewMode === 'list' || viewMode === 'table') && (
               <div className="sp-card-pagination">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
@@ -2013,31 +2285,73 @@ export default function SprintPlanComponent() {
 
         {/* Ticket Details Drawer */}
         <Drawer
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 2 }}>
-              <div className="sp-view-icon-box">
-                <CalendarOutlined style={{ color: '#3b82f6', fontSize: 18 }} />
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                  <Text style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sprint Detail</Text>
-                  {drawerSprintPlan?.priority && (
-                    <span className={`sp-priority-chip sp-priority-${(drawerSprintPlan.priority || '').toLowerCase()}`}>
-                      <FlagOutlined style={{ fontSize: 9 }} />
-                      {drawerSprintPlan.priority}
-                    </span>
-                  )}
+          title={(() => {
+            const hStatus = drawerSprintPlan?.status;
+            const hCfg =
+              hStatus === 'active' ? { color: '#10b981', label: 'Active', pulse: true } :
+                hStatus === 'completed' ? { color: '#3b82f6', label: 'Completed', pulse: false } :
+                  hStatus === 'planning' ? { color: '#64748b', label: 'Planning', pulse: false } :
+                    { color: '#64748b', label: hStatus?.toUpperCase() || '—', pulse: false };
+            const hProject = typeof drawerSprintPlan?.project === 'object' ? drawerSprintPlan?.project : null;
+            const hPct = drawerSprintPlan?.progress || 0;
+            const hDone = drawerSprintPlan?.completedTickets || 0;
+            const hTotal = drawerSprintPlan?.totalTickets || 0;
+            const hStart = drawerSprintPlan?.startedAt || drawerSprintPlan?.startDate;
+            const hEnd = drawerSprintPlan?.endDate;
+            const hRange = hStart && hEnd ? `${dayjs(hStart).format('MMM D')} → ${dayjs(hEnd).format('MMM D')}` : null;
+            const hPctColor = hPct >= 100 ? '#10b981' : '#3b82f6';
+            return (
+              <div className="sp-detail-head">
+                <div className="sp-view-icon-box">
+                  <CalendarOutlined style={{ color: '#3b82f6', fontSize: 18 }} />
                 </div>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.015em', color: 'var(--text-slate-900)' }} ellipsis>
-                  {drawerSprintPlan?.name}
-                </Title>
+                <div className="sp-detail-head-text">
+                  <div className="sp-detail-head-eyebrow">
+                    <span className="sp-detail-head-kicker">Sprint Detail</span>
+                    {drawerSprintPlan?.priority && (
+                      <span className={`sp-priority-chip sp-priority-${(drawerSprintPlan.priority || '').toLowerCase()}`}>
+                        <FlagOutlined style={{ fontSize: 9 }} />
+                        {drawerSprintPlan.priority}
+                      </span>
+                    )}
+                    <span className="sp-status-pill" style={{ background: 'var(--bg-pure-white)', border: `1px solid ${hCfg.color}40`, color: hCfg.color }}>
+                      <span className={`sp-status-pill-dot ${hCfg.pulse ? 'pulse' : ''}`} style={{ background: hCfg.color }} />
+                      {hCfg.label}
+                    </span>
+                  </div>
+                  <Title level={4} className="sp-detail-head-title" style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.015em', color: 'var(--text-slate-900)' }} ellipsis>
+                    {drawerSprintPlan?.name}
+                  </Title>
+                  <div className="sp-detail-head-meta">
+                    {hProject && (
+                      <span className="sp-head-stat">
+                        <ProjectOutlined style={{ fontSize: 12, color: '#3b82f6' }} />
+                        {hProject.name}
+                      </span>
+                    )}
+                    <span className="sp-head-stat">
+                      <LineChartOutlined style={{ fontSize: 12, color: hPctColor }} />
+                      <b style={{ color: hPctColor }}>{hPct}%</b> complete
+                    </span>
+                    <span className="sp-head-stat">
+                      <CheckCircleOutlined style={{ fontSize: 12, color: '#10b981' }} />
+                      <b>{hDone}</b>/{hTotal} tickets
+                    </span>
+                    {hRange && (
+                      <span className="sp-head-stat">
+                        <CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                        {hRange}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          }
+            );
+          })()}
           placement="right"
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
-          width={drawerCompact ? 520 : Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
+          width={Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 28px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-slate-50)' },
@@ -2045,13 +2359,6 @@ export default function SprintPlanComponent() {
           }}
           extra={
             <Space size={8}>
-              <Tooltip title={drawerCompact ? 'Expand view' : 'Minimize view'}>
-                <Button
-                  icon={drawerCompact ? <ExpandAltOutlined /> : <CompressOutlined />}
-                  onClick={() => setDrawerCompact(v => !v)}
-                  style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
-                />
-              </Tooltip>
               {canReadActivityLog && drawerSprintPlan && (
                 <Tooltip title="Activity history">
                   <Button
@@ -2133,7 +2440,7 @@ export default function SprintPlanComponent() {
             } else if (status === 'active' && end) {
               const diff = today.diff(end, 'day');
               if (diff > 0) deliveryNote = { label: `${diff}d overdue`, color: '#ef4444', icon: <WarningOutlined />, sub: `Target was ${end.format('MMM D')}` };
-              else if (diff === 0) deliveryNote = { label: 'Ends today', color: '#f59e0b', icon: <FireOutlined />, sub: `Last day of cycle` };
+              else if (diff === 0) deliveryNote = { label: 'Ends today', color: '#3b82f6', icon: <FireOutlined />, sub: `Last day of cycle` };
               else deliveryNote = { label: `${Math.abs(diff)}d remaining`, color: '#10b981', icon: <ThunderboltOutlined />, sub: `Target ${end.format('MMM D, YYYY')}` };
             }
 
@@ -2144,10 +2451,10 @@ export default function SprintPlanComponent() {
             const radius = 52;
             const circ = 2 * Math.PI * radius;
             const dash = (pct / 100) * circ;
-            const ringColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : '#6366f1';
+            const ringColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : '#3b82f6';
             const statusCfg =
               status === 'active' ? { color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Active' } :
-                status === 'planning' ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Planning' } :
+                status === 'planning' ? { color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', label: 'Planning' } :
                   status === 'completed' ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', label: 'Completed' } :
                     { color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', label: status?.toUpperCase() || '—' };
             const project = typeof drawerSprintPlan.project === 'object' ? drawerSprintPlan.project : null;
@@ -2194,20 +2501,20 @@ export default function SprintPlanComponent() {
               const k = (s || '').toLowerCase();
               if (k === 'completed' || k === 'done') return { c: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.22)', label: 'Done' };
               if (k === 'in_progress' || k === 'active') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.22)', label: 'In Progress' };
-              if (k === 'review') return { c: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.22)', label: 'Review' };
-              if (k === 'pending' || k === 'todo' || k === 'open') return { c: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', label: k.replace(/_/g, ' ') };
+              if (k === 'review') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.22)', label: 'Review' };
+              if (k === 'pending' || k === 'todo' || k === 'open') return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') };
               return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') || '—' };
             };
 
             const prioCfg = (p: string) => {
               if (p === 'High') return { c: '#ef4444', bg: 'rgba(239,68,68,0.08)' };
-              if (p === 'Medium') return { c: '#f59e0b', bg: 'rgba(245,158,11,0.08)' };
+              if (p === 'Medium') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)' };
               if (p === 'Low') return { c: '#10b981', bg: 'rgba(16,185,129,0.08)' };
               return { c: '#94a3b8', bg: 'rgba(148,163,184,0.08)' };
             };
 
             return (
-              <div className={`sp-detail-shell ${drawerCompact ? 'compact' : ''}`}>
+              <div className="sp-detail-shell">
                 {/* ── LEFT RAIL — Analytics ─────────────────────── */}
                 <aside className="sp-detail-left">
 
@@ -2261,7 +2568,7 @@ export default function SprintPlanComponent() {
                           </div>
                         </div>
                         <div className="sp-mini-stat">
-                          <div className="sp-mini-stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                          <div className="sp-mini-stat-icon" style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b' }}>
                             <ClockCircleOutlined />
                           </div>
                           <div className="sp-mini-stat-text">
@@ -2270,7 +2577,7 @@ export default function SprintPlanComponent() {
                           </div>
                         </div>
                         <div className="sp-mini-stat">
-                          <div className="sp-mini-stat-icon" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
+                          <div className="sp-mini-stat-icon" style={{ background: 'rgba(100,116,139,0.16)', color: '#475569' }}>
                             <ProjectOutlined />
                           </div>
                           <div className="sp-mini-stat-text">
@@ -2286,7 +2593,7 @@ export default function SprintPlanComponent() {
                       <div className="sp-stack-bar" title={`${done} done · ${inProgress} active · ${notStarted} to do`}>
                         <div style={{ width: `${(done / total) * 100}%`, background: '#10b981' }} />
                         <div style={{ width: `${(inProgress / total) * 100}%`, background: '#3b82f6' }} />
-                        <div style={{ width: `${(notStarted / total) * 100}%`, background: '#f59e0b' }} />
+                        <div style={{ width: `${(notStarted / total) * 100}%`, background: '#94a3b8' }} />
                       </div>
                     )}
 
@@ -2437,7 +2744,7 @@ export default function SprintPlanComponent() {
                   <div className="sp-detail-card sp-detail-card-flush">
                     <div className="sp-card-header" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <TeamOutlined style={{ color: '#8b5cf6', fontSize: 14 }} />
+                        <TeamOutlined style={{ color: '#3b82f6', fontSize: 14 }} />
                         <Text className="sp-card-title">Team Contribution</Text>
                       </div>
                       <Text style={{ fontSize: 11, color: 'var(--text-slate-500)', fontWeight: 600 }}>
@@ -2455,7 +2762,8 @@ export default function SprintPlanComponent() {
                         {contributors.map((c, i) => {
                           const ownership = Math.round((c.total / topContribTotal) * 100);
                           const completion = c.total ? Math.round((c.done / c.total) * 100) : 0;
-                          const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+                          // Palette restricted to blue / green / grey (red reserved for errors)
+                          const palette = ['#3b82f6', '#10b981', '#64748b'];
                           const color = c.id === '__unassigned__' ? '#94a3b8' : palette[i % palette.length];
                           return (
                             <div
@@ -2463,68 +2771,42 @@ export default function SprintPlanComponent() {
                               className="sp-contrib-row-card"
                               style={{ ['--contrib-accent' as any]: color }}
                             >
-                              <span className="sp-contrib-stripe" style={{ background: color }} />
-                              <div className="sp-contrib-rank" style={{ color }}>#{i + 1}</div>
                               <div
                                 className="sp-contrib-avatar"
-                                style={{
-                                  background: `linear-gradient(135deg, ${color}1a 0%, ${color}33 100%)`,
-                                  color,
-                                  borderColor: `${color}55`,
-                                }}
+                                style={{ background: `${color}14`, color, borderColor: `${color}40` }}
                               >
                                 {c.id === '__unassigned__' ? <UserOutlined /> : c.name.charAt(0).toUpperCase()}
                               </div>
 
                               <div className="sp-contrib-meta">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <Text style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }} ellipsis>
-                                    {c.name}
-                                  </Text>
+                                <div className="sp-contrib-name-row">
+                                  <span className="sp-contrib-rank">#{i + 1}</span>
+                                  <Text className="sp-contrib-name" ellipsis>{c.name}</Text>
                                   {i === 0 && c.id !== '__unassigned__' && (
                                     <span className="sp-top-badge"><TrophyOutlined /> Top</span>
                                   )}
                                 </div>
-                                <div className="sp-contrib-summary">
-                                  <span className="sp-contrib-summary-num">{c.total}</span>
-                                  <span className="sp-contrib-summary-label">ticket{c.total !== 1 ? 's' : ''}</span>
-                                  <span className="sp-contrib-summary-dot" />
-                                  <span className="sp-contrib-summary-num" style={{ color: '#10b981' }}>{completion}%</span>
-                                  <span className="sp-contrib-summary-label">completion</span>
+                                <div className="sp-contrib-statline">
+                                  <span className="sp-contrib-stat-total"><b>{c.total}</b> ticket{c.total !== 1 ? 's' : ''}</span>
+                                  <span className="sp-contrib-stat-sep">·</span>
+                                  <span className="sp-contrib-stat g"><b>{c.done}</b> done</span>
+                                  <span className="sp-contrib-stat b"><b>{c.inProgress}</b> active</span>
+                                  <span className="sp-contrib-stat m"><b>{c.notStarted}</b> to do</span>
                                 </div>
-
                                 {c.total > 0 && (
                                   <div className="sp-stack-bar sp-contrib-stack" title={`${c.done} done · ${c.inProgress} active · ${c.notStarted} to do`}>
                                     <div style={{ width: `${(c.done / c.total) * 100}%`, background: '#10b981' }} />
                                     <div style={{ width: `${(c.inProgress / c.total) * 100}%`, background: '#3b82f6' }} />
-                                    <div style={{ width: `${(c.notStarted / c.total) * 100}%`, background: '#f59e0b' }} />
+                                    <div style={{ width: `${(c.notStarted / c.total) * 100}%`, background: '#94a3b8' }} />
                                   </div>
                                 )}
-
-                                <div className="sp-contrib-chips">
-                                  <span className="sp-contrib-chip done">
-                                    <span className="sp-contrib-chip-dot" />
-                                    {c.done} done
-                                  </span>
-                                  <span className="sp-contrib-chip active">
-                                    <span className="sp-contrib-chip-dot" />
-                                    {c.inProgress} active
-                                  </span>
-                                  <span className="sp-contrib-chip todo">
-                                    <span className="sp-contrib-chip-dot" />
-                                    {c.notStarted} to do
-                                  </span>
-                                </div>
                               </div>
 
                               <div className="sp-contrib-share">
                                 <div className="sp-contrib-share-pct" style={{ color }}>
                                   {ownership}<span className="sp-contrib-share-pct-unit">%</span>
                                 </div>
-                                <div className="sp-contrib-share-label">Sprint share</div>
-                                <div className="sp-prio-bar sp-contrib-share-bar">
-                                  <div className="sp-prio-bar-fill" style={{ width: `${ownership}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
-                                </div>
+                                <div className="sp-contrib-share-label">share</div>
                               </div>
                             </div>
                           );
@@ -3167,6 +3449,222 @@ export default function SprintPlanComponent() {
         }
         [data-theme='dark'] .sp-table-toolbar-meta-divider { background: #2d3748 !important; }
 
+        /* ─── Table view (expandable child rows) ─── */
+        .sp-tbl-wrap {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          overflow: hidden;
+        }
+        [data-theme='dark'] .sp-tbl-wrap {
+          background: #0f1620 !important;
+          border-color: #243042 !important;
+        }
+        .sp-tbl-head,
+        .sp-tbl-row {
+          display: grid;
+          grid-template-columns: minmax(180px, 1fr) 110px 122px 92px 168px 152px;
+          align-items: center;
+          gap: 12px;
+          padding: 0 16px;
+        }
+        .sp-tbl-head {
+          height: 34px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-tbl-head {
+          background: #131c28 !important;
+          border-bottom-color: #243042 !important;
+        }
+        .sp-tbl-th {
+          font-size: 10.5px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--text-slate-500);
+        }
+        .sp-tbl-col-tickets,
+        .sp-tbl-col-actions { text-align: right; justify-self: end; }
+
+        .sp-tbl-group { border-bottom: 1px solid var(--border-slate-100); }
+        .sp-tbl-group:last-child { border-bottom: none; }
+        [data-theme='dark'] .sp-tbl-group { border-bottom-color: #1c2733 !important; }
+        .sp-tbl-row {
+          min-height: 46px;
+          position: relative;
+          transition: background 0.15s ease;
+        }
+        .sp-tbl-row::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 3px;
+          background: var(--row-accent, transparent);
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .sp-tbl-row:hover { background: var(--bg-slate-50); }
+        .sp-tbl-row.is-open { background: var(--bg-slate-50); }
+        .sp-tbl-row.is-open::before,
+        .sp-tbl-row:hover::before { opacity: 1; }
+        [data-theme='dark'] .sp-tbl-row:hover,
+        [data-theme='dark'] .sp-tbl-row.is-open { background: #131c28 !important; }
+        .sp-tbl-td { display: flex; align-items: center; min-width: 0; }
+
+        .sp-tbl-col-name { gap: 10px; }
+        .sp-tbl-expand {
+          flex-shrink: 0;
+          width: 22px; height: 22px;
+          display: inline-flex; align-items: center; justify-content: center;
+          border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400);
+          border-radius: 6px;
+          transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease;
+        }
+        .sp-tbl-expand:hover:not(:disabled) { background: rgba(59,130,246,0.1); color: #3b82f6; }
+        .sp-tbl-expand.is-open { transform: rotate(90deg); color: #3b82f6; }
+        .sp-tbl-avatar {
+          flex-shrink: 0;
+          width: 26px; height: 26px;
+          border-radius: 7px;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, var(--row-accent, #3b82f6), color-mix(in srgb, var(--row-accent, #3b82f6) 70%, #000));
+          color: #fff;
+        }
+        .sp-tbl-name-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .sp-tbl-name {
+          border: none; background: transparent; padding: 0; cursor: pointer; text-align: left;
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+        .sp-tbl-name:hover { color: #3b82f6; }
+        [data-theme='dark'] .sp-tbl-name { color: #f1f5f9; }
+        .sp-tbl-project {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11px; font-weight: 500; color: var(--text-slate-500);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+
+        .sp-tbl-progress { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .sp-tbl-progress-bar {
+          flex: 1; height: 6px; border-radius: 999px;
+          background: var(--bg-slate-100); overflow: hidden;
+        }
+        [data-theme='dark'] .sp-tbl-progress-bar { background: #1c2733; }
+        .sp-tbl-progress-fill { display: block; height: 100%; border-radius: 999px; }
+        .sp-tbl-progress-pct { font-size: 11.5px; font-weight: 800; min-width: 34px; text-align: right; }
+
+        .sp-tbl-tickets-chip {
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
+          padding: 2px 9px; border-radius: 999px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+        }
+        .sp-tbl-tickets-chip b { color: var(--text-slate-900); }
+        [data-theme='dark'] .sp-tbl-tickets-chip { background: #1c232e; border-color: #2d3748; color: #cbd5e1; }
+        [data-theme='dark'] .sp-tbl-tickets-chip b { color: #f1f5f9; }
+
+        .sp-tbl-col-timeline { flex-direction: column; align-items: flex-start; gap: 3px; padding-left: 24px; }
+        .sp-tbl-dates {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
+        }
+        [data-theme='dark'] .sp-tbl-dates { color: #cbd5e1; }
+        .sp-tbl-phase-text {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 10.5px; font-weight: 700; letter-spacing: 0;
+        }
+
+        .sp-tbl-col-actions { gap: 0; }
+
+        /* Compact status tag inside the table */
+        .sp-tbl-col-status .sp-plist-status {
+          font-size: 9.5px;
+          padding: 1px 7px;
+          gap: 4px;
+          line-height: 1.6;
+        }
+        .sp-tbl-col-status .sp-plist-status-dot { width: 5px; height: 5px; }
+
+        /* Child row — details panel */
+        .sp-tbl-children {
+          background: var(--bg-slate-50);
+          border-top: 1px solid var(--border-slate-200);
+          padding: 14px 16px 16px 48px;
+        }
+        [data-theme='dark'] .sp-tbl-children { background: #0c121b !important; border-top-color: #1c2733 !important; }
+        .sp-tbl-detail-goal {
+          display: flex; align-items: flex-start; gap: 8px;
+          font-size: 12.5px; font-weight: 500; color: var(--text-slate-600);
+          margin-bottom: 12px; line-height: 1.5;
+        }
+        .sp-tbl-detail-goal b { color: var(--text-slate-800); font-weight: 700; }
+        [data-theme='dark'] .sp-tbl-detail-goal { color: #cbd5e1; }
+        [data-theme='dark'] .sp-tbl-detail-goal b { color: #f1f5f9; }
+        .sp-tbl-detail-row {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          flex-wrap: wrap;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          padding: 12px 16px;
+        }
+        [data-theme='dark'] .sp-tbl-detail-row {
+          background: #131c28 !important;
+          border-color: #243042 !important;
+        }
+        .sp-tbl-detail-item {
+          display: flex; flex-direction: column; gap: 4px; min-width: 0;
+          padding: 0 16px;
+          border-left: 1px solid var(--border-slate-200);
+        }
+        .sp-tbl-detail-item:first-of-type { padding-left: 0; border-left: none; }
+        [data-theme='dark'] .sp-tbl-detail-item { border-left-color: #243042; }
+        .sp-tbl-detail-label {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 9.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        .sp-tbl-detail-value {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12.5px; font-weight: 700; color: var(--text-slate-800);
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .sp-tbl-detail-value { color: #e2e8f0; }
+        .sp-tbl-detail-creator { display: inline-flex; align-items: center; gap: 6px; }
+        .sp-tbl-detail-avatar {
+          flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, #64748b, #475569); color: #fff;
+          font-size: 9px;
+        }
+        .sp-tbl-detail-report {
+          margin-left: auto;
+          display: inline-flex; align-items: center; gap: 6px;
+          height: 30px; padding: 0 14px;
+          border: 1px solid rgba(99,102,241,0.25);
+          background: rgba(99,102,241,0.08);
+          color: #6366f1;
+          font-size: 12px; font-weight: 700;
+          border-radius: 7px; cursor: pointer;
+          transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .sp-tbl-detail-report:hover {
+          background: rgba(99,102,241,0.16);
+          border-color: rgba(99,102,241,0.45);
+        }
+
+        @media (max-width: 900px) {
+          .sp-tbl-head { display: none; }
+          .sp-tbl-row { grid-template-columns: 1fr auto; grid-auto-rows: min-content; gap: 8px; padding: 12px 16px; }
+          .sp-tbl-col-progress, .sp-tbl-col-timeline { grid-column: 1 / -1; }
+          .sp-tbl-children { padding-left: 16px; }
+          .sp-tbl-detail-row { gap: 10px 0; }
+          .sp-tbl-detail-report { margin-left: 0; }
+        }
+
         /* Row meta chips */
         .sp-row-meta {
           display: flex;
@@ -3437,7 +3935,7 @@ export default function SprintPlanComponent() {
           width: 38px;
           height: 38px;
           border-radius: 10px;
-          background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12));
+          background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(37,99,235,0.14));
           border: 1px solid rgba(59,130,246,0.2);
           display: flex;
           align-items: center;
@@ -3445,9 +3943,32 @@ export default function SprintPlanComponent() {
           flex-shrink: 0;
         }
         [data-theme='dark'] .sp-view-icon-box {
-          background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18)) !important;
+          background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(37,99,235,0.18)) !important;
           border-color: rgba(59,130,246,0.3) !important;
         }
+        /* ── Sprint detail drawer header ───────────────────────── */
+        .sp-detail-head {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+        .sp-detail-head .sp-view-icon-box { width: 44px; height: 44px; }
+        .sp-detail-head-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .sp-detail-head-eyebrow { display: flex; align-items: center; gap: 8px; }
+        .sp-detail-head-kicker {
+          font-size: 10px; font-weight: 800; color: var(--text-slate-400);
+          text-transform: uppercase; letter-spacing: 0.08em;
+        }
+        .sp-detail-head-title { font-size: 18px !important; line-height: 1.2 !important; }
+        .sp-detail-head-meta { display: flex; align-items: center; gap: 6px 14px; margin-top: 4px; flex-wrap: wrap; }
+        .sp-head-stat {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
+          white-space: nowrap;
+        }
+        .sp-head-stat b { font-weight: 800; color: var(--text-slate-800); }
+        [data-theme='dark'] .sp-head-stat b { color: #f1f5f9; }
         .sp-view-hero {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
@@ -3932,7 +4453,7 @@ export default function SprintPlanComponent() {
           letter-spacing: 0.04em;
         }
         .sp-priority-high { background: rgba(239,68,68,0.1); color: #dc2626; }
-        .sp-priority-medium { background: rgba(245,158,11,0.1); color: #d97706; }
+        .sp-priority-medium { background: rgba(59,130,246,0.1); color: #2563eb; }
         .sp-priority-low { background: rgba(16,185,129,0.1); color: #059669; }
 
         /* Hero ring + mini stats */
@@ -4142,27 +4663,22 @@ export default function SprintPlanComponent() {
         .sp-contrib-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
         .sp-contrib-row-card {
           display: grid;
-          grid-template-columns: 32px 40px 1fr 120px;
+          grid-template-columns: 34px 1fr 56px;
           align-items: center;
           gap: 12px;
-          padding: 12px 14px 12px 18px;
+          padding: 9px 14px;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
-          transition: border-color 0.18s ease, background 0.18s ease;
-          position: relative;
-          overflow: hidden;
+          border-radius: 10px;
+          transition: border-color 0.16s ease, box-shadow 0.16s ease;
         }
         .sp-contrib-row-card:hover {
           border-color: var(--contrib-accent, #3b82f6);
-        }
-        .sp-contrib-row-card:hover .sp-contrib-stripe {
-          opacity: 1;
-          transform: scaleY(1);
+          box-shadow: 0 1px 6px rgba(15,23,42,0.06);
         }
         [data-theme='dark'] .sp-contrib-row-card {
           background: #161b22 !important;
@@ -4171,157 +4687,83 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-contrib-row-card:hover {
           background: #1c232e !important;
         }
-        .sp-contrib-stripe {
-          position: absolute;
-          left: 0;
-          top: 12px;
-          bottom: 12px;
-          width: 3px;
-          border-radius: 0 999px 999px 0;
-          opacity: 0;
-          transform: scaleY(0.4);
-          transform-origin: center;
-          transition: opacity 0.18s ease, transform 0.18s ease;
-        }
         .sp-contrib-rank {
-          font-size: 14px;
+          font-size: 10.5px;
           font-weight: 800;
-          letter-spacing: -0.04em;
-          opacity: 0.7;
-          font-family: ui-monospace, monospace;
-          text-align: center;
+          color: var(--text-slate-400);
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0;
         }
         .sp-contrib-meta {
           min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
         }
-        .sp-contrib-summary {
-          display: inline-flex;
-          align-items: baseline;
-          gap: 5px;
-          font-size: 11.5px;
-          color: var(--text-slate-500);
-          font-weight: 500;
-        }
-        [data-theme='dark'] .sp-contrib-summary { color: #94a3b8 !important; }
-        .sp-contrib-summary-num {
-          font-weight: 800;
-          color: var(--text-slate-900);
-          font-variant-numeric: tabular-nums;
-          letter-spacing: -0.01em;
-        }
-        [data-theme='dark'] .sp-contrib-summary-num { color: #f1f5f9 !important; }
-        .sp-contrib-summary-label {
-          font-weight: 600;
-        }
-        .sp-contrib-summary-dot {
-          width: 3px;
-          height: 3px;
-          border-radius: 50%;
-          background: var(--text-slate-300);
-          align-self: center;
-          margin: 0 3px;
-        }
-        [data-theme='dark'] .sp-contrib-summary-dot {
-          background: #475569;
-        }
-        .sp-contrib-stack {
-          margin: 6px 0 4px !important;
-          height: 5px !important;
-          max-width: 320px !important;
-        }
-        .sp-contrib-chips {
+        .sp-contrib-name-row {
           display: flex;
           align-items: center;
-          gap: 5px;
-          flex-wrap: wrap;
-          margin-top: 4px;
+          gap: 6px;
+          min-width: 0;
         }
-        .sp-contrib-chip {
+        .sp-contrib-name {
+          font-size: 12.5px !important;
+          font-weight: 700;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em;
+          min-width: 0;
+        }
+        [data-theme='dark'] .sp-contrib-name { color: #f1f5f9 !important; }
+        .sp-contrib-statline {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          padding: 2px 8px;
-          font-size: 10.5px;
-          font-weight: 700;
-          border-radius: 5px;
-          border: 1px solid;
-          letter-spacing: -0.005em;
-          line-height: 1.6;
-          font-variant-numeric: tabular-nums;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-400);
+          white-space: nowrap;
         }
-        .sp-contrib-chip-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: currentColor;
-        }
-        .sp-contrib-chip.done {
-          color: #047857;
-          background: rgba(16,185,129,0.08);
-          border-color: rgba(16,185,129,0.22);
-        }
-        [data-theme='dark'] .sp-contrib-chip.done {
-          color: #34d399;
-          background: rgba(16,185,129,0.12);
-          border-color: rgba(16,185,129,0.35);
-        }
-        .sp-contrib-chip.active {
-          color: #1d4ed8;
-          background: rgba(59,130,246,0.08);
-          border-color: rgba(59,130,246,0.22);
-        }
-        [data-theme='dark'] .sp-contrib-chip.active {
-          color: #60a5fa;
-          background: rgba(59,130,246,0.12);
-          border-color: rgba(59,130,246,0.35);
-        }
-        .sp-contrib-chip.todo {
-          color: #b45309;
-          background: rgba(245,158,11,0.08);
-          border-color: rgba(245,158,11,0.22);
-        }
-        [data-theme='dark'] .sp-contrib-chip.todo {
-          color: #fbbf24;
-          background: rgba(245,158,11,0.12);
-          border-color: rgba(245,158,11,0.35);
+        .sp-contrib-statline b { font-weight: 800; font-variant-numeric: tabular-nums; }
+        .sp-contrib-stat-total { color: var(--text-slate-600); }
+        [data-theme='dark'] .sp-contrib-stat-total { color: #cbd5e1; }
+        .sp-contrib-stat-sep { color: var(--text-slate-300); }
+        .sp-contrib-stat.g { color: #10b981; }
+        .sp-contrib-stat.b { color: #3b82f6; }
+        .sp-contrib-stat.m { color: #64748b; }
+        [data-theme='dark'] .sp-contrib-stat.m { color: #94a3b8; }
+        .sp-contrib-stack {
+          margin: 2px 0 0 !important;
+          height: 4px !important;
         }
         .sp-contrib-share {
           text-align: right;
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 4px;
+          gap: 1px;
         }
         .sp-contrib-share-pct {
-          font-size: 22px;
+          font-size: 17px;
           font-weight: 800;
           letter-spacing: -0.03em;
           line-height: 1;
           font-variant-numeric: tabular-nums;
         }
         .sp-contrib-share-pct-unit {
-          font-size: 12px;
+          font-size: 10px;
           font-weight: 700;
           opacity: 0.7;
           margin-left: 1px;
         }
         .sp-contrib-share-label {
-          font-size: 9.5px;
-          color: var(--text-slate-500);
+          font-size: 8.5px;
+          color: var(--text-slate-400);
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.06em;
         }
-        .sp-contrib-share-bar {
-          width: 100%;
-          margin-top: 2px;
-        }
         @media (max-width: 600px) {
-          .sp-contrib-row-card { grid-template-columns: 28px 36px 1fr; }
-          .sp-contrib-share { display: none; }
+          .sp-contrib-statline { flex-wrap: wrap; white-space: normal; }
         }
 
         /* legacy grid kept for fallback */
@@ -4384,14 +4826,14 @@ export default function SprintPlanComponent() {
           align-items: center;
           gap: 4px;
           padding: 3px 8px;
-          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          background: linear-gradient(135deg, #10b981, #059669);
           color: #fff;
           font-size: 9.5px;
           font-weight: 800;
           border-radius: 6px;
           text-transform: uppercase;
           letter-spacing: 0.04em;
-          box-shadow: 0 2px 6px rgba(245,158,11,0.3);
+          box-shadow: 0 2px 6px rgba(16,185,129,0.3);
         }
 
         /* Tab group for ticket board */

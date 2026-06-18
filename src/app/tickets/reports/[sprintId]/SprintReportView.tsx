@@ -23,6 +23,8 @@ import BottlenecksSection from "./BottlenecksSection";
 import HotspotsSection from "./HotspotsSection";
 import QualitySection from "./QualitySection";
 import AiNarrativeSection from "./AiNarrativeSection";
+import { SnapshotContext } from "./_shared";
+import { SprintReportsService } from "@/services/sprintReportsService";
 
 type DistRow = { label: string; count: number; points?: number };
 
@@ -148,6 +150,9 @@ interface SprintReportViewProps {
 
 export default function SprintReportView({ sprintId }: SprintReportViewProps) {
   const [data, setData] = useState<SprintReport | null>(null);
+  // The full stored snapshot (report_data) for a generated report, or null when
+  // none exists yet (active/ungenerated sprint → sections fetch live).
+  const [snapshot, setSnapshot] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,17 +160,35 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    api
-      .get<SprintReport>(`/api/sprint-report/${sprintId}`)
-      .then((res) => {
-        if (!cancelled) setData(res);
-      })
-      .catch((err) => {
+    setSnapshot(null);
+
+    (async () => {
+      try {
+        // 1) Prefer the stored snapshot — one DB-backed call for the whole report.
+        try {
+          const detail = await SprintReportsService.getBySprint(sprintId);
+          const report = (detail?.report ?? {}) as Record<string, any>;
+          if (!cancelled && report.main) {
+            setSnapshot(report);
+            setData(report.main as SprintReport);
+            return;
+          }
+        } catch {
+          // No snapshot (404) → fall through to live computation.
+        }
+        // 2) No snapshot: compute the headline section live; sections fetch their own.
+        const live = await api.get<SprintReport>(`/api/sprint-report/${sprintId}`);
+        if (!cancelled) {
+          setSnapshot(null);
+          setData(live);
+        }
+      } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Failed to load sprint report");
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
@@ -176,30 +199,32 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
   if (!data) return <ErrorState message="No data available" />;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
-      <div className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full">
-        <div className="mx-auto max-w-7xl px-6 pt-5 pb-5">
-          <Header overview={data.overview} />
+    <SnapshotContext.Provider value={snapshot}>
+      <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
+        <div className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full">
+          <div className="mx-auto max-w-7xl px-6 pt-5 pb-5">
+            <Header overview={data.overview} />
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-7xl px-6 py-6 space-y-5">
+          <KpiStrip overview={data.overview} />
+          <AiNarrativeSection sprintId={sprintId} />
+          <BottlenecksSection sprintId={sprintId} />
+          <DistributionSection
+            dist={data.ticketDistribution}
+            contribution={data.contribution}
+          />
+          <ContributionSection rows={data.contribution} />
+          <ScopeChangeSection sprintId={sprintId} />
+          <VelocitySection sprintId={sprintId} />
+          <TimelineSection sprintId={sprintId} />
+          <HotspotsSection sprintId={sprintId} />
+          <QualitySection sprintId={sprintId} />
+          <FooterMeta sprintId={data.overview.sprintId} />
         </div>
       </div>
-
-      <div className="mx-auto max-w-7xl px-6 py-6 space-y-5">
-        <KpiStrip overview={data.overview} />
-        <AiNarrativeSection sprintId={sprintId} />
-        <BottlenecksSection sprintId={sprintId} />
-        <DistributionSection
-          dist={data.ticketDistribution}
-          contribution={data.contribution}
-        />
-        <ContributionSection rows={data.contribution} />
-        <ScopeChangeSection sprintId={sprintId} />
-        <VelocitySection sprintId={sprintId} />
-        <TimelineSection sprintId={sprintId} />
-        <HotspotsSection sprintId={sprintId} />
-        <QualitySection sprintId={sprintId} />
-        <FooterMeta sprintId={data.overview.sprintId} />
-      </div>
-    </div>
+    </SnapshotContext.Provider>
   );
 }
 

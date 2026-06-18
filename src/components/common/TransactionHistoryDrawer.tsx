@@ -1,18 +1,16 @@
 "use client";
 
-import { Drawer, Typography, Button, Collapse, Tooltip } from "antd";
+import { Drawer, Button, Tooltip } from "antd";
 import { History, User, RefreshCw, X, Inbox } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useTransactionHistory } from "@/hooks/useTransactionHistory";
 import { TransactionRow } from "@/services/transactionHistoryService";
 import { useSocket } from "@/providers/SocketProvider";
 import ActivityDiff, { InlineDiff } from "@/components/common/ActivityDiff";
 
 dayjs.extend(relativeTime);
-
-const { Text } = Typography;
 
 /* Semantic action styling — stays within the brand palette:
    blue (changes) · green (creates/completes) · red (deletes) · ash (neutral). */
@@ -36,6 +34,14 @@ function actionStyle(action: string): ActionStyle {
   return ASH;
 }
 
+function dayLabel(d: dayjs.Dayjs): string {
+  const diff = dayjs().startOf("day").diff(d.startOf("day"), "day");
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (d.year() === dayjs().year()) return d.format("ddd, MMM D");
+  return d.format("MMM D, YYYY");
+}
+
 function initials(name?: string | null, email?: string | null): string {
   const src = name?.trim() || email?.trim() || "";
   if (!src) return "?";
@@ -46,10 +52,6 @@ function initials(name?: string | null, email?: string | null): string {
 function HistoryRow({ row }: { row: TransactionRow }) {
   const created = dayjs(row.createdAt);
   const st = actionStyle(row.action);
-  const hasRaw =
-    (row.beforeData && Object.keys(row.beforeData).length > 0) ||
-    (row.afterData && Object.keys(row.afterData).length > 0) ||
-    (row.metadata && Object.keys(row.metadata).length > 0);
   const singleField =
     row.changedFields && row.changedFields.length === 1 ? row.changedFields[0] : null;
   const displayLabel = singleField
@@ -92,42 +94,6 @@ function HistoryRow({ row }: { row: TransactionRow }) {
         </div>
 
         {!singleField && <ActivityDiff row={row} />}
-
-        {hasRaw && (
-          <Collapse
-            ghost
-            size="small"
-            className="thd-collapse"
-            items={[
-              {
-                key: "1",
-                label: <span className="thd-raw-toggle">Show raw payload</span>,
-                children: (
-                  <div className="thd-raw">
-                    {row.beforeData && Object.keys(row.beforeData).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">before: </Text>
-                        {JSON.stringify(row.beforeData, null, 2)}
-                      </pre>
-                    )}
-                    {row.afterData && Object.keys(row.afterData).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">after: </Text>
-                        {JSON.stringify(row.afterData, null, 2)}
-                      </pre>
-                    )}
-                    {row.metadata && Object.keys(row.metadata).length > 0 && (
-                      <pre className="ax-raw-pre">
-                        <Text type="secondary">metadata: </Text>
-                        {JSON.stringify(row.metadata, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-          />
-        )}
       </div>
     </div>
   );
@@ -194,8 +160,13 @@ export default function TransactionHistoryDrawer({
           <History size={17} strokeWidth={2} />
         </span>
         <div className="thd-head-text">
-          <div className="thd-head-title">{title}</div>
-          {subtitle && <div className="thd-head-sub">{subtitle}</div>}
+          <div className="thd-head-title-row">
+            <span className="thd-head-title">{title}</span>
+            {rows.length > 0 && (
+              <span className="thd-head-count">{rows.length}{hasMore ? "+" : ""}</span>
+            )}
+          </div>
+          <div className="thd-head-sub">{subtitle || "Chronological record of every change"}</div>
         </div>
         <Tooltip title="Refresh">
           <button
@@ -247,9 +218,24 @@ export default function TransactionHistoryDrawer({
           </div>
         ) : (
           <div className="thd-timeline">
-            {rows.map((row) => (
-              <HistoryRow key={row.id} row={row} />
-            ))}
+            {(() => {
+              let lastKey = "";
+              const nodes: ReactNode[] = [];
+              rows.forEach((row) => {
+                const d = dayjs(row.createdAt);
+                const key = d.format("YYYY-MM-DD");
+                if (key !== lastKey) {
+                  lastKey = key;
+                  nodes.push(
+                    <div className="thd-day" key={`day-${key}`}>
+                      <span className="thd-day-label">{dayLabel(d)}</span>
+                    </div>
+                  );
+                }
+                nodes.push(<HistoryRow key={row.id} row={row} />);
+              });
+              return nodes;
+            })()}
             {hasMore && (
               <div className="thd-loadmore">
                 <Button onClick={loadMore} loading={loadingMore} className="thd-loadmore-btn" block>
@@ -286,24 +272,27 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px 18px;
-    background: var(--bg-pure-white);
+    padding: 18px 18px;
+    background:
+      radial-gradient(120% 140% at 0% 0%, rgba(59,130,246,0.07) 0%, rgba(59,130,246,0) 55%),
+      var(--bg-pure-white);
     border-bottom: 1px solid var(--border-slate-200);
     flex-shrink: 0;
   }
   .thd-head-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    box-shadow: 0 6px 14px -6px rgba(29, 78, 216, 0.55);
+    box-shadow: 0 6px 16px -6px rgba(29, 78, 216, 0.6);
   }
   .thd-head-text { flex: 1; min-width: 0; }
+  .thd-head-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .thd-head-title {
     font-size: 15px;
     font-weight: 800;
@@ -314,6 +303,23 @@ const styles = `
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .thd-head-count {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 19px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #1d4ed8;
+    background: var(--bg-blue-50, rgba(59,130,246,0.1));
+    border: 1px solid rgba(59,130,246,0.22);
+    font-variant-numeric: tabular-nums;
+  }
+  [data-theme='dark'] .thd-head-count { color: #60a5fa; background: rgba(59,130,246,0.16); border-color: rgba(59,130,246,0.32); }
   .thd-head-sub {
     font-size: 11.5px;
     color: var(--text-slate-500);
@@ -351,6 +357,36 @@ const styles = `
 
   /* ---------- Timeline ---------- */
   .thd-timeline { position: relative; }
+
+  /* Sticky day separator */
+  .thd-day {
+    position: sticky;
+    top: -18px;
+    z-index: 3;
+    padding: 6px 0 12px;
+    margin-top: 2px;
+    background: linear-gradient(var(--bg-slate-50) 64%, rgba(248,250,252,0));
+  }
+  [data-theme='dark'] .thd-day {
+    background: linear-gradient(var(--bg-secondary, #0b0f1a) 64%, rgba(11,15,26,0));
+  }
+  .thd-day-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--text-slate-500);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 3px 11px;
+    background: var(--bg-pure-white);
+    border: 1px solid var(--border-slate-200);
+    border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  [data-theme='dark'] .thd-day-label { background: var(--bg-secondary); border-color: var(--border-slate-100); }
+
   .thd-item { display: flex; gap: 12px; }
   .thd-rail { position: relative; width: 34px; flex-shrink: 0; display: flex; justify-content: center; }
   .thd-rail::after {

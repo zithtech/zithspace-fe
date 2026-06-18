@@ -21,6 +21,7 @@ interface MoveToSprintActionProps {
   disabled?: boolean;
   showLabel?: boolean;
   asMenuItem?: boolean;
+  customTrigger?: React.ReactNode;
 }
 
 export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
@@ -30,6 +31,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   disabled = false,
   showLabel = false,
   asMenuItem = false,
+  customTrigger,
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(
@@ -287,7 +289,18 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       overlayClassName="saas-popover saas-popover-premium"
       overlayInnerStyle={{ borderRadius: 16, padding: 10 }}
     >
-      {asMenuItem ? (
+      {customTrigger ? (
+        <div
+          onClick={(e) => {
+            if (disabled) return;
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          style={{ width: "100%", cursor: disabled ? "not-allowed" : "pointer" }}
+        >
+          {customTrigger}
+        </div>
+      ) : asMenuItem ? (
         <div
           onClick={(e) => {
             if (disabled) return;

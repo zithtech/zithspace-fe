@@ -35,6 +35,7 @@ import {
   Briefcase,
   ListChecks,
   CalendarClock,
+  Menu,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
@@ -778,24 +779,25 @@ function SubmitDailyUpdateContent() {
         }
 
         .du-sidebar-backdrop { display: none; }
-        .mobile-menu-btn { display: none; }
+        .mobile-menu-btn { display: none !important; }
 
         @media (max-width: 991px) {
           .du-sidebar { width: 228px; }
         }
 
-        @media (max-width: 767px) {
-          .mobile-menu-btn { display: inline-flex; }
+        @media (max-width: 820px) {
+          .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           .du-sidebar {
             position: fixed;
             top: 0;
-            left: -280px;
+            left: -320px;
             height: 100vh;
             width: 280px;
             z-index: 1000;
-            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: var(--bg-pure-white);
             border-right: 1px solid var(--border-slate-200);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
           }
           .du-sidebar.is-mobile-open { left: 0; }
           
@@ -803,7 +805,8 @@ function SubmitDailyUpdateContent() {
             display: block;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
             z-index: 999;
             opacity: 0;
             pointer-events: none;
@@ -953,7 +956,7 @@ function SubmitDailyUpdateContent() {
             }}>
               <Button
                 type="text"
-                icon={<MenuOutlined />}
+                icon={<Menu size={18} />}
                 className="mobile-menu-btn"
                 onClick={() => setMobileSidebarOpen(true)}
                 style={{ padding: '0 8px', marginLeft: -8 }}

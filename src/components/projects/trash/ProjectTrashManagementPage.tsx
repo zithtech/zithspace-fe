@@ -29,7 +29,8 @@ import {
   ExclamationCircleOutlined,
   CloseOutlined,
   AppstoreOutlined,
-  BarsOutlined,
+  UnorderedListOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { FolderKanban, Trash2, AlertTriangle, Clock } from "lucide-react";
 import {
@@ -254,12 +255,12 @@ export default function ProjectTrashManagementPage() {
           <aside className="pm2-sidebar">
             <div className="pm2-sidebar-top">
               <div className="pm2-sidebar-brand">
-                <div className="pm2-hero-icon-box" style={{ background: 'rgba(255, 77, 79, 0.08)', borderColor: 'rgba(255, 77, 79, 0.18)' }}>
-                  <InboxOutlined style={{ fontSize: 18, color: '#ff4d4f' }} />
+                <div className="pm2-hero-icon-box">
+                  <InboxOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
                 </div>
                 <div className="min-w-0">
                   <h1 className="pm2-sidebar-title">Trash Repository</h1>
-                  <p className="pm2-sidebar-subtitle">Recover or purge projects</p>
+                  <p className="pm2-sidebar-subtitle">Recover or purge</p>
                 </div>
               </div>
 
@@ -283,9 +284,15 @@ export default function ProjectTrashManagementPage() {
                     borderRadius: 6,
                     fontWeight: 600,
                     height: 36,
-                    backgroundColor: isDark ? 'transparent' : '#fff2f0',
-                    color: '#ff4d4f',
-                    borderColor: isDark ? '#ff4d4f' : 'transparent'
+                    backgroundColor: filteredProjects.length === 0 || isLoading
+                      ? (isDark ? '#1f1f1f' : '#f5f5f5')
+                      : (isDark ? 'transparent' : '#fff2f0'),
+                    color: filteredProjects.length === 0 || isLoading
+                      ? '#8c8c8c'
+                      : '#ff4d4f',
+                    borderColor: filteredProjects.length === 0 || isLoading
+                      ? '#d9d9d9'
+                      : (isDark ? '#ff4d4f' : 'transparent'),
                   }}
                   disabled={filteredProjects.length === 0 || isLoading}
                 >
@@ -295,7 +302,7 @@ export default function ProjectTrashManagementPage() {
             </div>
 
             <div className="pm2-sidebar-scroll">
-              <div className="pm2-side-group" style={{ marginTop: 22 }}>
+              <div className="pm2-side-group">
                 <div className="pm2-side-label">Filters</div>
                 <div className="pm2-side-filters flex flex-col gap-2">
                   <SearchableDropdown
@@ -337,10 +344,10 @@ export default function ProjectTrashManagementPage() {
                   {(filters.projectId || filters.projectManagerId || filters.startDate) && (
                     <button
                       type="button"
-                      className="pm2-side-clear"
+                      className="pm2-sidebar-clear"
                       onClick={() => setFilters({})}
                     >
-                      <CloseOutlined style={{ fontSize: 10 }} />
+                      <CloseCircleOutlined style={{ fontSize: 12 }} />
                       Clear filters
                     </button>
                   )}
@@ -352,16 +359,15 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
-              <div className="pm2-main-search" style={{ flex: 1, maxWidth: 320 }}>
-                <Input
+              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+                <SearchOutlined className="pp-search-icon" />
+                <input
+                  className="pp-search"
                   placeholder="Search project name..."
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  className="premium-search-input rounded-lg transition-all"
-                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  allowClear
                 />
+                {/* {!searchQuery && <span className="pp-kbd">⌘K</span>} */}
               </div>
               <div className="pm2-main-stats">
                 <span className="inline-flex items-center gap-1.5">
@@ -370,133 +376,109 @@ export default function ProjectTrashManagementPage() {
                 </span>
               </div>
               <div className="pm2-main-controls">
-                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                  <Tooltip title="List">
-                    <button
-                      onClick={() => setViewMode('table')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'table' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                      }}
-                    >
-                      <BarsOutlined style={{ fontSize: 16, color: viewMode === 'table' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
-                  <Tooltip title="Cards">
-                    <button
-                      onClick={() => setViewMode('card')}
-                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                      style={{
-                        width: 30, height: 30,
-                        background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
-                        color: viewMode === 'card' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
-                      }}
-                    >
-                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
-                    </button>
-                  </Tooltip>
+                <div className="pp-segmented">
+                  <button type="button" className={viewMode === 'card' ? 'is-active' : ''} onClick={() => setViewMode('card')} aria-label="Grid view"><AppstoreOutlined /></button>
+                  <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="List view"><UnorderedListOutlined /></button>
                 </div>
                 <Tooltip title="Refresh view">
-                  <Button
-                    icon={<ReloadOutlined spin={isRefreshing} />}
+                  <button
+                    type="button"
+                    className="pp-ghost-btn"
                     onClick={async () => {
                       setIsRefreshing(true);
                       await queryClient.invalidateQueries({ queryKey: ["projects-trash"] });
                       setIsRefreshing(false);
                       message.success("Trash view refreshed");
                     }}
-                    className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                    style={{ height: 38, width: 38 }}
-                    loading={isLoading || isRefreshing}
-                  />
+                    disabled={isLoading || isRefreshing}
+                  >
+                    <ReloadOutlined spin={isRefreshing} />
+                  </button>
                 </Tooltip>
               </div>
             </div>
 
             {/* Premium KPI Hero Row */}
-            <div className="pm2-stat-cards-grid">
-              <div className="pm2-stat-card">
-                <div className="pm2-stat-top">
-                  <div className="pm2-stat-left">
-                    <span className="pm2-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
-                      <FolderKanban />
+            <div className="pp-stats">
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                      <FolderKanban size={14} />
                     </span>
-                    <span className="pm2-stat-label">Total Projects</span>
+                    <span className="pp-stat-label">Total Projects</span>
                   </div>
-                  <span className="pm2-stat-pulse" />
                 </div>
-                <div className="pm2-stat-bottom">
-                  <div className="pm2-stat-value-wrap">
-                    <span className="pm2-stat-value">{stats.total}</span>
-                    <span className="pm2-stat-period">projects</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{stats.total}</span>
+                    <span className="pp-stat-period">projects</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * (stats.total || 1))} color="#3b82f6" />
                   </div>
                 </div>
               </div>
-              <div className="pm2-stat-card">
-                <div className="pm2-stat-top">
-                  <div className="pm2-stat-left">
-                    <span className="pm2-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                      <Trash2 />
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                      <Trash2 size={14} />
                     </span>
-                    <span className="pm2-stat-label">Recently Deleted</span>
+                    <span className="pp-stat-label">Recently Deleted</span>
                   </div>
                 </div>
-                <div className="pm2-stat-bottom">
-                  <div className="pm2-stat-value-wrap">
-                    <span className="pm2-stat-value">{stats.recent}</span>
-                    <span className="pm2-stat-period">last 7 days</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{stats.recent}</span>
+                    <span className="pp-stat-period">last 7 days</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.8, 1.0].map(r => r * (stats.recent || 1))} color="#ef4444" />
                   </div>
                 </div>
               </div>
-              <div className="pm2-stat-card">
-                <div className="pm2-stat-top">
-                  <div className="pm2-stat-left">
-                    <span className="pm2-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
-                      <Clock />
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
+                      <Clock size={14} />
                     </span>
-                    <span className="pm2-stat-label">Older than 7 days</span>
+                    <span className="pp-stat-label">Older than 7 days</span>
                   </div>
                 </div>
-                <div className="pm2-stat-bottom">
-                  <div className="pm2-stat-value-wrap">
-                    <span className="pm2-stat-value">{stats.older}</span>
-                    <span className="pm2-stat-period">projects</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{stats.older}</span>
+                    <span className="pp-stat-period">projects</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.05, 0.2, 0.4, 0.6, 0.8, 1.0].map(r => r * (stats.older || 1))} color="#979797" />
                   </div>
                 </div>
               </div>
-              <div className="pm2-stat-card">
-                <div className="pm2-stat-top">
-                  <div className="pm2-stat-left">
-                    <span className="pm2-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
-                      <AlertTriangle />
+              <div className="pp-stat-card">
+                <div className="pp-stat-top">
+                  <div className="pp-stat-left">
+                    <span className="pp-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
+                      <AlertTriangle size={14} />
                     </span>
-                    <span className="pm2-stat-label">Pending Purge</span>
+                    <span className="pp-stat-label">Pending Purge</span>
                   </div>
                 </div>
-                <div className="pm2-stat-bottom">
-                  <div className="pm2-stat-value-wrap">
-                    <span className="pm2-stat-value">{stats.purgeReady}</span>
-                    <span className="pm2-stat-period">{">"} 30 days</span>
+                <div className="pp-stat-bottom">
+                  <div className="pp-stat-value-wrap">
+                    <span className="pp-stat-value">{stats.purgeReady}</span>
+                    <span className="pp-stat-period">{">"} 30 days</span>
                   </div>
-                  <div className="shrink-0 mb-[2px] ml-auto">
+                  <div className="pp-stat-spark">
                     <Sparkline data={[0.0, 0.2, 0.5, 0.8, 0.9, 0.95, 1.0].map(r => r * (stats.purgeReady || 1))} color="#3b82f6" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="pm2-main-content" style={{ marginTop: 10 }}>
+            <div className="pm2-main-content">
               {selectedRowKeys.length > 0 && (
                 <div className="saas-bulk-actions">
                   <div className="saas-bulk-content">
@@ -552,17 +534,7 @@ export default function ProjectTrashManagementPage() {
               )}
 
               {viewMode === "table" ? (
-                <Card
-                  styles={{ body: { padding: 0 } }}
-                  style={{
-                    borderRadius: 0,
-                    overflow: "hidden",
-                    border: "1px solid var(--border-color)",
-                    background: "var(--bg-pure-white)",
-                    transition: "all 0.3s ease",
-                    boxShadow: "var(--premium-shadow)"
-                  }}
-                >
+                <div className="pm2-table-shell" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}>
                   <Table
                     size="small"
                     className="premium-table"
@@ -593,7 +565,7 @@ export default function ProjectTrashManagementPage() {
                       ),
                     }}
                   />
-                </Card>
+                </div>
               ) : (
                 <div className="pm2-grid">
                   {(isLoading || isRefreshing)
@@ -624,7 +596,7 @@ export default function ProjectTrashManagementPage() {
                               className="pm2-list-row"
                               style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
                             >
-                              <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff' }}>
+                              <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff', top: '-3px' }}>
                                 <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
@@ -728,6 +700,35 @@ export default function ProjectTrashManagementPage() {
       </div>
 
       <style jsx global>{`
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
         .project-trash-container {
           min-height: calc(100vh - 64px);
           background: var(--bg-primary);
@@ -845,6 +846,39 @@ export default function ProjectTrashManagementPage() {
           background: #1F2937 !important;
         }
 
+        /* ── Proposals Status Cards ────────────────────────────────────────── */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-delta {
+          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+          color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+        }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .pp-stat-spark { opacity: 0.95; }
+
+        @media (max-width: 1024px) {
+          .pp-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 640px) {
+          .pp-stats {
+            grid-template-columns: 1fr;
+          }
+        }
+
         @keyframes slideIn {
           from { transform: translateY(-10px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
@@ -881,9 +915,55 @@ export default function ProjectTrashManagementPage() {
           border: 1px dashed var(--border-color) !important;    
         }
 
+        .pm2-table-shell{
+           background: var(--bg-pure-white); 
+        border: 1px solid var(--border-slate-200);
+        border-radius: 0; 
+        overflow: hidden;
+        margin-top: 0px !important; 
+      }
+
+       .premium-table .ant-table {
+          background: transparent !important;
+        }
+        .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .premium-table .ant-table-thead > tr > th::before {
+          display: none;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+          background: #1e293b;
+          border-bottom-color: #334155;
+          color: #94a3b8;
+        }
         .premium-table .ant-table-tbody > tr > td {
           border-bottom: 1px solid var(--border-slate-100) !important; 
           padding: 6.5px 10px !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1e293b;
+        }
+        .premium-table .ant-table-row:hover > td {
+           background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .premium-table .ant-table-row-expand-icon-cell {
+          padding: 0 4px !important;
+        }
+        .premium-table .ant-table-expanded-row > td {
+          padding: 0 !important;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        [data-theme='dark'] .premium-table .ant-table-expanded-row > td {
+          background: rgba(15, 23, 42, 0.5);
+          border-bottom-color: #1e293b;
         }
       `}</style>
     </div>

@@ -863,7 +863,7 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
                   <UserOutlined style={{ fontSize: 10 }} />
                   <span>Created by</span>
                   <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {member.createdBy}
+                    {member.createdBy}
                   </span>
                 </span>
                 <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
@@ -875,7 +875,7 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
                   <EditOutlined style={{ fontSize: 10 }} />
                   <span>Updated by</span>
                   <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {member.updatedBy}
+                    {member.updatedBy}
                   </span>
                 </span>
                 <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
@@ -931,43 +931,43 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
             </button>
           )}
 
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: "var(--bg-slate-50)",
-            border: "1px solid var(--border-slate-200)",
-            color: "var(--text-slate-500)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "all 0.15s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--bg-blue-50)";
-            e.currentTarget.style.borderColor = "#bfdbfe";
-            e.currentTarget.style.color = "#3b82f6";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "var(--bg-slate-50)";
-            e.currentTarget.style.borderColor = "var(--border-slate-200)";
-            e.currentTarget.style.color = "var(--text-slate-500)";
-          }}
-        >
-          <CloseOutlined style={{ fontSize: 13 }} />
-        </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: "var(--bg-slate-50)",
+              border: "1px solid var(--border-slate-200)",
+              color: "var(--text-slate-500)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-blue-50)";
+              e.currentTarget.style.borderColor = "#bfdbfe";
+              e.currentTarget.style.color = "#3b82f6";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--bg-slate-50)";
+              e.currentTarget.style.borderColor = "var(--border-slate-200)";
+              e.currentTarget.style.color = "var(--text-slate-500)";
+            }}
+          >
+            <CloseOutlined style={{ fontSize: 13 }} />
+          </button>
         </div>{/* end Actions */}
       </div>
 
       {/* Details Scrollable Body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-        
+
         {/* Panel 1: Profile & Access */}
         <div className="sp-form-section" style={{ margin: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -1039,14 +1039,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
                 </div>
               </div>
               {member.workEmail && (
-                <Button 
-                  size="small" 
-                  type="text" 
-                  icon={<CopyOutlined />} 
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
                   onClick={() => {
                     navigator.clipboard.writeText(member.workEmail);
                     message.success("Work email copied");
-                  }} 
+                  }}
                 />
               )}
             </div>
@@ -1060,14 +1060,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
                 </div>
               </div>
               {member.personalEmail && (
-                <Button 
-                  size="small" 
-                  type="text" 
-                  icon={<CopyOutlined />} 
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
                   onClick={() => {
                     navigator.clipboard.writeText(member.personalEmail);
                     message.success("Personal email copied");
-                  }} 
+                  }}
                 />
               )}
             </div>
@@ -1081,14 +1081,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
                 </div>
               </div>
               {member.phone && (
-                <Button 
-                  size="small" 
-                  type="text" 
-                  icon={<CopyOutlined />} 
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
                   onClick={() => {
                     navigator.clipboard.writeText(member.phone);
                     message.success("Phone number copied");
-                  }} 
+                  }}
                 />
               )}
             </div>
@@ -1151,7 +1151,7 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         >
           Close
         </Button>
-        
+
         {(canDeleteUser || canManageUsers) && (
           <Button
             danger
@@ -1630,6 +1630,17 @@ export default function MembersPage() {
     reportsToFilter
   );
 
+  // ─── Rich dropdown menu label (icon + title + desc) ───────────────────────
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="mm-menu-item">
+      <span className="mm-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="mm-menu-text">
+        <span className="mm-menu-title">{title}</span>
+        <span className="mm-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
   const columns: ColumnsType<Member> = [
     {
       title: "Member",
@@ -1878,22 +1889,19 @@ export default function MembersPage() {
       render: (_, record: Member) => {
         if (!canUpdateUser && !canDeleteUser && !canManageUsers) return null;
 
-        const menuItems = [];
+        const menuItems: any[] = [];
         if (canUpdateUser || canManageUsers) {
           menuItems.push({
             key: "edit",
-            icon: <EditOutlined />,
-            label: "Edit member",
-            onClick: () => showEditModal(record),
+            label: menuLabel("Edit member", "Update profile details", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
           });
         }
         if (canDeleteUser || canManageUsers) {
+          menuItems.push({ type: "divider" as const });
           menuItems.push({
             key: "delete",
-            icon: <DeleteOutlined />,
-            label: "Delete member",
             danger: true,
-            onClick: () => showDeleteModal(record),
+            label: menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
           });
         }
 
@@ -1902,10 +1910,17 @@ export default function MembersPage() {
         return (
           <div onClick={(e) => e.stopPropagation()}>
             <Dropdown
-              menu={{ items: menuItems }}
+              menu={{
+                items: menuItems,
+                onClick: ({ key, domEvent }: any) => {
+                  domEvent.stopPropagation();
+                  if (key === "edit") showEditModal(record);
+                  else if (key === "delete") showDeleteModal(record);
+                },
+              }}
               trigger={["click"]}
               placement="bottomRight"
-              overlayStyle={{ borderRadius: 0, padding: 0 }}
+              overlayClassName="mm-action-pop"
             >
               <Button
                 type="text"
@@ -2077,7 +2092,7 @@ export default function MembersPage() {
                     .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
                     .map((r) => ({ value: r.slug, label: r.name })),
                 ]}
-                width={212}
+                width={232}
                 hideAvatar
               />
 
@@ -2089,7 +2104,7 @@ export default function MembersPage() {
                 value={positionFilter ?? undefined}
                 onChange={(v) => setPositionFilter(v ?? undefined)}
                 options={positions.map((p) => ({ value: p.title, label: p.title }))}
-                width={212}
+                width={232}
                 disabled={positions.length === 0}
                 hideAvatar
               />
@@ -2107,7 +2122,7 @@ export default function MembersPage() {
                   avatarUrl: m.avatarUrl || null,
                   description: m.position?.title || undefined,
                 }))}
-                width={212}
+                width={232}
                 disabled={managers.length === 0}
               />
 
@@ -2219,33 +2234,21 @@ export default function MembersPage() {
                       color: "#3b82f6",
                       dot: "#3b82f6",
                     };
-                    const menuItems = [];
+                    const cardMenuItems: any[] = [];
                     if (canUpdateUser || canManageUsers) {
-                      menuItems.push({
+                      cardMenuItems.push({
                         key: "edit",
-                        icon: <EditOutlined />,
-                        label: "Edit member",
-                        onClick: () => showEditModal(item),
+                        label: menuLabel("Edit member", "Update profile details", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
                       });
                     }
                     if (canDeleteUser || canManageUsers) {
-                      menuItems.push({
+                      cardMenuItems.push({ type: "divider" as const });
+                      cardMenuItems.push({
                         key: "delete",
-                        icon: <DeleteOutlined />,
-                        label: "Delete member",
                         danger: true,
-                        onClick: () => showDeleteModal(item),
+                        label: menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
                       });
                     }
-
-                    const dropdownMenu = {
-                      items: menuItems,
-                      onClick: ({ key, domEvent }: any) => {
-                        domEvent.stopPropagation();
-                        if (key === 'edit') showEditModal(item);
-                        else if (key === 'delete') showDeleteModal(item);
-                      }
-                    };
 
                     return (
                       <div key={item.id} className="pc-card" onClick={() => showPreviewDrawer(item)}>
@@ -2276,12 +2279,19 @@ export default function MembersPage() {
                               </span>
                             </div>
                           </div>
-                          {menuItems.length > 0 && (
+                          {cardMenuItems.length > 0 && (
                             <Dropdown
-                              menu={dropdownMenu}
+                              menu={{
+                                items: cardMenuItems,
+                                onClick: ({ key, domEvent }: any) => {
+                                  domEvent.stopPropagation();
+                                  if (key === 'edit') showEditModal(item);
+                                  else if (key === 'delete') showDeleteModal(item);
+                                },
+                              }}
                               trigger={['click']}
                               placement="bottomRight"
-                              overlayStyle={{ borderRadius: 0, padding: 0 }}
+                              overlayClassName="mm-action-pop"
                             >
                               <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
                                 <EllipsisOutlined />
@@ -2929,21 +2939,42 @@ export default function MembersPage() {
           .pp-sidebar { display: none; }
           .pp-topbar-meta { display: none; }
         }
-        /* ---- Dropdown popup: sharp corners (border-radius 0) ---- */
-        .pp-shell .ant-dropdown .ant-dropdown-menu,
-        .pp-shell .ant-dropdown-menu-root,
-        .pp-shell .ant-dropdown-menu-submenu-popup,
-        .ant-dropdown.pp-dd .ant-dropdown-menu {
-          border-radius: 0 !important;
+        /* ---- Premium action dropdown (matches Proposals page) ---- */
+        .mm-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0 !important; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
         }
-        .ant-dropdown .ant-dropdown-menu {
-          border-radius: 0 !important;
-          padding: 2px 0 !important;
+        .mm-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
         }
-        .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item:first-child,
-        .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item:last-child {
-          border-radius: 0 !important;
+        .mm-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .mm-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .mm-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .mm-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .mm-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
         }
+        .mm-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .mm-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .mm-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .mm-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .mm-action-pop .ant-dropdown-menu-item-danger .mm-menu-title { color: #ef4444; }
+        .mm-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .mm-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+        /* dark theme */
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu {
+          background: #1e2433 !important;
+          border-color: #2d3748 !important;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+        }
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item:hover { background: rgba(255,255,255,0.06) !important; }
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item-divider { background: #2d3748 !important; }
+        [data-theme='dark'] .mm-menu-title { color: #e2e8f0; }
+        [data-theme='dark'] .mm-menu-desc { color: #64748b; }
       `}</style>
     </MainLayout>
   );

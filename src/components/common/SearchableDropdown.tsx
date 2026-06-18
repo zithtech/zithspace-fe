@@ -462,9 +462,9 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-search-box {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
-  gap: 8px;
+  gap: 1.5px;
 }
 [data-theme='dark'] .sd-search-box { border-bottom-color: #27273a; }
 .sd-search-icon { color: var(--text-slate-400, #94a3b8); flex-shrink: 0; }
@@ -473,8 +473,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   background: var(--bg-slate-50, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 12.5px;
   color: var(--text-slate-800, #1e293b);
   outline: none;
   transition: border-color .15s ease, background .15s ease;

@@ -14,6 +14,7 @@ import {
   UnorderedListOutlined,
   DownOutlined,
   MoreOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 import { Avatar } from "antd";
 import dayjs from "dayjs";
@@ -27,6 +28,7 @@ interface TicketSidebarProps {
   activeSprint: { id?: string; version?: string; name?: string; endDate?: string; startDate?: string } | null;
   overallSprintTickets: Ticket[];
   totalBacklog: number;
+  myBacklogCount?: number;
   currentUserId?: string;
   currentUserName?: string;
   typeOptions: Array<{ label: string; value: string }>;
@@ -61,6 +63,7 @@ export default function TicketSidebar({
   activeSprint,
   overallSprintTickets,
   totalBacklog,
+  myBacklogCount = 0,
   currentUserId,
   currentUserName,
   typeOptions,
@@ -73,12 +76,12 @@ export default function TicketSidebar({
   commentedFilterActive,
   attachedFilterActive,
   overdueFilterActive,
+  onShowOverdueTickets,
+  onShowCommentedTickets,
+  onShowAttachedTickets,
   onNavigate,
   onShowMySprintTickets,
   onShowMyBacklog,
-  onShowCommentedTickets,
-  onShowAttachedTickets,
-  onShowOverdueTickets,
   onTicketClick,
 }: TicketSidebarProps) {
   // ── My sprint tickets (current user only, unfiltered sprint pool) ──
@@ -86,7 +89,7 @@ export default function TicketSidebar({
   // assigneeId field if the populated assignee relation is missing.
   const mySprintTickets = useMemo(() => {
     if (!currentUserId) return [];
-    const me = currentUserId.trim().toLowerCase();
+    const me = currentUserId.toString().trim().toLowerCase();
     return overallSprintTickets.filter((t) => {
       const aid = (t.assignee?.id || (t as any).assigneeId || "").toString().trim().toLowerCase();
       return aid !== "" && aid === me;
@@ -177,25 +180,23 @@ export default function TicketSidebar({
     <aside className="tl-sidebar">
       <style dangerouslySetInnerHTML={{ __html: TL_SIDEBAR_CSS }} />
 
-      {/* ── All Tickets section label ────────────────────────── */}
-      <div className="tl-section-label">
-        <AppstoreOutlined style={{ fontSize: SECTION_ICON_SIZE }} />
-        <span className="tl-section-label-text">All Tickets</span>
-        <button
-          type="button"
-          className="tl-section-overflow"
-          aria-label="More options"
-          title="More options"
-        >
-          <MoreOutlined style={{ fontSize: 12 }} />
-        </button>
+      {/* ── Sidebar Head ────────────────────────── */}
+      <div className="tl-side-head">
+        <div className="tl-side-logo"><ProjectOutlined /></div>
+        <div className="tl-side-head-text">
+          <div className="tl-side-title">Tickets</div>
+          <div className="tl-side-subtitle">Sprint · backlog · insights</div>
+        </div>
       </div>
+
+      {/* ── All Tickets section label ────────────────────────── */}
+      <div className="tl-side-section-label">All Tickets</div>
 
       {/* ── Top pinned nav (Sprint, Backlog) ─────────────────── */}
       <nav className="tl-pinned-nav">
         <button
           type="button"
-          className={`tl-nav-row ${activeSection === "sprint" ? "active" : ""}`}
+          className={`tl-nav-row ${activeSection === "sprint" && !isMySprintActive ? "active" : ""}`}
           onClick={() => onNavigate("sprint")}
           disabled={!activeSprint}
           title={activeSprint ? "Jump to active sprint" : "No active sprint"}
@@ -208,7 +209,7 @@ export default function TicketSidebar({
         </button>
         <button
           type="button"
-          className={`tl-nav-row ${activeSection === "backlog" ? "active" : ""}`}
+          className={`tl-nav-row ${activeSection === "backlog" && !isMyBacklogActive ? "active" : ""}`}
           onClick={() => onNavigate("backlog")}
         >
           <span className="tl-nav-row-icon">
@@ -223,18 +224,7 @@ export default function TicketSidebar({
       <div className="tl-sidebar-divider-blue" aria-hidden />
 
       {/* ── My Core section ──────────────────────────────────── */}
-      <div className="tl-section-label">
-        <UserOutlined style={{ fontSize: SECTION_ICON_SIZE }} />
-        <span className="tl-section-label-text">My Core</span>
-        <button
-          type="button"
-          className="tl-section-overflow"
-          aria-label="More options"
-          title="More options"
-        >
-          <MoreOutlined style={{ fontSize: 12 }} />
-        </button>
-      </div>
+      <div className="tl-side-section-label">My Core</div>
       <div className="tl-groups">
         <button
           type="button"
@@ -247,7 +237,7 @@ export default function TicketSidebar({
             <ThunderboltOutlined style={{ fontSize: 13 }} />
           </span>
           <span className="tl-group-label">My Sprint Tickets</span>
-          <RightOutlined style={{ fontSize: 9, color: 'currentColor', opacity: 0.6 }} />
+          <span className="tl-group-count">{mySprintTickets.length}</span>
         </button>
         <button
           type="button"
@@ -260,7 +250,7 @@ export default function TicketSidebar({
             <UnorderedListOutlined style={{ fontSize: 13 }} />
           </span>
           <span className="tl-group-label">My Backlog Tickets</span>
-          <RightOutlined style={{ fontSize: 9, color: 'currentColor', opacity: 0.6 }} />
+          <span className="tl-group-count">{myBacklogCount}</span>
         </button>
       </div>
 
@@ -268,18 +258,7 @@ export default function TicketSidebar({
       <div className="tl-sidebar-divider-blue" aria-hidden />
 
       {/* ── Sprint Insights section ──────────────────────────── */}
-      <div className="tl-section-label">
-        <AppstoreOutlined style={{ fontSize: SECTION_ICON_SIZE }} />
-        <span className="tl-section-label-text">Sprint Insights</span>
-        <button
-          type="button"
-          className="tl-section-overflow"
-          aria-label="More options"
-          title="More options"
-        >
-          <MoreOutlined style={{ fontSize: 12 }} />
-        </button>
-      </div>
+      <div className="tl-side-section-label">Sprint Insights</div>
 
       {/* ── Expandable group tree ────────────────────────────── */}
       <div className="tl-groups">
@@ -577,266 +556,216 @@ export default function TicketSidebar({
 
 const TL_SIDEBAR_CSS = `
 .tl-sidebar {
-  background: var(--bg-slate-50);
-  border-right: 1px solid var(--border-slate-200);
-  border-top: 1px solid var(--border-slate-200);
-  /* Left padding compensates for the outer wrapper's -24px margin overshoot
-     so content never falls behind the global side-nav. Right padding stays
-     small since the sidebar's own right border is the visible divider. */
-  padding: 8px 8px 16px 28px;
+  background: var(--bg-pure-white) !important;
+  border-right: 1px solid var(--border-slate-200) !important;
+  /* Symmetric side padding on both left and right edges. */
+  padding: 14px 14px 16px 14px !important;
   position: sticky;
-  top: var(--tl-header-h, 56px);
-  height: calc(100vh - 64px - var(--tl-header-h, 56px));
+  top: 0 !important;
+  height: calc(100vh - 54px) !important;
   overflow-y: auto;
   align-self: start;
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE / legacy Edge */
+  display: flex;
+  flex-direction: column;
 }
 [data-theme='dark'] .tl-sidebar {
-  background: #0f1419 !important;
-  border-right-color: #1f2937 !important;
+  background: var(--bg-pure-white) !important;
+  border-right-color: var(--border-slate-200) !important;
 }
-.tl-sidebar::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.tl-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.tl-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-slate-200);
+  border-radius: 3px;
+}
+
+/* ── Sidebar Head ── */
+.tl-side-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 2px 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-slate-100);
+}
+.tl-side-logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-side-logo .anticon {
+  font-size: 20px !important;
+  color: var(--text-slate-900) !important;
+}
+[data-theme='dark'] .tl-side-logo .anticon {
+  color: #cbd5e1 !important;
+}
+.tl-side-head-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tl-side-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-slate-900);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+[data-theme='dark'] .tl-side-title {
+  color: #f1f5f9;
+}
+.tl-side-subtitle {
+  font-size: 10.5px;
+  color: var(--text-slate-400);
+  font-weight: 700;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
 
 /* ── Top pinned nav (flat rows: Sprint, Backlog) ───────────── */
 .tl-pinned-nav {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 2px 0 6px;
+  padding: 2px 0 4px;
 }
-.tl-nav-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 6px 8px;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--text-slate-700);
-  text-align: left;
-  transition: background 0.12s ease, color 0.12s ease;
-  min-width: 0;
-}
-.tl-nav-row:hover:not(:disabled) { background: var(--bg-slate-100); color: var(--text-slate-900); }
-.tl-nav-row:disabled { opacity: 0.45; cursor: not-allowed; }
-.tl-nav-row.active {
-  background: rgba(59,130,246,0.10);
-  color: #1d4ed8;
-}
-[data-theme='dark'] .tl-nav-row { color: #cbd5e1 !important; }
-[data-theme='dark'] .tl-nav-row:hover:not(:disabled) { background: #1c232e !important; color: #f1f5f9 !important; }
-[data-theme='dark'] .tl-nav-row.active {
-  background: rgba(59,130,246,0.18) !important;
-  color: #93c5fd !important;
-}
-.tl-nav-row-icon {
-  width: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-slate-500);
-  flex-shrink: 0;
-}
-.tl-nav-row.active .tl-nav-row-icon { color: #1d4ed8; }
-[data-theme='dark'] .tl-nav-row-icon { color: #94a3b8 !important; }
-[data-theme='dark'] .tl-nav-row.active .tl-nav-row-icon { color: #93c5fd !important; }
-.tl-nav-row-label {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: -0.005em;
-}
-.tl-nav-row-count {
-  margin-left: auto;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--text-slate-500);
-  font-variant-numeric: tabular-nums;
-  background: var(--bg-pure-white);
-  border-radius: 999px;
-  padding: 0 7px;
-  line-height: 1.7;
-  border: 1px solid var(--border-slate-200);
-  flex-shrink: 0;
-}
-.tl-nav-row.active .tl-nav-row-count {
-  background: rgba(59,130,246,0.14);
-  border-color: rgba(59,130,246,0.25);
-  color: #1d4ed8;
-}
-[data-theme='dark'] .tl-nav-row-count {
-  background: #1c232e !important;
-  border-color: #2d3748 !important;
-  color: #94a3b8 !important;
-}
-[data-theme='dark'] .tl-nav-row.active .tl-nav-row-count {
-  background: rgba(59,130,246,0.22) !important;
-  border-color: rgba(59,130,246,0.35) !important;
-  color: #93c5fd !important;
-}
-
-/* ── Section label (uppercase title + overflow button) ────── */
-.tl-section-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 6px 6px;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-slate-500);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-/* First section label sits flush with the sidebar top — no extra top pad */
-.tl-sidebar > .tl-section-label:first-child {
-  padding-top: 4px;
-}
-
-/* ── Dashed cutting divider between sections ──────────────── */
-.tl-sidebar-divider-blue {
-  height: 0;
-  margin: 12px -4px 4px;
-  border-top: 1.5px dashed #94a3b8;
-  opacity: 0.6;
-}
-[data-theme='dark'] .tl-sidebar-divider-blue {
-  border-top-color: #64748b;
-  opacity: 0.7;
-}
-[data-theme='dark'] .tl-section-label { color: #94a3b8 !important; }
-.tl-section-label-text { flex: 1; min-width: 0; }
-.tl-section-overflow {
-  background: transparent;
-  border: 0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--text-slate-400);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.tl-section-overflow:hover {
-  background: var(--bg-slate-100);
-  color: var(--text-slate-700);
-}
-[data-theme='dark'] .tl-section-overflow { color: #64748b !important; }
-[data-theme='dark'] .tl-section-overflow:hover { background: #1c232e !important; color: #cbd5e1 !important; }
-
-/* ── Expandable group tree ────────────────────────────────── */
-.tl-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.tl-group {
-  display: flex;
-  flex-direction: column;
-}
+.tl-nav-row,
 .tl-group-row {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 6px 8px;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: transparent !important;
   cursor: pointer;
-  font-family: inherit;
-  color: var(--text-slate-700);
+  transition: background .12s ease;
   text-align: left;
-  transition: background 0.12s ease, color 0.12s ease;
-  min-width: 0;
+  color: var(--text-slate-700) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: auto !important;
 }
-.tl-group-row:hover:not(:disabled) { background: var(--bg-slate-100); color: var(--text-slate-900); }
-.tl-group-row:disabled { opacity: 0.45; cursor: not-allowed; }
+[data-theme='dark'] .tl-nav-row,
+[data-theme='dark'] .tl-group-row {
+  color: #cbd5e1 !important;
+}
+
+.tl-nav-row:hover:not(:disabled),
+.tl-group-row:hover:not(:disabled) {
+  background: var(--bg-slate-50) !important;
+  color: var(--text-slate-900) !important;
+}
+[data-theme='dark'] .tl-nav-row:hover:not(:disabled),
+[data-theme='dark'] .tl-group-row:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f1f5f9 !important;
+}
+
+.tl-nav-row.active,
 .tl-group-row.active {
-  background: rgba(59,130,246,0.10);
-  color: #1d4ed8;
+  background: var(--bg-blue-50) !important;
+  color: var(--text-slate-900) !important;
+  font-weight: 600 !important;
 }
-[data-theme='dark'] .tl-group-row { color: #cbd5e1 !important; }
-[data-theme='dark'] .tl-group-row:hover:not(:disabled) { background: #1c232e !important; color: #f1f5f9 !important; }
+[data-theme='dark'] .tl-nav-row.active,
 [data-theme='dark'] .tl-group-row.active {
-  background: rgba(59,130,246,0.18) !important;
+  background: rgba(59, 130, 246, 0.15) !important;
   color: #93c5fd !important;
 }
+
+.tl-nav-row-icon,
 .tl-group-icon {
-  width: 18px;
+  font-size: 14px;
+  width: 16px;
   display: inline-flex;
-  align-items: center;
   justify-content: center;
-  color: var(--text-slate-500);
+  color: var(--text-slate-400) !important;
   flex-shrink: 0;
 }
-.tl-group-row.active .tl-group-icon { color: #1d4ed8; }
-[data-theme='dark'] .tl-group-icon { color: #94a3b8 !important; }
-[data-theme='dark'] .tl-group-row.active .tl-group-icon { color: #93c5fd !important; }
+.tl-nav-row.active .tl-nav-row-icon,
+.tl-group-row.active .tl-group-icon {
+  color: #3B82F6 !important;
+}
+[data-theme='dark'] .tl-nav-row.active .tl-nav-row-icon,
+[data-theme='dark'] .tl-group-row.active .tl-group-icon {
+  color: #93c5fd !important;
+}
+
+.tl-nav-row-label,
 .tl-group-label {
   flex: 1;
   font-size: 13px;
-  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: -0.005em;
 }
+
+.tl-nav-row-count,
 .tl-group-count {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: var(--text-slate-400) !important;
+  min-width: 18px;
+  text-align: right;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  line-height: normal !important;
+}
+.tl-nav-row.active .tl-nav-row-count,
+.tl-group-row.active .tl-group-count {
+  color: #3B82F6 !important;
+  font-weight: 700 !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-radius: 6px !important;
+  padding: 1px 7px !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+[data-theme='dark'] .tl-nav-row.active .tl-nav-row-count,
+[data-theme='dark'] .tl-group-row.active .tl-group-count {
+  color: #93c5fd !important;
+  background: rgba(59, 130, 246, 0.22) !important;
+}
+
+/* ── Section label ── */
+.tl-side-section-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-slate-500);
-  font-variant-numeric: tabular-nums;
-  background: var(--bg-pure-white);
-  border-radius: 999px;
-  padding: 0 6px;
-  line-height: 1.7;
-  border: 1px solid var(--border-slate-200);
-  flex-shrink: 0;
-}
-[data-theme='dark'] .tl-group-count {
-  background: #1c232e !important;
-  border-color: #2d3748 !important;
-  color: #94a3b8 !important;
-}
-.tl-group-count.is-warn {
-  background: rgba(239,68,68,0.10);
-  border-color: rgba(239,68,68,0.28);
-  color: #b91c1c;
-}
-[data-theme='dark'] .tl-group-count.is-warn {
-  background: rgba(239,68,68,0.18) !important;
-  border-color: rgba(239,68,68,0.38) !important;
-  color: #fca5a5 !important;
-}
-.tl-group-caret {
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   color: var(--text-slate-400);
-  transition: transform 0.15s ease;
-  flex-shrink: 0;
+  padding: 0 8px;
+  margin: 12px 0 4px;
 }
-.tl-group-caret.open { transform: rotate(0deg); }
-.tl-group-caret.closed { transform: rotate(-90deg); }
-[data-theme='dark'] .tl-group-caret { color: #64748b !important; }
+.tl-sidebar > .tl-side-section-label:first-of-type {
+  margin-top: 6px;
+}
 
-/* Children of an expanded group — indented under the parent
-   with a thin left rail (mirrors the Linear-style guide line).
-   Indent kept tight so nested content uses the available width. */
+/* ── Dashed cutting divider between sections ──────────────── */
+.tl-sidebar-divider-blue {
+  display: none !important;
+}
+
+/* Children of an expanded group */
 .tl-group-children {
-  margin: 2px 0 6px 8px;
+  margin: 1px 0 4px 8px;
   padding: 2px 0 2px 6px;
   border-left: 1px solid var(--border-slate-200);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-[data-theme='dark'] .tl-group-children { border-left-color: #2d3748 !important; }
+[data-theme='dark'] .tl-group-children {
+  border-left-color: #2d3748 !important;
+}
 
 .tl-sidebar-empty {
   padding: 6px 4px;
@@ -845,7 +774,7 @@ const TL_SIDEBAR_CSS = `
   font-style: italic;
 }
 
-/* ── Your Sprint Contribution (flat, tight) ──────────────── */
+/* ── Your Sprint Contribution ── */
 .tl-contrib {
   padding: 0 2px;
 }
@@ -874,7 +803,9 @@ const TL_SIDEBAR_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-[data-theme='dark'] .tl-contrib-label { color: #cbd5e1 !important; }
+[data-theme='dark'] .tl-contrib-label {
+  color: #cbd5e1 !important;
+}
 .tl-contrib-value {
   flex: 0 0 auto;
   font-size: 14px;
@@ -884,33 +815,47 @@ const TL_SIDEBAR_CSS = `
   letter-spacing: -0.015em;
   line-height: 1.1;
 }
-[data-theme='dark'] .tl-contrib-value { color: #f1f5f9 !important; }
-.tl-contrib-value-amber { color: #b45309; }
-.tl-contrib-value-green { color: #047857; }
-[data-theme='dark'] .tl-contrib-value-amber { color: #fbbf24 !important; }
-[data-theme='dark'] .tl-contrib-value-green { color: #34d399 !important; }
+[data-theme='dark'] .tl-contrib-value {
+  color: #f1f5f9 !important;
+}
+.tl-contrib-value-amber {
+  color: #b45309;
+}
+.tl-contrib-value-green {
+  color: #047857;
+}
+[data-theme='dark'] .tl-contrib-value-amber {
+  color: #fbbf24 !important;
+}
+[data-theme='dark'] .tl-contrib-value-green {
+  color: #34d399 !important;
+}
 .tl-contrib-vsep {
   width: 1px;
   background: var(--border-slate-100);
   margin: 4px 8px;
 }
-[data-theme='dark'] .tl-contrib-vsep { background: #1f2937 !important; }
+[data-theme='dark'] .tl-contrib-vsep {
+  background: #1f2937 !important;
+}
 .tl-contrib-hsep {
   height: 1px;
   background: var(--border-slate-100);
   margin: 0 2px;
 }
-[data-theme='dark'] .tl-contrib-hsep { background: #1f2937 !important; }
+[data-theme='dark'] .tl-contrib-hsep {
+  background: #1f2937 !important;
+}
 
-/* Overdue tickets — warning treatment on count + row */
+/* Overdue tickets */
 .tl-sidebar-section-count.is-warn {
-  background: rgba(239,68,68,0.10);
-  border-color: rgba(239,68,68,0.28);
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.28);
   color: #b91c1c;
 }
 [data-theme='dark'] .tl-sidebar-section-count.is-warn {
-  background: rgba(239,68,68,0.18);
-  border-color: rgba(239,68,68,0.38);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.38);
   color: #fca5a5;
 }
 .tl-overdue-icon {
@@ -920,33 +865,39 @@ const TL_SIDEBAR_CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(239,68,68,0.10);
-  border: 1px solid rgba(239,68,68,0.22);
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.22);
   color: #dc2626;
   flex-shrink: 0;
 }
 [data-theme='dark'] .tl-overdue-icon {
-  background: rgba(239,68,68,0.18);
-  border-color: rgba(239,68,68,0.35);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
   color: #fca5a5;
 }
 .tl-activity-line2-warn {
   color: #b91c1c !important;
   font-weight: 700 !important;
 }
-.tl-activity-line2-warn b { color: #991b1b; font-weight: 800; }
-[data-theme='dark'] .tl-activity-line2-warn { color: #fca5a5 !important; }
-[data-theme='dark'] .tl-activity-line2-warn b { color: #fecaca; }
+.tl-activity-line2-warn b {
+  color: #991b1b;
+  font-weight: 800;
+}
+[data-theme='dark'] .tl-activity-line2-warn {
+  color: #fca5a5 !important;
+}
+[data-theme='dark'] .tl-activity-line2-warn b {
+  color: #fecaca;
+}
 .tl-activity-row-warn:hover {
-  background: rgba(239,68,68,0.05) !important;
-  border-color: rgba(239,68,68,0.22) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
 }
 [data-theme='dark'] .tl-activity-row-warn:hover {
-  background: rgba(239,68,68,0.12) !important;
-  border-color: rgba(239,68,68,0.35) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
 }
 
-/* Single-line overdue row — minimal: red dot + number + Nd */
 .tl-overdue-row {
   align-items: center !important;
   gap: 8px !important;
@@ -958,7 +909,7 @@ const TL_SIDEBAR_CSS = `
   height: 6px;
   border-radius: 50%;
   background: #dc2626;
-  box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 .tl-overdue-num {
   flex: 1 1 auto;
@@ -972,7 +923,9 @@ const TL_SIDEBAR_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-[data-theme='dark'] .tl-overdue-num { color: #f1f5f9; }
+[data-theme='dark'] .tl-overdue-num {
+  color: #f1f5f9;
+}
 .tl-overdue-days {
   flex: 0 0 auto;
   font-size: 10.5px;
@@ -981,9 +934,11 @@ const TL_SIDEBAR_CSS = `
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
-[data-theme='dark'] .tl-overdue-days { color: #fca5a5; }
+[data-theme='dark'] .tl-overdue-days {
+  color: #fca5a5;
+}
 
-/* ── At Risk banner ──────────────────────────────────────── */
+/* ── At Risk banner ── */
 .tl-risk-banner {
   margin: 8px 2px 0;
   width: calc(100% - 4px);
@@ -991,8 +946,8 @@ const TL_SIDEBAR_CSS = `
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.22);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.22);
   border-radius: 8px;
   color: #b91c1c;
   cursor: pointer;
@@ -1000,18 +955,25 @@ const TL_SIDEBAR_CSS = `
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .tl-risk-banner:hover {
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.35);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 [data-theme='dark'] .tl-risk-banner {
-  background: rgba(239,68,68,0.15) !important;
-  border-color: rgba(239,68,68,0.32) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.32) !important;
   color: #fca5a5 !important;
 }
-.tl-risk-text { flex: 1; font-size: 11.5px; font-weight: 700; text-align: left; }
-.tl-risk-text b { font-weight: 800; }
+.tl-risk-text {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: left;
+}
+.tl-risk-text b {
+  font-weight: 800;
+}
 
-/* ── Type list (minimalist, no card borders) ──────────────── */
+/* ── Type list ── */
 .tl-type-list {
   display: flex;
   flex-direction: column;
@@ -1037,16 +999,22 @@ const TL_SIDEBAR_CSS = `
   height: 1px;
   background: var(--border-slate-100);
 }
-[data-theme='dark'] .tl-type-line + .tl-type-line::before { background: #1f2937; }
-.tl-type-line:hover { background: transparent; }
+[data-theme='dark'] .tl-type-line + .tl-type-line::before {
+  background: #1f2937;
+}
+.tl-type-line:hover {
+  background: transparent;
+}
 .tl-type-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.4) inset;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4) inset;
 }
-[data-theme='dark'] .tl-type-dot { box-shadow: 0 0 0 3px rgba(0,0,0,0.25) inset; }
+[data-theme='dark'] .tl-type-dot {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25) inset;
+}
 .tl-type-name {
   flex: 1 1 auto;
   min-width: 0;
@@ -1058,7 +1026,9 @@ const TL_SIDEBAR_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-[data-theme='dark'] .tl-type-name { color: #cbd5e1 !important; }
+[data-theme='dark'] .tl-type-name {
+  color: #cbd5e1 !important;
+}
 .tl-type-count {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
@@ -1071,10 +1041,17 @@ const TL_SIDEBAR_CSS = `
   line-height: 1.6;
   letter-spacing: 0.02em;
 }
-[data-theme='dark'] .tl-type-count { color: #94a3b8 !important; }
+[data-theme='dark'] .tl-type-count {
+  color: #94a3b8 !important;
+}
 
-/* ── Activity rows (comments / attachments) ──────────────── */
-.tl-activity-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 2px; }
+/* ── Activity rows ── */
+.tl-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 2px;
+}
 .tl-activity-row {
   display: flex;
   align-items: center;
@@ -1091,14 +1068,18 @@ const TL_SIDEBAR_CSS = `
   min-width: 0;
 }
 .tl-activity-row:hover {
-  background: var(--bg-pure-white);
-  border-color: var(--border-slate-200);
+  background: var(--bg-slate-50);
 }
 [data-theme='dark'] .tl-activity-row:hover {
-  background: #111720 !important;
-  border-color: #2d3748 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
 }
-.tl-activity-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tl-activity-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .tl-activity-line1 {
   display: flex;
   align-items: center;
@@ -1115,7 +1096,9 @@ const TL_SIDEBAR_CSS = `
   letter-spacing: -0.005em;
   min-width: 0;
 }
-[data-theme='dark'] .tl-activity-user { color: #f1f5f9 !important; }
+[data-theme='dark'] .tl-activity-user {
+  color: #f1f5f9 !important;
+}
 .tl-activity-id {
   font-size: 10px;
   font-weight: 700;
@@ -1151,9 +1134,11 @@ const TL_SIDEBAR_CSS = `
   flex-shrink: 0;
   color: var(--text-slate-400);
 }
-[data-theme='dark'] .tl-activity-sep { color: #64748b !important; }
+[data-theme='dark'] .tl-activity-sep {
+  color: #64748b !important;
+}
 
-/* CTA button for "Show commented tickets" / "Show tickets with attachments" */
+/* CTA button */
 .tl-activity-cta {
   margin: 6px 2px 0;
   width: calc(100% - 4px);
@@ -1173,14 +1158,14 @@ const TL_SIDEBAR_CSS = `
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .tl-activity-cta:hover {
-  background: rgba(59,130,246,0.06);
-  border-color: rgba(59,130,246,0.4);
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.4);
   color: #1d4ed8;
 }
 .tl-activity-cta.active {
-  background: rgba(59,130,246,0.08);
+  background: rgba(59, 130, 246, 0.08);
   border-style: solid;
-  border-color: rgba(59,130,246,0.32);
+  border-color: rgba(59, 130, 246, 0.32);
   color: #1d4ed8;
 }
 [data-theme='dark'] .tl-activity-cta {
@@ -1188,14 +1173,88 @@ const TL_SIDEBAR_CSS = `
   color: #60a5fa !important;
 }
 [data-theme='dark'] .tl-activity-cta:hover {
-  background: rgba(59,130,246,0.12) !important;
-  border-color: rgba(59,130,246,0.45) !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
 }
 [data-theme='dark'] .tl-activity-cta.active {
-  background: rgba(59,130,246,0.18) !important;
-  border-color: rgba(59,130,246,0.4) !important;
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
   color: #93c5fd !important;
 }
 
-
+/* ── Responsive (< 1100px): horizontal pill bar ───────────── */
+@media (max-width: 1099.98px) {
+  .tl-side-head {
+    display: none !important;
+  }
+  .tl-sidebar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow-y: hidden !important;
+    background: transparent !important;
+    border: none !important;
+  }
+  .tl-sidebar .tl-side-section-label,
+  .tl-sidebar .tl-sidebar-divider-blue,
+  .tl-sidebar .tl-group-children,
+  .tl-sidebar .tl-group-caret,
+  .tl-sidebar .tl-group-count.is-warn + .tl-group-caret {
+    display: none !important;
+  }
+  .tl-sidebar .tl-pinned-nav,
+  .tl-sidebar .tl-groups {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .tl-sidebar .tl-nav-row,
+  .tl-sidebar .tl-group-row {
+    width: auto !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    border-radius: 999px !important;
+    background: var(--bg-slate-50, #f8fafc) !important;
+    border: 1px solid var(--border-slate-200, #e2e8f0) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    gap: 6px !important;
+    display: inline-flex !important;
+  }
+  .tl-sidebar .tl-nav-row:hover:not(:disabled),
+  .tl-sidebar .tl-group-row:hover:not(:disabled) {
+    background: var(--bg-pure-white, #ffffff) !important;
+    border-color: var(--text-slate-400, #94a3b8) !important;
+  }
+  [data-theme='dark'] .tl-sidebar .tl-nav-row,
+  [data-theme='dark'] .tl-sidebar .tl-group-row {
+    background: #111720 !important;
+    border-color: #2d3748 !important;
+  }
+  [data-theme='dark'] .tl-sidebar .tl-nav-row:hover:not(:disabled),
+  [data-theme='dark'] .tl-sidebar .tl-group-row:hover:not(:disabled) {
+    background: #1c232e !important;
+    border-color: #475569 !important;
+  }
+  .tl-sidebar .tl-nav-row-label,
+  .tl-sidebar .tl-group-label {
+    font-size: 12.5px !important;
+    flex: 0 0 auto !important;
+  }
+  .tl-sidebar .tl-nav-row-icon,
+  .tl-sidebar .tl-group-icon {
+    width: 14px !important;
+  }
+  .tl-sidebar .tl-nav-row-count,
+  .tl-sidebar .tl-group-count {
+    margin-left: 2px !important;
+    padding: 0 6px !important;
+    line-height: 1.4 !important;
+  }
+}
 `;

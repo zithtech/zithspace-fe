@@ -79,7 +79,7 @@ export default function ProjectTicketsPage({ params }: PageProps) {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <TicketList
         projectId={project.id}
         projectName={project.name}

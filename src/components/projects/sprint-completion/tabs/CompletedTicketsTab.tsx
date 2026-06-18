@@ -161,7 +161,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             >
               {assignee.name?.charAt(0).toUpperCase()}
             </Avatar>
-            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name}</span>
+            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name?.split(" ")[0]}</span>
           </span>
         );
       },
@@ -225,7 +225,27 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             </span>
           </div>
 
-          {/* Highlight line */}
+          {/* Table */}
+          <div className="sc-table-shell">
+            <Table
+              columns={columns}
+              dataSource={tickets}
+              rowKey="id"
+              pagination={{
+                defaultPageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => (
+                  <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>
+                    Total <b style={{ color: 'var(--sc-text)' }}>{total}</b> completed
+                  </Text>
+                ),
+              }}
+              scroll={{ x: 1200 }}
+              size="middle"
+            />
+          </div>
+
+          {/* Bottom flair */}
           <div
             style={{
               marginBottom: 12,

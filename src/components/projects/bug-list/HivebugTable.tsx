@@ -7,8 +7,6 @@ import {
   Link as LinkIcon,
   Plus,
   Archive,
-  Link2,
-  Video,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -19,17 +17,17 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
-  blocker: "#ff4d6d",
-  critical: "#ff5a4e",
-  major: "#f59f3b",
-  minor: "#e6c84d",
+  blocker: "#f87171",
+  critical: "#f87171",
+  major: "#3b82f6",
+  minor: "#9ca3af",
 };
 
 const SEVERITY_FG: Record<BugSeverity, string> = {
-  blocker: "#ff8aa1",
-  critical: "#ff8a7d",
-  major: "#f9bd6c",
-  minor: "#f0d97c",
+  blocker: "#fca5a5",
+  critical: "#fca5a5",
+  major: "#93c5fd",
+  minor: "#d1d5db",
 };
 
 // Display layer: collapse the 5 raw statuses into the 3 the user-facing table shows.
@@ -67,8 +65,8 @@ const BUG_STATUS_OPTIONS = [
 ];
 
 const BUG_STATUS_COLORS: Record<string, { dot: string; fg: string }> = {
-  "not started": { dot: "#9aa1ac", fg: "#cbd0d9" },
-  pending: { dot: "#f59f3b", fg: "#f9bd6c" },
+  "not started": { dot: "#9ca3af", fg: "#d1d5db" },
+  pending: { dot: "#3b82f6", fg: "#93c5fd" },
   completed: { dot: "#3fbf8f", fg: "#5fd7af" },
 };
 
@@ -169,15 +167,14 @@ export default function HivebugTable({
                 onChange={(e) => onToggleAll(e.target.checked)}
               />
             </th>
-            <th style={{ width: 240 }}>TITLE</th>
+            <th style={{ width: 260 }}>TITLE</th>
             <th style={{ width: 110 }}>SEVERITY</th>
             <th style={{ width: 120 }}>STATUS</th>
             <th style={{ width: 120 }}>BUG STATUS</th>
-            <th style={{ width: 150 }}>ASSIGNEE</th>
+            <th style={{ width: 120 }}>ASSIGNEE</th>
             <th style={{ width: 160 }}>CREATED</th>
-            <th style={{ width: 100 }}>UPDATED</th>
-            <th style={{ width: 120 }}>TICKET</th>
-            <th style={{ width: 40 }}></th>
+            <th className="hb-col-ticket" style={{ width: 120 }}>TICKET</th>
+            <th className="hb-col-actions" style={{ width: 40 }}></th>
           </tr>
         </thead>
         <tbody>
@@ -302,32 +299,20 @@ function BugRow({
       <td>
         <div className="hb-title-cell">
           <div className="hb-title-stack">
-            <span className="hb-bug-num">
-              {bug.bugNumber || `BUG-${bug.id.slice(-3).toUpperCase()}`}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="hb-bug-num">
+                {bug.bugNumber || `BUG-${bug.id.slice(-3).toUpperCase()}`}
+              </span>
+              <Tooltip title={formatAbsolute(bug.updatedAt)}>
+                <span className="hb-meta-time" style={{ fontSize: 11, opacity: 0.6 }}>
+                  {formatRelative(bug.updatedAt)}
+                </span>
+              </Tooltip>
+            </div>
             <span className="hb-bug-title" title={bug.title || bug.description}>
               {bug.title || bug.description}
             </span>
           </div>
-          {bug.externalLinks && bug.externalLinks.length > 0 && (
-            <div className="hb-title-indicators" onClick={(e) => e.stopPropagation()}>
-              {bug.externalLinks?.map((link, idx) => {
-                const isVideo = /youtube\.com|youtu\.be|loom\.com|vimeo\.com/i.test(link.url) || /\.(mp4|webm|ogg|mov)/i.test(link.url);
-                return (
-                  <Tooltip key={link.id || idx} title={link.label ? `${link.label}: ${link.url}` : link.url}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hb-indicator"
-                    >
-                      {isVideo ? <Video size={11} /> : <Link2 size={11} />}
-                    </a>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          )}
         </div>
       </td>
       <td>
@@ -395,12 +380,8 @@ function BugRow({
           </div>
         </div>
       </td>
-      <td>
-        <Tooltip title={formatAbsolute(bug.updatedAt)}>
-          <span className="hb-meta-time">{formatRelative(bug.updatedAt)}</span>
-        </Tooltip>
-      </td>
-      <td>
+
+      <td className="hb-col-ticket">
         {bug.ticketNumber ? (
           <button
             type="button"
@@ -428,7 +409,7 @@ function BugRow({
           </button>
         )}
       </td>
-      <td onClick={(e) => e.stopPropagation()}>
+      <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
         <Dropdown
           trigger={["click"]}
           menu={{
@@ -464,7 +445,7 @@ function BugRow({
                   { key: "edit", label: "Edit", disabled: !canUpdateBug },
                   ...(bug.status === "converted" || bug.status === "reopened"
                     ? [
-                        { key: "verify", label: "Mark verified", disabled: !canUpdateBug },
+                        { key: "verify", label: "Mark as Verified", disabled: !canUpdateBug },
                         { key: "reopen", label: "Reopen", disabled: !canUpdateBug },
                       ]
                     : []),
@@ -637,9 +618,6 @@ function BugStatusDropdown({
   );
 }
 
-function avatarColor(seed: string) {
-  const palette = ["#7aa2f7", "#9c80ff", "#f59f3b", "#3fbf8f", "#ff7a8a", "#5fd7af"];
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return palette[h % palette.length];
+function avatarColor(_seed: string) {
+  return "#3b82f6";
 }

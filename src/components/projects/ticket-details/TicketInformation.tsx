@@ -154,7 +154,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
               {ticket?.assignee?.name?.charAt(0) || "U"}
             </Avatar>
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
-              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.assignee?.name || "Unassigned"}</Text>
+              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.assignee?.name ? ticket.assignee.name.split(" ")[0] : "Unassigned"}</Text>
               <Text type="secondary" style={{ fontSize: 11 }}>
                 {(ticket?.assignee as any)?.position || "Member"}
               </Text>
@@ -163,8 +163,10 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
         </Descriptions.Item>
         <Descriptions.Item label="Reports To">
           {typeof ticket?.reportTo === "string"
-            ? ticket.reportTo
-            : ticket?.reportTo?.name || "Not assigned"}
+            ? ticket.reportTo.split(" ")[0]
+            : ticket?.reportTo?.name
+              ? ticket.reportTo.name.split(" ")[0]
+              : "Not assigned"}
         </Descriptions.Item>
         <Descriptions.Item label="Created By">
           <Space align="start">
@@ -177,7 +179,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
               {ticket?.createdBy?.name?.charAt(0) || "U"}
             </Avatar>
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
-              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.createdBy?.name || "Unknown"}</Text>
+              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-700)' }}>{ticket?.createdBy?.name ? ticket.createdBy.name.split(" ")[0] : "Unknown"}</Text>
               <Text type="secondary" style={{ fontSize: 11 }}>
                 {(ticket?.createdBy as any)?.position || "Member"}
               </Text>

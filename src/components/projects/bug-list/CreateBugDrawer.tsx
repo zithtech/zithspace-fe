@@ -354,7 +354,7 @@ export default function CreateBugDrawer({
       <Drawer
         open={open}
         onClose={onClose}
-        width={560}
+        width={460}
         destroyOnHidden
         closable={false}
         title={null}
@@ -376,6 +376,10 @@ export default function CreateBugDrawer({
               token: {
                 colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
                 colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+                borderRadius: 0,
+                borderRadiusLG: 0,
+                borderRadiusSM: 0,
+                borderRadiusXS: 0,
               }
             }}
           >
@@ -461,7 +465,7 @@ export default function CreateBugDrawer({
 
               {/* Description */}
               <div
-                className={`hb-cbd-fieldgroup ${!isValid && descriptionTouched ? "hb-cbd-error" : ""
+                className={`hb-cbd-fieldgroup ${description.trim().length === 0 && descriptionTouched ? "hb-cbd-error" : ""
                   }`}
               >
                 <div className="hb-cbd-fieldhead">
@@ -493,13 +497,13 @@ export default function CreateBugDrawer({
                 </div>
                 <textarea
                   className="hb-cbd-textarea"
-                  rows={5}
+                  rows={3}
                   placeholder="What's broken? Steps, observed behaviour, attachments (paste images/videos here)…"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={() => setDescriptionTouched(true)}
                 />
-                {!isValid && descriptionTouched && (
+                {descriptionTouched && description.trim().length === 0 && (
                   <div className="hb-cbd-errortext">Description is required</div>
                 )}
               </div>
@@ -509,7 +513,7 @@ export default function CreateBugDrawer({
                 <Label icon={<FileText size={11} />}>Comments</Label>
                 <textarea
                   className="hb-cbd-textarea"
-                  rows={3}
+                  rows={2}
                   placeholder="Any additional internal comments or notes…"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
@@ -525,8 +529,10 @@ export default function CreateBugDrawer({
                     placeholder="Select severity"
                     value={severity}
                     onChange={(v) => setSeverity(v)}
+                    status={!severity && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     options={(severityOptions || [])
                       .filter((s) => s.isActive)
                       .map((s) => ({
@@ -555,6 +561,9 @@ export default function CreateBugDrawer({
                         ),
                       }))}
                   />
+                  {descriptionTouched && !severity && (
+                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Severity needs to be updated</div>
+                  )}
                 </div>
                 <div className="hb-cbd-fieldgroup hb-cbd-half">
                   <Label icon={<Layers size={11} />} required>Type</Label>
@@ -563,12 +572,17 @@ export default function CreateBugDrawer({
                     placeholder="Select type"
                     value={bugType}
                     onChange={(v) => setBugType(v)}
+                    status={!bugType && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     options={(typeOptions || [])
                       .filter((t) => t.isActive)
                       .map((t) => ({ value: t.key, label: t.label }))}
                   />
+                  {descriptionTouched && !bugType && (
+                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Type is required</div>
+                  )}
                 </div>
               </div>
 
@@ -609,6 +623,7 @@ export default function CreateBugDrawer({
                     }
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     suffixIcon={
                       assignee ? (
                         <Avatar

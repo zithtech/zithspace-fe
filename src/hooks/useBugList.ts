@@ -341,7 +341,19 @@ export const useDeleteBug = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteBug(id),
-    onSuccess: () => {
+    onSuccess: (_, bugId) => {
+      // Immediately remove the deleted bug from ALL cached bug list queries
+      // (including the archived view) so it doesn't reappear on navigation.
+      qc.setQueriesData({ queryKey: bugKeys.bugLists() }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          bugs: (old.bugs ?? []).filter((b: any) => b.id !== bugId),
+          pagination: old.pagination
+            ? { ...old.pagination, total: Math.max(0, (old.pagination.total ?? 0) - 1) }
+            : old.pagination,
+        };
+      });
       qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Bug moved to trash");
     },
@@ -394,7 +406,20 @@ export const useBulkDeleteBugs = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.bulkDelete(bugIds),
-    onSuccess: ({ movedToTrash }) => {
+    onSuccess: ({ movedToTrash }, bugIds) => {
+      const idSet = new Set(bugIds);
+      // Immediately remove from all cached bug list queries
+      qc.setQueriesData({ queryKey: bugKeys.bugLists() }, (old: any) => {
+        if (!old) return old;
+        const filtered = (old.bugs ?? []).filter((b: any) => !idSet.has(b.id));
+        return {
+          ...old,
+          bugs: filtered,
+          pagination: old.pagination
+            ? { ...old.pagination, total: Math.max(0, (old.pagination.total ?? 0) - (old.bugs?.length - filtered.length)) }
+            : old.pagination,
+        };
+      });
       qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success(`${movedToTrash} bug(s) moved to trash`);
     },

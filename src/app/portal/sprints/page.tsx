@@ -88,8 +88,8 @@ const STATUS_META: Record<
 > = {
   planned: { label: "Planned", tone: "neutral", icon: Calendar },
   planning: { label: "Planning", tone: "neutral", icon: Calendar },
-  active: { label: "Active", tone: "indigo", icon: Activity },
-  in_progress: { label: "In progress", tone: "indigo", icon: Activity },
+  active: { label: "Active", tone: "accent", icon: Activity },
+  in_progress: { label: "In progress", tone: "accent", icon: Activity },
   paused: { label: "Paused", tone: "warning", icon: Pause },
   completed: { label: "Completed", tone: "success", icon: CheckCircle2 },
   done: { label: "Completed", tone: "success", icon: CheckCircle2 },
@@ -148,7 +148,7 @@ function daysBetween(iso: string | null): number | null {
 }
 
 function sprintTiming(s: PortalSprintListItem):
-  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success"; icon: any }
+  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent"; icon: any }
   | null {
   if (isCompleted(s.status) && s.completedAt) {
     const days = daysBetween(s.completedAt);
@@ -173,13 +173,13 @@ function sprintTiming(s: PortalSprintListItem):
     }
     if (days === 0) return { label: "Ends today", tone: "warning", icon: Clock };
     if (days <= 3) return { label: `${days}d left`, tone: "warning", icon: Clock };
-    return { label: `${days}d left`, tone: "indigo", icon: Clock };
+    return { label: `${days}d left`, tone: "accent", icon: Clock };
   }
   if (isPlanning(s.status) && s.startDate) {
     const days = daysBetween(s.startDate);
     if (days == null) return null;
     if (days < 0) return null;
-    if (days === 0) return { label: "Starts today", tone: "indigo", icon: Clock };
+    if (days === 0) return { label: "Starts today", tone: "accent", icon: Clock };
     return { label: `Starts in ${days}d`, tone: "neutral", icon: Clock };
   }
   return null;
@@ -223,7 +223,7 @@ function TimingChip({
   label,
   compact,
 }: {
-  tone: "indigo" | "warning" | "danger" | "neutral" | "success";
+  tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent";
   icon: any;
   label: string;
   compact?: boolean;
@@ -335,447 +335,601 @@ export default function PortalSprintsPage() {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
     } catch { }
-  }, []);
+  } catch { }
+}, []);
 
-  const setViewPersist = (v: ViewMode) => {
-    setView(v);
-    try {
-      localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch { }
+const setViewPersist = (v: ViewMode) => {
+  setView(v);
+  try {
+    localStorage.setItem(VIEW_STORAGE_KEY, v);
+  } catch { }
+} catch { }
   };
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await portalSprintService.list({
-        page,
-        limit,
-        status: status === "ALL" ? undefined : status,
-        projectId,
-        search: search || undefined,
-        from: fromIso,
-        to: toIso,
-      });
-      setItems(res.data);
-      setMeta(res.meta);
-    } catch {
-      setItems([]);
-      setMeta(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+const load = async () => {
+  setLoading(true);
+  try {
+    const res = await portalSprintService.list({
+      page,
+      limit,
+      status: status === "ALL" ? undefined : status,
+      projectId,
+      search: search || undefined,
+      from: fromIso,
+      to: toIso,
+    });
+    setItems(res.data);
+    setMeta(res.meta);
+  } catch {
+    setItems([]);
+    setMeta(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  useEffect(() => {
+useEffect(() => {
+  load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [page, status, projectId, fromIso, toIso]);
+
+useEffect(() => {
+  const t = setTimeout(() => {
+    setPage(1);
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, projectId, fromIso, toIso]);
+  }, 300);
+  return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [search]);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setPage(1);
-      load();
-    }, 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+const totalCommittedPts = useMemo(
+  () => items.reduce((a, s) => a + (s.committedPoints || 0), 0),
+  [items],
+);
+const totalCompletedPts = useMemo(
+  () => items.reduce((a, s) => a + (s.completedPoints || 0), 0),
+  [items],
+);
+const velocityPct =
+  totalCommittedPts > 0
+    ? Math.round((totalCompletedPts / totalCommittedPts) * 100)
+    : 0;
 
-  const totalCommittedPts = useMemo(
-    () => items.reduce((a, s) => a + (s.committedPoints || 0), 0),
-    [items],
-  );
-  const totalCompletedPts = useMemo(
-    () => items.reduce((a, s) => a + (s.completedPoints || 0), 0),
-    [items],
-  );
-  const velocityPct =
-    totalCommittedPts > 0
-      ? Math.round((totalCompletedPts / totalCommittedPts) * 100)
-      : 0;
+// Featured current sprints: any active sprints, shown above the grid
+// only on the All tab with no search so we don't double-render filtered views.
+const currentSprints = useMemo(() => {
+  if (search || status !== "ALL") return [];
+  return items.filter((s) => isActive(s.status));
+}, [items, search, status]);
 
-  // Featured current sprints: any active sprints, shown above the grid
-  // only on the All tab with no search so we don't double-render filtered views.
-  const currentSprints = useMemo(() => {
-    if (search || status !== "ALL") return [];
-    return items.filter((s) => isActive(s.status));
-  }, [items, search, status]);
+const restItems = useMemo(() => {
+  if (currentSprints.length === 0) return items;
+  const ids = new Set(currentSprints.map((s) => s.id));
+  return items.filter((s) => !ids.has(s.id));
+}, [items, currentSprints]);
 
-  const restItems = useMemo(() => {
-    if (currentSprints.length === 0) return items;
-    const ids = new Set(currentSprints.map((s) => s.id));
-    return items.filter((s) => !ids.has(s.id));
-  }, [items, currentSprints]);
-
-  return (
-    <div style={{ height: "100vh", backgroundColor: "#ffffff", overflowY: "auto", overflowX: "auto" }}>
-      {/* Workstation Header */}
-      <div
-        className="saas-header-container portal-mom-header-container"
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          padding: "20px 40px 20px 40px",
-          marginBottom: 0,
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-        }}
-      >
-        <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
+return (
+  <div style={{ height: "100vh", backgroundColor: "#ffffff", overflowY: "auto", overflowX: "auto" }}>
+    {/* Workstation Header */}
+    <div
+      className="saas-header-container portal-mom-header-container"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        padding: "20px 40px 20px 40px",
+        marginBottom: 0,
+        backgroundColor: "#ffffff",
+        borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+      }}
+    >
+      <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
+        <Col flex="1 1 auto" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
+                gap: 8,
               }}
             >
               <div
                 style={{
-                  display: "flex",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: 8,
+                  justifyContent: "center",
+                  background:
+                    "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
+                  color: p.indigo,
+                  border: `1px solid ${p.indigoBorder}`,
                 }}
               >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
-                    color: p.indigo,
-                    border: `1px solid ${p.indigoBorder}`,
-                  }}
-                >
-                  <Activity size={18} color={p.indigo} />
-                </div>
-                <Title
-                  level={4}
-                  className="portal-mom-header-title"
-                  style={{
-                    margin: 0,
-                    fontWeight: 800,
-                    color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Sprints
-                </Title>
+                <Activity size={18} color={p.indigo} />
               </div>
-
-              <Divider
-                type="vertical"
+              <Title
+                level={4}
+                className="portal-mom-header-title"
                 style={{
-                  height: 20,
-                  borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: 0,
+                  fontWeight: 800,
+                  color: "var(--text-slate-900)",
+                  letterSpacing: "-0.01em",
                 }}
-              />
+              >
+                Sprints
+              </Title>
+            </div>
 
-              <div>
-                <Text
-                  className="portal-mom-header-desc"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-slate-600)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Track sprint goals, planned vs delivered work, blockers, and what shipped each cycle.
-                </Text>
-              </div>
+            <Divider
+              type="vertical"
+              style={{
+                height: 20,
+                borderColor: "rgba(0, 0, 0, 0.08)",
+                margin: "0 12px",
+              }}
+            />
+
+            <div>
+              <Text
+                className="portal-mom-header-desc"
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-slate-600)",
+                  fontWeight: 600,
+                }}
+              >
+                Track sprint goals, planned vs delivered work, blockers, and what shipped each cycle.
+              </Text>
+            </div>
+          </div>
+        </Col>
+        {meta && meta.total > 0 && totalCommittedPts > 0 && (
+          <Col flex="0 0 auto">
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 11px",
+                background: p.surfaceTinted,
+                border: `1px solid ${p.neutralBorder}`,
+                borderRadius: 999,
+              }}
+            >
+              <TrendingUp size={12} color={p.indigo} />
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: p.textSubtle,
+                }}
+              >
+                Velocity
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: p.text,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {totalCompletedPts}/{totalCommittedPts}
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: velocityPct >= 80 ? p.successText : velocityPct >= 50 ? p.indigoText : p.warningText,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {velocityPct}%
+              </span>
             </div>
           </Col>
-          {meta && meta.total > 0 && totalCommittedPts > 0 && (
-            <Col flex="0 0 auto">
-              <div
+        )}
+      </AntRow>
+    </div>
+
+    <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
+
+      {/* Filter tabs + view toggle */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 10,
+          overflowX: "auto",
+          flexWrap: "nowrap",
+          paddingBottom: 4,
+          WebkitOverflowScrolling: "touch",
+        }}
+        className="premium-scrollbar-hide"
+      >
+        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", flexShrink: 0 }}>
+          {FILTER_TABS.map((tab) => {
+            const active = status === tab.key;
+            const count =
+              tab.key === "ALL"
+                ? meta?.total
+                : tab.key === "completed"
+                  ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
+                  : meta?.counts?.[tab.key];
+            return (
+              <button
+                key={tab.key}
+                className="premium-filter-tab"
+                data-active={active ? "true" : "false"}
+                onClick={() => {
+                  setStatus(tab.key);
+                  setPage(1);
+                }}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 8,
-                  padding: "5px 11px",
-                  background: p.surfaceTinted,
-                  border: `1px solid ${p.neutralBorder}`,
+                  gap: 6,
+                  padding: "6px 11px",
+                  background: active ? p.indigo : p.surfaceElevated,
+                  color: active ? "#ffffff" : p.textMuted,
+                  border: `1px solid ${active ? p.indigo : p.border}`,
                   borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
+                  cursor: "pointer",
+                  transition: "all 120ms ease",
                 }}
               >
-                <TrendingUp size={12} color={p.indigo} />
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: p.textSubtle,
-                  }}
-                >
-                  Velocity
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: p.text,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {totalCompletedPts}/{totalCommittedPts}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: velocityPct >= 80 ? p.successText : velocityPct >= 50 ? p.indigoText : p.warningText,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {velocityPct}%
-                </span>
-              </div>
-            </Col>
-          )}
-        </AntRow>
+                {tab.label}
+                {count != null && count > 0 && (
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: "0 6px",
+                      borderRadius: 999,
+                      background: active
+                        ? "rgba(255,255,255,0.18)"
+                        : p.neutralBg,
+                      color: active ? "#ffffff" : p.textSubtle,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <ViewToggle view={view} onChange={setViewPersist} />
+        </div>
       </div>
 
-      <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
+      {/* Premium filter bar */}
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        projects={meta?.projects || []}
+        projectId={projectId}
+        onProjectChange={(v) => {
+          setProjectId(v);
+          setPage(1);
+        }}
+        dateRange={dateRange}
+        onDateRangeChange={(r) => {
+          setDateRange(r);
+          setPage(1);
+        }}
+      />
+      {/* Premium filter bar */}
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        projects={meta?.projects || []}
+        projectId={projectId}
+        onProjectChange={(v) => {
+          setProjectId(v);
+          setPage(1);
+        }}
+        dateRange={dateRange}
+        onDateRangeChange={(r) => {
+          setDateRange(r);
+          setPage(1);
+        }}
+      />
 
-        {/* Filter tabs + view toggle */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "center",
-            marginBottom: 10,
-            overflowX: "auto",
-            flexWrap: "nowrap",
-            paddingBottom: 4,
-            WebkitOverflowScrolling: "touch",
-          }}
-          className="premium-scrollbar-hide"
-        >
-          <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", flexShrink: 0 }}>
-            {FILTER_TABS.map((tab) => {
-              const active = status === tab.key;
-              const count =
-                tab.key === "ALL"
-                  ? meta?.total
-                  : tab.key === "completed"
-                    ? (meta?.counts?.completed || 0) + (meta?.counts?.done || 0)
-                    : meta?.counts?.[tab.key];
-              return (
-                <button
-                  key={tab.key}
-                  className="premium-filter-tab"
-                  data-active={active ? "true" : "false"}
-                  onClick={() => {
-                    setStatus(tab.key);
-                    setPage(1);
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 11px",
-                    background: active ? p.indigo : p.surfaceElevated,
-                    color: active ? "#ffffff" : p.textMuted,
-                    border: `1px solid ${active ? p.indigo : p.border}`,
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    cursor: "pointer",
-                    transition: "all 120ms ease",
-                  }}
-                >
-                  {tab.label}
-                  {count != null && count > 0 && (
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        padding: "0 6px",
-                        borderRadius: 999,
-                        background: active
-                          ? "rgba(255,255,255,0.18)"
-                          : p.neutralBg,
-                        color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ flexShrink: 0 }}>
-            <ViewToggle view={view} onChange={setViewPersist} />
-          </div>
-        </div>
+      {/* Active filter chips */}
+      <ActiveFilterChips
+        search={search}
+        onClearSearch={() => setSearch("")}
+        projectName={
+          projectId
+            ? meta?.projects.find((p) => p.id === projectId)?.name
+            : undefined
+        }
+        onClearProject={() => {
+          setProjectId(undefined);
+          setPage(1);
+        }}
+        dateRange={dateRange}
+        onClearDateRange={() => {
+          setDateRange(null);
+          setPage(1);
+        }}
+        statusFilter={status !== "ALL" ? status : undefined}
+        onClearStatus={() => {
+          setStatus("ALL");
+          setPage(1);
+        }}
+      />
+      {/* Active filter chips */}
+      <ActiveFilterChips
+        search={search}
+        onClearSearch={() => setSearch("")}
+        projectName={
+          projectId
+            ? meta?.projects.find((p) => p.id === projectId)?.name
+            : undefined
+        }
+        onClearProject={() => {
+          setProjectId(undefined);
+          setPage(1);
+        }}
+        dateRange={dateRange}
+        onClearDateRange={() => {
+          setDateRange(null);
+          setPage(1);
+        }}
+        statusFilter={status !== "ALL" ? status : undefined}
+        onClearStatus={() => {
+          setStatus("ALL");
+          setPage(1);
+        }}
+      />
 
-        {/* Premium filter bar */}
-        <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          projects={meta?.projects || []}
-          projectId={projectId}
-          onProjectChange={(v) => {
-            setProjectId(v);
-            setPage(1);
-          }}
-          dateRange={dateRange}
-          onDateRangeChange={(r) => {
-            setDateRange(r);
-            setPage(1);
-          }}
-        />
-
-        {/* Active filter chips */}
-        <ActiveFilterChips
-          search={search}
-          onClearSearch={() => setSearch("")}
-          projectName={
-            projectId
-              ? meta?.projects.find((p) => p.id === projectId)?.name
-              : undefined
-          }
-          onClearProject={() => {
-            setProjectId(undefined);
-            setPage(1);
-          }}
-          dateRange={dateRange}
-          onClearDateRange={() => {
-            setDateRange(null);
-            setPage(1);
-          }}
-          statusFilter={status !== "ALL" ? status : undefined}
-          onClearStatus={() => {
-            setStatus("ALL");
-            setPage(1);
-          }}
-        />
-
-        {/* Current sprint(s) — focused detail card(s) */}
-        {!loading && currentSprints.length > 0 && (
-          <div style={{ marginBottom: 18 }}>
-            <SectionLabel
-              icon={Activity}
-              label="Current sprint"
-              count={currentSprints.length}
-            />
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  currentSprints.length === 1
-                    ? "1fr"
-                    : "repeat(auto-fit, minmax(440px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {currentSprints.map((s) => (
-                <CurrentSprintCard key={s.id} sprint={s} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Rest of sprints heading when featured exists */}
-        {!loading && currentSprints.length > 0 && restItems.length > 0 && (
-          <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
-        )}
-
-        {/* Body */}
-        {loading ? (
-          <div
-            style={{
-              padding: 60,
-              textAlign: "center",
-              background: p.surfaceElevated,
-              border: `1px solid ${p.border}`,
-              borderRadius: 12,
-            }}
-          >
-            <Spin />
-          </div>
-        ) : items.length === 0 ? (
-          <div
-            style={{
-              padding: 56,
-              textAlign: "center",
-              background: p.surfaceTinted,
-              border: `1px dashed ${p.neutralBorder}`,
-              borderRadius: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: p.surface,
-                border: `1px solid ${p.border}`,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 12,
-              }}
-            >
-              <Target size={18} color={p.textFaint} />
-            </div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
-              {search
-                ? `No sprints match "${search}"`
-                : status !== "ALL"
-                  ? `No ${status} sprints`
-                  : "No sprints yet"}
-            </div>
-            <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
-              {search
-                ? "Try a different search term or clear filters."
-                : "Sprints will appear here as the team plans and ships work."}
-            </div>
-          </div>
-        ) : restItems.length === 0 ? null : view === "card" ? (
+      {/* Current sprint(s) — focused detail card(s) */}
+      {!loading && currentSprints.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <SectionLabel
+            icon={Activity}
+            label="Current sprint"
+            count={currentSprints.length}
+          />
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 10,
+              gridTemplateColumns:
+                currentSprints.length === 1
+                  ? "1fr"
+                  : "repeat(auto-fit, minmax(440px, 1fr))",
+              gap: 12,
             }}
           >
-            {restItems.map((s) => (
-              <SprintCardCompact key={s.id} sprint={s} />
+            {currentSprints.map((s) => (
+              <CurrentSprintCard key={s.id} sprint={s} />
             ))}
           </div>
-        ) : (
-          <SprintList items={restItems} />
-        )}
-
-        {/* Pagination */}
-        {meta && meta.total > limit && (
+        </div>
+      )}
+      {/* Current sprint(s) — focused detail card(s) */}
+      {!loading && currentSprints.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <SectionLabel
+            icon={Activity}
+            label="Current sprint"
+            count={currentSprints.length}
+          />
           <div
             style={{
-              marginTop: 16,
-              display: "flex",
-              justifyContent: "flex-end",
+              display: "grid",
+              gridTemplateColumns:
+                currentSprints.length === 1
+                  ? "1fr"
+                  : "repeat(auto-fit, minmax(440px, 1fr))",
+              gap: 12,
             }}
           >
-            <Pagination
-              current={page}
-              pageSize={limit}
-              total={meta.total}
-              onChange={setPage}
-              showSizeChanger={false}
-            />
+            {currentSprints.map((s) => (
+              <CurrentSprintCard key={s.id} sprint={s} />
+            ))}
           </div>
-        )}
-        <style jsx global>{`
+        </div>
+      )}
+
+      {/* Rest of sprints heading when featured exists */}
+      {!loading && currentSprints.length > 0 && restItems.length > 0 && (
+        <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
+      )}
+      {/* Rest of sprints heading when featured exists */}
+      {!loading && currentSprints.length > 0 && restItems.length > 0 && (
+        <SectionLabel icon={Layers} label="All sprints" count={restItems.length} />
+      )}
+
+      {/* Body */}
+      {loading ? (
+        <div
+          style={{
+            padding: 60,
+            textAlign: "center",
+            background: p.surfaceElevated,
+            border: `1px solid ${p.border}`,
+            borderRadius: 12,
+          }}
+        >
+          <Spin />
+        </div>
+      ) : items.length === 0 ? (
+        <div
+          style={{
+            padding: 56,
+            textAlign: "center",
+            background: p.surfaceTinted,
+            border: `1px dashed ${p.neutralBorder}`,
+            borderRadius: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 12,
+            }}
+          >
+            <Target size={18} color={p.textFaint} />
+          </div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
+            {search
+              ? `No sprints match "${search}"`
+              : status !== "ALL"
+                ? `No ${status} sprints`
+                : "No sprints yet"}
+          </div>
+          <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
+            {search
+              ? "Try a different search term or clear filters."
+              : "Sprints will appear here as the team plans and ships work."}
+          </div>
+        </div>
+      ) : restItems.length === 0 ? null : view === "card" ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {restItems.map((s) => (
+            <SprintCardCompact key={s.id} sprint={s} />
+          ))}
+        </div>
+      ) : (
+        <SprintList items={restItems} />
+      )}
+      {/* Body */}
+      {loading ? (
+        <div
+          style={{
+            padding: 60,
+            textAlign: "center",
+            background: p.surfaceElevated,
+            border: `1px solid ${p.border}`,
+            borderRadius: 12,
+          }}
+        >
+          <Spin />
+        </div>
+      ) : items.length === 0 ? (
+        <div
+          style={{
+            padding: 56,
+            textAlign: "center",
+            background: p.surfaceTinted,
+            border: `1px dashed ${p.neutralBorder}`,
+            borderRadius: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 12,
+            }}
+          >
+            <Target size={18} color={p.textFaint} />
+          </div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
+            {search
+              ? `No sprints match "${search}"`
+              : status !== "ALL"
+                ? `No ${status} sprints`
+                : "No sprints yet"}
+          </div>
+          <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
+            {search
+              ? "Try a different search term or clear filters."
+              : "Sprints will appear here as the team plans and ships work."}
+          </div>
+        </div>
+      ) : restItems.length === 0 ? null : view === "card" ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {restItems.map((s) => (
+            <SprintCardCompact key={s.id} sprint={s} />
+          ))}
+        </div>
+      ) : (
+        <SprintList items={restItems} />
+      )}
+
+      {/* Pagination */}
+      {meta && meta.total > limit && (
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pagination
+            current={page}
+            pageSize={limit}
+            total={meta.total}
+            onChange={setPage}
+            showSizeChanger={false}
+          />
+        </div>
+      )}
+      {/* Pagination */}
+      {meta && meta.total > limit && (
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pagination
+            current={page}
+            pageSize={limit}
+            total={meta.total}
+            onChange={setPage}
+            showSizeChanger={false}
+          />
+        </div>
+      )}
+      <style jsx global>{`
           .portal-mom-header-container,
           [data-theme='dark'] .portal-mom-header-container,
           [data-theme='dark'] .saas-header-container.portal-mom-header-container,
@@ -840,17 +994,17 @@ export default function PortalSprintsPage() {
             transition: background 120ms ease;
           }
           .premium-sprint-card[data-active='true']::before {
-            background: #4f46e5;
+            background: #3b82f6;
           }
           .premium-sprint-card[data-completed='true']::before {
-            background: #a7f3d0;
+            background: #10b981;
           }
           .premium-sprint-card:hover {
-            border-color: #a5b4fc !important;
+            border-color: #93c5fd !important;
           }
           .premium-sprint-card:hover .premium-sprint-arrow {
             transform: translateX(2px);
-            color: #4f46e5;
+            color: #3b82f6;
           }
           .premium-sprint-arrow {
             transition: transform 140ms ease, color 140ms ease;
@@ -858,10 +1012,10 @@ export default function PortalSprintsPage() {
 
           /* Current sprint card hover */
           .premium-current-card:hover {
-            border-color: #818cf8 !important;
+            border-color: #60a5fa !important;
           }
           .premium-current-card:hover .premium-current-cta {
-            background: #4338ca;
+            background: #2563eb;
             gap: 6px;
           }
 
@@ -1018,9 +1172,9 @@ export default function PortalSprintsPage() {
             }
           }
         `}</style>
-      </div>
     </div>
-  );
+  </div>
+);
 }
 
 /* --------------------------------------------------------------- */
@@ -1554,7 +1708,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         padding: "16px 18px 16px 22px",
         background:
           "linear-gradient(180deg, #fafbff 0%, #ffffff 70%)",
-        border: `1px solid ${p.indigoBorder}`,
+        border: `1px solid ${p.accentBorder}`,
         borderRadius: 12,
         textDecoration: "none",
         color: "inherit",
@@ -1569,7 +1723,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.indigo}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${p.accent}, ${p.accentText})`,
         }}
       />
 
@@ -1634,7 +1788,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             alignItems: "center",
             gap: 4,
             padding: "6px 11px",
-            background: p.indigo,
+            background: p.accent,
             color: "#ffffff",
             borderRadius: 7,
             fontSize: 11.5,
@@ -1663,7 +1817,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         >
           <Flag
             size={11}
-            color={p.indigo}
+            color={p.accent}
             style={{ verticalAlign: -1, marginRight: 5 }}
           />
           {sprint.goal}
@@ -1765,6 +1919,8 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               : endDays != null && endDays < 0
                 ? "Overdue"
                 : "Ends"
+                  ? "Overdue"
+                  : "Ends"
           }
           value={
             endDays == null
@@ -1774,6 +1930,10 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
                 : endDays === 0
                   ? "today"
                   : `${-endDays}d`
+                    ? `${endDays}d`
+                    : endDays === 0
+                      ? "today"
+                      : `${-endDays}d`
           }
           tone={
             endDays != null && endDays < 0
@@ -1781,6 +1941,8 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               : endDays != null && endDays <= 3
                 ? p.warningText
                 : p.text
+                  ? p.warningText
+                  : p.text
           }
           divider
         />
@@ -2043,8 +2205,10 @@ function ActiveFilterChips({
 
   const dateLabel = hasDates
     ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
-    }`
-    : "";
+      }`
+      ? `${dateRange?.[0] ? dateRange[0].format("MMM D") : "Any"} → ${dateRange?.[1] ? dateRange[1].format("MMM D, YYYY") : "Any"
+      }`
+      : "";
 
   return (
     <div

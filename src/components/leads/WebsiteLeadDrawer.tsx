@@ -45,10 +45,10 @@ interface Props {
 type Tab = "details" | "timeline" | "notes" | "emails" | "meetings";
 
 const SOURCE_PALETTE: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
-  Zukvo:    { bg: "rgba(139,92,246,0.10)", color: "#a5b4fc", border: "rgba(139,92,246,0.30)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
-  Zithtech: { bg: "rgba(14,165,233,0.10)", color: "#7dd3fc", border: "rgba(14,165,233,0.30)", icon: <Layers size={11} strokeWidth={2.2} /> },
-  Website:  { bg: "rgba(99,102,241,0.10)", color: "#a5b4fc", border: "rgba(99,102,241,0.30)", icon: <Globe size={11} strokeWidth={2.2} /> },
-  Upwork:   { bg: "rgba(20,168,0,0.10)",   color: "#86efac", border: "rgba(20,168,0,0.30)",   icon: <Globe size={11} strokeWidth={2.2} /> },
+  Zukvo:    { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
+  Zithtech: { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Layers size={11} strokeWidth={2.2} /> },
+  Website:  { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Globe size={11} strokeWidth={2.2} /> },
+  Upwork:   { bg: "rgba(16, 185, 129, 0.1)",   color: "#34d399", border: "rgba(16, 185, 129, 0.3)",   icon: <Globe size={11} strokeWidth={2.2} /> },
 };
 
 const getInitials = (name?: string) => {
@@ -291,7 +291,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
               {/* Left column — Contact */}
               <div className="wld-details-col">
                 <div className="wld-details-section-head">
-                  <div className="wld-details-section-icon" style={{ background: "rgba(14,165,233,0.1)", color: "#0ea5e9" }}>
+                  <div className="wld-details-section-icon" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6" }}>
                     <Mail size={12} strokeWidth={2.5} />
                   </div>
                   <span className="wld-details-section-title">Contact</span>
@@ -323,7 +323,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
               {/* Right column — Company */}
               <div className="wld-details-col">
                 <div className="wld-details-section-head">
-                  <div className="wld-details-section-icon" style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}>
+                  <div className="wld-details-section-icon" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>
                     <Building2 size={12} strokeWidth={2.5} />
                   </div>
                   <span className="wld-details-section-title">Company</span>
@@ -480,8 +480,8 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         }
         .wld-avatar {
           width: 44px; height: 44px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          border-radius: 4px;
+          background: #3b82f6;
           color: #fff;
           font-weight: 800;
           font-size: 14px;
@@ -527,7 +527,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           display: inline-flex;
           color: var(--text-slate-400);
         }
-        .wld-company-link:hover { color: #6366f1; }
+        .wld-company-link:hover { color: #3b82f6; }
         .wld-sub-sep { color: var(--text-slate-300); }
         .wld-leadid {
           font-variant-numeric: tabular-nums;
@@ -537,7 +537,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           color: var(--text-slate-500);
           text-decoration: none;
         }
-        .wld-email:hover { color: #6366f1; }
+        .wld-email:hover { color: #3b82f6; }
         .wld-close {
           border: none;
           background: transparent;
@@ -545,7 +545,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           cursor: pointer;
           padding: 4px;
           margin: -4px;
-          border-radius: 6px;
+          border-radius: 4px;
           flex-shrink: 0;
         }
         .wld-close:hover { color: var(--text-slate-700); background: var(--bg-slate-50); }
@@ -720,7 +720,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-mail-item {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 12px;
+          border-radius: 4px;
           padding: 12px 16px;
           display: flex;
           flex-direction: column;
@@ -781,7 +781,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-details-col {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 12px;
+          border-radius: 4px;
           padding: 14px 16px;
         }
         .wld-details-section-head {
@@ -792,7 +792,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         }
         .wld-details-section-icon {
           width: 22px; height: 22px;
-          border-radius: 6px;
+          border-radius: 4px;
           display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
@@ -838,7 +838,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           font-weight: 500;
         }
         .wld-details-link {
-          color: #6366f1;
+          color: #3b82f6;
           text-decoration: none;
           font-weight: 600;
         }
@@ -855,7 +855,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           gap: 0;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 12px;
+          border-radius: 4px;
           overflow: hidden;
         }
         .wld-details-meta-item {
@@ -893,7 +893,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-details-msg-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 12px;
+          border-radius: 4px;
           padding: 14px 16px;
         }
         .wld-details-msg-head {
@@ -924,7 +924,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           gap: 8px;
           padding: 28px;
           border: 1px dashed var(--border-slate-100);
-          border-radius: 12px;
+          border-radius: 4px;
           color: var(--text-slate-300);
           font-size: 12.5px;
           font-weight: 500;

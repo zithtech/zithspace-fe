@@ -52,6 +52,7 @@ import {
   CaretDownFilled,
   MenuOutlined,
   DownOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
@@ -142,11 +143,11 @@ const DEFAULT_COL_WIDTHS: Record<string, number> = {
   name: 280,
   project: 110,
   ticket: 126,
-  createdBy: 124,
-  createdAt: 120,
+  createdBy: 160,
+  createdAt: 118,
   // updatedAt: 100,
   visibility: 120,
-  actions: 50,
+  actions: 72,
 };
 
 // Toggleable columns (star/name/actions are always visible).
@@ -1277,7 +1278,8 @@ const DocumentHubPage = () => {
       ),
       dataIndex: 'name',
       key: 'name',
-      width: colWidths.name,
+      onHeaderCell: () => ({ style: { minWidth: 280 } }),
+      onCell: () => ({ style: { minWidth: 280 } }),
       // fixed: 'left',
       render: (text, record) => {
         const docCount = (record as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
@@ -1288,7 +1290,7 @@ const DocumentHubPage = () => {
         const starred = isHubStarred(record);
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full">
             <Tooltip title={starred ? 'Remove from starred' : 'Add to starred'}>
               <button
                 type="button"
@@ -1427,7 +1429,7 @@ const DocumentHubPage = () => {
             {!record.createdBy?.avatarUrl && (record.createdBy?.name || 'Unknown').charAt(0).toUpperCase()}
           </Avatar>
           <span className="text-[12.5px]" style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>
-            {record.createdBy?.name || 'Unknown'}
+            {record.createdBy?.name?.split(' ')[0] || 'Unknown'}
           </span>
         </div>
       ),
@@ -1510,21 +1512,15 @@ const DocumentHubPage = () => {
     {
       _key: 'actions',
       title: (
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            color: 'var(--text-slate-500)',
-          }}
-        >
+        <span>
           Actions
         </span>
       ),
       key: 'actions',
-      width: colWidths.actions,
+      // width: colWidths.actions,
+      width: 72,
       fixed: 'right',
+      align: 'center' as const,
       render: (_text, record) => (
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
@@ -1753,7 +1749,7 @@ const DocumentHubPage = () => {
           className="premium-table dh-table"
           tableLayout="fixed"
           sticky={{ offsetHeader: 0 }}
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: 980 }}
           locale={{ emptyText: renderEmpty() }}
           components={{
             header: { cell: ResizableHeaderCell },
@@ -1908,7 +1904,7 @@ const DocumentHubPage = () => {
     const pageHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
 
     return (
-      <div className="dh-rowcards-wrap" style={{ padding: '16px 0px', overflowY: 'auto' }}>
+      <div className="dh-rowcards-wrap" style={{ padding: '0px 0px', overflowY: 'auto' }}>
         <div className="dh-rowcards-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', paddingBottom: '24px' }}>
           {pageHubs.map((hub) => {
             const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
@@ -1971,13 +1967,15 @@ const DocumentHubPage = () => {
                     >
                       {hub.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex flex-col">
+                    <div className="dh-identity-body">
                       <div className="flex items-center gap-2 group/name">
-                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-slate-900)' }}>{hub.name}</span>
+                        <span className="dh-doccount-title">{hub.name}</span>
                         {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
                       </div>
-                      <span style={{ color: 'var(--text-slate-400)', fontWeight: 600, flexShrink: 0 }}>
-                        {docCount} {docCount === 1 ? 'doc' : 'docs'} · Updated {updatedRel}
+                      <span className="dh-doccount" >
+                        <span className="dh-doccount-key"> {docCount}</span>
+                        <span className="dh-doccount-key">{docCount === 1 ? 'doc' : 'docs'}</span>
+                        <span className="dh-doccount-val"> · Updated {updatedRel}</span>
                       </span>
                     </div>
                   </div>
@@ -2037,17 +2035,17 @@ const DocumentHubPage = () => {
                       <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
                         {hub.createdBy?.name?.charAt(0).toUpperCase()}
                       </Avatar>
-                      <span className="dh-foot-val">{hub.createdBy?.name || 'Unknown'}</span>
+                      <span className="dh-foot-val">{hub.createdBy?.name?.split(' ')[0] || 'Unknown'}</span>
                     </span>
                     <span className="dh-foot-div" />
                     <span className="dh-foot-item">
                       <span className="dh-foot-key">Created</span>
-                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
+                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy · h:mm a")}</span>
                     </span>
                     <span className="dh-foot-div" />
                     <span className="dh-foot-item">
                       <span className="dh-foot-key">Updated</span>
-                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
+                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy · h:mm a")}</span>
                     </span>
                   </div>
 
@@ -2109,7 +2107,7 @@ const DocumentHubPage = () => {
           <div className="dh-sidebar-top">
             <div className="dh-sidebar-brand">
               <div className="dh-hero-icon-box">
-                <FileTextOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+                <FileTextOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">Document Hub</h1>
@@ -2291,7 +2289,7 @@ const DocumentHubPage = () => {
                       setDateRange(null);
                     }}
                   >
-                    <CloseOutlined style={{ fontSize: 10 }} />
+                    <CloseCircleOutlined style={{ fontSize: 12 }} />
                     Clear filters
                   </button>
                 )}
@@ -2366,17 +2364,15 @@ const DocumentHubPage = () => {
                 style={{ height: 38, width: 38, borderRadius: 10 }}
               />
             </Tooltip>
-            <div className="dh-main-search">
-              <Input
+            <div className="pp-search-wrap" style={{ maxWidth: 320, flex: 1 }}>
+              <SearchOutlined className="pp-search-icon" />
+              <input
+                className="pp-search"
                 placeholder="Search hubs, docs, tickets…"
-                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                // suffix={!searchText ? <span className="dh-search-kbd">⌘K</span> : undefined}
-                className="premium-search-input  transition-all"
-                style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 34 }}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                allowClear
               />
+              {/* {!searchText && <span className="pp-kbd">⌘K</span>} */}
             </div>
 
             <div className="dh-main-stats">
@@ -2395,35 +2391,9 @@ const DocumentHubPage = () => {
             </div>
 
             <div className="dh-main-controls">
-              <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
-                <Tooltip title="Cards">
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                    style={{
-                      width: 30, height: 30,
-                      background: viewMode === 'cards' ? 'var(--bg-blue-50)' : 'transparent',
-                      color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)',
-                      border: 'none', cursor: 'pointer'
-                    }}
-                  >
-                    <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)' }} />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Table">
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
-                    style={{
-                      width: 30, height: 30,
-                      background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
-                      color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)',
-                      border: 'none', cursor: 'pointer'
-                    }}
-                  >
-                    <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)' }} />
-                  </button>
-                </Tooltip>
+              <div className="dh-segmented">
+                <button type="button" className={viewMode === 'cards' ? 'is-active' : ''} onClick={() => setViewMode('cards')} aria-label="Cards view"><AppstoreOutlined /></button>
+                <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="Table view"><UnorderedListOutlined /></button>
               </div>
               {viewMode === 'table' && (
                 <Popover
@@ -2477,21 +2447,16 @@ const DocumentHubPage = () => {
                   }
                 >
                   <Tooltip title="Table settings">
-                    <Button
-                      icon={<SettingOutlined />}
-                      className="flex items-center justify-center rounded-xl border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
-                      style={{ height: 38, width: 38 }}
-                    />
+                    <button type="button" className="pp-ghost-btn">
+                      <SettingOutlined />
+                    </button>
                   </Tooltip>
                 </Popover>
               )}
               <Tooltip title="Refresh hubs">
-                <Button
-                  icon={<ReloadOutlined spin={hubsFetching} />}
-                  onClick={handleReload}
-                  className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                  style={{ height: 38, width: 38 }}
-                />
+                <button type="button" className="pp-ghost-btn" onClick={handleReload}>
+                  <ReloadOutlined spin={hubsFetching} />
+                </button>
               </Tooltip>
             </div>
           </div>
@@ -2532,7 +2497,7 @@ const DocumentHubPage = () => {
                   <span className="dh-footer-strong">{total}</span> hub{total === 1 ? '' : 's'}
                   {starredVisibleCount > 0 && (
                     <>
-                      {' · '}
+                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
                       <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
                         <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
                       </span>
@@ -2540,7 +2505,7 @@ const DocumentHubPage = () => {
                   )}
                   {sharedWithMeCount > 0 && (
                     <>
-                      {' · '}
+                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
                       <span style={{ color: 'var(--text-slate-600)' }}>{sharedWithMeCount} shared with you</span>
                     </>
                   )}
@@ -3133,7 +3098,7 @@ const DocumentHubPage = () => {
           top: 0;
           align-self: flex-start;
           height: calc(100vh - 54px);
-          width: 272px;
+          width: 240px;
           flex-shrink: 0;
           display: flex;
           flex-direction: column;
@@ -3141,14 +3106,15 @@ const DocumentHubPage = () => {
           border-right: 1px solid var(--border-slate-200);
         }
         .dh-sidebar-top {
-          padding: 14px 14px 12px 18px;
-          border-bottom: 1px solid var(--border-slate-200);
+          padding: 14px 12px 12px 12px;
         }
         .dh-sidebar-brand {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 12px;
+          padding-bottom: 14px;
+          margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
         }
         .dh-sidebar-title {
           margin: 0;
@@ -3159,10 +3125,12 @@ const DocumentHubPage = () => {
           color: var(--text-slate-900);
         }
         .dh-sidebar-subtitle {
-          margin: 2px 0 0 0;
-          font-size: 11px;
-          font-weight: 500;
-          color: var(--text-slate-500);
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
         }
         .dh-side-create {
           height: 36px !important;
@@ -3172,14 +3140,12 @@ const DocumentHubPage = () => {
           border: none !important;
           // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
         }
-        [data-theme='dark'] .dh-side-create {
-          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
-        }
+        /* removed dh-side-create dark override */
         .dh-sidebar-scroll {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
-          padding: 10px 10px 6px 16px;
+          padding: 10px 10px 6px 12px;
           scrollbar-width: none;        /* Firefox */
           -ms-overflow-style: none;     /* IE/Edge legacy */
         }
@@ -3211,16 +3177,15 @@ const DocumentHubPage = () => {
         .dh-side-view {
           display: flex;
           align-items: center;
-          gap: 9px;
+          gap: 8px;
           width: 100%;
-          height: 32px;
-          padding: 0 10px;
+          padding: 7px 10px;
           border: none;
           background: transparent;
-          border-radius: 9px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 500;
           color: var(--text-slate-600);
           transition: background 0.15s, color 0.15s;
         }
@@ -3235,27 +3200,16 @@ const DocumentHubPage = () => {
           font-size: 12px;
           font-weight: 600;
           padding: 1px 8px;
-          border-radius: 5px;
+          border-radius: 6px;
           background: transparent;
           color: var(--text-slate-400);
         }
         .dh-side-clear {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          align-self: flex-start;
-          margin-top: 2px;
-          padding: 5px 10px;
-          border: 1px solid var(--border-slate-200);
-          border-radius: 8px;
-          background: var(--bg-pure-white);
-          color: var(--text-slate-500);
-          font-size: 11.5px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
+          display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+          background: none; border: none; cursor: pointer; padding: 3px;
+          font-size: 12px; font-weight: 600; color: #ef4444; margin-top: 6px;
         }
-        .dh-side-clear:hover { color: #ef4444; border-color: #fecaca; }
+        .dh-side-clear:hover { opacity: 0.8; }
         /* Pinned / recent hub items */
         .dh-side-hub {
           display: flex;
@@ -3321,8 +3275,8 @@ const DocumentHubPage = () => {
           display: flex;
           align-items: center;
           gap: 9px;
-          margin: 0 0px 12px 0px;
-          padding: 20px 20px;
+          margin: 0 0px 0px 0px;
+          padding: 26px 22px;
           height: 38px;
           border-top: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
@@ -3377,10 +3331,18 @@ const DocumentHubPage = () => {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          min-width: 0;
+          flex-shrink: 1;
         }
         .dh-footer-strong { font-weight: 700; color: var(--text-slate-700); }
         
         /* Custom Pagination Styles */
+        .dh-main-footer .ant-pagination {
+          display: flex;
+          align-items: center;
+          flex-wrap: nowrap !important;
+          flex-shrink: 0;
+        }
         .dh-main-footer .ant-pagination-item,
         .dh-main-footer .ant-pagination-prev .ant-pagination-item-link,
         .dh-main-footer .ant-pagination-next .ant-pagination-item-link {
@@ -3434,8 +3396,37 @@ const DocumentHubPage = () => {
           gap: 8px;
           flex-shrink: 0;
         }
+        .dh-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .dh-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .dh-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-search-wrap {
+          position: relative; flex: 1; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        .pp-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
+        .pp-ghost-btn {
+          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
         .dh-stats-wrap { padding: 12px 20px 0 20px; }
-        .dh-main-body { padding: 12px 20px 14px 20px; }
+        .dh-main-body { padding: 0px 20px 14px 20px; }
 
         /* ----------------------- Row-cards view ----------------------- */
         .dh-rowcards-wrap { width: 100%; overflow-x: auto; }
@@ -3522,12 +3513,17 @@ const DocumentHubPage = () => {
           .dh-main-search { width: 100%; max-width: none; order: 5; flex: 1 1 100%; }
           .dh-main-controls { order: 2; margin-left: auto; }
         }
-        @media (max-width: 560px) {
+        @media (max-width: 900px) {
+          .dh-main-footer { padding: 10px 14px; gap: 8px; }
+          .dh-footer-summary { font-size: 12px; }
+          .dh-main-footer .ant-pagination { flex-wrap: nowrap !important; }
+        }
+        @media (max-width: 640px) {
           .dh-main-body { padding: 8px 12px 14px 12px; }
           .dh-stats-wrap { padding: 10px 12px 0 12px; }
-          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px; }
-          .dh-footer-summary { text-align: center; white-space: normal; }
-          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap; }
+          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+          .dh-footer-summary { text-align: center; white-space: normal; overflow: visible; }
+          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap !important; gap: 6px; }
         }
 
         /* Dark-mode surfaces */
@@ -3539,25 +3535,13 @@ const DocumentHubPage = () => {
         [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
         [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
         [data-theme="dark"] .dh-side-hub:hover { background: rgba(255, 255, 255, 0.05); }
-        [data-theme="dark"] .dh-mobile-menu-btn {
-          background: var(--bg-slate-50) !important;
-          border-color: var(--border-slate-200) !important;
-          color: var(--text-slate-700) !important;
-        }
+        /* removed dh-mobile-menu-btn dark override */
 
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
-          font-weight: 600;
-          text-transform: uppercase;
-          font-size: 11px;
-          letter-spacing: 0.05em;
-          border-bottom: 2px solid #f1f5f9 !important;
-          padding-top: 9px !important;
-          padding-bottom: 9px !important;
-          padding-left: 10px !important;
-          padding-right: 10px !important;
-          line-height: 1.2 !important;
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
           background: #161b22 !important;
@@ -3620,17 +3604,12 @@ const DocumentHubPage = () => {
 
         /* Hero icon box (Team-View pattern) */
         .dh-hero-icon-box {
-          width: 38px; height: 38px;
-          background: rgba(59, 130, 246, 0.10);
-          border-radius: 10px;
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(59, 130, 246, 0.18);
+          border: none;
           flex-shrink: 0;
         }
-        [data-theme='dark'] .dh-hero-icon-box {
-          background: rgba(59, 130, 246, 0.16);
-          border-color: rgba(59, 130, 246, 0.28);
-        }
+        /* removed dark override */
         .dh-pulse-dot {
           width: 6px; height: 6px; border-radius: 9999px;
           background: #10b981;
@@ -3702,7 +3681,7 @@ const DocumentHubPage = () => {
         }
 
         .dh-table-shell {
-          border: none !important;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0 !important; overflow: hidden;
         }
 
         /* Visibility status pill (table + row-card cells) */
@@ -3743,7 +3722,11 @@ const DocumentHubPage = () => {
         /* Add border to the table container instead */
         .premium-table .ant-table-container {
           border: 1px solid var(--border-slate-200) !important;
-          border-radius: 0 !important;
+        }
+        .premium-table .ant-table,
+        .premium-table .ant-table-wrapper,
+        .premium-table .ant-table-container {
+          border-radius: 0px !important;
         }
 
         [data-theme='dark'] .premium-table .ant-table-container {
@@ -3751,10 +3734,27 @@ const DocumentHubPage = () => {
         }
 
         .premium-table .ant-table-thead > tr > th {
-          background: var(--bg-pure-white) !important;
-          border-top: none !important;
-          border-bottom: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
         }
+
+        .premium-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .premium-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .premium-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+        .premium-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+        .premium-table .ant-table-selection-column { padding-inline: 6px !important; }
+         .premium-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+         
+          .premium-name-icon {
+            width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; color: #3B82F6;
+            background: var(--bg-blue-50);
+          }
+          .premium-name-icon .anticon { font-size: 12px !important; }
+          .premium-name-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .premium-table .ant-table-thead > tr > th:first-child {
           border-left: none !important;
         }
@@ -3771,6 +3771,7 @@ const DocumentHubPage = () => {
         .premium-table .ant-table-thead > tr > th:first-child {
           border-left: none !important;
           border-top-left-radius: 0px !important;
+          border-start-start-radius: 0px !important;
         }
         .premium-table .ant-table-thead > tr > th:last-child {
           border-right: none !important;
@@ -4059,6 +4060,7 @@ const DocumentHubPage = () => {
         .dh-row-actions {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 2px;
           opacity: 1;
           transition: opacity 0.15s;
@@ -4087,29 +4089,16 @@ const DocumentHubPage = () => {
         }
         /* Inline star button before the Doc Name (always visible). */
         .dh-name-star {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 26px;
-          height: 26px;
-          border: none;
-          background: transparent;
-          border-radius: 7px;
-          cursor: pointer;
-          color: var(--text-slate-300);
-          transition: background 0.12s, color 0.12s, transform 0.12s;
-          flex-shrink: 0;
+         background: none; border: none; cursor: pointer; padding: 0; color: var(--text-slate-300); line-height: 0; flex-shrink: 0;
         }
         .dh-name-star:hover {
-          background: rgba(245, 158, 11, 0.10);
-          color: #f59e0b;
-          transform: scale(1.06);
+          color: #3B82F6;
         }
         .dh-name-star.is-starred {
-          color: #f59e0b;
+          color: #3B82F6;
         }
         .dh-name-star.is-starred:hover {
-          background: rgba(245, 158, 11, 0.16);
+          color: #3B82F6;
         }
 
         /* Inline name edit pencil (#D) */
@@ -4161,6 +4150,15 @@ const DocumentHubPage = () => {
             width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-weight: 800; font-size: 12px;
+          }
+          .dh-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+
+          .dh-doccount { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+          .dh-doccount-key { color: var(--text-slate-400); font-weight: 600 !important; flex-shrink: 0; }
+          .dh-doccount-val { color: var(--text-slate-700) !important; font-weight: 600 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .dh-doccount-title {
+            font-size: 13px; font-weight: 700 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; line-height: 1.3;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
           }
 
          .dh-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }

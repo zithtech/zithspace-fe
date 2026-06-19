@@ -1683,6 +1683,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                   }
                                   mode="user"
                                   emptyText="Unassigned"
+                                  showFirstNameOnly
                                 />
                               </DrawerField>
                             </Col>
@@ -1701,6 +1702,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                   }
                                   mode="user"
                                   emptyText="No Reporter"
+                                  showFirstNameOnly
                                 />
                               </DrawerField>
 
@@ -1802,7 +1804,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <DrawerField label="Created by" variant="table">
                                 <Space size={6} align="center">
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                                    {ticket?.createdBy?.name || 'System'}
+                                    {ticket?.createdBy?.name ? ticket.createdBy.name.split(" ")[0] : 'System'}
                                   </Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>
@@ -1815,7 +1817,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <DrawerField label="Updated by" variant="table">
                                 <Space size={6} align="center">
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                                    {(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}
+                                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').split(" ")[0]}
                                   </Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -15,6 +14,7 @@ import {
 const { RangePicker } = DatePicker;
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
+import { parseDecimal } from "@/services/ticketService";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
@@ -298,9 +298,6 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const fetchTeamEntries = async () => {
     try {
       setLoading(true);
@@ -517,7 +514,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     {
       title: "Daily Capacity",
       key: "progress",
-      width: 140,
+      width: 160,
       render: (_: any, record: any) => {
         // Find matching member in useMembers data to get custom minWorkingHours
         const matchedMember = members.find((m: any) => m.value === record.user?.id);
@@ -547,9 +544,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             overlayInnerStyle={{ borderRadius: 12, background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(4px)' }}
           >
             <div style={{ width: '100%', cursor: 'help' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
-                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)' }}>{formatTime(record.totalSeconds)}</Text>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, whiteSpace: 'nowrap', gap: '8px' }}>
+                <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of ${goalHours}h`}</Text>
+                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)', whiteSpace: 'nowrap' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 4, background: 'var(--bg-secondary)', borderRadius: 2, overflow: 'hidden' }}>
                 <div
@@ -777,16 +774,18 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                             )}
                             <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
                           </div>
-                          {session.ticket.estimateHours !== undefined ? (
-                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
-                              EST: {(() => {
-                                const mins = Math.round(Number(session.ticket.estimateHours) * 60);
-                                const h = Math.floor(mins / 60);
-                                const m = mins % 60;
-                                return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
-                              })()}
-                            </Tag>
-                          ) : null}
+                          {(() => {
+                            const parsedHours = parseDecimal(session.ticket.estimateHours);
+                            if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
+                            const mins = Math.round(parsedHours * 60);
+                            const h = Math.floor(mins / 60);
+                            const m = mins % 60;
+                            return (
+                              <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
+                              </Tag>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.description || "No description provided"}</Text>
@@ -1028,35 +1027,27 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
 
           <div className="mtt-team-filters">
-            {mounted && document.getElementById('team-sidebar-filters-portal') && createPortal(
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginTop: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Filters
-                </div>
-                <SearchableDropdown
-                  value={filters.userId}
-                  onChange={(v) => setFilters(f => ({ ...f, userId: v as string | undefined }))}
-                  placeholder="All members"
-                  searchPlaceholder="Search by name"
-                  itemNoun="members"
-                  width="100%"
-                  style={{ width: '100%', borderRadius: 0 }}
-                  options={members.map(m => ({ value: m.value, label: m.label }))}
-                />
+            <SearchableDropdown
+              value={filters.userId}
+              onChange={(v) => setFilters(f => ({ ...f, userId: v as string | undefined }))}
+              placeholder="All members"
+              searchPlaceholder="Search by name"
+              itemNoun="members"
+              width={240}
+              style={{ width: 168, borderRadius: 6 }}
+              options={members.map(m => ({ value: m.value, label: m.label }))}
+            />
 
-                <SearchableDropdown
-                  value={filters.projectId}
-                  onChange={(v) => setFilters(f => ({ ...f, projectId: v as string | undefined }))}
-                  placeholder="All projects"
-                  searchPlaceholder="Search by name"
-                  itemNoun="projects"
-                  width="100%"
-                  style={{ width: '100%', borderRadius: 0 }}
-                  options={projects.map(p => ({ value: p.value, label: p.label }))}
-                />
-              </div>,
-              document.getElementById('team-sidebar-filters-portal')!
-            )}
+            <SearchableDropdown
+              value={filters.projectId}
+              onChange={(v) => setFilters(f => ({ ...f, projectId: v as string | undefined }))}
+              placeholder="All projects"
+              searchPlaceholder="Search by name"
+              itemNoun="projects"
+              width={240}
+              style={{ width: 158, borderRadius: 6 }}
+              options={projects.map(p => ({ value: p.value, label: p.label }))}
+            />
 
             <RangePicker
               className="mtt-team-filters__range"

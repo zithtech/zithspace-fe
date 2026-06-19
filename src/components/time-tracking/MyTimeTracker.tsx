@@ -12,6 +12,7 @@ const { RangePicker } = DatePicker;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import { parseDecimal } from "@/services/ticketService";
 
 const { Text } = Typography;
 
@@ -518,16 +519,18 @@ export function MyTimeTracker({
                                         >
                                           <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
                                         </div>
-                                        {record.ticket.estimateHours !== undefined ? (
-                                          <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
-                                            EST: {(() => {
-                                              const mins = Math.round(Number(record.ticket.estimateHours) * 60);
-                                              const h = Math.floor(mins / 60);
-                                              const m = mins % 60;
-                                              return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
-                                            })()}
-                                          </Tag>
-                                        ) : null}
+                                        {(() => {
+                                          const parsedHours = parseDecimal(record.ticket.estimateHours);
+                                          if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
+                                          const mins = Math.round(parsedHours * 60);
+                                          const h = Math.floor(mins / 60);
+                                          const m = mins % 60;
+                                          return (
+                                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                              EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
+                                            </Tag>
+                                          );
+                                        })()}
                                       </div>
                                     ) : (
                                       <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>

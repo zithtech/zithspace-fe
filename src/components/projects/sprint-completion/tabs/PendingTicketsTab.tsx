@@ -5,7 +5,6 @@ import {
   Table,
   Button,
   Space,
-  Select,
   Typography,
   Empty,
   Tooltip,
@@ -16,12 +15,16 @@ import {
 import {
   SendOutlined,
   DeleteOutlined,
-  FolderOutlined,
   RocketOutlined,
   ArrowLeftOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
+import {
+  SearchableDropdown,
+  type SearchableDropdownOption,
+} from "@/components/common/SearchableDropdown";
+import { TicketDetailDrawer } from "../../drawer/TicketDetailDrawer";
 import type { ColumnsType } from "antd/es/table";
 import {
   SprintCompletionSummary,
@@ -65,6 +68,8 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
 }) => {
   const { modal, message } = App.useApp();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [activeBulkAction, setActiveBulkAction] = useState<{
     action: BulkActionType;
     destinationId?: string;
@@ -214,7 +219,16 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       key: 'ticketNumber',
       width: 120,
       fixed: 'left',
-      render: (text) => <span className="sc-chip sc-chip-ticket">{text}</span>,
+      render: (text, record) => (
+        <span
+          className="sc-chip sc-chip-ticket sc-chip-ticket-link"
+          onClick={() => setSelectedTicketId(record.id)}
+          role="button"
+          tabIndex={0}
+        >
+          {text}
+        </span>
+      ),
     },
     {
       title: 'Title',
@@ -261,7 +275,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       width: 160,
       ellipsis: true,
       render: (name) =>
-        name ? <Text style={{ color: 'var(--sc-text)' }}>{name}</Text> : <Text type="secondary">Unassigned</Text>,
+        name ? <Text style={{ color: 'var(--sc-text)' }}>{name.split(" ")[0]}</Text> : <Text type="secondary">Unassigned</Text>,
     },
   ];
 
@@ -269,16 +283,44 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   const hasPendingTickets = pendingTickets.length > 0;
   const hasSelection = selectedRowKeys.length > 0;
 
+  const sprintOptions: SearchableDropdownOption[] = [
+    ...summary.availableDestinations.sprints.map((s) => ({
+      value: s.id,
+      label: s.version || s.name,
+    })),
+    {
+      value: '__create_new__',
+      label: 'Create new sprint',
+      description: 'Add a new sprint plan',
+      badge: <PlusOutlined />,
+      pinned: true,
+    },
+  ];
+
+  const bucketOptions: SearchableDropdownOption[] = [
+    ...summary.availableDestinations.buckets.map((b) => ({
+      value: b.id,
+      label: b.name,
+    })),
+    {
+      value: '__create_new__',
+      label: 'Create new bucket',
+      description: 'Add a new bucket',
+      badge: <PlusOutlined />,
+      pinned: true,
+    },
+  ];
+
   return (
     <div className="sc-tab">
       {!hasPendingTickets ? (
         <div
           style={{
-            padding: '60px 0',
+            padding: '40px 0',
             textAlign: 'center',
             background: 'var(--sc-surface)',
             border: '1px solid var(--sc-border)',
-            borderRadius: 16,
+            borderRadius: 14,
             boxShadow: 'var(--sc-shadow-sm)',
           }}
         >
@@ -311,9 +353,9 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                     )}
                   </Space>
                 }
-                type="warning"
+                type="info"
                 showIcon
-                style={{ marginBottom: 12, borderRadius: 12, border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                style={{ marginBottom: 12, borderRadius: 12, border: '1px solid rgba(37, 99, 235, 0.3)' }}
               />
             )}
 
@@ -343,60 +385,42 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                       onClick={() => handleBulkAction('move_to_backlog')}
                       className="sc-action-btn"
                     >
-                      Backlog
+                      Move to Backlog
                     </Button>
                   </Tooltip>
 
-                  <Select
+                  <SearchableDropdown
                     placeholder="Move to Sprint"
+                    searchPlaceholder="Search sprints"
+                    itemNoun="sprints"
                     style={{ width: 180 }}
+                    width={320}
+                    avatarColor="#2563eb"
+                    allowClear={false}
                     value={undefined}
+                    options={sprintOptions}
                     onChange={(value) => {
+                      if (!value) return;
                       if (value === '__create_new__') setShowSprintModal(true);
                       else handleBulkAction('move_to_sprint', value);
                     }}
-                    suffixIcon={<RocketOutlined />}
-                    options={[
-                      ...summary.availableDestinations.sprints.map((s) => ({
-                        label: s.version || s.name,
-                        value: s.id,
-                      })),
-                      {
-                        label: (
-                          <span style={{ color: 'var(--sc-brand)', fontWeight: 600 }}>
-                            <PlusOutlined style={{ marginRight: 6 }} />
-                            Create new sprint
-                          </span>
-                        ) as any,
-                        value: '__create_new__',
-                      },
-                    ]}
                   />
 
-                  <Select
+                  <SearchableDropdown
                     placeholder="Move to Bucket"
+                    searchPlaceholder="Search buckets"
+                    itemNoun="buckets"
                     style={{ width: 180 }}
+                    width={320}
+                    avatarColor="#2563eb"
+                    allowClear={false}
                     value={undefined}
+                    options={bucketOptions}
                     onChange={(value) => {
+                      if (!value) return;
                       if (value === '__create_new__') setShowBucketModal(true);
                       else handleBulkAction('move_to_bucket', value);
                     }}
-                    suffixIcon={<FolderOutlined />}
-                    options={[
-                      ...summary.availableDestinations.buckets.map((b) => ({
-                        label: b.name,
-                        value: b.id,
-                      })),
-                      {
-                        label: (
-                          <span style={{ color: 'var(--sc-brand)', fontWeight: 600 }}>
-                            <PlusOutlined style={{ marginRight: 6 }} />
-                            Create new bucket
-                          </span>
-                        ) as any,
-                        value: '__create_new__',
-                      },
-                    ]}
                   />
 
                   <Tooltip title="Move to Trash">
@@ -452,8 +476,13 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               dataSource={pendingTickets}
               rowKey="id"
               pagination={{
-                pageSize: 10,
+                defaultPageSize: 10,
                 showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50, 100],
+                onShowSizeChange: (_current, size) => setPageSize(size),
+                onChange: (_page, size) => {
+                  if (size !== pageSize) setPageSize(size);
+                },
                 showTotal: (total) => (
                   <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>
                     Total <b style={{ color: 'var(--sc-text)' }}>{total}</b> pending
@@ -464,17 +493,24 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                 selectedRowKeys,
                 onChange: setSelectedRowKeys,
               }}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 1000, y: 'calc(90vh - 400px)' }}
               size="middle"
             />
           </div>
 
           <Modal
-            title="Create New Sprint"
+            title={null}
             open={showSprintModal}
             onCancel={() => setShowSprintModal(false)}
             footer={null}
-            width={500}
+            width={680}
+            centered
+            destroyOnHidden
+            className="sprint-creation-modal"
+            styles={{
+              body: { padding: 0 },
+              content: { padding: 0, borderRadius: 14, overflow: "hidden" },
+            }}
           >
             <SprintCreationForm
               projectId={summary.sprint.project.id}
@@ -485,11 +521,18 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           </Modal>
 
           <Modal
-            title="Create New Bucket"
+            title={null}
             open={showBucketModal}
             onCancel={() => setShowBucketModal(false)}
             footer={null}
-            width={500}
+            width={560}
+            centered
+            destroyOnHidden
+            className="sprint-creation-modal"
+            styles={{
+              body: { padding: 0 },
+              content: { padding: 0, borderRadius: 14, overflow: "hidden" },
+            }}
           >
             <BucketCreationForm
               projectId={summary.sprint.project.id}
@@ -500,6 +543,14 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           </Modal>
         </>
       )}
+
+      <TicketDetailDrawer
+        ticketId={selectedTicketId}
+        open={!!selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+        ticketIds={pendingTickets.map((t) => t.id)}
+        onNavigate={setSelectedTicketId}
+      />
     </div>
   );
 };

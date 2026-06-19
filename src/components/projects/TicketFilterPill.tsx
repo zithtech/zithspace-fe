@@ -254,7 +254,7 @@ const TICKET_FILTER_PILL_CSS = `
   padding: 0 8px 0 10px;
   background: var(--bg-pure-white);
   border: 1px solid var(--border-slate-200);
-  border-radius: 999px;
+  border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;

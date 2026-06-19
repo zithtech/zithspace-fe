@@ -59,6 +59,7 @@ interface User {
   department?: string;
   employeeId?: string | null;
   employee_code?: string | null;
+  createdAt?: string;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
 }
@@ -144,6 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         department: (response.user as any).department,
         employeeId: (response.user as any).employeeId,
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
+        createdAt: (response.user as any).createdAt,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
       };
@@ -191,6 +193,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         department: (response.user as any).department,
         employeeId: (response.user as any).employeeId,
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
+        createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
       };
 
@@ -235,6 +238,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         department: (response.user as any).department,
         employeeId: (response.user as any).employeeId,
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
+        createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
       };
 
@@ -342,6 +346,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         department: userProfile.department,
         employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,
+        createdAt: userProfile.createdAt,
         permissions: (userProfile as any).permissions ?? [],
       };
 

@@ -4,6 +4,7 @@ import { MembersService } from "@/services/membersService";
 import { SettingsService } from "@/services/settingsService";
 import TicketService from "@/services/ticketService";
 import DocumentHubService from "@/services/documentHub";
+import { useAuth } from "@/context/AuthContext";
 
 // Query keys for global data
 export const globalDataKeys = {
@@ -19,11 +20,13 @@ export const globalDataKeys = {
  * Hook to fetch and cache all available projects (for selection)
  */
 export const useAllProjects = (options?: { enabled?: boolean }) => {
+  const { user } = useAuth();
   return useQuery<{ value: string; label: string; code: string }[]>({
-    queryKey: globalDataKeys.allProjects,
+    queryKey: [...globalDataKeys.allProjects, user?.tenantId],
     queryFn: () => ProjectService.getProjectsForSelect(),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    enabled: !!user && options?.enabled !== false,
     ...options,
   });
 };
@@ -33,11 +36,13 @@ export const useAllProjects = (options?: { enabled?: boolean }) => {
  * Cached for 5 minutes (rarely changes)
  */
 export const useUserProjects = (options?: { enabled?: boolean }) => {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: globalDataKeys.projects,
+    queryKey: [...globalDataKeys.projects, user?.tenantId, user?.id],
     queryFn: () => ProjectService.getUserProjects(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    enabled: !!user && options?.enabled !== false,
     ...options,
   });
 };
@@ -46,17 +51,16 @@ export const useUserTicketsByProjects = (
   projectId: string | undefined,
   options?: { enabled?: boolean },
 ) => {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [...globalDataKeys.tickets, projectId],
+    queryKey: [...globalDataKeys.tickets, user?.tenantId, projectId],
     queryFn: () => TicketService.getProjectTickets(projectId as string),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    enabled: Boolean(projectId) && options?.enabled !== false,
+    enabled: Boolean(projectId) && !!user && options?.enabled !== false,
     ...options,
   });
 };
-
-
 
 export const useDocumentHub = (
   documentId: string | undefined,
@@ -72,17 +76,18 @@ export const useDocumentHub = (
   });
 };
 
-
 /**
  * Hook to fetch and cache all members
  * Cached for 5 minutes (rarely changes)
  */
 export const useMembers = (options?: { enabled?: boolean }) => {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: globalDataKeys.members,
+    queryKey: [...globalDataKeys.members, user?.tenantId],
     queryFn: () => MembersService.getMembersForSelect(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!user && options?.enabled !== false,
     ...options,
   });
 };
@@ -92,11 +97,13 @@ export const useMembers = (options?: { enabled?: boolean }) => {
  * Cached for 10 minutes (rarely changes)
  */
 export const useTicketConfig = (options?: { enabled?: boolean }) => {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: globalDataKeys.ticketConfig,
+    queryKey: [...globalDataKeys.ticketConfig, user?.tenantId],
     queryFn: () => SettingsService.getTicketConfigurations(),
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!user && options?.enabled !== false,
     ...options,
   });
 };

@@ -237,7 +237,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
 
                 {/* Body */}
                 <div className="px-6 pt-5 pb-2">
-                    <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                    <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off">
                         {hasExistingHubs && (
                             <div className="mb-4">
                                 <div

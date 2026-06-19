@@ -864,8 +864,6 @@ const DocumentHubPage = () => {
       if (s && ['all', 'mine', 'shared', 'public', 'starred'].includes(s)) setSavedView(s);
       const r = localStorage.getItem(RECENT_KEY);
       if (r) setRecentIds(JSON.parse(r));
-      const seen = localStorage.getItem(TOUR_KEY);
-      if (!seen) setTourOpen(true);
       const d = localStorage.getItem(DENSITY_KEY) as Density | null;
       if (d && ['compact', 'comfortable', 'spacious'].includes(d)) setDensity(d);
       const cols = localStorage.getItem(COLS_KEY);
@@ -876,6 +874,24 @@ const DocumentHubPage = () => {
       if (rails) setRailVisibility({ ...DEFAULT_RAILS, ...JSON.parse(rails) });
     } catch { /* ignore */ }
   }, []);
+
+  // Show welcome tour only once to newly created users (created within the last 7 days)
+  useEffect(() => {
+    if (authLoading || !user) return;
+    try {
+      const userTourKey = `${TOUR_KEY}_${user.id}`;
+      const seen = localStorage.getItem(userTourKey);
+      if (!seen) {
+        const createdAtTime = user.createdAt ? new Date(user.createdAt).getTime() : 0;
+        if (createdAtTime) {
+          const isNewUser = (Date.now() - createdAtTime) < 7 * 24 * 60 * 60 * 1000;
+          if (isNewUser) {
+            setTourOpen(true);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }, [user, authLoading]);
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, viewMode); } catch { /* ignore */ }
@@ -1012,7 +1028,11 @@ const DocumentHubPage = () => {
 
   const dismissTour = () => {
     setTourOpen(false);
-    try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ }
+    if (user?.id) {
+      try {
+        localStorage.setItem(`${TOUR_KEY}_${user.id}`, '1');
+      } catch { /* ignore */ }
+    }
   };
 
   // === Bulk action handlers (#A) ===
@@ -2604,7 +2624,7 @@ const DocumentHubPage = () => {
         </div>
 
         <div className="px-6 pt-5 pb-2">
-          <Form form={form} layout="vertical" onFinish={handleAddDocument}>
+          <Form form={form} layout="vertical" onFinish={handleAddDocument} autoComplete="off">
             <Form.Item
               name="name"
               label={
@@ -2622,6 +2642,7 @@ const DocumentHubPage = () => {
               <Input
                 size="large"
                 autoFocus
+                autoComplete="off"
                 placeholder="e.g., Payments API documentation"
                 prefix={<FileTextOutlined style={{ color: 'var(--text-slate-400)', fontSize: 13 }} />}
                 style={{

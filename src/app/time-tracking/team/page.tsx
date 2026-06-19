@@ -4,6 +4,7 @@ import React from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Result, App } from "antd";
 import { TeamTimeTracker } from "@/components/time-tracking/TeamTimeTracker";
+import { PerformanceTracker } from "@/components/time-tracking/PerformanceTracker";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { ManageTimeModal } from "@/components/time-tracking/ManageTimeModal";
 
@@ -14,7 +15,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { History, Menu } from "lucide-react";
+import { History, Menu, Gauge, Users } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -25,6 +26,7 @@ export default function TeamTimePage() {
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [showPerformance, setShowPerformance] = React.useState(false);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
@@ -109,6 +111,30 @@ export default function TeamTimePage() {
           <div className="dh-sidebar-scroll" style={{ paddingTop: 20 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
 
+              <div style={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  Views
+                </div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={`tt-nav-row ${!showPerformance ? 'is-active' : ''}`}
+                  onClick={() => setShowPerformance(false)}
+                >
+                  <Users size={15} />
+                  <span>Team Activity</span>
+                </div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={`tt-nav-row ${showPerformance ? 'is-active' : ''}`}
+                  onClick={() => setShowPerformance(true)}
+                >
+                  <Gauge size={15} />
+                  <span>Performance Tracker</span>
+                </div>
+              </div>
+
               {canReadActivityLog && (
                 <div style={{ display: 'flex', gap: 4, flexDirection: 'column' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -157,7 +183,11 @@ export default function TeamTimePage() {
           <div className="dh-main-scroll">
             <div className="dh-main-body">
               <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <TeamTimeTracker refreshKey={refreshKey} />
+                {showPerformance ? (
+                  <PerformanceTracker refreshKey={refreshKey} />
+                ) : (
+                  <TeamTimeTracker refreshKey={refreshKey} />
+                )}
               </div>
             </div>
           </div>
@@ -185,6 +215,29 @@ export default function TeamTimePage() {
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
+
+        /* ----------------------- Sidebar view nav ----------------------- */
+        .tt-nav-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          transition: background 0.15s ease, color 0.15s ease;
+          user-select: none;
+        }
+        .tt-nav-row:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .tt-nav-row.is-active {
+          background: rgba(59, 130, 246, 0.10);
+          color: #2563eb;
+          font-weight: 600;
+        }
+        [data-theme='dark'] .tt-nav-row:hover { background: rgba(255,255,255,0.04); }
+        [data-theme='dark'] .tt-nav-row.is-active { background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
 
         /* ----------------------- Sidebar ----------------------- */
         .dh-sidebar {

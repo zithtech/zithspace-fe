@@ -333,13 +333,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return permissions.some((p) => user.permissions.includes(p));
   };
 
-  // Plan-layer gate. Fail-open: super_admin or a tenant with no/full plan → allow.
+  // Plan-layer gate (Gate 1). Fail-open: a tenant with no/full plan → allow.
+  // NOT short-circuited for super_admin: the plan binds everyone. super_admin's
+  // RBAC bypass (Gate 2) lives in hasPermission*/hasAnyPermission, not here.
   const planAllows = (permission: string): boolean => {
     if (!user) return false;
-    if (user.role === 'super_admin') return true;
     const pa = user.planAccess;
-    if (!pa || pa.full) return true;
-    return pa.permissions.includes(permission);
+    if (!pa || pa.full) return true;                        // fail-open: no plan / full plan
+    if (pa.permissions.includes(permission)) return true;   // functionality-level grant
+    return pa.resources.includes(permission.split('.')[0]); // module-level (resource) grant
   };
 
   const canAccess = (permission: string): boolean =>

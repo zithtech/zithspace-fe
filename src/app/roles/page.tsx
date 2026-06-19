@@ -1517,7 +1517,10 @@ export default function RolesPage() {
                   <div className="rp-acc-sticky">
                     {/* Tabs row */}
                     <div className="rp-acc-tabs">
-                      {ACCESS_GROUPS.map((g) => {
+                      {/* Gate 1: hide suite tabs with no plan-allowed permissions; keep "All". */}
+                      {ACCESS_GROUPS.filter(
+                        (g) => g.key === 'all' || (groupCounts[g.key] || 0) > 0,
+                      ).map((g) => {
                         const count = groupCounts[g.key] || 0;
                         const isActive = accessTab === g.key;
                         return (

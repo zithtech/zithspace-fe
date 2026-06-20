@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { useTheme } from "@/context/ThemeContext";
@@ -25,6 +25,7 @@ import QualitySection from "./QualitySection";
 import AiNarrativeSection from "./AiNarrativeSection";
 import { SnapshotContext } from "./_shared";
 import { SprintReportsService } from "@/services/sprintReportsService";
+import { downloadReportPdf, downloadReportDocx } from "./reportExport";
 
 type DistRow = { label: string; count: number; points?: number };
 
@@ -60,6 +61,13 @@ interface SprintReport {
     startDate: string | null;
     endDate: string | null;
     durationDays: number | null;
+    // Planned vs actual dates + sprint-level slip (added to the API; older stored
+    // snapshots may not have them, so all are optional).
+    plannedStartDate?: string | null;
+    plannedEndDate?: string | null;
+    actualStartDate?: string | null;
+    actualEndDate?: string | null;
+    delayDays?: number | null;
     teamSize: number;
     totalTickets: number;
     plannedStoryPoints: number;
@@ -148,6 +156,193 @@ interface SprintReportViewProps {
   sprintId: string;
 }
 
+/** Tab order = on-page render order. `id` is the scroll anchor + spy target. */
+const SECTIONS: { id: string; label: string }[] = [
+  { id: "narrative", label: "AI Sprint Narrative" },
+  { id: "bottlenecks", label: "Bottlenecks" },
+  { id: "distribution", label: "Ticket Distribution" },
+  { id: "contribution", label: "Contribution" },
+  { id: "scope", label: "Scope Change" },
+  { id: "velocity", label: "Velocity Progression" },
+  { id: "timeline", label: "Delay & Timeline" },
+  { id: "hotspots", label: "Hot Features & Modules" },
+  { id: "quality", label: "Quality & Complexity" },
+  { id: "conclusion", label: "Conclusion" },
+];
+
+/** Nearest scrollable ancestor, or null when the document/window scrolls. */
+function getScrollParent(node: Element | null): HTMLElement | null {
+  let el = node?.parentElement ?? null;
+  while (el) {
+    const oy = getComputedStyle(el).overflowY;
+    if (
+      (oy === "auto" || oy === "scroll" || oy === "overlay") &&
+      el.scrollHeight > el.clientHeight
+    ) {
+      return el;
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Scroll-spy: returns the id of the section currently below the sticky header.
+ * `offset` is the sticky chrome height so a section activates as its top clears it.
+ * `root` is the scroll container (null = window) so rootMargin is measured correctly.
+ */
+function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): string {
+  const [active, setActive] = useState(ids[0] ?? "");
+  const key = ids.join(",");
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive((visible[0].target as HTMLElement).id);
+      },
+      { root, rootMargin: `-${Math.round(offset)}px 0px -62% 0px`, threshold: 0 }
+    );
+    const els = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el != null);
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [key, offset, root]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return active;
+}
+
+function SectionTabs({
+  sections,
+  activeId,
+  offset,
+  scrollRoot,
+}: {
+  sections: { id: string; label: string }[];
+  activeId: string;
+  offset: number;
+  scrollRoot: HTMLElement | null;
+}) {
+  const navRef = useRef<HTMLElement>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const animRef = useRef<number | null>(null);
+
+  // Keep the active tab in view as the user scrolls the page (horizontal only).
+  useEffect(() => {
+    const btn = btnRefs.current[activeId];
+    if (btn) btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeId]);
+
+  // Cancel any in-flight scroll animation on unmount.
+  useEffect(() => {
+    return () => {
+      if (animRef.current != null) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
+
+  const handleClick = (id: string) => {
+    if (animRef.current != null) cancelAnimationFrame(animRef.current);
+
+    const desired = offset + 12; // where the section top should sit below the bar
+    const scroller: HTMLElement | Window = scrollRoot ?? window;
+    const getTop = () => (scrollRoot ? scrollRoot.scrollTop : window.scrollY);
+    const setTop = (top: number) =>
+      scrollRoot ? scrollRoot.scrollTo({ top }) : window.scrollTo({ top });
+
+    // Target scrollTop that puts the section top at `desired` below the container top.
+    const targetFor = (el: HTMLElement): number => {
+      const rootTop = scrollRoot ? scrollRoot.getBoundingClientRect().top : 0;
+      return getTop() + (el.getBoundingClientRect().top - rootTop - desired);
+    };
+
+    const cancel = () => {
+      if (animRef.current != null) cancelAnimationFrame(animRef.current);
+      animRef.current = null;
+      scroller.removeEventListener("wheel", cancel);
+      scroller.removeEventListener("touchstart", cancel);
+    };
+    // Hand control back to the user the moment they scroll themselves.
+    scroller.addEventListener("wheel", cancel, { passive: true });
+    scroller.addEventListener("touchstart", cancel, { passive: true });
+
+    let frames = 0;
+    let settled = 0;
+    // Single eased animation. The target is recomputed every frame, so it glides
+    // smoothly even as lazy sections load and shift the layout underneath it.
+    const tick = () => {
+      const el = document.getElementById(id);
+      if (!el) {
+        cancel();
+        return;
+      }
+      const diff = targetFor(el) - getTop();
+      frames += 1;
+      if (Math.abs(diff) <= 1.5) {
+        settled += 1;
+        if (settled >= 5 || frames > 220) {
+          setTop(getTop() + diff);
+          cancel();
+          return;
+        }
+      } else {
+        settled = 0;
+      }
+      setTop(getTop() + diff * 0.2);
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+  };
+
+  return (
+    <nav
+      ref={navRef}
+      className="flex gap-0.5 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {sections.map((s) => {
+        const active = s.id === activeId;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            ref={(el) => {
+              btnRefs.current[s.id] = el;
+            }}
+            onClick={() => handleClick(s.id)}
+            className={[
+              "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
+              "border-b-2 -mb-px",
+              active
+                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200",
+            ].join(" ")}
+          >
+            {s.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SectionAnchor({
+  id,
+  offset,
+  children,
+}: {
+  id: string;
+  offset: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div id={id} style={{ scrollMarginTop: offset + 12 }}>
+      {children}
+    </div>
+  );
+}
+
 export default function SprintReportView({ sprintId }: SprintReportViewProps) {
   const [data, setData] = useState<SprintReport | null>(null);
   // The full stored snapshot (report_data) for a generated report, or null when
@@ -164,23 +359,10 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
 
     (async () => {
       try {
-        // 1) Prefer the stored snapshot — one DB-backed call for the whole report.
-        try {
-          const detail = await SprintReportsService.getBySprint(sprintId);
-          const report = (detail?.report ?? {}) as Record<string, any>;
-          if (!cancelled && report.main) {
-            setSnapshot(report);
-            setData(report.main as SprintReport);
-            return;
-          }
-        } catch {
-          // No snapshot (404) → fall through to live computation.
-        }
-        // 2) No snapshot: compute the headline section live; sections fetch their own.
-        const live = await api.get<SprintReport>(`/api/sprint-report/${sprintId}`);
+        const { data: report, snapshot: snap } = await fetchSprintReport(sprintId);
         if (!cancelled) {
-          setSnapshot(null);
-          setData(live);
+          setSnapshot(snap);
+          setData(report);
         }
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Failed to load sprint report");
@@ -194,6 +376,74 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
     };
   }, [sprintId]);
 
+  return <SprintReportContent data={data} snapshot={snapshot} loading={loading} error={error} sprintId={sprintId} />;
+}
+
+function SprintReportContent({
+  data,
+  snapshot,
+  loading,
+  error,
+  sprintId,
+}: {
+  data: SprintReport | null;
+  snapshot: Record<string, any> | null;
+  loading: boolean;
+  error: string | null;
+  sprintId: string;
+}) {
+  // Measure the sticky chrome (header + tabs) so scroll-spy + anchor offsets stay
+  // accurate even as the header height changes (long goal text, wrapping chips).
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const [stickyH, setStickyH] = useState(148);
+  const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
+
+  // Export: setting a format mounts the offscreen export layout; the effect below
+  // waits for it to finish loading/rendering, then captures it to PDF or DOCX.
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+
+  useEffect(() => {
+    if (!exporting || !data) return;
+    let cancelled = false;
+    const run = async () => {
+      const el = exportRef.current;
+      if (!el) return;
+      await waitForExportReady(el);
+      if (cancelled) return;
+      const filename = exportFilename(data, exporting);
+      try {
+        if (exporting === "pdf") await downloadReportPdf(el, filename);
+        else await downloadReportDocx(el, filename);
+      } catch (err) {
+        console.error("Sprint report export failed", err);
+      } finally {
+        if (!cancelled) setExporting(null);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [exporting, data]);
+
+  useEffect(() => {
+    const el = stickyRef.current;
+    if (!el) return;
+    setScrollRoot(getScrollParent(el));
+    const update = () => setStickyH(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [data]);
+
+  const activeId = useScrollSpy(
+    SECTIONS.map((s) => s.id),
+    stickyH + 4,
+    scrollRoot
+  );
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
   if (!data) return <ErrorState message="No data available" />;
@@ -201,39 +451,204 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
   return (
     <SnapshotContext.Provider value={snapshot}>
       <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
-        <div className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full">
-          <div className="mx-auto max-w-7xl px-6 pt-5 pb-5">
-            <Header overview={data.overview} />
+        <div
+          ref={stickyRef}
+          className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full"
+        >
+          <div className="mx-auto max-w-7xl px-6 pt-3 pb-2.5">
+            <Header
+              overview={data.overview}
+              onExport={(fmt) => setExporting(fmt)}
+              exporting={exporting}
+            />
+          </div>
+          <div className="border-t border-zinc-200/70 dark:border-zinc-800/70">
+            <div className="mx-auto max-w-7xl">
+              <SectionTabs
+                sections={SECTIONS}
+                activeId={activeId}
+                offset={stickyH}
+                scrollRoot={scrollRoot}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="mx-auto max-w-7xl px-6 py-6 space-y-5">
+        <div className="mx-auto max-w-7xl px-6 py-4 space-y-4">
           <KpiStrip overview={data.overview} />
-          <AiNarrativeSection sprintId={sprintId} />
-          <BottlenecksSection sprintId={sprintId} />
-          <DistributionSection
-            dist={data.ticketDistribution}
-            contribution={data.contribution}
-          />
-          <ContributionSection rows={data.contribution} />
-          <ScopeChangeSection sprintId={sprintId} />
-          <VelocitySection sprintId={sprintId} />
-          <TimelineSection sprintId={sprintId} />
-          <HotspotsSection sprintId={sprintId} />
-          <QualitySection sprintId={sprintId} />
+          <SectionAnchor id="narrative" offset={stickyH}>
+            <AiNarrativeSection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="bottlenecks" offset={stickyH}>
+            <BottlenecksSection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="distribution" offset={stickyH}>
+            <DistributionSection
+              dist={data.ticketDistribution}
+              contribution={data.contribution}
+            />
+          </SectionAnchor>
+          <SectionAnchor id="contribution" offset={stickyH}>
+            <ContributionSection rows={data.contribution} />
+          </SectionAnchor>
+          <SectionAnchor id="scope" offset={stickyH}>
+            <ScopeChangeSection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="velocity" offset={stickyH}>
+            <VelocitySection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="timeline" offset={stickyH}>
+            <TimelineSection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="hotspots" offset={stickyH}>
+            <HotspotsSection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="quality" offset={stickyH}>
+            <QualitySection sprintId={sprintId} />
+          </SectionAnchor>
+          <SectionAnchor id="conclusion" offset={stickyH}>
+            <ConclusionSection overview={data.overview} />
+          </SectionAnchor>
           <FooterMeta sprintId={data.overview.sprintId} />
         </div>
+
+        {/* Offscreen export layout — rendered only while exporting, captured to file. */}
+        {exporting ? (
+          <div
+            aria-hidden
+            style={{
+              position: "fixed",
+              top: 0,
+              left: -10000,
+              width: EXPORT_WIDTH,
+              pointerEvents: "none",
+              zIndex: -1,
+            }}
+          >
+            <div ref={exportRef} className="bg-zinc-50 dark:bg-[#0B0F1A]">
+              <SprintReportExport data={data} sprintId={sprintId} />
+            </div>
+          </div>
+        ) : null}
       </div>
     </SnapshotContext.Provider>
   );
 }
 
-function Header({ overview }: { overview: SprintReport["overview"] }) {
+/** Width of the offscreen export layout — wide enough to trigger desktop (lg) grids. */
+const EXPORT_WIDTH = 1200;
+/** One A4 page height at EXPORT_WIDTH (A4 ratio 297/210) — used to size the cover. */
+const EXPORT_PAGE_HEIGHT = Math.round(EXPORT_WIDTH * (297 / 210));
+
+/**
+ * Resolves once the offscreen export layout has loaded its sections (skeletons
+ * gone) and charts have had time to finish their entry animation.
+ */
+function waitForExportReady(el: HTMLElement, timeoutMs = 9000): Promise<void> {
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const check = () => {
+      const stillLoading = el.querySelector(".animate-pulse") != null;
+      if (!stillLoading || performance.now() - start > timeoutMs) {
+        // Settle delay so Recharts SVGs are fully painted before capture.
+        setTimeout(resolve, 1300);
+      } else {
+        setTimeout(check, 150);
+      }
+    };
+    check();
+  });
+}
+
+function SprintReportExport({
+  data,
+  sprintId,
+}: {
+  data: SprintReport;
+  sprintId: string;
+}) {
+  return (
+    <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
+      <div className="px-8 py-8 space-y-4">
+        <ExportCover overview={data.overview} />
+        <div className="html2pdf__page-break" />
+        <AiNarrativeSection sprintId={sprintId} />
+        <BottlenecksSection sprintId={sprintId} />
+        <DistributionSection
+          dist={data.ticketDistribution}
+          contribution={data.contribution}
+        />
+        <ContributionSection rows={data.contribution} />
+        <ScopeChangeSection sprintId={sprintId} />
+        <VelocitySection sprintId={sprintId} />
+        <TimelineSection sprintId={sprintId} />
+        <HotspotsSection sprintId={sprintId} />
+        <QualitySection sprintId={sprintId} />
+        <ConclusionSection overview={data.overview} />
+      </div>
+    </div>
+  );
+}
+
+function ExportCover({ overview }: { overview: SprintReport["overview"] }) {
+  return (
+    <section
+      className="flex flex-col gap-5"
+      style={{ minHeight: EXPORT_PAGE_HEIGHT }}
+    >
+      <Header overview={overview} printMode />
+      <KpiStrip overview={overview} />
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6">
+        <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400 mb-4">
+          Contents
+        </div>
+        <ol className="space-y-2.5">
+          {SECTIONS.map((s, i) => (
+            <li
+              key={s.id}
+              className="flex items-center gap-3 text-sm text-zinc-800 dark:text-zinc-200"
+            >
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-xs font-semibold tabular-nums">
+                {i + 1}
+              </span>
+              <span className="font-medium">{s.label}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function Header({
+  overview,
+  printMode = false,
+  onExport,
+  exporting = null,
+}: {
+  overview: SprintReport["overview"];
+  printMode?: boolean;
+  onExport?: (format: "pdf" | "docx") => void;
+  exporting?: "pdf" | "docx" | null;
+}) {
   const router = useRouter();
-  const dateRange =
-    overview.startDate || overview.endDate
-      ? `${fmtDate(overview.startDate)} – ${fmtDate(overview.endDate)}`
+
+  // Planned dates fall back to the legacy combined fields for older snapshots.
+  const plannedStart = overview.plannedStartDate ?? overview.startDate;
+  const plannedEnd = overview.plannedEndDate ?? overview.endDate;
+  const plannedRange =
+    plannedStart || plannedEnd
+      ? `${fmtDate(plannedStart)} – ${fmtDate(plannedEnd)}`
       : "Dates not set";
+
+  const actualStart = overview.actualStartDate ?? null;
+  const actualEnd = overview.actualEndDate ?? null;
+  const actualRange =
+    actualStart || actualEnd
+      ? `${fmtDate(actualStart)} – ${actualEnd ? fmtDate(actualEnd) : "in progress"}`
+      : null;
+
+  const delayDays = overview.delayDays ?? null;
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -245,15 +660,20 @@ function Header({ overview }: { overview: SprintReport["overview"] }) {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleBack}
-        className="inline-flex items-center gap-1.5 -ml-1.5 px-1.5 py-1 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
-      >
-        <ArrowLeftIcon />
-        <span>Back</span>
-      </button>
-      <div className="mt-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
+      {!printMode ? (
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 -ml-1.5 px-1.5 py-1 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+          >
+            <ArrowLeftIcon />
+            <span>Back</span>
+          </button>
+          {onExport ? <ExportMenu onExport={onExport} exporting={exporting} /> : null}
+        </div>
+      ) : null}
+      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
         <span>Sprint Report</span>
         {overview.projectCode ? (
           <>
@@ -271,24 +691,32 @@ function Header({ overview }: { overview: SprintReport["overview"] }) {
         ) : null}
       </div>
 
-      <div className="mt-2.5 flex items-start justify-between gap-5 flex-wrap">
+      <div className="mt-1.5 flex items-start justify-between gap-5 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-[19px] leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               {overview.sprintName ?? "Unnamed sprint"}
             </h1>
             {overview.status ? <StatusPill status={overview.status} /> : null}
           </div>
           {overview.goal ? (
-            <p className="mt-1.5 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            <p className="mt-1 max-w-2xl text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-1">
               {overview.goal}
             </p>
           ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <HeaderChip icon={<CalendarIcon />}>{dateRange}</HeaderChip>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <HeaderChip icon={<CalendarIcon />} label="Planned">
+              {plannedRange}
+            </HeaderChip>
+            {actualRange ? (
+              <HeaderChip icon={<CalendarIcon />} label="Actual">
+                {actualRange}
+              </HeaderChip>
+            ) : null}
             <HeaderChip icon={<ClockIcon />}>
               {overview.durationDays != null ? `${overview.durationDays} days` : "Duration —"}
             </HeaderChip>
+            {delayDays != null ? <DelayChip days={delayDays} /> : null}
             <HeaderChip icon={<UsersIcon />}>
               {overview.teamSize} {overview.teamSize === 1 ? "member" : "members"}
             </HeaderChip>
@@ -301,6 +729,79 @@ function Header({ overview }: { overview: SprintReport["overview"] }) {
         <HealthCard score={overview.healthScore} band={overview.healthBand} />
       </div>
     </div>
+  );
+}
+
+function ExportMenu({
+  onExport,
+  exporting,
+}: {
+  onExport: (format: "pdf" | "docx") => void;
+  exporting: "pdf" | "docx" | null;
+}) {
+  const busy = exporting != null;
+  return (
+    <div className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <span className="px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] font-medium text-zinc-400 dark:text-zinc-500 border-r border-zinc-200 dark:border-zinc-800">
+        Download
+      </span>
+      <ExportButton
+        label="PDF"
+        busy={exporting === "pdf"}
+        disabled={busy}
+        onClick={() => onExport("pdf")}
+      />
+      <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
+      <ExportButton
+        label="DOC"
+        busy={exporting === "docx"}
+        disabled={busy}
+        onClick={() => onExport("docx")}
+      />
+    </div>
+  );
+}
+
+function ExportButton({
+  label,
+  busy,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  busy: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    >
+      {busy ? <SpinnerIcon /> : <DownloadIcon />}
+      {label}
+    </button>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   );
 }
 
@@ -324,29 +825,29 @@ function HealthCard({
     <div
       className={`flex items-stretch rounded-xl border ${styles.border} ${styles.bg} overflow-hidden`}
     >
-      <div className="px-5 py-2.5 flex flex-col items-end justify-center min-w-[88px]">
+      <div className="px-4 py-1.5 flex flex-col items-end justify-center min-w-[80px]">
         <span
           className={`text-[10px] uppercase tracking-[0.14em] font-medium ${styles.text}`}
         >
           Health
         </span>
-        <span className="text-[28px] font-semibold tabular-nums leading-none mt-1 text-zinc-900 dark:text-zinc-50">
+        <span className="text-[22px] font-semibold tabular-nums leading-none mt-0.5 text-zinc-900 dark:text-zinc-50">
           {score}
-          <span className="text-sm text-zinc-400 dark:text-zinc-500 font-normal ml-0.5">
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 font-normal ml-0.5">
             /100
           </span>
         </span>
       </div>
       <div
-        className={`border-l ${styles.border} px-4 py-2.5 flex flex-col justify-center min-w-[140px]`}
+        className={`border-l ${styles.border} px-3.5 py-1.5 flex flex-col justify-center min-w-[132px]`}
       >
         <span
-          className={`inline-flex items-center gap-1.5 text-sm font-medium ${styles.text}`}
+          className={`inline-flex items-center gap-1.5 text-xs font-medium ${styles.text}`}
         >
           <span className={`inline-block w-1.5 h-1.5 rounded-full ${styles.dot}`} />
           {band}
         </span>
-        <div className="mt-2 h-1 w-full bg-zinc-100 dark:bg-zinc-800/80 rounded-full overflow-hidden">
+        <div className="mt-1.5 h-1 w-full bg-zinc-100 dark:bg-zinc-800/80 rounded-full overflow-hidden">
           <div
             className={`h-full ${meterColor}`}
             style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
@@ -387,15 +888,39 @@ function StatusPill({ status }: { status: string }) {
 
 function HeaderChip({
   icon,
+  label,
   children,
 }: {
   icon: React.ReactNode;
+  label?: string;
   children: React.ReactNode;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 text-xs text-zinc-700 dark:text-zinc-300">
       <span className="text-zinc-400 dark:text-zinc-500">{icon}</span>
+      {label ? (
+        <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-zinc-400 dark:text-zinc-500">
+          {label}
+        </span>
+      ) : null}
       <span className="font-medium tabular-nums">{children}</span>
+    </span>
+  );
+}
+
+function DelayChip({ days }: { days: number }) {
+  const onTime = days <= 0;
+  const styles = onTime
+    ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+    : "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${styles}`}
+    >
+      <ClockIcon />
+      <span className="tabular-nums">
+        {onTime ? "On time" : `${days} ${days === 1 ? "day" : "days"} delayed`}
+      </span>
     </span>
   );
 }
@@ -536,20 +1061,20 @@ function KpiCell({
   return (
     <div
       className={[
-        "px-5 py-4 border-zinc-200 dark:border-zinc-800 transition-colors",
+        "px-4 py-2.5 border-zinc-200 dark:border-zinc-800 transition-colors",
         "hover:bg-zinc-50 dark:hover:bg-zinc-900",
         ...rightBorder,
         ...bottomBorder,
       ].join(" ")}
     >
-      <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
+      <div className="text-[10px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
         {item.label}
       </div>
-      <div className="mt-1.5 text-[26px] font-semibold leading-none text-zinc-900 dark:text-zinc-50 tabular-nums">
+      <div className="mt-1 text-[20px] font-semibold leading-none text-zinc-900 dark:text-zinc-50 tabular-nums">
         {item.value}
       </div>
       {item.sub ? (
-        <div className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{item.sub}</div>
+        <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">{item.sub}</div>
       ) : null}
     </div>
   );
@@ -1559,6 +2084,256 @@ function ErrorState({ message }: { message: string }) {
           <div className="mt-1 text-sm text-rose-700 dark:text-rose-400">{message}</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Loads a sprint report, preferring the stored snapshot, else computing live. */
+export async function fetchSprintReport(
+  sprintId: string
+): Promise<{ data: SprintReport; snapshot: Record<string, any> | null }> {
+  try {
+    const detail = await SprintReportsService.getBySprint(sprintId);
+    const report = (detail?.report ?? {}) as Record<string, any>;
+    if (report.main) return { data: report.main as SprintReport, snapshot: report };
+  } catch {
+    // No snapshot (404) → fall through to live computation.
+  }
+  const live = await api.get<SprintReport>(`/api/sprint-report/${sprintId}`);
+  return { data: live, snapshot: null };
+}
+
+function exportFilename(data: SprintReport, format: "pdf" | "docx"): string {
+  const safe = (data.overview.sprintName || "sprint-report")
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `${safe || "sprint-report"}.${format === "pdf" ? "pdf" : "docx"}`;
+}
+
+/**
+ * Headless export: fetches a sprint report, renders the export layout offscreen,
+ * captures it to PDF/DOCX, then calls `onDone`. Used from the reports list so a
+ * report can be downloaded without opening the detail page. Mount it only while
+ * an export is in flight.
+ */
+export function SprintReportExportRunner({
+  sprintId,
+  format,
+  onDone,
+}: {
+  sprintId: string;
+  format: "pdf" | "docx";
+  onDone: (ok: boolean) => void;
+}) {
+  const [payload, setPayload] = useState<{
+    data: SprintReport;
+    snapshot: Record<string, any> | null;
+  } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const ranRef = useRef(false);
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchSprintReport(sprintId);
+        if (!cancelled) setPayload(res);
+      } catch (err) {
+        console.error("Sprint report export: fetch failed", err);
+        if (!cancelled) doneRef.current(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sprintId]);
+
+  useEffect(() => {
+    if (!payload || ranRef.current) return;
+    ranRef.current = true;
+    (async () => {
+      const el = ref.current;
+      if (!el) {
+        doneRef.current(false);
+        return;
+      }
+      let ok = true;
+      try {
+        await waitForExportReady(el);
+        const filename = exportFilename(payload.data, format);
+        if (format === "pdf") await downloadReportPdf(el, filename);
+        else await downloadReportDocx(el, filename);
+      } catch (err) {
+        console.error("Sprint report export failed", err);
+        ok = false;
+      } finally {
+        doneRef.current(ok);
+      }
+    })();
+  }, [payload, format]);
+
+  if (!payload) return null;
+  return (
+    <SnapshotContext.Provider value={payload.snapshot}>
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          top: 0,
+          left: -10000,
+          width: EXPORT_WIDTH,
+          pointerEvents: "none",
+          zIndex: -1,
+        }}
+      >
+        <div ref={ref} className="bg-zinc-50 dark:bg-[#0B0F1A]">
+          <SprintReportExport data={payload.data} sprintId={sprintId} />
+        </div>
+      </div>
+    </SnapshotContext.Provider>
+  );
+}
+
+function ConclusionSection({ overview }: { overview: SprintReport["overview"] }) {
+  const styles = HEALTH_BAND_STYLES[overview.healthBand];
+
+  const wins: string[] = [];
+  const concerns: string[] = [];
+
+  if (overview.completionPct >= 90) {
+    wins.push(`Delivered ${fmtPct(overview.completionPct)} of committed tickets.`);
+  } else if (overview.completionPct < 60) {
+    concerns.push(
+      `Only ${fmtPct(overview.completionPct)} of tickets reached done — significant carryover.`
+    );
+  }
+
+  if (overview.pointCompletionPct >= 90) {
+    wins.push(
+      `Cleared ${fmtNum(overview.completedStoryPoints)} of ${fmtNum(
+        overview.plannedStoryPoints
+      )} story points (${fmtPct(overview.pointCompletionPct)}).`
+    );
+  } else if (overview.plannedStoryPoints > 0 && overview.pointCompletionPct < 60) {
+    concerns.push(
+      `Point completion at ${fmtPct(overview.pointCompletionPct)} — capacity or estimation gap.`
+    );
+  }
+
+  if (overview.spilloverPct > 20) {
+    concerns.push(`${fmtPct(overview.spilloverPct)} of work spilled over to the next sprint.`);
+  } else if (overview.spilloverPct === 0 && overview.totalTickets > 0) {
+    wins.push("Zero spillover — the full plan landed inside the sprint.");
+  }
+
+  if (overview.addedAfterStartPct >= 25) {
+    concerns.push(
+      `${fmtPct(overview.addedAfterStartPct)} of scope (${overview.addedAfterStart} ticket${
+        overview.addedAfterStart === 1 ? "" : "s"
+      }) was added after the sprint started.`
+    );
+  }
+
+  if (overview.bugRatioPct >= 30) {
+    concerns.push(
+      `Bug ratio at ${fmtPct(overview.bugRatioPct)} (${overview.bugCount} bug${
+        overview.bugCount === 1 ? "" : "s"
+      }) — heavy reactive load.`
+    );
+  } else if (overview.bugCount === 0 && overview.totalTickets > 0) {
+    wins.push("No bugs recorded across the sprint.");
+  }
+
+  if (overview.blockedTickets > 0) {
+    concerns.push(
+      `${overview.blockedTickets} ticket${
+        overview.blockedTickets === 1 ? "" : "s"
+      } ended the sprint blocked.`
+    );
+  }
+
+  const verdict =
+    overview.healthBand === "Healthy"
+      ? "This sprint was healthy: delivery held up with limited risk signals. Carry the momentum into planning."
+      : overview.healthBand === "Moderate Risk"
+        ? "A solid sprint with a few pressure points. Address the concerns below before they compound next cycle."
+        : overview.healthBand === "High Risk"
+          ? "This sprint ran hot. Several signals need attention in retro to keep the next cycle on track."
+          : "This was a critical sprint. The concerns below point to systemic planning or execution issues to resolve urgently.";
+
+  return (
+    <section className="space-y-4">
+      <SectionTitle title="Conclusion" hint="Auto-summarized from sprint metrics" />
+
+      <div
+        className={`rounded-xl border ${styles.border} ${styles.bg} px-5 py-4 flex items-start gap-3`}
+      >
+        <span className={`mt-1 inline-block w-2 h-2 rounded-full flex-shrink-0 ${styles.dot}`} />
+        <div>
+          <div className={`text-sm font-semibold ${styles.text}`}>
+            {overview.healthBand} · Health {overview.healthScore}/100
+          </div>
+          <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+            {verdict}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <ConclusionList
+          title="What went well"
+          tone="emerald"
+          items={wins}
+          empty="No standout positives surfaced from the metrics."
+        />
+        <ConclusionList
+          title="What to watch"
+          tone="rose"
+          items={concerns}
+          empty="No material concerns flagged by the metrics."
+        />
+      </div>
+    </section>
+  );
+}
+
+function ConclusionList({
+  title,
+  tone,
+  items,
+  empty,
+}: {
+  title: string;
+  tone: "emerald" | "rose";
+  items: string[];
+  empty: string;
+}) {
+  const dot = tone === "emerald" ? "bg-emerald-500" : "bg-rose-500";
+  const head =
+    tone === "emerald"
+      ? "text-emerald-700 dark:text-emerald-300"
+      : "text-rose-700 dark:text-rose-300";
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+      <div className={`text-[11px] uppercase tracking-[0.12em] font-semibold mb-2.5 ${head}`}>
+        {title}
+      </div>
+      {items.length > 0 ? (
+        <ul className="space-y-2 text-sm text-zinc-800 dark:text-zinc-200">
+          {items.map((it, idx) => (
+            <li key={idx} className="flex gap-2.5 leading-relaxed">
+              <span
+                className={`mt-1.5 inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`}
+              />
+              <span>{it}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">{empty}</p>
+      )}
     </div>
   );
 }

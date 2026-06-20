@@ -8,6 +8,7 @@ import {
   Tooltip,
   Avatar,
   Dropdown,
+  message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -25,7 +26,11 @@ import {
   EyeOutlined,
   ReloadOutlined as RegenOutlined,
   RightOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
+import { SprintReportExportRunner } from "./[sprintId]/SprintReportView";
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProjectService } from "@/services/projectService";
@@ -306,6 +311,70 @@ export default function ReportsHub() {
     if (r.hasReport) router.push(`/tickets/reports/${r.sprintId}`);
   };
 
+  // ── Download (PDF / DOCX) without leaving the list ──
+  const [exportTarget, setExportTarget] = useState<{
+    sprintId: string;
+    format: "pdf" | "docx";
+  } | null>(null);
+  const hideExportMsg = useRef<(() => void) | null>(null);
+
+  const handleDownload = (sprintId: string, format: "pdf" | "docx") => {
+    if (exportTarget) return; // one export at a time
+    hideExportMsg.current = message.loading(
+      `Preparing ${format === "pdf" ? "PDF" : "Word"} report…`,
+      0
+    );
+    setExportTarget({ sprintId, format });
+  };
+
+  const handleExportDone = (ok: boolean) => {
+    hideExportMsg.current?.();
+    hideExportMsg.current = null;
+    if (ok) message.success("Report downloaded");
+    else message.error("Couldn't generate the report file");
+    setExportTarget(null);
+  };
+
+  // Action menu shared by the table rows and the grid cards.
+  const reportMenu = (r: SprintReportListItem) => ({
+    items: [
+      { key: "view", label: "Open report", icon: <EyeOutlined /> },
+      {
+        key: "pdf",
+        label: "Download PDF",
+        icon: <FilePdfOutlined />,
+        disabled: !!exportTarget,
+      },
+      {
+        key: "docx",
+        label: "Download Word",
+        icon: <FileWordOutlined />,
+        disabled: !!exportTarget,
+      },
+      { type: "divider" as const },
+      { key: "regen", label: "Regenerate", icon: <RegenOutlined /> },
+    ],
+    onClick: ({ key, domEvent }: { key: string; domEvent: any }) => {
+      domEvent.stopPropagation();
+      if (key === "view") openReport(r);
+      else if (key === "pdf") handleDownload(r.sprintId, "pdf");
+      else if (key === "docx") handleDownload(r.sprintId, "docx");
+      else if (key === "regen") handleGenerate(r.sprintId);
+    },
+  });
+
+  // Download-only menu (PDF / Word) for the inline download icon.
+  const downloadMenu = (r: SprintReportListItem) => ({
+    items: [
+      { key: "pdf", label: "Download PDF", icon: <FilePdfOutlined />, disabled: !!exportTarget },
+      { key: "docx", label: "Download Word", icon: <FileWordOutlined />, disabled: !!exportTarget },
+    ],
+    onClick: ({ key, domEvent }: { key: string; domEvent: any }) => {
+      domEvent.stopPropagation();
+      handleDownload(r.sprintId, key as "pdf" | "docx");
+    },
+  });
+
   const healthPill = (band: string | null, score: number | null) => {
     const meta = (band && HEALTH_META[band]) || { color: "#64748b", bg: "rgba(100,116,139,0.10)" };
     return (
@@ -397,30 +466,38 @@ export default function ReportsHub() {
         ),
     },
     {
-      title: "",
+      title: "ACTION",
       key: "actions",
       align: "right" as const,
-      width: 150,
+      width: 160,
       fixed: "right" as const,
       render: (_: any, r) =>
         r.hasReport ? (
-          <Dropdown
-            menu={{
-              items: [
-                { key: "view", label: "Open report", icon: <EyeOutlined /> },
-                { key: "regen", label: "Regenerate", icon: <RegenOutlined /> },
-              ],
-              onClick: ({ key, domEvent }) => {
-                domEvent.stopPropagation();
-                if (key === "view") openReport(r);
-                else if (key === "regen") handleGenerate(r.sprintId);
-              },
-            }}
-            trigger={["click"]}
-            placement="bottomRight"
-          >
-            <Button type="text" className="pp-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
-          </Dropdown>
+          <div className="rh-actions">
+            <Button
+              size="small"
+              className="rh-act-btn"
+              icon={<RegenOutlined spin={!!generating[r.sprintId]} />}
+              disabled={!!generating[r.sprintId]}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleGenerate(r.sprintId);
+              }}
+            >
+              Regenerate
+            </Button>
+            <Dropdown menu={downloadMenu(r)} trigger={["click"]} placement="bottomRight">
+              <Tooltip title="Download">
+                <Button
+                  size="small"
+                  className="pp-icon-btn"
+                  icon={<DownloadOutlined />}
+                  loading={exportTarget?.sprintId === r.sprintId}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Tooltip>
+            </Dropdown>
+          </div>
         ) : (
           <Button
             type="primary"
@@ -457,6 +534,13 @@ export default function ReportsHub() {
 
   return (
     <div className="pp-shell">
+      {exportTarget ? (
+        <SprintReportExportRunner
+          sprintId={exportTarget.sprintId}
+          format={exportTarget.format}
+          onDone={handleExportDone}
+        />
+      ) : null}
       {/* ============================ SIDEBAR ============================ */}
       <aside className="pp-sidebar">
         <div className="pp-side-head">
@@ -597,7 +681,7 @@ export default function ReportsHub() {
                 rowKey="sprintId"
                 size="small"
                 className="pp-table"
-                scroll={{ x: 1110 }}
+                scroll={{ x: 1120 }}
                 pagination={false}
                 locale={{ emptyText: emptyState }}
                 onRow={(record) => ({
@@ -644,21 +728,7 @@ export default function ReportsHub() {
                           </div>
                         </div>
                         {r.hasReport ? (
-                          <Dropdown
-                            menu={{
-                              items: [
-                                { key: "view", label: "Open report", icon: <EyeOutlined /> },
-                                { key: "regen", label: "Regenerate", icon: <RegenOutlined /> },
-                              ],
-                              onClick: ({ key, domEvent }) => {
-                                domEvent.stopPropagation();
-                                if (key === "view") openReport(r);
-                                else if (key === "regen") handleGenerate(r.sprintId);
-                              },
-                            }}
-                            trigger={["click"]}
-                            placement="bottomRight"
-                          >
+                          <Dropdown menu={reportMenu(r)} trigger={["click"]} placement="bottomRight">
                             <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
                               <EllipsisOutlined />
                             </button>
@@ -837,7 +907,7 @@ export default function ReportsHub() {
           border: 1px solid var(--border-slate-200); background: var(--bg-slate-50);
           font-size: 11px; font-family: ui-monospace, monospace; color: var(--text-slate-500);
         }
-        .rh-main-desc { margin: 6px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 640px; }
+        .rh-main-desc { margin: 6px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 820px; }
 
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap {
@@ -939,8 +1009,15 @@ export default function ReportsHub() {
         .rh-bar-fill { display: block; height: 100%; border-radius: 99px; background: #10b981; }
         .rh-bar-pct { font-size: 11px; font-weight: 700; color: var(--text-slate-700); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
 
-        .rh-gen-btn { background: #4f46e5 !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; box-shadow: none !important; }
-        .rh-gen-btn:hover { background: #4338ca !important; }
+        .rh-gen-btn { background: #3b82f6 !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; box-shadow: none !important; }
+        .rh-gen-btn:hover { background: #2563eb !important; }
+        .rh-actions { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+        .rh-act-btn {
+          border-radius: 8px !important; border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important; color: var(--text-slate-700) !important;
+          font-weight: 600 !important; font-size: 12px !important; box-shadow: none !important;
+        }
+        .rh-act-btn:not(:disabled):hover { color: #4f46e5 !important; border-color: #c7d2fe !important; }
         .rh-error {
           margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
           border: 1px solid rgba(239,68,68,0.25); background: rgba(239,68,68,0.06); color: #b91c1c; font-size: 13px;

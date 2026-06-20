@@ -341,8 +341,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 6px;
-  padding: 5px 12px;
-  height: 42px;
+  padding: 3px 10px;
+  height: 35px;
   min-width: 150px;
   width: 100%;
   cursor: pointer;
@@ -350,8 +350,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   user-select: none;
 }
 .sd-trigger.is-compact {
-  height: 36px;
-  padding: 4px 10px;
+  height: 30px;
+  padding: 2px 8px;
 }
 .sd-trigger:hover {
   border-color: var(--text-slate-400, #cbd5e1);
@@ -374,8 +374,8 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  line-height: 1.2;
-  gap: 1px;
+  line-height: 1.1;
+  gap: 0px;
   flex: 1;
   min-width: 0;
 }
@@ -384,14 +384,14 @@ const SEARCHABLE_DROPDOWN_CSS = `
   align-items: center;
 }
 .sd-trigger-label {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-slate-400, #94a3b8);
 }
 .sd-trigger-value {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-slate-800, #1e293b);
   overflow: hidden;

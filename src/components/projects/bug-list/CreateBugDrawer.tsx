@@ -354,7 +354,7 @@ export default function CreateBugDrawer({
       <Drawer
         open={open}
         onClose={onClose}
-        width={560}
+        width={460}
         destroyOnHidden
         closable={false}
         title={null}
@@ -376,6 +376,10 @@ export default function CreateBugDrawer({
               token: {
                 colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
                 colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+                borderRadius: 0,
+                borderRadiusLG: 0,
+                borderRadiusSM: 0,
+                borderRadiusXS: 0,
               }
             }}
           >
@@ -493,7 +497,7 @@ export default function CreateBugDrawer({
                 </div>
                 <textarea
                   className="hb-cbd-textarea"
-                  rows={5}
+                  rows={3}
                   placeholder="What's broken? Steps, observed behaviour, attachments (paste images/videos here)…"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -509,7 +513,7 @@ export default function CreateBugDrawer({
                 <Label icon={<FileText size={11} />}>Comments</Label>
                 <textarea
                   className="hb-cbd-textarea"
-                  rows={3}
+                  rows={2}
                   placeholder="Any additional internal comments or notes…"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
@@ -528,6 +532,7 @@ export default function CreateBugDrawer({
                     status={!severity && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     options={(severityOptions || [])
                       .filter((s) => s.isActive)
                       .map((s) => ({
@@ -570,6 +575,7 @@ export default function CreateBugDrawer({
                     status={!bugType && descriptionTouched ? "error" : undefined}
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     options={(typeOptions || [])
                       .filter((t) => t.isActive)
                       .map((t) => ({ value: t.key, label: t.label }))}
@@ -617,6 +623,7 @@ export default function CreateBugDrawer({
                     }
                     style={{ width: "100%" }}
                     size="middle"
+                    popupClassName="hb-cbd-select-popup"
                     suffixIcon={
                       assignee ? (
                         <Avatar

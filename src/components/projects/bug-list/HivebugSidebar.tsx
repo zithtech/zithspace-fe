@@ -21,6 +21,8 @@ import {
   Trash2,
   CheckCircle2,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Dropdown, Skeleton, Tooltip, Select } from "antd";
 import {
@@ -72,6 +74,9 @@ interface HivebugSidebarProps {
   onProjectChange: (id: string | null) => void;
   width?: number;
   onResizerMouseDown?: (e: React.MouseEvent) => void;
+  onCreateBug?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function HivebugSidebar({
@@ -88,6 +93,9 @@ export default function HivebugSidebar({
   onProjectChange,
   width,
   onResizerMouseDown,
+  onCreateBug,
+  isCollapsed = false,
+  onToggleCollapse,
 }: HivebugSidebarProps) {
   const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
   const { data: allProjects } = useAllProjects();
@@ -165,19 +173,47 @@ export default function HivebugSidebar({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="hb-sidebar-wrap" style={{ width }}>
+      <div
+        className={`hb-sidebar-wrap ${isCollapsed ? "hb-sidebar-collapsed" : ""}`}
+        style={{ width: isCollapsed ? undefined : width }}
+      >
         <aside className="hb-sidebar">
           <div className="hb-brand">
-            <div className="hb-brand-icon">
-              <Bug size={20} />
+            <div className="hb-brand-top">
+              {!isCollapsed && (
+                <>
+                  <div className="hb-brand-icon">
+                    <Bug size={20} />
+                  </div>
+                  <div className="hb-brand-text">
+                    <div className="hb-brand-name">Bug List</div>
+                    <div className="hb-brand-workspace">QA WORKSPACE</div>
+                  </div>
+                </>
+              )}
+              {onToggleCollapse && (
+                <button
+                  className="hb-icon-btn hb-sidebar-collapse-btn"
+                  onClick={onToggleCollapse}
+                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  {isCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+                </button>
+              )}
             </div>
-            <div className="hb-brand-text">
-              <div className="hb-brand-name">Bug List</div>
-              <div className="hb-brand-workspace">QA WORKSPACE</div>
-            </div>
+            {!isCollapsed && onCreateBug && (
+              <button
+                className="hb-btn hb-btn-primary hb-sidebar-new-bug-btn"
+                onClick={onCreateBug}
+              >
+                <Plus size={13} />
+                New Bug
+              </button>
+            )}
           </div>
 
-          <div className="hb-section">
+          {!isCollapsed && (<div className="hb-section">
             <div
               className="hb-section-title"
               style={{ cursor: "pointer" }}
@@ -207,7 +243,7 @@ export default function HivebugSidebar({
                     onSelect(null, null);
                   }}
                 >
-                  <Inbox size={15} />
+                  <Inbox size={15} style={{ color: (scope === "all" && !selectedFolderId && !selectedSheetId) ? "#3B82F6" : "var(--hb-text-muted)" }} />
                   <span className="hb-row-label">All Bugs</span>
                   <span className="hb-row-count">{stats.data?.total ?? 0}</span>
                 </button>
@@ -218,7 +254,7 @@ export default function HivebugSidebar({
                     onSelect(null, null);
                   }}
                 >
-                  <User size={15} />
+                  <User size={15} style={{ color: scope === "mine" ? "#64748B" : "var(--hb-text-muted)" }} />
                   <span className="hb-row-label">My Bugs</span>
                   <span className="hb-row-count">
                     {stats.data?.mineTotal ?? 0}
@@ -231,7 +267,7 @@ export default function HivebugSidebar({
                     onSelect(null, null);
                   }}
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={15} style={{ color: scope === "trash" ? "#ef4444" : "var(--hb-text-muted)" }} />
                   <span className="hb-row-label">Trash</span>
                   <span className="hb-row-count">
                     {stats.data?.trashTotal ?? 0}
@@ -244,7 +280,7 @@ export default function HivebugSidebar({
                     onSelect(null, null);
                   }}
                 >
-                  <Archive size={15} />
+                  <Archive size={15} style={{ color: scope === "archived" ? "#10B981" : "var(--hb-text-muted)" }} />
                   <span className="hb-row-label">Archived</span>
                   <span className="hb-row-count">
                     {stats.data?.archivedTotal ?? 0}
@@ -252,9 +288,9 @@ export default function HivebugSidebar({
                 </button>
               </>
             )}
-          </div>
+          </div>)}
 
-          <div className="hb-section hb-section-grow">
+          {!isCollapsed && (<div className="hb-section hb-section-grow">
             <div className="hb-section-title">
               <span className="hb-section-title-text">
                 <Library size={11} className="hb-section-title-icon" />
@@ -327,9 +363,9 @@ export default function HivebugSidebar({
                 ))
               )}
             </div>
-          </div>
+          </div>)}
         </aside>
-        <div className="hb-resizer" onMouseDown={onResizerMouseDown} />
+        {!isCollapsed && <div className="hb-resizer" onMouseDown={onResizerMouseDown} />}
       </div>
     </DndContext>
   );

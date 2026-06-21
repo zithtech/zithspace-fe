@@ -630,6 +630,48 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   Status: {getStatusLabel(ticket.status, ticketConfig?.statuses || STATUS_OPTIONS)}
                 </Tag>
               )}
+              {(() => {
+                const estSeconds = (ticket?.estimateHours || 0) * 3600;
+                const trackedSeconds = timeEntries.reduce((sum, e) => {
+                  let duration = e.duration || 0;
+                  if (e.status === 'RUNNING') {
+                    const lastLog = e.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                    const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
+                    duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                  }
+                  return sum + duration;
+                }, 0);
+
+                if (estSeconds === 0 && trackedSeconds === 0) return null;
+
+                const fmt = (secs: number) => {
+                  const h = Math.floor(secs / 3600);
+                  const m = Math.floor((secs % 3600) / 60);
+                  if (h === 0 && m === 0) return '0m';
+                  return [h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : ''].filter(Boolean).join(' ');
+                };
+
+                const overBy = trackedSeconds - estSeconds;
+                const isDelayed = estSeconds > 0 && overBy > 0;
+
+                return (
+                  <Tag
+                    bordered={false}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      margin: 0,
+                      backgroundColor: isDelayed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      color: isDelayed ? '#dc2626' : '#059669',
+                    }}
+                  >
+                    EST/Tracked: {fmt(estSeconds)} / {fmt(trackedSeconds)}
+                    {isDelayed && ` · ${fmt(overBy)} delayed`}
+                  </Tag>
+                );
+              })()}
             </Space>
 
 

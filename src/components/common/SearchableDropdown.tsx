@@ -90,6 +90,7 @@ const avatarColorFor = (str: string): string => {
 };
 
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+  mode,
   value,
   onChange,
   options,
@@ -170,7 +171,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         disabled={opt.disabled}
         onClick={() => {
           if (opt.disabled) return;
-          if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+          if (mode === "multiple" || Array.isArray(value) || (typeof value === 'object' && value !== null)) {
             // mode === 'multiple'
             const valArray = Array.isArray(value) ? value : [];
             if (isSelected) {

@@ -891,20 +891,6 @@ export default function BugListPage() {
 
         {filtersVisible && viewMode === "list" && (
           <>
-            {activeFilterCount > 0 && (
-              <div className="hb-filterbar-above" style={{ justifyContent: 'flex-end', margin: '2px 14px 4px 12px' }}>
-                <div className="hb-filterbar-actions">
-                  <button
-                    className="hb-filter-reset"
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
-                    title="Reset filters"
-                  >
-                    <RotateCcw size={12} />
-                    Reset
-                  </button>
-                </div>
-              </div>
-            )}
 
             <div className="hb-filterbar" style={{ position: 'relative', overflow: 'visible', marginTop: '16px' }}>
               <div className="hb-filterbar-badge">
@@ -913,6 +899,7 @@ export default function BugListPage() {
                   <span className="hb-filter-badge-count-inner">{activeFilterCount}</span>
                 )}
               </div>
+
               <Tooltip title="Hide filters">
                 <button
                   className="hb-icon-btn hb-filterbar-close"
@@ -1084,6 +1071,17 @@ export default function BugListPage() {
                     }
                   />
                 </div>
+
+                {activeFilterCount > 0 && (
+                  <button
+                    className="hb-filter-reset"
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                    title="Reset filters"
+                  >
+                    <RotateCcw size={12} />
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           </>

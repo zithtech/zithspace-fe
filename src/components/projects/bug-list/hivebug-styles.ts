@@ -837,6 +837,13 @@ export const hivebugStyles = `
   min-width: 0;
   max-width: 100%;
 }
+/* Top row inside filter bar: badge + reset + close */
+.hb-filterbar-toprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
 .hb-filterbar-header {
   display: flex;
   align-items: center;

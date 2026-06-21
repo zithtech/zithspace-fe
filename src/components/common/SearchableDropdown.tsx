@@ -340,7 +340,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   justify-content: space-between;
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
+  border-radius: 8px !important;
   padding: 5px 12px;
   height: 42px;
   min-width: 150px;
@@ -442,14 +442,14 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-overlay-popover.ant-popover { padding-top: 4px; }
 .sd-overlay-popover .ant-popover-content {
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-  border-radius: 12px;
+  border-radius: 8px !important;
   border: 1px solid var(--border-color, #e2e8f0);
   overflow: hidden;
 }
 .sd-overlay-popover .ant-popover-inner {
   padding: 0 !important;
   background: var(--bg-pure-white, #ffffff) !important;
-  border-radius: 12px;
+  border-radius: 8px !important;
 }
 [data-theme='dark'] .sd-overlay-popover .ant-popover-content { border-color: #27273a; }
 [data-theme='dark'] .sd-overlay-popover .ant-popover-inner { background: #181824 !important; }
@@ -464,15 +464,16 @@ const SEARCHABLE_DROPDOWN_CSS = `
   align-items: center;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
-  gap: 1.5px;
+  gap: 10px;
 }
 [data-theme='dark'] .sd-search-box { border-bottom-color: #27273a; }
 .sd-search-icon { color: var(--text-slate-400, #94a3b8); flex-shrink: 0; }
 .sd-search-input {
   flex: 1;
+  width: 100%;
   background: var(--bg-slate-50, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
+  border-radius: 8px !important;
   padding: 6px 12px;
   font-size: 12.5px;
   color: var(--text-slate-800, #1e293b);
@@ -512,7 +513,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 8px !important;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
@@ -528,7 +529,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: var(--bg-slate-100, #f1f5f9);
   color: var(--text-slate-600, #475569);
   display: flex;

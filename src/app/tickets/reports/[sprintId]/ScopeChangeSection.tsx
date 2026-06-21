@@ -11,6 +11,7 @@ import {
   SectionError,
   fmtNum,
   fmtPct,
+  useSnapshotSection,
 } from "./_shared";
 
 interface ScopeData {
@@ -44,11 +45,18 @@ interface ScopeData {
 }
 
 export default function ScopeChangeSection({ sprintId }: { sprintId: string }) {
+  const snapshot = useSnapshotSection<ScopeData>("scope");
   const [data, setData] = useState<ScopeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (snapshot !== undefined) {
+      setData(snapshot);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -60,7 +68,7 @@ export default function ScopeChangeSection({ sprintId }: { sprintId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sprintId]);
+  }, [sprintId, snapshot]);
 
   if (loading) {
     return (

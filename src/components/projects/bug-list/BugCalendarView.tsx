@@ -41,10 +41,10 @@ const EMPTY_BUCKET = (): DayBucket => ({
 });
 
 const SEVERITY_TONE: Record<string, string> = {
-  blocker: "#ef4444",
-  critical: "#f97316",
-  major: "#f59e0b",
-  minor: "#3b82f6",
+  blocker: "#f87171",
+  critical: "#f87171",
+  major: "#3b82f6",
+  minor: "#9ca3af",
 };
 
 const DAY_NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];

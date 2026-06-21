@@ -9,6 +9,7 @@ import {
   SectionSkeleton,
   SectionError,
   InsightCard,
+  useSnapshotSection,
 } from "./_shared";
 
 interface HotspotsData {
@@ -35,15 +36,33 @@ interface HotspotsData {
     totalTransitions: number;
     hotScore: number;
   }[];
+  modules?: {
+    module: string;
+    ticketCount: number;
+    uniqueAssignees: number;
+    urgentCount: number;
+    doneCount: number;
+    totalComments: number;
+    totalTransitions: number;
+    totalPoints: number;
+    hotScore: number;
+  }[];
   insights: string[];
 }
 
 export default function HotspotsSection({ sprintId }: { sprintId: string }) {
+  const snapshot = useSnapshotSection<HotspotsData>("hotspots");
   const [data, setData] = useState<HotspotsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (snapshot !== undefined) {
+      setData(snapshot);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -55,7 +74,7 @@ export default function HotspotsSection({ sprintId }: { sprintId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sprintId]);
+  }, [sprintId, snapshot]);
 
   if (loading) {
     return (
@@ -75,19 +94,28 @@ export default function HotspotsSection({ sprintId }: { sprintId: string }) {
   }
   if (!data) return null;
 
+  const modules = data.modules ?? [];
+  const hasEpics = data.epics.length > 0;
+
   return (
     <section className="space-y-4">
       <SectionTitle title="Hot Features & Modules" hint="Where the sprint's energy went" />
 
       <InsightCard title="Highlights" insights={data.insights} />
 
-      <Panel title="Hot Epics" hint="Ranked by ticket count, contributors, churn">
-        {data.epics.length === 0 ? (
-          <EmptyChart message="No epics linked to tickets in this sprint" />
-        ) : (
+      {hasEpics ? (
+        <Panel title="Hot Epics" hint="Ranked by ticket count, contributors, churn">
           <EpicList rows={data.epics.slice(0, 10)} />
-        )}
-      </Panel>
+        </Panel>
+      ) : modules.length > 0 ? (
+        <Panel title="Hot Work Types" hint="Busiest categories by tickets, contributors, churn">
+          <ModuleList rows={modules.slice(0, 10)} />
+        </Panel>
+      ) : (
+        <Panel title="Hot Epics" hint="Ranked by ticket count, contributors, churn">
+          <EmptyChart message="No epics or work-type data for this sprint" />
+        </Panel>
+      )}
 
       {data.tags.length > 0 ? (
         <Panel title="Hot Tags" hint="Top tags by activity volume">
@@ -95,6 +123,61 @@ export default function HotspotsSection({ sprintId }: { sprintId: string }) {
         </Panel>
       ) : null}
     </section>
+  );
+}
+
+function ModuleList({ rows }: { rows: NonNullable<HotspotsData["modules"]> }) {
+  const maxScore = Math.max(...rows.map((r) => r.hotScore), 1);
+  return (
+    <div className="space-y-2.5">
+      {rows.map((m, idx) => {
+        const widthPct = (m.hotScore / maxScore) * 100;
+        const progressPct =
+          m.ticketCount > 0 ? Math.round((m.doneCount / m.ticketCount) * 100) : 0;
+        return (
+          <div
+            key={m.module}
+            className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <RankPill rank={idx + 1} />
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 capitalize truncate">
+                    {m.module}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                  <Stat label="Tickets" value={m.ticketCount} />
+                  <Stat label="Contributors" value={m.uniqueAssignees} />
+                  <Stat label="Points" value={m.totalPoints} />
+                  <Stat label="Done" value={`${m.doneCount} · ${progressPct}%`} />
+                  {m.urgentCount > 0 ? <Stat label="Urgent" value={m.urgentCount} tone="rose" /> : null}
+                  {m.totalComments > 0 ? <Stat label="Comments" value={m.totalComments} /> : null}
+                  {m.totalTransitions > 0 ? (
+                    <Stat label="Transitions" value={m.totalTransitions} />
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
+                  Hot Score
+                </div>
+                <div className="text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                  {m.hotScore}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden">
+              <div
+                className="h-full rounded-sm bg-indigo-500 dark:bg-indigo-400"
+                style={{ width: `${widthPct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

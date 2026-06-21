@@ -24,6 +24,7 @@ import {
   fmtDayShort,
   fmtNum,
   ACCENT,
+  useSnapshotSection,
 } from "./_shared";
 
 interface VelocityData {
@@ -37,11 +38,18 @@ interface VelocityData {
 }
 
 export default function VelocitySection({ sprintId }: { sprintId: string }) {
+  const snapshot = useSnapshotSection<VelocityData>("velocity");
   const [data, setData] = useState<VelocityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (snapshot !== undefined) {
+      setData(snapshot);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -53,7 +61,7 @@ export default function VelocitySection({ sprintId }: { sprintId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sprintId]);
+  }, [sprintId, snapshot]);
 
   if (loading) {
     return (

@@ -112,9 +112,9 @@ export default function SettingsPage() {
       boxShadow: `0 0 0 1px ${token.colorPrimaryBorder}`
     },
     sectionCard: {
-      borderRadius: "16px",
-      border: `1px solid ${token.colorBorderSecondary}`,
-      boxShadow: token.boxShadowTertiary,
+      borderRadius: "0px",
+      border: `1px solid ${token.colorBorder}`,
+      boxShadow: "none",
       background: token.colorBgContainer
     },
     tabStyle: {
@@ -124,11 +124,11 @@ export default function SettingsPage() {
     },
     locationCard: {
       padding: '20px',
-      borderRadius: '16px',
-      border: `1px solid ${token.colorBorderSecondary}`,
+      borderRadius: '0px',
+      border: `1px solid ${token.colorBorder}`,
       background: token.colorBgContainer,
       transition: 'all 0.2s ease',
-      boxShadow: token.boxShadowTertiary,
+      boxShadow: "none",
     },
     locationIcon: {
       width: 40,
@@ -824,34 +824,14 @@ export default function SettingsPage() {
           <div style={{
             position: 'relative',
             overflow: 'hidden',
-            borderRadius: 20,
-            background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #8B5CF6 100%)',
-            padding: '28px 32px',
-            color: '#fff',
-            boxShadow: '0 10px 30px rgba(59, 130, 246, 0.25)',
+            borderRadius: 0,
+            background: token.colorBgContainer,
+            padding: '16px 24px',
+            color: token.colorText,
+            border: `1px solid ${token.colorBorder}`,
+            boxShadow: "none",
             flexShrink: 0
           }}>
-            {/* Decorative glow blobs */}
-            <div style={{
-              position: 'absolute',
-              top: -60,
-              right: -40,
-              width: 220,
-              height: 220,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%)',
-              pointerEvents: 'none'
-            }} />
-            <div style={{
-              position: 'absolute',
-              bottom: -80,
-              left: 20,
-              width: 240,
-              height: 240,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0) 70%)',
-              pointerEvents: 'none'
-            }} />
 
             <Row gutter={[24, 24]} align="middle" style={{ position: 'relative', zIndex: 1 }}>
               <Col xs={24} md={16}>
@@ -859,10 +839,9 @@ export default function SettingsPage() {
                   <div style={{
                     width: 64,
                     height: 64,
-                    borderRadius: 18,
-                    background: 'rgba(255,255,255,0.18)',
-                    backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 8,
+                    background: token.colorFillAlter,
+                    border: `1px solid ${token.colorBorderSecondary}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -876,19 +855,20 @@ export default function SettingsPage() {
                         style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
                       />
                     ) : (
-                      <PictureOutlined style={{ fontSize: 28, color: '#fff' }} />
+                      <PictureOutlined style={{ fontSize: 28, color: token.colorTextTertiary }} />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      <Text style={{ color: token.colorTextSecondary, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         Workspace Identity
                       </Text>
                       <div style={{
                         padding: '2px 8px',
                         borderRadius: 999,
-                        background: 'rgba(255,255,255,0.18)',
-                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: token.colorFillAlter,
+                        border: `1px solid ${token.colorBorderSecondary}`,
+                        color: token.colorText,
                         fontSize: 10,
                         fontWeight: 700,
                         display: 'inline-flex',
@@ -902,17 +882,17 @@ export default function SettingsPage() {
                     <Title
                       level={3}
                       style={{
-                        color: '#fff',
+                        color: token.colorText,
                         margin: 0,
                         fontWeight: 700,
-                        fontSize: 24,
+                        fontSize: 22,
                         lineHeight: 1.25,
                         wordBreak: 'break-word'
                       }}
                     >
                       {tenantProfile?.name || 'Your Company'}
                     </Title>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, display: 'block', marginTop: 4 }}>
+                    <Text style={{ color: token.colorTextSecondary, fontSize: 12, display: 'block', marginTop: 4 }}>
                       Customize your branding, manage logo versions, and refine how your workspace presents itself.
                     </Text>
                   </div>
@@ -922,29 +902,27 @@ export default function SettingsPage() {
                 <Row gutter={12}>
                   <Col span={12}>
                     <div style={{
-                      background: 'rgba(255,255,255,0.12)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      borderRadius: 14,
-                      padding: '14px 16px'
+                      background: token.colorFillAlter,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      borderRadius: 0,
+                      padding: '10px 12px'
                     }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Text style={{ color: token.colorTextSecondary, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Logo Versions
                       </Text>
-                      <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginTop: 4 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: token.colorText, lineHeight: 1.2, marginTop: 4 }}>
                         {logoVersions.length}
                       </div>
                     </div>
                   </Col>
                   <Col span={12}>
                     <div style={{
-                      background: 'rgba(255,255,255,0.12)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      borderRadius: 14,
-                      padding: '14px 16px'
+                      background: token.colorFillAlter,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      borderRadius: 0,
+                      padding: '10px 12px'
                     }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Text style={{ color: token.colorTextSecondary, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Status
                       </Text>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
@@ -957,7 +935,7 @@ export default function SettingsPage() {
                             ? '0 0 0 3px rgba(52, 211, 153, 0.25)'
                             : '0 0 0 3px rgba(251, 191, 36, 0.25)'
                         }} />
-                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+                        <Text style={{ color: token.colorText, fontSize: 13, fontWeight: 700 }}>
                           {tenantProfile?.settings?.logoUrl ? 'Active' : 'Pending'}
                         </Text>
                       </div>
@@ -971,21 +949,21 @@ export default function SettingsPage() {
           {/* Branding Card */}
           <Card
             variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", borderRadius: 20 }}
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
             styles={{ body: { padding: 0 } }}
           >
             <div style={{
-              padding: "20px 32px",
+              padding: "12px 20px",
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
               background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0
             }}>
               <Space size={14} align="center">
                 <div style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 6,
                   background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
                   color: '#2563EB',
                   display: 'flex',
@@ -993,23 +971,23 @@ export default function SettingsPage() {
                   justifyContent: 'center',
                   boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)'
                 }}>
-                  <SettingOutlined style={{ fontSize: 20 }} />
+                  <SettingOutlined style={{ fontSize: 18 }} />
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 17, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
+                  <Text strong style={{ fontSize: 15, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
                     Company Branding
                   </Text>
-                  <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                     Set your display name and upload a logo for use across the workspace
                   </Text>
                 </div>
               </Space>
             </div>
 
-            <div style={{ padding: 32 }}>
-              <Row gutter={[40, 32]} align="top">
+            <div style={{ padding: 20 }}>
+              <Row gutter={[24, 24]} align="top">
                 {/* Left Column: Branding Form */}
-                <Col xs={24} lg={11} xl={10}>
+                <Col xs={24} lg={8} xl={7}>
                   <Form
                     form={systemForm}
                     layout="vertical"
@@ -1142,26 +1120,26 @@ export default function SettingsPage() {
                 </Col>
 
                 {/* Right Column: Logo Gallery */}
-                <Col xs={24} lg={13} xl={14} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 32 }}>
+                <Col xs={24} lg={16} xl={17} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div>
                       <Space size={8} align="center">
-                        <PictureOutlined style={{ fontSize: 16, color: token.colorPrimary }} />
-                        <Text strong style={{ fontSize: 15, color: "var(--text-primary)", letterSpacing: '-0.01em' }}>
+                        <PictureOutlined style={{ fontSize: 15, color: token.colorPrimary }} />
+                        <Text strong style={{ fontSize: 14, color: "var(--text-primary)", letterSpacing: '-0.01em' }}>
                           Logo Library
                         </Text>
                       </Space>
-                      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 2 }}>
+                      <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
                         Switch between saved versions or upload a fresh one
                       </Text>
                     </div>
                     {logoVersions.length > 0 && (
                       <div style={{
-                        padding: '4px 10px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                         background: token.colorFillAlter,
                         border: `1px solid ${token.colorBorderSecondary}`,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 600,
                         color: 'var(--text-secondary)'
                       }}>
@@ -1171,52 +1149,50 @@ export default function SettingsPage() {
                   </div>
 
                   {logoVersions.length > 0 ? (
-                    <Row gutter={[16, 16]}>
+                    <Row gutter={[12, 12]}>
                       {logoVersions.map((url, index) => {
                         const isActive = tenantProfile?.settings?.logoUrl === url;
                         return (
-                          <Col key={index} xs={24} sm={12}>
+                          <Col key={index} xs={24} sm={12} md={8}>
                             <div
                               style={{
-                                borderRadius: 14,
+                                borderRadius: 0,
                                 overflow: 'hidden',
                                 border: isActive
                                   ? `2px solid ${token.colorPrimary}`
-                                  : `1px solid ${token.colorBorderSecondary}`,
+                                  : `1px solid ${token.colorBorder}`,
                                 position: 'relative',
                                 background: token.colorBgContainer,
                                 transition: 'all 0.25s ease',
-                                boxShadow: isActive
-                                  ? '0 10px 24px -10px rgba(37, 99, 235, 0.35)'
-                                  : '0 1px 2px rgba(0,0,0,0.03)'
+                                boxShadow: "none"
                               }}
                             >
                               {isActive && (
                                 <div style={{
                                   position: 'absolute',
-                                  top: 10,
-                                  right: 10,
+                                  top: 6,
+                                  right: 6,
                                   zIndex: 10,
                                   background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
                                   color: '#fff',
-                                  padding: '3px 8px',
-                                  borderRadius: 6,
-                                  fontSize: 10,
+                                  padding: '2px 6px',
+                                  borderRadius: 0,
+                                  fontSize: 9,
                                   fontWeight: 700,
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)'
                                 }}>
-                                  <CheckCircleFilled style={{ fontSize: 10 }} /> ACTIVE
+                                  <CheckCircleFilled style={{ fontSize: 9 }} /> ACTIVE
                                 </div>
                               )}
                               <div style={{
-                                height: 110,
+                                height: 80,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: 16,
+                                padding: 8,
                                 background: `repeating-conic-gradient(${token.colorFillAlter} 0% 25%, ${token.colorBgContainer} 0% 50%) 50% / 16px 16px`,
                                 borderBottom: `1px solid ${token.colorBorderSecondary}`
                               }}>
@@ -1227,7 +1203,7 @@ export default function SettingsPage() {
                                 />
                               </div>
                               <div style={{
-                                padding: '10px 12px',
+                                padding: '6px 8px',
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
@@ -1350,9 +1326,9 @@ export default function SettingsPage() {
               alignItems: 'center',
               marginBottom: 20,
               background: 'var(--bg-slate-50)',
-              padding: '16px 24px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
+              padding: '10px 16px',
+              borderRadius: '0px',
+              border: `1px solid ${token.colorBorder}`
             }}>
               <Space align="center" size="middle">
                 <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: 'var(--bg-pure-white)' }}>
@@ -1389,12 +1365,12 @@ export default function SettingsPage() {
                 <Col xs={24} sm={12} lg={8} key={loc.id}>
                   <div
                     style={{
-                      borderRadius: 16,
-                      border: "1px solid var(--border-slate-100)",
+                      borderRadius: 0,
+                      border: `1px solid ${token.colorBorder}`,
                       background: "var(--bg-secondary)",
                       padding: "20px",
                       position: "relative",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                     }}
                   >
                     {/* Top Right Ribbon */}
@@ -1588,15 +1564,15 @@ export default function SettingsPage() {
           {/* Default Invoice Mail Card */}
           <Card
             variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", borderRadius: 20 }}
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
             styles={{ body: { padding: 0 } }}
           >
             <div style={{
-              padding: "20px 32px",
+              padding: "12px 20px",
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
               background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0
             }}>
               <Space size={14} align="center">
                 <div style={{
@@ -1623,7 +1599,7 @@ export default function SettingsPage() {
               </Space>
             </div>
 
-            <div style={{ padding: 32 }}>
+            <div style={{ padding: 20 }}>
               {connectedEmails.length === 0 ? (
                 <div style={{
                   padding: '60px 40px',
@@ -1769,12 +1745,12 @@ export default function SettingsPage() {
                                 justifyContent: 'space-between',
                                 padding: '12px 14px',
                                 borderRadius: 12,
-                                border: isSelected ? `1.5px solid ${token.colorPrimary}` : `1px solid ${token.colorBorderSecondary}`,
+                                border: isSelected ? `1.5px solid ${token.colorPrimary}` : `1px solid ${token.colorBorder}`,
                                 background: isSelected
                                   ? 'linear-gradient(180deg, rgba(124, 58, 237, 0.04) 0%, rgba(124, 58, 237, 0.01) 100%)'
                                   : token.colorBgContainer,
                                 transition: 'all 0.2s ease',
-                                boxShadow: isSelected ? '0 4px 12px -4px rgba(124, 58, 237, 0.2)' : 'none'
+                                boxShadow: 'none'
                               }}
                             >
                               <Space size={12} align="center">
@@ -1827,15 +1803,15 @@ export default function SettingsPage() {
                   <Col xs={24} md={10}>
                     <div style={{
                       padding: 20,
-                      borderRadius: 16,
+                      borderRadius: 0,
                       height: '100%',
                       background: invoiceMailSettings
                         ? invoiceMailSettings.is_verified
                           ? 'linear-gradient(160deg, #F0FDF4 0%, #DCFCE7 100%)'
-                          : 'linear-gradient(160deg, #FFFBEB 0%, #FEF3C7 100%)'
+                          : 'linear-gradient(160deg, #FFFAF5 0%, #FFF3E8 100%)'
                         : token.colorFillAlter,
                       border: `1px solid ${invoiceMailSettings
-                        ? invoiceMailSettings.is_verified ? '#BBF7D0' : '#FDE68A'
+                        ? invoiceMailSettings.is_verified ? '#BBF7D0' : '#FDDCB5'
                         : token.colorBorderSecondary}`,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1861,17 +1837,17 @@ export default function SettingsPage() {
                             <div style={{
                               width: 48,
                               height: 48,
-                              borderRadius: 14,
+                              borderRadius: 0,
                               background: invoiceMailSettings.is_verified
                                 ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)'
-                                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                : 'linear-gradient(135deg, #FDBA74 0%, #FB923C 100%)',
                               color: '#fff',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               boxShadow: invoiceMailSettings.is_verified
-                                ? '0 8px 20px -6px rgba(34, 197, 94, 0.5)'
-                                : '0 8px 20px -6px rgba(245, 158, 11, 0.5)'
+                                ? '0 4px 12px -4px rgba(34, 197, 94, 0.3)'
+                                : '0 4px 12px -4px rgba(251, 146, 60, 0.3)'
                             }}>
                               {invoiceMailSettings.is_verified
                                 ? <SafetyCertificateFilled style={{ fontSize: 24 }} />
@@ -1901,13 +1877,13 @@ export default function SettingsPage() {
                             padding: '12px 14px',
                             background: 'rgba(255,255,255,0.6)',
                             backdropFilter: 'blur(8px)',
-                            borderRadius: 10,
-                            border: `1px solid ${invoiceMailSettings.is_verified ? 'rgba(34, 197, 94, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                            borderRadius: 0,
+                            border: `1px solid ${invoiceMailSettings.is_verified ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 146, 60, 0.3)'}`,
                             position: 'relative'
                           }}>
                             <Text style={{
                               fontSize: 11,
-                              color: invoiceMailSettings.is_verified ? '#166534' : '#92400E',
+                              color: invoiceMailSettings.is_verified ? '#166534' : '#C2410C',
                               fontWeight: 600,
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em'
@@ -1917,7 +1893,7 @@ export default function SettingsPage() {
                             <Text strong style={{
                               fontSize: 13,
                               display: 'block',
-                              color: invoiceMailSettings.is_verified ? '#14532D' : '#78350F',
+                              color: invoiceMailSettings.is_verified ? '#14532D' : '#9A3412',
                               wordBreak: 'break-all',
                               marginTop: 2
                             }}>
@@ -1927,7 +1903,7 @@ export default function SettingsPage() {
 
                           <Text style={{
                             fontSize: 12,
-                            color: invoiceMailSettings.is_verified ? '#166534' : '#92400E',
+                            color: invoiceMailSettings.is_verified ? '#166534' : '#B45309',
                             lineHeight: 1.6,
                             position: 'relative'
                           }}>
@@ -1954,12 +1930,13 @@ export default function SettingsPage() {
                                 }
                               }}
                               style={{
-                                borderRadius: 10,
+                                borderRadius: 0,
                                 height: 42,
                                 fontWeight: 600,
-                                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                                border: 'none',
-                                boxShadow: '0 6px 16px -4px rgba(245, 158, 11, 0.4)'
+                                background: 'linear-gradient(135deg, #FED7AA 0%, #FDBA74 100%)',
+                                border: '1px solid #FBBF77',
+                                color: '#9A3412',
+                                boxShadow: '0 2px 8px -2px rgba(251, 146, 60, 0.25)'
                               }}
                             >
                               Resend Verification Email
@@ -2007,14 +1984,14 @@ export default function SettingsPage() {
       <div style={{
         margin: "0 -24px",
         height: "calc(100vh - 64px)",
-        background: "var(--bg-pure-white)",
+        background: token.colorBgContainer,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden"
       }}>
         {/* Premium Header */}
         <TimeTrackingHeader
-          style={{ padding: '10.5px 32px' }}
+          style={{ padding: '8px 32px', marginBottom: 0, background: token.colorBgContainer }}
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
@@ -2040,8 +2017,8 @@ export default function SettingsPage() {
             type="line"
             tabBarStyle={{
               ...styles.tabStyle,
-              background: 'var(--bg-secondary)',
-              borderBottom: "1px solid var(--border-color)",
+              background: token.colorBgContainer,
+              borderBottom: `1px solid ${token.colorBorderSecondary}`,
               padding: "0 4px"
             }}
             style={{
@@ -2086,7 +2063,7 @@ export default function SettingsPage() {
           placement="right"
           onClose={() => setIsLocationDrawerVisible(false)}
           open={isLocationDrawerVisible}
-          width={500}
+          width={380}
           styles={{ 
             body: { padding: '24px' },
             header: { 
@@ -2104,10 +2081,10 @@ export default function SettingsPage() {
           }}
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 8 }}>
+              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 0 }}>
                 Cancel
               </Button>
-              <Button type="primary" onClick={() => locationForm.submit()} style={{ borderRadius: 8, fontWeight: 600 }}>
+              <Button type="primary" onClick={() => locationForm.submit()} style={{ borderRadius: 0, fontWeight: 600 }}>
                 {editingLocation ? 'Update Location' : 'Save Location'}
               </Button>
             </div>
@@ -2126,7 +2103,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Door / Flat Number</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. 101 or Suite 4" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. 101 or Suite 4" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -2135,7 +2112,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Street</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. Main St" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. Main St" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -2145,7 +2122,7 @@ export default function SettingsPage() {
               label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Area</span>}
               rules={[{ required: true, message: 'Required' }]}
             >
-              <Input placeholder="e.g. Downtown" style={{ borderRadius: 8 }} />
+              <Input placeholder="e.g. Downtown" style={{ borderRadius: 0 }} />
             </Form.Item>
 
             <Row gutter={16}>
@@ -2155,7 +2132,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>City</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. San Francisco" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. San Francisco" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -2164,7 +2141,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>State</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. California" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. California" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -2176,7 +2153,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Pincode</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. 94105" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. 94105" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -2185,7 +2162,7 @@ export default function SettingsPage() {
                   label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Country</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Input placeholder="e.g. USA" style={{ borderRadius: 8 }} />
+                  <Input placeholder="e.g. USA" style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
             </Row>

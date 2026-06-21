@@ -95,10 +95,10 @@ function formatValue(v: unknown): string {
         const hrs = (x as any).hoursWorked !== undefined ? ` (${(x as any).hoursWorked}h)` : "";
         const tasks = Array.isArray((x as any).tasks)
           ? ` [${(x as any).tasks.map((t: any) => {
-              const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
-              const statusStr = t.status ? ` (${t.status})` : "";
-              return `${desc}${statusStr}`;
-            }).join("; ")}]`
+            const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
+            const statusStr = t.status ? ` (${t.status})` : "";
+            return `${desc}${statusStr}`;
+          }).join("; ")}]`
           : "";
         const blockers = (x as any).blockers ? ` (Blockers: ${(x as any).blockers})` : "";
         const notes = (x as any).notes ? ` (Notes: ${(x as any).notes})` : "";
@@ -124,10 +124,10 @@ function formatValue(v: unknown): string {
       const hrs = x.hoursWorked !== undefined ? ` (${x.hoursWorked}h)` : "";
       const tasks = Array.isArray(x.tasks)
         ? ` [${x.tasks.map((t: any) => {
-            const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
-            const statusStr = t.status ? ` (${t.status})` : "";
-            return `${desc}${statusStr}`;
-          }).join("; ")}]`
+          const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
+          const statusStr = t.status ? ` (${t.status})` : "";
+          return `${desc}${statusStr}`;
+        }).join("; ")}]`
         : "";
       const blockers = x.blockers ? ` (Blockers: ${x.blockers})` : "";
       const notes = x.notes ? ` (Notes: ${x.notes})` : "";

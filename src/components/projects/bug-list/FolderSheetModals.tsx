@@ -27,7 +27,7 @@ const FOLDER_COLORS = [
   "#5b9bff",
   "#7c5cff",
   "#3fbf8f",
-  "#f59f3b",
+  "#0ea5e9",
   "#ff5a4e",
   "#ec4899",
   "#06b6d4",

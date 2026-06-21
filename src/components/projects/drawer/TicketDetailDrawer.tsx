@@ -630,6 +630,48 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   Status: {getStatusLabel(ticket.status, ticketConfig?.statuses || STATUS_OPTIONS)}
                 </Tag>
               )}
+              {(() => {
+                const estSeconds = (ticket?.estimateHours || 0) * 3600;
+                const trackedSeconds = timeEntries.reduce((sum, e) => {
+                  let duration = e.duration || 0;
+                  if (e.status === 'RUNNING') {
+                    const lastLog = e.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                    const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
+                    duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                  }
+                  return sum + duration;
+                }, 0);
+
+                if (estSeconds === 0 && trackedSeconds === 0) return null;
+
+                const fmt = (secs: number) => {
+                  const h = Math.floor(secs / 3600);
+                  const m = Math.floor((secs % 3600) / 60);
+                  if (h === 0 && m === 0) return '0m';
+                  return [h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : ''].filter(Boolean).join(' ');
+                };
+
+                const overBy = trackedSeconds - estSeconds;
+                const isDelayed = estSeconds > 0 && overBy > 0;
+
+                return (
+                  <Tag
+                    bordered={false}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      margin: 0,
+                      backgroundColor: isDelayed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      color: isDelayed ? '#dc2626' : '#059669',
+                    }}
+                  >
+                    EST/Tracked: {fmt(estSeconds)} / {fmt(trackedSeconds)}
+                    {isDelayed && ` · ${fmt(overBy)} delayed`}
+                  </Tag>
+                );
+              })()}
             </Space>
 
 
@@ -1683,6 +1725,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                   }
                                   mode="user"
                                   emptyText="Unassigned"
+                                  showFirstNameOnly
                                 />
                               </DrawerField>
                             </Col>
@@ -1701,6 +1744,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                   }
                                   mode="user"
                                   emptyText="No Reporter"
+                                  showFirstNameOnly
                                 />
                               </DrawerField>
 
@@ -1802,7 +1846,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <DrawerField label="Created by" variant="table">
                                 <Space size={6} align="center">
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                                    {ticket?.createdBy?.name || 'System'}
+                                    {ticket?.createdBy?.name ? ticket.createdBy.name.split(" ")[0] : 'System'}
                                   </Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>
@@ -1815,7 +1859,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <DrawerField label="Updated by" variant="table">
                                 <Space size={6} align="center">
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                                    {(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}
+                                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').split(" ")[0]}
                                   </Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
                                   <Text type="secondary" style={{ fontSize: 11 }}>

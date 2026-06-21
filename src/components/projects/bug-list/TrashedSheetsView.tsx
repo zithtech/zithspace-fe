@@ -10,6 +10,7 @@ import {
   Clock,
   CalendarDays,
   Eye,
+  Layers,
 } from "lucide-react";
 import {
   useTrashedSheets,
@@ -31,9 +32,9 @@ const initials = (name: string) => {
 
 const avatarColor = (id: string) => {
   const colors = [
-    "#ff6b6b","#4ecdc4","#45b7d1","#96ceb4","#ffeaa7",
-    "#74b9ff","#a29bfe","#6c5ce7","#fd79a8","#fdcb6e",
-    "#e17055","#00b894","#00cec9","#0984e3",
+    "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7",
+    "#74b9ff", "#a29bfe", "#6c5ce7", "#fd79a8", "#fdcb6e",
+    "#e17055", "#00b894", "#00cec9", "#0984e3",
   ];
   let hash = 0;
   for (let i = 0; i < id.length; i++)
@@ -181,8 +182,8 @@ function TrashedSheetCard({
   onDelete,
 }: CardProps) {
   const creatorName = sheet.createdBy?.name || "Unknown";
-  const creatorId   = sheet.createdBy?.id || sheet.createdById || "x";
-  const bugCount    = sheet._count?.bugs ?? 0;
+  const creatorId = sheet.createdBy?.id || sheet.createdById || "x";
+  const bugCount = sheet._count?.bugs ?? 0;
 
   return (
     <div
@@ -193,97 +194,111 @@ function TrashedSheetCard({
       onKeyDown={(e) => e.key === "Enter" && onView()}
       aria-label={`View trashed sheet ${sheet.name}`}
     >
-      {/* ── top row: trash badge + bug count ── */}
-      <div className="arc-card-toprow">
-        <span className="arc-badge-trashed">
-          <Trash2 size={10} />
-          Trashed
-        </span>
-        <span className="arc-badge-bugs">
-          <Bug size={10} />
-          {bugCount} {bugCount === 1 ? "bug" : "bugs"}
-        </span>
+      <div className="arc-card-top">
+        <div className="arc-card-avatar" style={{ background: `linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)` }}>
+          <Layers size={14} style={{ color: '#fff' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* ── top row: trash badge + bug count ── */}
+          <div className="arc-card-toprow">
+            <span className="arc-badge-trashed">
+              <Trash2 size={10} />
+              Trashed
+            </span>
+            <span className="arc-badge-bugs">
+              <Bug size={10} />
+              {bugCount} {bugCount === 1 ? "bug" : "bugs"}
+            </span>
+          </div>
+
+          {/* ── sheet name ── */}
+          <div className="arc-card-name" title={sheet.name}>
+            {sheet.name}
+          </div>
+
+          {/* ── description ── */}
+          {sheet.description && (
+            <div className="arc-card-desc">{sheet.description}</div>
+          )}
+
+          {/* ── folder ── */}
+          <div className="arc-card-folder">
+            <FolderOpen size={11} />
+            <span>{sheet.folderName || "Unknown Folder"}</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── sheet name ── */}
-      <div className="arc-card-name" title={sheet.name}>
-        {sheet.name}
-      </div>
+      <div className="arc-card-foot">
+        <div className="arc-foot-row">
+          {/* ── footer meta ── */}
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Creator:</span>
+            <Avatar
+              size={16}
+              src={sheet.createdBy?.avatarUrl}
+              style={{
+                background: avatarColor(creatorId),
+                fontSize: 8,
+                flexShrink: 0,
+              }}
+            >
+              {initials(creatorName)}
+            </Avatar>
+            <span className="arc-foot-val" title={creatorName}>
+              {creatorName}
+            </span>
+          </span>
 
-      {/* ── description ── */}
-      {sheet.description && (
-        <div className="arc-card-desc">{sheet.description}</div>
-      )}
+          <span className="arc-foot-div" />
 
-      {/* ── folder ── */}
-      <div className="arc-card-folder">
-        <FolderOpen size={12} />
-        <span>{sheet.folderName || "Unknown Folder"}</span>
-      </div>
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Created:</span>
+            <Tooltip title={formatDate(sheet.createdAt)}>
+              <span className="arc-foot-val">
+                {formatRelative(sheet.createdAt)}
+              </span>
+            </Tooltip>
+          </span>
 
-      {/* ── divider ── */}
-      <div className="arc-card-divider" />
+          <span className="arc-foot-div" />
 
-      {/* ── footer meta ── */}
-      <div className="arc-card-footer">
-        <div className="arc-card-creator">
-          <Avatar
-            size={20}
-            src={sheet.createdBy?.avatarUrl}
-            style={{
-              background: avatarColor(creatorId),
-              fontSize: 9,
-              flexShrink: 0,
-            }}
-          >
-            {initials(creatorName)}
-          </Avatar>
-          <span className="arc-card-creator-name" title={creatorName}>
-            {creatorName}
+          <span className="arc-foot-item">
+            <span className="arc-foot-key">Trashed:</span>
+            <Tooltip title={formatDate(sheet.updatedAt)}>
+              <span className="arc-foot-val">
+                {formatRelative(sheet.updatedAt)}
+              </span>
+            </Tooltip>
           </span>
         </div>
 
-        <div className="arc-card-dates">
-          <Tooltip title={`Created: ${formatDate(sheet.createdAt)}`}>
-            <span className="arc-card-date">
-              <CalendarDays size={10} />
-              {formatRelative(sheet.createdAt)}
-            </span>
-          </Tooltip>
-          <Tooltip title={`Trashed: ${formatDate(sheet.updatedAt)}`}>
-            <span className="arc-card-date">
-              <Clock size={10} />
-              {formatRelative(sheet.updatedAt)}
-            </span>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* ── actions ── */}
-      <div className="arc-card-actions" onClick={(e) => e.stopPropagation()}>
-        <button className="arc-action-btn arc-action-view" onClick={onView}>
-          <Eye size={13} />
-          View Bugs
-        </button>
-        <Tooltip title="Restore sheet">
-          <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
-            <RotateCcw size={13} />
-            Restore
+        {/* ── actions ── */}
+        <div className="arc-foot-row" style={{ justifyContent: 'flex-end', gap: 6 }}>
+          <button className="arc-action-btn arc-action-view" onClick={onView}>
+            <Eye size={12} />
+            View Bugs
           </button>
-        </Tooltip>
-        <Popconfirm
-          title="Delete Permanently"
-          description="This action cannot be undone."
-          okText="Delete Permanently"
-          okButtonProps={{ danger: true }}
-          onConfirm={onDelete}
-        >
-          <Tooltip title="Delete Permanently">
-            <button className="arc-action-btn arc-action-delete">
-              <Trash2 size={13} />
+          <Tooltip title="Restore sheet">
+            <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
+              <RotateCcw size={12} />
+              Restore
             </button>
           </Tooltip>
-        </Popconfirm>
+          <Popconfirm
+            title="Delete Permanently"
+            description="This action cannot be undone."
+            okText="Delete Permanently"
+            okButtonProps={{ danger: true }}
+            onConfirm={onDelete}
+          >
+            <Tooltip title="Delete Permanently">
+              <button className="arc-action-btn arc-action-delete">
+                <Trash2 size={12} />
+              </button>
+            </Tooltip>
+          </Popconfirm>
+        </div>
       </div>
     </div>
   );

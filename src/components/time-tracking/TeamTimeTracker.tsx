@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -298,9 +297,6 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   const fetchTeamEntries = async () => {
     try {
@@ -1031,35 +1027,27 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
 
           <div className="mtt-team-filters">
-            {mounted && document.getElementById('team-sidebar-filters-portal') && createPortal(
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginTop: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Filters
-                </div>
-                <SearchableDropdown
-                  value={filters.userId}
-                  onChange={(v) => setFilters(f => ({ ...f, userId: v as string | undefined }))}
-                  placeholder="All members"
-                  searchPlaceholder="Search by name"
-                  itemNoun="members"
-                  width="100%"
-                  style={{ width: '100%', borderRadius: 0 }}
-                  options={members.map(m => ({ value: m.value, label: m.label }))}
-                />
+            <SearchableDropdown
+              value={filters.userId}
+              onChange={(v) => setFilters(f => ({ ...f, userId: v as string | undefined }))}
+              placeholder="All members"
+              searchPlaceholder="Search by name"
+              itemNoun="members"
+              width={240}
+              style={{ width: 168, borderRadius: 6 }}
+              options={members.map(m => ({ value: m.value, label: m.label }))}
+            />
 
-                <SearchableDropdown
-                  value={filters.projectId}
-                  onChange={(v) => setFilters(f => ({ ...f, projectId: v as string | undefined }))}
-                  placeholder="All projects"
-                  searchPlaceholder="Search by name"
-                  itemNoun="projects"
-                  width="100%"
-                  style={{ width: '100%', borderRadius: 0 }}
-                  options={projects.map(p => ({ value: p.value, label: p.label }))}
-                />
-              </div>,
-              document.getElementById('team-sidebar-filters-portal')!
-            )}
+            <SearchableDropdown
+              value={filters.projectId}
+              onChange={(v) => setFilters(f => ({ ...f, projectId: v as string | undefined }))}
+              placeholder="All projects"
+              searchPlaceholder="Search by name"
+              itemNoun="projects"
+              width={240}
+              style={{ width: 158, borderRadius: 6 }}
+              options={projects.map(p => ({ value: p.value, label: p.label }))}
+            />
 
             <RangePicker
               className="mtt-team-filters__range"

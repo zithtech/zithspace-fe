@@ -9,6 +9,7 @@ import {
   EmptyChart,
   SectionSkeleton,
   SectionError,
+  useSnapshotSection,
 } from "./_shared";
 
 type Severity = "info" | "warn" | "critical";
@@ -70,11 +71,18 @@ const SEVERITY_STYLES: Record<
 };
 
 export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
+  const snapshot = useSnapshotSection<BottlenecksData>("bottlenecks");
   const [data, setData] = useState<BottlenecksData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (snapshot !== undefined) {
+      setData(snapshot);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -86,7 +94,7 @@ export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sprintId]);
+  }, [sprintId, snapshot]);
 
   if (loading) {
     return (

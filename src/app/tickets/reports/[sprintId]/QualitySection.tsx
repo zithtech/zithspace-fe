@@ -11,6 +11,7 @@ import {
   SectionError,
   InsightCard,
   fmtPct,
+  useSnapshotSection,
 } from "./_shared";
 
 interface QualityTicket {
@@ -53,11 +54,18 @@ interface QualityData {
 }
 
 export default function QualitySection({ sprintId }: { sprintId: string }) {
+  const snapshot = useSnapshotSection<QualityData>("quality");
   const [data, setData] = useState<QualityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (snapshot !== undefined) {
+      setData(snapshot);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -69,7 +77,7 @@ export default function QualitySection({ sprintId }: { sprintId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sprintId]);
+  }, [sprintId, snapshot]);
 
   if (loading) {
     return (

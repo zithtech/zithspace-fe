@@ -22,6 +22,7 @@ import {
   Empty,
   Slider,
   Dropdown,
+  Select,
 } from 'antd';
 import {
   SettingOutlined,
@@ -197,23 +198,24 @@ const getStylizedTrend = (total: number) => {
 
 const COLOR_PRESETS: { hex: string; name: string }[] = [
   { hex: '#3b82f6', name: 'Blue' },
-  { hex: '#6366f1', name: 'Indigo' },
-  { hex: '#8b5cf6', name: 'Purple' },
-  { hex: '#ec4899', name: 'Pink' },
-  { hex: '#ef4444', name: 'Red' },
-  { hex: '#f97316', name: 'Orange' },
-  { hex: '#f59e0b', name: 'Amber' },
-  { hex: '#84cc16', name: 'Lime' },
-  { hex: '#10b981', name: 'Emerald' },
-  { hex: '#14b8a6', name: 'Teal' },
-  { hex: '#0ea5e9', name: 'Sky' },
-  { hex: '#94a3b8', name: 'Slate' },
+  { hex: '#10b981', name: 'Green' },
+  { hex: '#94a3b8', name: 'Grey' },
+  { hex: '#f59e0b', name: 'Light Orange' },
 ];
 
-const normalizeHex = (v: any): string => {
-  if (!v) return '#3b82f6';
-  if (typeof v === 'string') return v;
-  return v?.toHexString?.() || '#3b82f6';
+const normalizeColor = (color?: any): string => {
+  if (!color) return '#94a3b8'; // default grey
+  const c = String(color).toLowerCase();
+  if (c === '#3b82f6' || c === 'blue' || c.includes('blue') || c === '#0ea5e9' || c === '#06b6d4' || c === '#6366f1' || c === '#096dd9') {
+    return '#3b82f6'; // blue
+  }
+  if (c === '#10b981' || c === 'green' || c.includes('green') || c === '#25d366' || c === '#14a800' || c === '#1dbf73') {
+    return '#10b981'; // green
+  }
+  if (c === '#f59e0b' || c === 'orange' || c.includes('orange') || c === '#ff7a18' || c === '#ff7c00' || c === '#ec4899' || c === '#ef4444' || c === '#8b5cf6') {
+    return '#f59e0b'; // light orange
+  }
+  return '#94a3b8'; // grey
 };
 
 const severityBucket = (w: number): { label: string; color: string } => {
@@ -244,7 +246,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
   const watchedName: string = Form.useWatch('name', form) || '';
   const watchedDescription: string = Form.useWatch('description', form) || '';
   const watchedColorRaw = Form.useWatch('color', form);
-  const watchedColor = normalizeHex(watchedColorRaw);
+  const watchedColor = normalizeColor(watchedColorRaw);
   const watchedWeight: number = Form.useWatch('weight', form) ?? 0;
   const watchedIsActive: boolean = Form.useWatch('isActive', form) ?? true;
   const watchedIsDefault: boolean = Form.useWatch('isDefault', form) ?? false;
@@ -453,10 +455,14 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               </div>
 
               <Form.Item name="color" noStyle>
-                <ColorPicker
-                  showText
-                  className="es-colorpicker"
-                  size="middle"
+                <Select
+                  style={{ width: 140 }}
+                  options={[
+                    { value: '#3b82f6', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                    { value: '#10b981', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                    { value: '#94a3b8', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                    { value: '#f59e0b', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                  ]}
                 />
               </Form.Item>
             </div>
@@ -737,7 +743,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -795,7 +801,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip is-square"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -869,7 +875,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -1042,7 +1048,6 @@ export default function EscalationSettingsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <span className="es-kbd"></span>
             </div>
 
             <div className="es-topbar-meta">
@@ -1168,7 +1173,7 @@ export default function EscalationSettingsPage() {
                           <div className="ec-top">
                             <div
                               className="ec-avatar"
-                              style={{ background: item.color || BLUE_PRIMARY }}
+                              style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
                             >
                               {item.name?.charAt(0).toUpperCase()}
                             </div>
@@ -1245,7 +1250,7 @@ export default function EscalationSettingsPage() {
                           <div className="ec-top">
                             <div
                               className="ec-avatar"
-                              style={{ background: item.color || BLUE_PRIMARY }}
+                              style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
                             >
                               {item.name?.charAt(0).toUpperCase()}
                             </div>
@@ -1308,7 +1313,7 @@ export default function EscalationSettingsPage() {
                                   <div style={{
                                     height: '100%',
                                     width: `${Math.min(100, Math.max(2, item.weight))}%`,
-                                    background: item.color || '#3b82f6',
+                                    background: normalizeColor(item.color),
                                     borderRadius: 99,
                                     transition: 'width 0.3s ease',
                                   }} />
@@ -1334,7 +1339,7 @@ export default function EscalationSettingsPage() {
                         <div className="ec-top">
                           <div
                             className="ec-avatar"
-                            style={{ background: item.color || BLUE_PRIMARY }}
+                            style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
                           >
                             {item.name?.charAt(0).toUpperCase()}
                           </div>
@@ -1436,7 +1441,7 @@ export default function EscalationSettingsPage() {
           }}
           footer={
             <div className="es-drawer__footer">
-              <Button onClick={() => setDrawerOpen(false)} className="es-btn-ghost">
+              <Button htmlType="button" onClick={() => { setDrawerOpen(false); form.resetFields(); }} className="es-btn-ghost">
                 Cancel
               </Button>
               <Button
@@ -1780,6 +1785,18 @@ export default function EscalationSettingsPage() {
         }
         [data-theme='dark'] .ec-foot-val {
           color: #94A3B8 !important;
+        }
+
+        .es-status-pill {
+          padding: 2px 8px !important;
+          font-size: 10px !important;
+          height: 20px !important;
+          line-height: 1 !important;
+          letter-spacing: 0.03em !important;
+        }
+        .es-status-dot {
+          width: 5px !important;
+          height: 5px !important;
         }
       `}</style>
     </MainLayout>

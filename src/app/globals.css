@@ -26305,4 +26305,11 @@ select:-webkit-autofill:focus {
   height: 32px !important;
   font-size: 12.5px !important;
   padding: 4px 12px !important;
+}
+
+/* Force border radius to 0 inside the settings drawers only */
+.lset-drawer, .lset-drawer *,
+.es-drawer, .es-drawer *,
+.dm-drawer, .dm-drawer * {
+  border-radius: 0 !important;
 }

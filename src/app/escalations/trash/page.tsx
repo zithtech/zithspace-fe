@@ -639,7 +639,6 @@ export default function EscalationTrashPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <span className="es-kbd"></span>
               </div>
             </div>
 
@@ -1020,7 +1019,7 @@ export default function EscalationTrashPage() {
         }
         .es-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
         .es-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
-        .es-pulse { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .es-pulse { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
         .es-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
         .es-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
         .es-segmented button {

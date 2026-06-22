@@ -533,7 +533,7 @@ export default function LeadsTrashPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <span className="es-kbd">⌘K</span>
+               
               </div>
 
               <div className="es-topbar-meta">

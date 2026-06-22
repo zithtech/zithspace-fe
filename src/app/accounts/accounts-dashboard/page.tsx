@@ -604,7 +604,7 @@ export default function AccountsPage() {
         <span style={{
           fontSize: '13px',
           fontWeight: 700,
-          color: '#0f172a'
+          color: 'var(--text-slate-900)'
         }}>
           {record.type === 'credit' ? '+' : '-'}{formatCurrency(amount)}
         </span>
@@ -1080,7 +1080,7 @@ export default function AccountsPage() {
                             <span className="pc-foot-div" />
                             <span className="pc-foot-item">
                               <span className="pc-foot-key">Amount:</span>
-                              <span style={{ fontWeight: 800, color: '#0f172a' }}>
+                              <span style={{ fontWeight: 800, color: 'var(--text-slate-900)' }}>
                                 {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
                               </span>
                             </span>

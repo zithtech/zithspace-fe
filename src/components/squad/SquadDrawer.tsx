@@ -213,9 +213,12 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
   // Live-watched values for the create-mode preview
   const watchedName: string = Form.useWatch('squadName', form) || '';
   const watchedCode: string = Form.useWatch('squadCode', form) || '';
-  const watchedHeadIds: string[] = Form.useWatch('headIds', form) || [];
-  const watchedSubHeadIds: string[] = Form.useWatch('subHeadIds', form) || [];
-  const watchedMemberIds: string[] = Form.useWatch('memberIds', form) || [];
+  const watchedHeadIdsRaw = Form.useWatch('headIds', form);
+  const watchedHeadIds: string[] = Array.isArray(watchedHeadIdsRaw) ? watchedHeadIdsRaw : [];
+  const watchedSubHeadIdsRaw = Form.useWatch('subHeadIds', form);
+  const watchedSubHeadIds: string[] = Array.isArray(watchedSubHeadIdsRaw) ? watchedSubHeadIdsRaw : [];
+  const watchedMemberIdsRaw = Form.useWatch('memberIds', form);
+  const watchedMemberIds: string[] = Array.isArray(watchedMemberIdsRaw) ? watchedMemberIdsRaw : [];
 
   const liveInitials = useMemo(() => {
     return (

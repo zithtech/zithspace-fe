@@ -363,35 +363,80 @@ function SubmitDailyUpdateContent() {
         return seconds;
       };
 
-      // Map entries to projectUpdates state structure
-      const importedUpdates: ProjectUpdate[] = sortedEntries.map((entry) => {
-        const entryProjectId = entry.projectId || "";
-        const projectOpt = projects.find((p) => p.value === entryProjectId);
-        const resolvedProjectName = projectOpt?.label || entry.project?.name || "";
-
-        const startTimeIso = entry.startTime;
-        const activeDuration = getActiveDuration(entry);
-        const endTimeIso = dayjs(startTimeIso).add(activeDuration, "second").toISOString();
-        const hoursWorked = Math.round((activeDuration / 3600) * 100) / 100;
-
-        const tasksList = [];
-        if (entry.ticketId) {
-          const foundTicket = ticketsMap[entryProjectId]?.find(
-            (t) => t.id === entry.ticketId
-          );
-          tasksList.push({
-            type: "ticket" as const,
-            ticketId: entry.ticketId,
-            ticketNumber: entry.ticket?.ticketNumber || foundTicket?.ticketNumber || "",
-            ticketTitle: entry.ticket?.title || foundTicket?.title || "",
-            status: mapTicketStatus((entry.ticket as any)?.status || foundTicket?.status),
-          });
+      // Group consecutive entries by projectId
+      const groupedBlocks: { projectId: string; entries: typeof sortedEntries }[] = [];
+      for (const entry of sortedEntries) {
+        const projectId = entry.projectId || "";
+        const lastBlock = groupedBlocks[groupedBlocks.length - 1];
+        if (lastBlock && lastBlock.projectId === projectId) {
+          lastBlock.entries.push(entry);
         } else {
-          tasksList.push({
-            type: "manual" as const,
-            description: entry.description || "",
-            status: "in_progress" as const,
+          groupedBlocks.push({
+            projectId,
+            entries: [entry]
           });
+        }
+      }
+
+      // Map grouped blocks to projectUpdates state structure
+      const importedUpdates: ProjectUpdate[] = groupedBlocks.map((block) => {
+        const blockEntries = block.entries;
+        const entryProjectId = block.projectId;
+        const projectOpt = projects.find((p) => p.value === entryProjectId);
+        const resolvedProjectName = projectOpt?.label || blockEntries[0].project?.name || "";
+
+        const startTimeIso = blockEntries[0].startTime;
+
+        // End time is the calculated end time of the last entry in the group
+        const lastEntry = blockEntries[blockEntries.length - 1];
+        const lastEntryActiveDuration = getActiveDuration(lastEntry);
+        const endTimeIso = dayjs(lastEntry.startTime).add(lastEntryActiveDuration, "second").toISOString();
+
+        // Sum active worked duration in seconds for all entries in the group
+        const totalActiveDuration = blockEntries.reduce((sum, e) => sum + getActiveDuration(e), 0);
+        const hoursWorked = Math.round((totalActiveDuration / 3600) * 100) / 100;
+
+        const tasksList: any[] = [];
+        const seenTicketIds = new Set<string>();
+        const seenManualDescriptions = new Set<string>();
+
+        for (const entry of blockEntries) {
+          if (entry.ticketId) {
+            if (!seenTicketIds.has(entry.ticketId)) {
+              seenTicketIds.add(entry.ticketId);
+              const foundTicket = ticketsMap[entryProjectId]?.find(
+                (t) => t.id === entry.ticketId
+              );
+              tasksList.push({
+                type: "ticket" as const,
+                ticketId: entry.ticketId,
+                ticketNumber: entry.ticket?.ticketNumber || foundTicket?.ticketNumber || "",
+                ticketTitle: entry.ticket?.title || foundTicket?.title || "",
+                status: mapTicketStatus((entry.ticket as any)?.status || foundTicket?.status),
+              });
+            }
+          } else {
+            const desc = entry.description || "";
+            if (desc) {
+              if (!seenManualDescriptions.has(desc)) {
+                seenManualDescriptions.add(desc);
+                tasksList.push({
+                  type: "manual" as const,
+                  description: desc,
+                  status: "in_progress" as const,
+                });
+              }
+            } else {
+              if (!seenManualDescriptions.has("")) {
+                seenManualDescriptions.add("");
+                tasksList.push({
+                  type: "manual" as const,
+                  description: "",
+                  status: "in_progress" as const,
+                });
+              }
+            }
+          }
         }
 
         return {
@@ -407,7 +452,9 @@ function SubmitDailyUpdateContent() {
       });
 
       setProjectUpdates(importedUpdates);
-      messageApi.success(`Successfully imported ${importedUpdates.length} time tracking entries for ${displayDateStr}!`);
+      messageApi.success(
+        `Successfully imported ${entries.length} time tracking entries (grouped into ${importedUpdates.length} project blocks) for ${displayDateStr}!`
+      );
     } catch (error: any) {
       console.error("Failed to import from time tracking:", error);
       messageApi.error(error.message || "Failed to import from time tracking");

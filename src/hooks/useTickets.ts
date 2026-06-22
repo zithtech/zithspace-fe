@@ -308,10 +308,20 @@ export const useUpdateTicket = () => {
 
       // CRITICAL: Preserve sprintPlanId from previousTicket if not explicitly changing sprint assignment
       const isSprintUpdate = 'releasePlan' in cacheUpdatePayload || 'sprintPlan' in cacheUpdatePayload;
+
+      let newSprintPlanId = undefined;
+      if (isSprintUpdate) {
+        const rawPlanId = cacheUpdatePayload.releasePlan !== undefined ? cacheUpdatePayload.releasePlan : cacheUpdatePayload.sprintPlan;
+        newSprintPlanId = (rawPlanId === null || rawPlanId === 'null' || rawPlanId === '') ? null : rawPlanId;
+      }
+
       const preservedPayload = {
         ...cacheUpdatePayload,
-        // Only preserve sprintPlanId if we're NOT doing a sprint update
-        ...((!isSprintUpdate && previousTicket) ? { sprintPlanId: previousTicket.sprintPlanId } : {})
+        // If we are doing a sprint update, set the sprintPlanId optimistically. Otherwise preserve from previousTicket.
+        ...(isSprintUpdate
+          ? { sprintPlanId: newSprintPlanId }
+          : (previousTicket ? { sprintPlanId: previousTicket.sprintPlanId } : {})
+        )
       };
 
       // Define targetParentId for subtask updates
@@ -329,29 +339,54 @@ export const useUpdateTicket = () => {
           const listParams = queryKey[2] || {};
           const isBacklogList = listParams.sprintId === 'null';
           const isActiveSprintList = listParams.sprintId === 'active';
+          const isSpecificSprintList = listParams.sprintId && !isBacklogList && !isActiveSprintList;
 
-          let newData = [...oldData.data];
-          let total = oldData.pagination?.total || newData.length;
+          const ticketAfterUpdate = { ...(previousTicket || {}), ...preservedPayload } as Ticket;
 
-          if (isSprintUpdate) {
-            const newReleasePlan = cacheUpdatePayload.releasePlan !== undefined ? cacheUpdatePayload.releasePlan : cacheUpdatePayload.sprintPlan;
-            const isMovingToBacklog = newReleasePlan === null || newReleasePlan === 'null';
-            const isMovingToSprint = typeof newReleasePlan === 'string' && newReleasePlan !== 'null' && newReleasePlan !== '';
-            const exists = newData.find((t: Ticket) => t.id === id);
+          // Check if this project matches
+          if (listParams.projectId && ticketAfterUpdate.project && 
+              (typeof ticketAfterUpdate.project === 'object' ? ticketAfterUpdate.project.id : ticketAfterUpdate.project) !== listParams.projectId) {
+            return;
+          }
 
-            if (isBacklogList && isMovingToSprint) {
-              if (exists) { newData = newData.filter((t: Ticket) => t.id !== id); total = Math.max(0, total - 1); }
-            } else if (isActiveSprintList && isMovingToBacklog) {
-              if (exists) { newData = newData.filter((t: Ticket) => t.id !== id); total = Math.max(0, total - 1); }
-            } else if (isBacklogList && isMovingToBacklog) {
-              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...preservedPayload }; newData = [newTicket, ...newData]; total = total + 1; }
-            } else if (isActiveSprintList && isMovingToSprint) {
-              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...preservedPayload }; newData = [newTicket, ...newData]; total = total + 1; }
+          const activeSprints = queryClient.getQueryData<any[]>(['activeSprint', listParams.projectId]);
+          const activeSprintId = activeSprints && activeSprints.length > 0 ? activeSprints[0].id : null;
+
+          let belongs = false;
+          const archived = !!ticketAfterUpdate.isArchived;
+
+          if (listParams.archivedOnly) {
+            belongs = archived;
+          } else if (!archived) {
+            if (isBacklogList) {
+              belongs = !ticketAfterUpdate.sprintPlanId;
+            } else if (isActiveSprintList) {
+              belongs = !!activeSprintId && ticketAfterUpdate.sprintPlanId === activeSprintId;
+            } else if (isSpecificSprintList) {
+              belongs = ticketAfterUpdate.sprintPlanId === listParams.sprintId;
+            } else {
+              belongs = true;
             }
           }
 
-          // Update ticket data in current list with preserved sprintPlanId
-          newData = newData.map((ticket: Ticket) => ticket.id === id ? { ...ticket, ...preservedPayload } : ticket);
+          let newData = [...oldData.data];
+          let total = oldData.pagination?.total || newData.length;
+          const exists = newData.some((t: Ticket) => t.id === id);
+
+          if (exists) {
+            if (belongs) {
+              newData = newData.map((ticket: Ticket) => ticket.id === id ? { ...ticket, ...preservedPayload } : ticket);
+            } else {
+              newData = newData.filter((t: Ticket) => t.id !== id);
+              total = Math.max(0, total - 1);
+            }
+          } else {
+            if (belongs) {
+              const newTicket = { ...previousTicket, ...preservedPayload } as Ticket;
+              newData = [newTicket, ...newData];
+              total = total + 1;
+            }
+          }
 
           queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { ...oldData.pagination, total } });
         });
@@ -359,13 +394,102 @@ export const useUpdateTicket = () => {
         // Optimistically update KANBAN
         previousKanbanData.forEach(([queryKey, oldData]: [any, any]) => {
           if (!oldData?.columns) return;
+
+          const kanbanParams = queryKey[2] || {};
+          const isBacklogBoard = kanbanParams.sprintId === 'null';
+          const isActiveSprintBoard = kanbanParams.sprintId === 'active';
+          const isSpecificSprintBoard = kanbanParams.sprintId && !isBacklogBoard && !isActiveSprintBoard;
+
+          const activeSprints = queryClient.getQueryData<any[]>(['activeSprint', kanbanParams.projectId]);
+          const activeSprintId = activeSprints && activeSprints.length > 0 ? activeSprints[0].id : null;
+
+          const ticketAfterUpdate = { ...(previousTicket || {}), ...preservedPayload } as Ticket;
+
+          // Check if this project matches
+          if (kanbanParams.projectId && ticketAfterUpdate.project && 
+              (typeof ticketAfterUpdate.project === 'object' ? ticketAfterUpdate.project.id : ticketAfterUpdate.project) !== kanbanParams.projectId) {
+            return;
+          }
+
+          let belongs = false;
+          if (isBacklogBoard) {
+            belongs = !ticketAfterUpdate.sprintPlanId;
+          } else if (isActiveSprintBoard) {
+            belongs = !!activeSprintId && ticketAfterUpdate.sprintPlanId === activeSprintId;
+          } else if (isSpecificSprintBoard) {
+            belongs = ticketAfterUpdate.sprintPlanId === kanbanParams.sprintId;
+          } else {
+            belongs = true;
+          }
+
           const updatedColumns = { ...oldData.columns };
-          Object.keys(updatedColumns).forEach(status => {
-            updatedColumns[status] = {
-              ...updatedColumns[status],
-              tickets: updatedColumns[status].tickets.map((t: Ticket) => t.id === id ? { ...t, ...preservedPayload } : t)
-            };
-          });
+
+          const removeIdFromBoard = () => {
+            Object.keys(updatedColumns).forEach(status => {
+              const countBefore = updatedColumns[status].tickets.length;
+              const filtered = updatedColumns[status].tickets.filter((t: Ticket) => t.id !== id);
+              const countAfter = filtered.length;
+              const diff = countBefore - countAfter;
+
+              updatedColumns[status] = {
+                ...updatedColumns[status],
+                tickets: filtered,
+                loaded: Math.max(0, updatedColumns[status].loaded - diff),
+                total: Math.max(0, updatedColumns[status].total - diff)
+              };
+            });
+          };
+
+          if (!belongs) {
+            removeIdFromBoard();
+          } else {
+            let ticketFound = false;
+            let oldStatus: string | null = null;
+
+            Object.keys(updatedColumns).forEach(status => {
+              const ticketIndex = updatedColumns[status].tickets.findIndex((t: Ticket) => t.id === id);
+              if (ticketIndex !== -1) {
+                ticketFound = true;
+                oldStatus = status;
+              }
+            });
+
+            if (ticketFound && oldStatus) {
+              if (ticketAfterUpdate.status !== oldStatus) {
+                updatedColumns[oldStatus] = {
+                  ...updatedColumns[oldStatus],
+                  tickets: updatedColumns[oldStatus].tickets.filter((t: Ticket) => t.id !== id),
+                  loaded: Math.max(0, updatedColumns[oldStatus].loaded - 1),
+                  total: Math.max(0, updatedColumns[oldStatus].total - 1)
+                };
+                if (updatedColumns[ticketAfterUpdate.status]) {
+                  updatedColumns[ticketAfterUpdate.status] = {
+                    ...updatedColumns[ticketAfterUpdate.status],
+                    tickets: [{ ...previousTicket, ...preservedPayload } as Ticket, ...updatedColumns[ticketAfterUpdate.status].tickets],
+                    loaded: updatedColumns[ticketAfterUpdate.status].loaded + 1,
+                    total: updatedColumns[ticketAfterUpdate.status].total + 1
+                  };
+                }
+              } else {
+                updatedColumns[oldStatus] = {
+                  ...updatedColumns[oldStatus],
+                  tickets: updatedColumns[oldStatus].tickets.map((t: Ticket) =>
+                    t.id === id ? { ...t, ...preservedPayload } : t
+                  )
+                };
+              }
+            } else {
+              if (updatedColumns[ticketAfterUpdate.status]) {
+                updatedColumns[ticketAfterUpdate.status] = {
+                  ...updatedColumns[ticketAfterUpdate.status],
+                  tickets: [{ ...previousTicket, ...preservedPayload } as Ticket, ...updatedColumns[ticketAfterUpdate.status].tickets],
+                  loaded: updatedColumns[ticketAfterUpdate.status].loaded + 1,
+                  total: updatedColumns[ticketAfterUpdate.status].total + 1
+                };
+              }
+            }
+          }
+
           queryClient.setQueryData(queryKey, { ...oldData, columns: updatedColumns });
         });
 
@@ -393,10 +517,8 @@ export const useUpdateTicket = () => {
       return { previousTicketLists, previousKanbanData, previousTicket, parentId: targetParentId };
     },
     onError: (err, variables, context) => {
-      // Rollback logic...
       if (context?.previousTicket) {
         queryClient.setQueryData(ticketKeys.detail(variables.id), context.previousTicket);
-        // Rollback parent subtask if needed
         if (context.previousTicket.parentId) {
           queryClient.invalidateQueries({ queryKey: ticketKeys.detail(context.previousTicket.parentId) });
         }
@@ -417,15 +539,10 @@ export const useUpdateTicket = () => {
       // Update detail
       queryClient.setQueryData(ticketKeys.detail(savedTicket.id), savedTicket);
 
-      // If tags were touched, refresh the workspace-wide tag list so
-      // newly-created tags appear in the autocomplete dropdown.
       if (variables?.data && 'tags' in variables.data) {
         queryClient.invalidateQueries({ queryKey: ticketKeys.allTags() });
       }
 
-      // Sprint completion summary is a server-computed aggregate over ticket
-      // statuses; invalidate so the Complete Sprint modal's pending tab
-      // reflects the latest status the next time it opens or refetches.
       queryClient.invalidateQueries({ queryKey: ['sprint-completion'] });
 
       // Iterate lists to update
@@ -439,34 +556,51 @@ export const useUpdateTicket = () => {
         const listParams = queryKey[2] || {};
         const isBacklogList = listParams.sprintId === 'null';
         const isActiveSprintList = listParams.sprintId === 'active';
+        const isSpecificSprintList = listParams.sprintId && !isBacklogList && !isActiveSprintList;
+
+        const activeSprints = queryClient.getQueryData<any[]>(['activeSprint', listParams.projectId]);
+        const activeSprintId = activeSprints && activeSprints.length > 0 ? activeSprints[0].id : null;
 
         let newData = [...oldData.data];
+        let total = oldData.pagination?.total || newData.length;
 
-        const inSprint = !!savedTicket.sprintPlanId;
-        const inBacklog = !savedTicket.sprintPlanId;
         const archived = !!savedTicket.isArchived;
 
-        if (isBacklogList && (inSprint || archived)) {
-          newData = newData.filter(t => t.id !== savedTicket.id);
+        // Check if the ticket should be in this list
+        let belongs = false;
+        if (listParams.archivedOnly) {
+          belongs = archived;
+        } else if (!archived) {
+          if (isBacklogList) {
+            belongs = !savedTicket.sprintPlanId;
+          } else if (isActiveSprintList) {
+            belongs = !!activeSprintId && savedTicket.sprintPlanId === activeSprintId;
+          } else if (isSpecificSprintList) {
+            belongs = savedTicket.sprintPlanId === listParams.sprintId;
+          } else {
+            belongs = true; // Generic list
+          }
         }
-        else if (isActiveSprintList && (inBacklog || archived)) {
-          newData = newData.filter(t => t.id !== savedTicket.id);
-        }
-        else if (listParams.archivedOnly && !archived) {
-          newData = newData.filter(t => t.id !== savedTicket.id);
-        }
-        else if ((isBacklogList && inBacklog && !archived) || (isActiveSprintList && inSprint && !archived) || (listParams.archivedOnly && archived)) {
-          const exists = newData.find(t => t.id === savedTicket.id);
-          if (exists) {
+
+        const exists = newData.some((t: Ticket) => t.id === savedTicket.id);
+
+        if (exists) {
+          if (belongs) {
             newData = newData.map((ticket: Ticket) =>
               ticket.id === savedTicket.id ? savedTicket : ticket
             );
           } else {
+            newData = newData.filter(t => t.id !== savedTicket.id);
+            total = Math.max(0, total - 1);
+          }
+        } else {
+          if (belongs) {
             newData = [savedTicket, ...newData];
+            total = total + 1;
           }
         }
 
-        queryClient.setQueryData(queryKey, { ...oldData, data: newData });
+        queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { ...oldData.pagination, total } });
       });
 
       // Iterate Kanban to update
@@ -477,27 +611,44 @@ export const useUpdateTicket = () => {
         const kanbanParams = queryKey[2] || {};
         const isBacklogBoard = kanbanParams.sprintId === 'null';
         const isActiveSprintBoard = kanbanParams.sprintId === 'active';
+        const isSpecificSprintBoard = kanbanParams.sprintId && !isBacklogBoard && !isActiveSprintBoard;
 
-        const inSprint = !!savedTicket.sprintPlanId;
-        const inBacklog = !savedTicket.sprintPlanId;
+        const activeSprints = queryClient.getQueryData<any[]>(['activeSprint', kanbanParams.projectId]);
+        const activeSprintId = activeSprints && activeSprints.length > 0 ? activeSprints[0].id : null;
+
+        // Check if the ticket should be on this board
+        let belongs = false;
+        if (isBacklogBoard) {
+          belongs = !savedTicket.sprintPlanId;
+        } else if (isActiveSprintBoard) {
+          belongs = !!activeSprintId && savedTicket.sprintPlanId === activeSprintId;
+        } else if (isSpecificSprintBoard) {
+          belongs = savedTicket.sprintPlanId === kanbanParams.sprintId;
+        } else {
+          belongs = true;
+        }
 
         const updatedColumns = { ...oldData.columns };
 
         const removeIdFromBoard = () => {
           Object.keys(updatedColumns).forEach(status => {
+            const countBefore = updatedColumns[status].tickets.length;
+            const filtered = updatedColumns[status].tickets.filter((t: Ticket) => t.id !== savedTicket.id);
+            const countAfter = filtered.length;
+            const diff = countBefore - countAfter;
+
             updatedColumns[status] = {
               ...updatedColumns[status],
-              tickets: updatedColumns[status].tickets.filter((t: Ticket) => t.id !== savedTicket.id),
-              loaded: Math.max(0, updatedColumns[status].tickets.filter((t: Ticket) => t.id !== savedTicket.id).length)
+              tickets: filtered,
+              loaded: Math.max(0, updatedColumns[status].loaded - diff),
+              total: Math.max(0, updatedColumns[status].total - diff)
             };
           });
         };
 
-        if (isBacklogBoard && inSprint) removeIdFromBoard();
-        if (isActiveSprintBoard && inBacklog) removeIdFromBoard();
-
-        // If valid for this board
-        if ((isBacklogBoard && inBacklog) || (isActiveSprintBoard && inSprint) || (!isBacklogBoard && !isActiveSprintBoard)) {
+        if (!belongs) {
+          removeIdFromBoard();
+        } else {
           let ticketFound = false;
           let oldStatus: string | null = null;
 
@@ -514,13 +665,15 @@ export const useUpdateTicket = () => {
               updatedColumns[oldStatus] = {
                 ...updatedColumns[oldStatus],
                 tickets: updatedColumns[oldStatus].tickets.filter((t: Ticket) => t.id !== savedTicket.id),
-                loaded: updatedColumns[oldStatus].loaded - 1
+                loaded: Math.max(0, updatedColumns[oldStatus].loaded - 1),
+                total: Math.max(0, updatedColumns[oldStatus].total - 1)
               };
               if (updatedColumns[savedTicket.status]) {
                 updatedColumns[savedTicket.status] = {
                   ...updatedColumns[savedTicket.status],
                   tickets: [savedTicket, ...updatedColumns[savedTicket.status].tickets],
-                  loaded: updatedColumns[savedTicket.status].loaded + 1
+                  loaded: updatedColumns[savedTicket.status].loaded + 1,
+                  total: updatedColumns[savedTicket.status].total + 1
                 };
               }
             } else {

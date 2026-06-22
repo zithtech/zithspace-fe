@@ -21,9 +21,12 @@ import {
   Skeleton,
   Empty,
   Slider,
+  Dropdown,
+  Select,
 } from 'antd';
 import {
   SettingOutlined,
+  SearchOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -46,6 +49,8 @@ import {
   ReloadOutlined,
   AlertOutlined,
   RiseOutlined,
+  UnorderedListOutlined,
+  EllipsisOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -101,36 +106,14 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart, delta }) => (
-  <div 
-    className="dh-stats-card flex flex-col justify-between rounded-xl p-4 transition-all"
-    style={{
-        border: '1px solid var(--border-slate-200)',
-        background: 'var(--bg-pure-white)',
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-        height: 100,
-    }}
-  >
-    <div className="flex items-start justify-between w-full">
-      <div className="flex items-center gap-2">
-        <div style={{
-          color: accent,
-          fontSize: 15,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 26,
-          height: 26,
-          background: `${accent}1c`,
-          borderRadius: 6,
-        }}>
-          {icon}
+  <div className="es-stat-card">
+    <div className="es-stat-top">
+      <div className="es-stat-left">
+        <span className="es-stat-icon" style={{ background: `${accent}1c`, color: accent }}>{icon}</span>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="es-stat-label">{label}</span>
+          {subtle && <span style={{ fontSize: 10, color: 'var(--text-slate-400)', marginTop: 1 }}>{subtle}</span>}
         </div>
-        <span
-          className="text-[12.5px] font-medium"
-          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
-        >
-          {label}
-        </span>
       </div>
       {delta !== undefined && delta > 0 && (
         <Tooltip title="New this week">
@@ -144,29 +127,16 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle,
       )}
     </div>
 
-    <div className="flex items-end justify-between w-full mt-auto">
-      <div className="flex items-baseline gap-1.5 pb-1">
+    <div className="es-stat-bottom">
+      <div className="es-stat-value-wrap">
         {loading ? (
           <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
         ) : (
-          <span
-            className="text-[26px] font-semibold leading-none tracking-tight"
-            style={{ color: 'var(--text-slate-800)' }}
-          >
-            {value}
-          </span>
+          <span className="es-stat-value">{value}</span>
         )}
-        <span
-          className="text-[11px] font-medium"
-          style={{ color: 'var(--text-slate-400)' }}
-        >
-          {subtle || 'this week'}
-        </span>
       </div>
       {chart && (
-        <div className="shrink-0 mb-[2px]">
-          {chart}
-        </div>
+        <div className="es-stat-spark">{chart}</div>
       )}
     </div>
   </div>
@@ -228,23 +198,24 @@ const getStylizedTrend = (total: number) => {
 
 const COLOR_PRESETS: { hex: string; name: string }[] = [
   { hex: '#3b82f6', name: 'Blue' },
-  { hex: '#6366f1', name: 'Indigo' },
-  { hex: '#8b5cf6', name: 'Purple' },
-  { hex: '#ec4899', name: 'Pink' },
-  { hex: '#ef4444', name: 'Red' },
-  { hex: '#f97316', name: 'Orange' },
-  { hex: '#f59e0b', name: 'Amber' },
-  { hex: '#84cc16', name: 'Lime' },
-  { hex: '#10b981', name: 'Emerald' },
-  { hex: '#14b8a6', name: 'Teal' },
-  { hex: '#0ea5e9', name: 'Sky' },
-  { hex: '#94a3b8', name: 'Slate' },
+  { hex: '#10b981', name: 'Green' },
+  { hex: '#94a3b8', name: 'Grey' },
+  { hex: '#f59e0b', name: 'Light Orange' },
 ];
 
-const normalizeHex = (v: any): string => {
-  if (!v) return '#3b82f6';
-  if (typeof v === 'string') return v;
-  return v?.toHexString?.() || '#3b82f6';
+const normalizeColor = (color?: any): string => {
+  if (!color) return '#94a3b8'; // default grey
+  const c = String(color).toLowerCase();
+  if (c === '#3b82f6' || c === 'blue' || c.includes('blue') || c === '#0ea5e9' || c === '#06b6d4' || c === '#6366f1' || c === '#096dd9') {
+    return '#3b82f6'; // blue
+  }
+  if (c === '#10b981' || c === 'green' || c.includes('green') || c === '#25d366' || c === '#14a800' || c === '#1dbf73') {
+    return '#10b981'; // green
+  }
+  if (c === '#f59e0b' || c === 'orange' || c.includes('orange') || c === '#ff7a18' || c === '#ff7c00' || c === '#ec4899' || c === '#ef4444' || c === '#8b5cf6') {
+    return '#f59e0b'; // light orange
+  }
+  return '#94a3b8'; // grey
 };
 
 const severityBucket = (w: number): { label: string; color: string } => {
@@ -275,7 +246,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
   const watchedName: string = Form.useWatch('name', form) || '';
   const watchedDescription: string = Form.useWatch('description', form) || '';
   const watchedColorRaw = Form.useWatch('color', form);
-  const watchedColor = normalizeHex(watchedColorRaw);
+  const watchedColor = normalizeColor(watchedColorRaw);
   const watchedWeight: number = Form.useWatch('weight', form) ?? 0;
   const watchedIsActive: boolean = Form.useWatch('isActive', form) ?? true;
   const watchedIsDefault: boolean = Form.useWatch('isDefault', form) ?? false;
@@ -484,10 +455,14 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               </div>
 
               <Form.Item name="color" noStyle>
-                <ColorPicker
-                  showText
-                  className="es-colorpicker"
-                  size="middle"
+                <Select
+                  style={{ width: 140 }}
+                  options={[
+                    { value: '#3b82f6', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                    { value: '#10b981', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                    { value: '#94a3b8', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                    { value: '#f59e0b', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                  ]}
                 />
               </Form.Item>
             </div>
@@ -603,6 +578,12 @@ export default function EscalationSettingsPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeTab]);
 
   const { message } = App.useApp();
 
@@ -661,8 +642,8 @@ export default function EscalationSettingsPage() {
       prioritiesAvgWeight:
         priorities.length > 0
           ? Math.round(
-              priorities.reduce((sum, p) => sum + (p.weight || 0), 0) / priorities.length,
-            )
+            priorities.reduce((sum, p) => sum + (p.weight || 0), 0) / priorities.length,
+          )
           : 0,
       statusesTotal: statuses.length,
       statusesActive: statuses.filter((s) => s.isActive).length,
@@ -762,7 +743,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -820,7 +801,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip is-square"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -894,7 +875,7 @@ export default function EscalationSettingsPage() {
         <div className="es-row-main">
           <span
             className="es-color-chip"
-            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+            style={{ ['--swatch' as any]: normalizeColor(record.color) }}
           />
           <div className="es-row-text">
             <div className="es-row-title">{name}</div>
@@ -983,6 +964,16 @@ export default function EscalationSettingsPage() {
     };
   }, [activeTab, categories, priorities, statuses, canManageEscalations]);
 
+  const filteredData = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return activeSection.data;
+    return activeSection.data.filter((item: any) => {
+      const nameMatch = item.name?.toLowerCase().includes(query);
+      const descMatch = item.description?.toLowerCase().includes(query);
+      return nameMatch || descMatch;
+    });
+  }, [activeSection.data, searchQuery]);
+
   /* ------------------------------ Render ----------------------------------- */
 
   return (
@@ -1049,10 +1040,24 @@ export default function EscalationSettingsPage() {
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
           <div className="es-topbar">
+            <div className="es-search-wrap">
+              <SearchOutlined className="es-search-icon" />
+              <input
+                className="es-search"
+                placeholder={`Search ${activeSection.singular.toLowerCase()}s…`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
             <div className="es-topbar-meta">
               <span className="es-meta-item"><span className="es-pulse" /><strong>{activeSection.data.length}</strong> total {activeSection.singular.toLowerCase()}s</span>
             </div>
             <div className="es-topbar-actions">
+              <div className="es-segmented">
+                <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+              </div>
               <Tooltip title="Refresh">
                 <button type="button" className="es-ghost-btn" onClick={fetchAll}><ReloadOutlined spin={loading} /></button>
               </Tooltip>
@@ -1113,50 +1118,318 @@ export default function EscalationSettingsPage() {
           {/* Switcher + content card */}
           {/* Table / Panel */}
           <div className="es-body">
-              {!loading && activeSection.data.length === 0 ? (
-                <div className="es-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <span style={{ color: 'var(--text-slate-500)', fontSize: 13 }}>
-                        {activeSection.empty}
-                      </span>
-                    }
-                  >
-                    {canManageEscalations && (
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => handleOpenDrawer()}
-                        className="es-primary-btn"
-                      >
-                        Add {activeSection.singular}
-                      </Button>
-                    )}
-                  </Empty>
-                </div>
-              ) : (
+            {!loading && activeSection.data.length === 0 ? (
+              <div className="es-empty">
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <span style={{ color: 'var(--text-slate-500)', fontSize: 13 }}>
+                      {activeSection.empty}
+                    </span>
+                  }
+                >
+                  {canManageEscalations && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => handleOpenDrawer()}
+                      className="es-primary-btn"
+                    >
+                      Add {activeSection.singular}
+                    </Button>
+                  )}
+                </Empty>
+              </div>
+            ) : view === 'list' ? (
               <div className="es-table-wrap">
                 <Table
                   className="es-table"
                   size="small"
-                  dataSource={activeSection.data as any}
+                  dataSource={filteredData as any}
                   columns={activeSection.columns as any}
                   rowKey="id"
                   loading={loading}
                   pagination={false}
                   rowClassName={() => 'es-row'}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('.ant-popconfirm, .ant-popover, button, input, .ant-select, .ant-dropdown-trigger')) return;
+                      handleOpenDrawer(record);
+                    },
+                    className: 'es-row',
+                  })}
                 />
               </div>
-              )}
-            </div>
+            ) : (
+              <div className="es-grid">
+                {loading ? (
+                  <div className="es-grid-loading">Loading…</div>
+                ) : (
+                  filteredData.map((item: any) => {
+                    if (activeTab === 'categories') {
+                      return (
+                        <div key={item.id} className="ec-card group transition-all flex flex-col relative cursor-pointer" onClick={() => handleOpenDrawer(item)}>
+                          <div className="ec-top">
+                            <div
+                              className="ec-avatar"
+                              style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
+                            >
+                              {item.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="ec-identity-body">
+                              <div className="ec-title">{item.name}</div>
+                              <div className="ec-category-line">
+                                <span className="ec-category-key">Description:</span>
+                                <span className="ec-category-val" title={item.description || 'No description'}>
+                                  {item.description || 'No description'}
+                                </span>
+                              </div>
+                            </div>
+                            {canManageEscalations && (
+                              <Dropdown
+                                overlayClassName="es-action-pop"
+                                menu={{
+                                  items: [
+                                    {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="es-menu-item">
+                                          <span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.10)' }}><EditOutlined /></span>
+                                          <span className="es-menu-text">
+                                            <span className="es-menu-title">Edit</span>
+                                            <span className="es-menu-desc">Modify this {activeSection.singular.toLowerCase()}</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (e: any) => { e.domEvent.stopPropagation(); handleOpenDrawer(item); }
+                                    },
+                                    { type: 'divider' as const },
+                                    {
+                                      key: 'delete',
+                                      danger: true,
+                                      label: (
+                                        <div className="es-menu-item">
+                                          <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)' }}><DeleteOutlined /></span>
+                                          <span className="es-menu-text">
+                                            <span className="es-menu-title">Retire</span>
+                                            <span className="es-menu-desc">Remove from active use</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (e: any) => { e.domEvent.stopPropagation(); handleDelete(item.id); }
+                                    },
+                                  ]
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                              >
+                                <button type="button" className="ec-actions" onClick={(e) => e.stopPropagation()}>
+                                  <EllipsisOutlined />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          <div className="ec-foot">
+                            <div className="ec-foot-row">
+                              <span className="ec-foot-item">
+                                <span className="ec-foot-key">Status:</span>
+                                <span className={`es-status-pill ${item.isActive ? 'is-active' : 'is-inactive'}`}>
+                                  <span className="es-status-dot" />
+                                  {item.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (activeTab === 'priorities') {
+                      return (
+                        <div key={item.id} className="ec-card group transition-all flex flex-col relative cursor-pointer" onClick={() => handleOpenDrawer(item)}>
+                          <div className="ec-top">
+                            <div
+                              className="ec-avatar"
+                              style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
+                            >
+                              {item.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="ec-identity-body">
+                              <div className="ec-title">{item.name}</div>
+                              <div className="ec-category-line">
+                                <span className="ec-category-key">Weight:</span>
+                                <span className="ec-category-val">{item.weight}</span>
+                              </div>
+                            </div>
+                            {canManageEscalations && (
+                              <Dropdown
+                                overlayClassName="es-action-pop"
+                                menu={{
+                                  items: [
+                                    {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="es-menu-item">
+                                          <span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.10)' }}><EditOutlined /></span>
+                                          <span className="es-menu-text">
+                                            <span className="es-menu-title">Edit</span>
+                                            <span className="es-menu-desc">Modify this {activeSection.singular.toLowerCase()}</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (e: any) => { e.domEvent.stopPropagation(); handleOpenDrawer(item); }
+                                    },
+                                    { type: 'divider' as const },
+                                    {
+                                      key: 'delete',
+                                      danger: true,
+                                      label: (
+                                        <div className="es-menu-item">
+                                          <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)' }}><DeleteOutlined /></span>
+                                          <span className="es-menu-text">
+                                            <span className="es-menu-title">Retire</span>
+                                            <span className="es-menu-desc">Remove from active use</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (e: any) => { e.domEvent.stopPropagation(); handleDelete(item.id); }
+                                    },
+                                  ]
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                              >
+                                <button type="button" className="ec-actions" onClick={(e) => e.stopPropagation()}>
+                                  <EllipsisOutlined />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          <div className="ec-foot">
+                            <div className="ec-foot-row">
+                              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', flexShrink: 0 }}>Weight</span>
+                                <div style={{ flex: 1, height: 6, background: 'var(--border-slate-200)', borderRadius: 99, overflow: 'hidden' }}>
+                                  <div style={{
+                                    height: '100%',
+                                    width: `${Math.min(100, Math.max(2, item.weight))}%`,
+                                    background: normalizeColor(item.color),
+                                    borderRadius: 99,
+                                    transition: 'width 0.3s ease',
+                                  }} />
+                                </div>
+                                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-slate-700)', flexShrink: 0, minWidth: 20, textAlign: 'right' }}>{item.weight}</span>
+                              </div>
+                            </div>
+                            <div className="ec-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                              <span className="ec-foot-item">
+                                <span className="ec-foot-key">Status:</span>
+                                <span className={`es-status-pill ${item.isActive ? 'is-active' : 'is-inactive'}`}>
+                                  <span className="es-status-dot" />
+                                  {item.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={item.id} className="ec-card group transition-all flex flex-col relative cursor-pointer" onClick={() => handleOpenDrawer(item)}>
+                        <div className="ec-top">
+                          <div
+                            className="ec-avatar"
+                            style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
+                          >
+                            {item.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="ec-identity-body">
+                            <div className="ec-title">{item.name}</div>
+                            <div className="es-row-flags" style={{ marginTop: 2 }}>
+                              {item.isDefault && (
+                                <span className="es-flag is-default" style={{ marginRight: 6 }}>
+                                  <StarOutlined /> Default
+                                </span>
+                              )}
+                              {item.isFinal && (
+                                <span className="es-flag is-final">
+                                  <CheckCircleFilled /> Final
+                                </span>
+                              )}
+                              {!item.isDefault && !item.isFinal && (
+                                <span className="es-row-sub" style={{ fontSize: 11 }}>Intermediate state</span>
+                              )}
+                            </div>
+                          </div>
+                          {canManageEscalations && (
+                            <Dropdown
+                              overlayClassName="es-action-pop"
+                              menu={{
+                                items: [
+                                  {
+                                    key: 'edit',
+                                    label: (
+                                      <div className="es-menu-item">
+                                        <span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.10)' }}><EditOutlined /></span>
+                                        <span className="es-menu-text">
+                                          <span className="es-menu-title">Edit</span>
+                                          <span className="es-menu-desc">Modify this {activeSection.singular.toLowerCase()}</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (e: any) => { e.domEvent.stopPropagation(); handleOpenDrawer(item); }
+                                  },
+                                  { type: 'divider' as const },
+                                  {
+                                    key: 'delete',
+                                    danger: true,
+                                    label: (
+                                      <div className="es-menu-item">
+                                        <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)' }}><DeleteOutlined /></span>
+                                        <span className="es-menu-text">
+                                          <span className="es-menu-title">Retire</span>
+                                          <span className="es-menu-desc">Remove from active use</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (e: any) => { e.domEvent.stopPropagation(); handleDelete(item.id); }
+                                  },
+                                ]
+                              }}
+                              trigger={['click']}
+                              placement="bottomRight"
+                            >
+                              <button type="button" className="ec-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
+                          )}
+                        </div>
+                        <div className="ec-foot">
+                          <div className="ec-foot-row">
+                            <span className="ec-foot-item">
+                              <span className="ec-foot-key">Status:</span>
+                              <span className={`es-status-pill ${item.isActive ? 'is-active' : 'is-inactive'}`}>
+                                <span className="es-status-dot" />
+                                {item.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         </main>
 
         {/* CRUD Drawer */}
         <Drawer
           className="es-drawer"
           placement="right"
-          width={620}
+          width={440}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           closable={false}
@@ -1168,7 +1441,7 @@ export default function EscalationSettingsPage() {
           }}
           footer={
             <div className="es-drawer__footer">
-              <Button onClick={() => setDrawerOpen(false)} className="es-btn-ghost">
+              <Button htmlType="button" onClick={() => { setDrawerOpen(false); form.resetFields(); }} className="es-btn-ghost">
                 Cancel
               </Button>
               <Button
@@ -1211,7 +1484,7 @@ export default function EscalationSettingsPage() {
         .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
         .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
         .es-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.07em; }
-        .es-create-btn { height: 32px !important; border-radius: 0 !important; font-weight: 600 !important; font-size: 12.5px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 4px; }
+        .es-create-btn { height: 32px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 4px; }
         .es-create-btn:hover { background: #2563EB !important; }
         .es-create-btn .anticon { font-size: 12px !important; }
         .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px; scrollbar-width: none; -ms-overflow-style: none; }
@@ -1230,6 +1503,23 @@ export default function EscalationSettingsPage() {
         .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
         .es-body { flex: 1 0 auto; }
         .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-search-wrap {
+          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .es-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .es-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .es-search {
+          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+          font-size: 13px; color: var(--text-slate-900);
+        }
+        .es-search::placeholder { color: var(--text-slate-400); }
+        .es-kbd {
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          border-radius: 5px; padding: 1px 6px;
+        }
         .es-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
         .es-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
         .es-meta-dot { color: var(--text-slate-300); }
@@ -1240,19 +1530,274 @@ export default function EscalationSettingsPage() {
         .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
         
+        /* Segmented buttons */
+        .es-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; background: var(--bg-pure-white); }
+        .es-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .es-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        /* Premium action dropdown */
+        .es-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 220px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .es-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .es-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .es-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .es-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .es-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .es-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .es-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .es-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .es-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .es-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .es-action-pop .ant-dropdown-menu-item-danger .es-menu-title { color: #ef4444; }
+        .es-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .es-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
         /* Table */
-        .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; }
-        .es-table .ant-table { background: transparent; font-size: 12px; }
+        .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .es-table .ant-table { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .es-table .ant-table-container { border-radius: 0 !important; }
         .es-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
         }
+        .es-table .ant-table-thead > tr > th:first-child {
+          border-start-start-radius: 0 !important;
+          border-top-left-radius: 0 !important;
+        }
+        .es-table .ant-table-thead > tr > th:last-child {
+          border-start-end-radius: 0 !important;
+          border-top-right-radius: 0 !important;
+        }
         .es-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; background: var(--bg-pure-white) !important; }
         .es-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .es-table .ant-table-tbody > tr:last-child > td:first-child { border-bottom-left-radius: 0 !important; }
+        .es-table .ant-table-tbody > tr:last-child > td:last-child { border-bottom-right-radius: 0 !important; }
         .es-table .ant-table-tbody > tr.es-row:hover > td { background: var(--bg-slate-50) !important; }
         .es-table .ant-table-selection-column { padding-inline: 6px !important; }
+
+        /* Grid */
+        .es-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; align-items: start; }
+        .ec-card { max-width: 100%; }
+        .es-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
+
+        @media (max-width: 700px) {
+          .es-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Card view rules */
+        .ec-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .ec-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .ec-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .ec-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .ec-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .ec-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .ec-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .ec-category-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .ec-category-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .ec-category-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .ec-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .ec-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .ec-foot-row + .ec-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .ec-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .ec-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .ec-foot-val { font-size: 11.5px; color: var(--text-slate-700); }
+        .ec-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+        /* Toggle switches */
+        .es-toggle-card {
+          border-radius: 8px !important;
+          transform: none !important;
+          transition: none !important;
+        }
+        .es-toggle-card:hover {
+          transform: none !important;
+          box-shadow: none !important;
+        }
+        [data-theme='dark'] .es-toggle-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-toggle-card:hover {
+          border-color: #1F2937 !important;
+        }
+
+        /* Stats card styles */
+        .es-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 10px 14px; min-height: 80px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          transition: none !important;
+          transform: none !important;
+        }
+        .es-stat-card:hover {
+          transform: none !important;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        .es-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .es-stat-left { display: flex; align-items: center; gap: 8px; }
+        .es-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .es-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .es-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .es-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .es-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .es-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .es-stat-spark { opacity: 0.95; }
+
+        [data-theme='dark'] .es-shell {
+          background:
+            radial-gradient(1200px 400px at 0% -100px, rgba(59, 130, 246, 0.08), transparent 60%),
+            radial-gradient(900px 360px at 100% -120px, rgba(139, 92, 246, 0.08), transparent 55%),
+            #0B0F1A;
+        }
+        [data-theme='dark'] .es-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-side-head {
+          border-bottom-color: #1F2937;
+        }
+        [data-theme='dark'] .es-side-title {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-view-item:hover {
+          background: #161B22;
+        }
+        [data-theme='dark'] .es-view-item.is-active {
+          background: rgba(59, 130, 246, 0.15);
+        }
+        [data-theme='dark'] .es-view-label {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-view-item.is-active .es-view-label {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-search-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-search {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-ghost-btn {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-divider {
+          background: #1F2937;
+        }
+        [data-theme='dark'] .es-stat-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          transform: none !important;
+        }
+        [data-theme='dark'] .es-stat-card:hover {
+          border-color: #1F2937 !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+        [data-theme='dark'] .es-stat-label {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-stat-value {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-table-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-thead > tr > th {
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-tbody > tr > td {
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-tbody > tr.es-row:hover > td {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .es-row-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .es-row-sub {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .es-segmented {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-segmented button.is-active {
+          background: #161B22 !important;
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .ec-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .ec-top {
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .ec-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .ec-category-val {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .ec-foot {
+          background: #161B22 !important;
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .ec-foot-row {
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .ec-foot-val {
+          color: #94A3B8 !important;
+        }
+
+        .es-status-pill {
+          padding: 2px 8px !important;
+          font-size: 10px !important;
+          height: 20px !important;
+          line-height: 1 !important;
+          letter-spacing: 0.03em !important;
+        }
+        .es-status-dot {
+          width: 5px !important;
+          height: 5px !important;
+        }
       `}</style>
     </MainLayout>
   );

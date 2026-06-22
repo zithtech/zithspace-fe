@@ -24,6 +24,7 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   proposal_id?: string;
+  deleted_at?: string;
 
   // Job Metadata
   external_job_id?: string;

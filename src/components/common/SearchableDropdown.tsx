@@ -471,7 +471,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-search-icon { color: var(--text-slate-400, #94a3b8); flex-shrink: 0; }
 .sd-search-input {
   flex: 1;
-  width: 100%;
+  min-width: 0;
   background: var(--bg-slate-50, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 8px !important;

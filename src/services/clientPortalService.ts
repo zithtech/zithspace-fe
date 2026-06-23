@@ -11,6 +11,11 @@ export interface ClientPortalUser {
   mustChangePassword: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  } | null;
 }
 
 export interface CreatePortalUserPayload {

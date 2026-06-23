@@ -114,13 +114,7 @@ export function PremiumModal({
         body: { padding: 0 },
       }}
     >
-      {/* Top accent ribbon */}
-      <div
-        style={{
-          height: 3,
-          background: ribbon,
-        }}
-      />
+      {/* Top accent ribbon removed */}
 
       {/* Header */}
       <div
@@ -214,7 +208,7 @@ export function PremiumModal({
               padding: "8px 12px",
               background: c.surfaceMuted,
               border: `1px solid ${c.border}`,
-              borderRadius: 8,
+              borderRadius: 0,
               fontSize: 11.5,
               color: c.textSubtle,
               lineHeight: 1.5,
@@ -268,7 +262,7 @@ export function ModalSection({
             padding: 14,
             background: c.surfaceMuted,
             border: `1px solid ${c.border}`,
-            borderRadius: 10,
+            borderRadius: 0,
           }),
       }}
     >

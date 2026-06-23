@@ -16,6 +16,7 @@ import {
   Empty,
   Table,
   Tag,
+  Dropdown,
 } from "antd";
 import {
   Plus,
@@ -44,6 +45,7 @@ import {
   Download,
   Image as ImageIcon,
   FileType2,
+  MoreHorizontal,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -66,6 +68,7 @@ import {
   FieldLabel as FLabel,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
 
@@ -178,12 +181,14 @@ interface Props {
   projects?: { id: string; name: string; code?: string | null }[];
   contacts?: ClientContactOption[];
   onRefresh?: () => void;
+  onCountChange?: (n: number) => void;
 }
 
 export default function MeetingsTab({
   clientId,
   projects = [],
   contacts = [],
+  onCountChange,
 }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
@@ -201,11 +206,63 @@ export default function MeetingsTab({
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
 
+  const meetingActionMenu = (meeting: MomListItem) => ({
+    className: "pp-action-pop",
+    items: [
+      {
+        key: "edit",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
+              <Edit3 size={13} />
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">Edit</span>
+              <span className="pp-menu-desc">Modify meeting details</span>
+            </span>
+          </div>
+        )
+      },
+      {
+        key: "delete",
+        danger: true,
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
+              <Trash2 size={13} />
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Delete</span>
+              <span className="pp-menu-desc">Permanently remove MOM</span>
+            </span>
+          </div>
+        )
+      }
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent?.stopPropagation();
+      if (key === "edit") {
+        setEditingId(meeting.id);
+      } else if (key === "delete") {
+        Modal.confirm({
+          title: "Delete this meeting?",
+          content: "Are you sure you want to delete this meeting? Action items already converted to tickets will remain.",
+          okText: "Delete",
+          okType: "danger",
+          cancelText: "Cancel",
+          centered: true,
+          onOk: () => handleDeleteRow(meeting.id),
+        });
+      }
+    }
+  });
+
   const load = async () => {
     setLoading(true);
     try {
       const data = await momService.listForClient(clientId);
       setItems(data || []);
+      onCountChange?.((data || []).length);
     } catch (err: any) {
       messageApi.error(`Failed to load meetings: ${err?.message}`);
     } finally {
@@ -266,7 +323,7 @@ export default function MeetingsTab({
                 background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                 borderColor: "transparent",
                 borderRadius: "8px",
-                height: "36px",
+                height: "32px",
                 fontWeight: 600,
                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
                 display: "inline-flex",
@@ -276,7 +333,7 @@ export default function MeetingsTab({
               New meeting
             </Button>
           }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
         />
       </div>
 
@@ -284,114 +341,71 @@ export default function MeetingsTab({
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
+          justifyContent: "space-between",
           alignItems: "center",
-          marginTop: 20,
-          marginBottom: 20,
-          padding: "12px 16px",
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 12,
+          gap: 12,
+          margin: "12px 0 8px 0",
+          flexWrap: "wrap",
         }}
       >
-        {/* Search */}
-        <Input
-          allowClear
-          prefix={<Search size={14} style={{ color: c.textFaint }} />}
-          placeholder="Search meetings…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: 220,
-            background: c.surfaceMuted,
-            borderColor: c.border,
-            color: c.text,
-            borderRadius: 8,
-          }}
-        />
-
-        {/* Date range */}
-        <DatePicker.RangePicker
-          allowClear
-          placeholder={["From date", "To date"]}
-          onChange={(val) => setDateRange(val as any)}
-          style={{
-            background: c.surfaceMuted,
-            borderColor: c.border,
-            borderRadius: 8,
-            color: c.text,
-          }}
-        />
-
-        {/* Project filter */}
-        {projects.length > 0 && (
-          <Select
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Search */}
+          <Input
             allowClear
-            placeholder="All projects"
-            value={projectFilter}
-            onChange={(v) => setProjectFilter(v ?? null)}
-            options={projects.map((p) => ({ label: p.name, value: p.id }))}
-            style={{ minWidth: 160, borderRadius: 8 }}
+            className="contacts-search-input"
+            prefix={<Search size={14} style={{ color: c.textFaint }} />}
+            placeholder="Search meetings…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: 220,
+            }}
           />
-        )}
 
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
+          {/* Date range */}
+          <DatePicker.RangePicker
+            allowClear
+            placeholder={["From date", "To date"]}
+            onChange={(val) => setDateRange(val as any)}
+            className="contacts-search-input"
+          />
+
+          {/* Project filter */}
+          {projects.length > 0 && (
+            <SearchableDropdown
+              placeholder="All projects"
+              searchPlaceholder="Search projects"
+              itemNoun="projects"
+              value={projectFilter ?? undefined}
+              onChange={(v) => setProjectFilter(v ?? null)}
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              width={180}
+              className="contacts-filter-select-sd"
+            />
+          )}
+        </div>
 
         {/* View toggle */}
-        <div
-          style={{
-            display: "flex",
-            gap: 2,
-            background: c.surfaceMuted,
-            border: `1px solid ${c.border}`,
-            borderRadius: 8,
-            padding: 3,
-          }}
-        >
-          <Tooltip title="List view">
-            <button
-              onClick={() => setViewMode("list")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 30,
-                height: 30,
-                borderRadius: 6,
-                border: "none",
-                cursor: "pointer",
-                background: viewMode === "list" ? c.accent : "transparent",
-                color: viewMode === "list" ? "#fff" : c.textSubtle,
-                transition: "background 150ms ease",
-              }}
-            >
-              <LayoutList size={15} />
-            </button>
-          </Tooltip>
-          <Tooltip title="Card view">
-            <button
-              onClick={() => setViewMode("card")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 30,
-                height: 30,
-                borderRadius: 6,
-                border: "none",
-                cursor: "pointer",
-                background: viewMode === "card" ? c.accent : "transparent",
-                color: viewMode === "card" ? "#fff" : c.textSubtle,
-                transition: "background 150ms ease",
-              }}
-            >
-              <LayoutGrid size={15} />
-            </button>
-          </Tooltip>
+        <div className="ptab-segmented">
+          <button
+            type="button"
+            className={viewMode === "list" ? "is-active" : ""}
+            onClick={() => setViewMode("list")}
+            aria-label="List view"
+          >
+            <LayoutList size={15} />
+          </button>
+          <button
+            type="button"
+            className={viewMode === "card" ? "is-active" : ""}
+            onClick={() => setViewMode("card")}
+            aria-label="Card view"
+          >
+            <LayoutGrid size={15} />
+          </button>
         </div>
       </div>
+      <div className="ptab-divider" />
 
       {/* ── Content ── */}
       {(() => {
@@ -442,202 +456,127 @@ export default function MeetingsTab({
 
         // ── CARD VIEW ──
         if (viewMode === "card") return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
-            {filtered.map((m) => (
-              <div
-                key={m.id}
-                onClick={() => setOpenId(m.id)}
-                style={{
-                  background: c.surfaceElevated,
-                  border: `1px solid ${c.border}`,
-                  borderRadius: 14,
-                  cursor: "pointer",
-                  transition: "border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  position: "relative",
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = c.accentBorder;
-                  el.style.boxShadow = `0 8px 28px rgba(59,130,246,0.10), 0 2px 8px rgba(0,0,0,0.06)`;
-                  el.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = c.border;
-                  el.style.boxShadow = "none";
-                  el.style.transform = "translateY(0)";
-                }}
-              >
-                {/* Top accent bar */}
-                <div style={{ height: 3, background: `linear-gradient(90deg, ${c.accent}, ${c.accent}66)`, flexShrink: 0 }} />
-
-                {/* Card body */}
-                <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
-
-                  {/* Header row: icon + title + badges */}
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    {/* Icon tile */}
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                      background: c.accentBg, border: `1px solid ${c.accentBorder}`,
-                      color: c.accentText, display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Calendar size={17} />
+          <div className="pp-grid">
+            {filtered.map((m) => {
+              const created = m.createdAt ? dayjs(m.createdAt) : null;
+              return (
+                <div
+                  key={m.id}
+                  className="pc-card"
+                  onClick={() => setOpenId(m.id)}
+                >
+                  <div className="pc-top">
+                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Calendar size={13} />
                     </div>
-
-                    {/* Title + MOM number */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                        fontSize: 10, color: c.textFaint, marginBottom: 3, letterSpacing: "0.05em",
-                      }}>
-                        {m.momNumber}
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span>{m.title}</span>
+                        {m.status === "draft" && (
+                          <span
+                            className="pc-status-tag"
+                            style={{
+                              marginLeft: "4px",
+                              fontSize: "10px",
+                              padding: "1px 6px",
+                              color: c.warningText,
+                              background: c.warningBg,
+                              border: `1px solid ${c.warningBorder}`
+                            }}
+                          >
+                            DRAFT
+                          </span>
+                        )}
+                        {m.visibility === "internal" && (
+                          <span
+                            className="pc-status-tag"
+                            style={{
+                              marginLeft: "4px",
+                              fontSize: "10px",
+                              padding: "1px 6px",
+                              color: c.textSubtle,
+                              background: c.surfaceMuted,
+                              border: `1px solid ${c.border}`
+                            }}
+                          >
+                            INTERNAL
+                          </span>
+                        )}
                       </div>
-                      <div style={{
-                        fontSize: 14, fontWeight: 700, color: c.text, lineHeight: 1.3,
-                        overflow: "hidden", display: "-webkit-box",
-                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                      }}>
-                        {m.title}
+                      <div className="pc-client-line">
+                        <span className="pc-client-key">MOM seq:</span>
+                        <span className="pc-client-val" style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace" }}>{m.momNumber}</span>
                       </div>
                     </div>
-
-                    {/* Badges */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                      {m.status === "draft" && (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", background: c.warningBg, border: `1px solid ${c.warningBorder}`, color: c.warningText, borderRadius: 999 }}>
-                          Draft
-                        </span>
-                      )}
-                      {m.visibility === "internal" && (
-                        <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", background: c.surfaceMuted, border: `1px solid ${c.border}`, color: c.textSubtle, borderRadius: 999 }}>
-                          Internal
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Meta chips row */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {/* Date chip */}
-                    <span style={{
-                      display: "inline-flex", gap: 5, alignItems: "center",
-                      padding: "4px 10px", borderRadius: 999,
-                      background: c.surfaceMuted, border: `1px solid ${c.border}`,
-                      fontSize: 11.5, color: c.textMuted, fontWeight: 500,
-                    }}>
-                      <Clock size={11} />{fmtDate(m.meetingDate)}
-                    </span>
-
-                    {/* Duration chip */}
-                    {m.durationMinutes && (
-                      <span style={{
-                        display: "inline-flex", gap: 5, alignItems: "center",
-                        padding: "4px 10px", borderRadius: 999,
-                        background: c.surfaceMuted, border: `1px solid ${c.border}`,
-                        fontSize: 11.5, color: c.textMuted, fontWeight: 500,
-                      }}>
-                        {m.durationMinutes} min
-                      </span>
-                    )}
-
-                    {/* Project chip */}
-                    {m.projectName && (
-                      <span style={{
-                        display: "inline-flex", gap: 5, alignItems: "center",
-                        padding: "4px 10px", borderRadius: 999,
-                        background: c.accentBg, border: `1px solid ${c.accentBorder}`,
-                        fontSize: 11.5, color: c.accentText, fontWeight: 500,
-                      }}>
-                        <GitPullRequest size={11} />{m.projectName}
-                      </span>
-                    )}
-
-                    {/* Recording chip */}
-                    {m.recordingUrl && (
-                      <span style={{
-                        display: "inline-flex", gap: 5, alignItems: "center",
-                        padding: "4px 10px", borderRadius: 999,
-                        background: c.purpleBg, border: `1px solid ${c.purpleBorder}`,
-                        fontSize: 11.5, color: c.purpleText, fontWeight: 500,
-                      }}>
-                        <Video size={11} />Recording
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer stats bar */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 0,
-                  borderTop: `1px solid ${c.border}`,
-                  background: c.surfaceMuted,
-                }}>
-                  <div style={{
-                    flex: 1, display: "flex", alignItems: "center", gap: 6,
-                    padding: "10px 18px", fontSize: 12, color: c.textSubtle,
-                    borderRight: `1px solid ${c.border}`,
-                  }}>
-                    <Users size={12} />
-                    <span>{m.attendeeCount} attendee{m.attendeeCount === 1 ? "" : "s"}</span>
-                  </div>
-                  <div style={{
-                    flex: 1, display: "flex", alignItems: "center", gap: 6,
-                    padding: "10px 18px", fontSize: 12,
-                    color: m.openActionCount > 0 ? c.warningText : c.textSubtle,
-                    fontWeight: m.openActionCount > 0 ? 600 : 400,
-                  }}>
-                    <CheckSquare size={12} />
-                    <span>{m.openActionCount} open · {m.actionCount} total</span>
-                  </div>
-                  <div
-                    style={{
-                      padding: "6px 8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      borderLeft: `1px solid ${c.border}`,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Tooltip title="Edit meeting">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<Edit3 size={13} color={c.textMuted} />}
-                        onClick={() => setEditingId(m.id)}
-                      />
-                    </Tooltip>
-                    <Popconfirm
-                      title="Delete this meeting?"
-                      description="Action items already converted to tickets will remain."
-                      onConfirm={() => handleDeleteRow(m.id)}
-                      okText="Delete"
-                      okButtonProps={{ danger: true }}
+                    <Dropdown
+                      menu={meetingActionMenu(m)}
+                      overlayClassName="pp-action-pop"
+                      trigger={["click"]}
+                      placement="bottomRight"
                     >
-                      <Tooltip title="Delete">
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          icon={<Trash2 size={13} />}
-                        />
-                      </Tooltip>
-                    </Popconfirm>
+                      <button
+                        type="button"
+                        className="pc-actions"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </Dropdown>
                   </div>
-                  <div style={{
-                    padding: "10px 14px",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: c.textFaint,
-                  }}>
-                    <ChevronRight size={15} />
+
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created</span>
+                        <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                      </span>
+                      {m.projectName && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Project</span>
+                            <span className="pc-foot-val">{m.projectName}</span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <Clock size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 600 }}>
+                          {fmtDate(m.meetingDate)}
+                        </span>
+                      </span>
+                      {m.durationMinutes && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{m.durationMinutes} min</span>
+                          </span>
+                        </>
+                      )}
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <Users size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>
+                          {m.attendeeCount} attendee{m.attendeeCount === 1 ? "" : "s"}
+                        </span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <CheckSquare size={12} style={{ color: m.openActionCount > 0 ? "var(--warningText)" : "var(--text-slate-400)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>
+                          {m.openActionCount} open / {m.actionCount} total
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
 
@@ -725,75 +664,31 @@ export default function MeetingsTab({
           {
             title: "Actions",
             key: "actions",
-            width: 110,
+            width: 72,
             align: "right" as const,
             fixed: "right" as const,
             render: (_: any, m: MomListItem) => (
-              <div
-                style={{ display: "inline-flex", gap: 6 }}
-                onClick={(e) => e.stopPropagation()}
+              <Dropdown
+                menu={meetingActionMenu(m)}
+                overlayClassName="pp-action-pop"
+                trigger={["click"]}
+                placement="bottomRight"
               >
-                <Tooltip title="Edit meeting">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Edit3 size={14} color={c.textMuted} />}
-                    onClick={() => setEditingId(m.id)}
-                  />
-                </Tooltip>
-                <Popconfirm
-                  title="Delete this meeting?"
-                  description="Action items already converted to tickets will remain."
-                  onConfirm={() => handleDeleteRow(m.id)}
-                  okText="Delete"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Tooltip title="Delete">
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<Trash2 size={14} />}
-                    />
-                  </Tooltip>
-                </Popconfirm>
-              </div>
+                <Button
+                  type="text"
+                  className="pp-icon-btn"
+                  icon={<MoreHorizontal size={16} />}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Dropdown>
             ),
           },
         ];
 
         return (
-          <>
-            <style dangerouslySetInnerHTML={{
-              __html: `
-              .meetings-table .ant-table {
-                background: transparent !important;
-                color: ${c.text} !important;
-              }
-              .meetings-table .ant-table-thead > tr > th {
-                background: ${c.surfaceMuted} !important;
-                color: ${c.textSubtle} !important;
-                font-weight: 600 !important;
-                font-size: 11px !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.06em !important;
-                border-bottom: 1px solid ${c.border} !important;
-                padding: 10px 16px !important;
-              }
-              .meetings-table .ant-table-thead > tr > th::before { display: none !important; }
-              .meetings-table .ant-table-tbody > tr > td {
-                background: ${c.surfaceElevated} !important;
-                border-bottom: 1px solid ${c.border} !important;
-                padding: 12px 16px !important;
-              }
-              .meetings-table .ant-table-tbody > tr:hover > td {
-                background: ${c.surfaceMuted} !important;
-              }
-              .meetings-table .ant-table-tbody > tr > td:first-child { border-radius: 0 !important; }
-              .meetings-table { border: 1px solid ${c.border}; border-radius: 12px; overflow: hidden; }
-            ` }} />
+          <div className="pp-table-wrap">
             <Table
-              className="meetings-table"
+              className="pp-table"
               dataSource={filtered}
               columns={columns}
               rowKey="id"
@@ -802,7 +697,7 @@ export default function MeetingsTab({
               scroll={{ x: "max-content" }}
               onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
             />
-          </>
+          </div>
         );
       })()}
 
@@ -847,8 +742,8 @@ export default function MeetingsTab({
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -866,6 +761,190 @@ export default function MeetingsTab({
             padding-left: 16px !important;
             padding-right: 16px !important;
           }
+        }
+
+        /* Segmented Toggles */
+        .ptab-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .ptab-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+        .ptab-segmented button:hover {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+        }
+        .ptab-segmented button.is-active {
+          background: var(--bg-blue-50) !important;
+          color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .ptab-segmented {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .ptab-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        .pp-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+        .pp-icon-btn:hover { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
+
+        /* Proposal Style Cards Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
+        .pc-status-tag .anticon { font-size: 9px; }
+
+        /* Dropdown Action Popover */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 200px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        /* Dark Theme Support */
+        [data-theme="dark"] .pp-table-wrap {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-800) !important;
+          border-color: var(--border-slate-700) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr > td {
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pc-card {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pc-card:hover {
+          border-color: var(--border-slate-700);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .pc-foot {
+          border-color: var(--border-slate-800);
+          background: var(--bg-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row + .pc-foot-row {
+          border-color: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-foot-item {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-title {
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pc-client-val {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-actions:hover {
+          background: var(--bg-slate-700);
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .pp-menu-title {
+          color: var(--text-slate-200) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item-divider {
+          background: var(--border-slate-800) !important;
         }
       `}} />
     </div>
@@ -2062,26 +2141,27 @@ function AttachmentsEditor({
           padding: 14,
           background: c.surfaceMuted,
           border: `1px solid ${c.border}`,
-          borderRadius: 12,
+          borderRadius: 0,
           display: "flex",
           flexDirection: "column",
           gap: 8,
         }}>
           <div style={{ fontSize: 11.5, fontWeight: 600, color: c.textSubtle, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Paste a link</div>
           <Input
-            size="small"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            prefix={<Link2 size={12} color={c.textFaint} />}
-            placeholder="https://docs.example.com/doc/…"
+            size="middle"
+            value={linkLabel}
+            onChange={(e) => setLinkLabel(e.target.value)}
+            placeholder="Optional label (e.g. Sprint 4 retro doc)"
             autoFocus
             onPressEnter={addLink}
           />
           <Input
-            size="small"
-            value={linkLabel}
-            onChange={(e) => setLinkLabel(e.target.value)}
-            placeholder="Optional label (e.g. Sprint 4 retro doc)"
+            size="middle"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            prefix={<Link2 size={14} color={c.textFaint} />}
+            placeholder="https://docs.example.com/doc/…"
+            onPressEnter={addLink}
           />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 2 }}>
             <Button size="small" onClick={() => { setAdding(null); setLinkUrl(""); setLinkLabel(""); }}>Cancel</Button>
@@ -2638,7 +2718,7 @@ function MomDetailDrawer({
                         padding: "4px 10px",
                         background: c.surfaceMuted,
                         border: `1px solid ${c.border}`,
-                        borderRadius: 999,
+                        borderRadius: 0,
                         fontSize: 12,
                         color: c.text,
                       }}
@@ -2656,7 +2736,7 @@ function MomDetailDrawer({
                           background: c.surfaceElevated,
                           border: `1px solid ${c.border}`,
                           color: c.textSubtle,
-                          borderRadius: 999,
+                          borderRadius: 0,
                         }}
                       >
                         {a.party || "client"}

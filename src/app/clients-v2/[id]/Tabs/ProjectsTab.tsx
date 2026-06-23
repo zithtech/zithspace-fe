@@ -21,6 +21,8 @@ import {
   Tooltip,
   Avatar,
   Progress,
+  Segmented,
+  Dropdown,
 } from "antd";
 import {
   Plus,
@@ -43,6 +45,9 @@ import {
   Hash,
   FolderInput as FolderInputIcon,
   Link2,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
@@ -76,6 +81,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -86,6 +92,71 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
+
+  const projectActionMenu = (project: any) => ({
+    className: "pp-action-pop",
+    items: [
+      {
+        key: "view",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}><Eye size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">View Overview</span>
+              <span className="pp-menu-desc">Monitor progress</span>
+            </span>
+          </div>
+        ),
+        onClick: (info: any) => {
+          info.domEvent?.stopPropagation();
+          router.push(`/projects/${project.id}/overview`);
+        }
+      },
+      {
+        key: "edit",
+        disabled: !canUpdateClient,
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#64748b", background: "rgba(100, 116, 139, 0.12)" }}><Edit2 size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">Edit Configuration</span>
+              <span className="pp-menu-desc">Modify settings</span>
+            </span>
+          </div>
+        ),
+        onClick: (info: any) => {
+          info.domEvent?.stopPropagation();
+          openEditModal(project);
+        }
+      },
+      {
+        key: "delete",
+        danger: true,
+        disabled: !canUpdateClient,
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Delete</span>
+              <span className="pp-menu-desc">Remove project permanently</span>
+            </span>
+          </div>
+        ),
+        onClick: (info: any) => {
+          info.domEvent?.stopPropagation();
+          modal.confirm({
+            title: "Delete Project",
+            content: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: () => handleDeleteProject(project.id, project.name),
+          });
+        }
+      }
+    ]
+  });
 
   // Import-existing-projects modal state
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -302,9 +373,11 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       width: 280,
       render: (_: any, record: any) => (
         <Space size={12}>
-          <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 8, color: "var(--text-slate-500)", display: "flex" }}>
-            <Layers size={18} />
-          </div>
+          <Avatar
+            style={{ backgroundColor: "#3b82f6", color: "#fff" }}
+          >
+            {(record.name?.[0] || "").toUpperCase()}
+          </Avatar>
           <div>
             <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>{record.name}</div>
             <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>CODE: {record.code}</div>
@@ -374,6 +447,34 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       },
     },
     {
+      title: "Created By",
+      key: "createdBy",
+      render: (_: any, record: any) => {
+        const creator = record.createdBy;
+        if (!creator?.name) return <span style={{ color: "var(--text-slate-400)" }}>—</span>;
+        return (
+          <div className="pp-creator" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Avatar size={20} src={creator.avatarUrl || creator.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 9, fontWeight: 700 }}>
+              {(creator.name?.[0] || "").toUpperCase()}
+            </Avatar>
+            <span className="pp-creator-name" style={{ fontSize: "11.5px", color: "var(--text-slate-700)", whiteSpace: "nowrap" }}>{creator.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) =>
+        date ? (
+          <div className="pp-date" style={{ display: "flex", flexDirection: "column" }}>
+            <span className="pp-date-main" style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-slate-700)" }}>{dayjs(date).format("MMM D, YYYY")}</span>
+            <span className="pp-date-sub" style={{ fontSize: "11px", color: "var(--text-slate-400)" }}>{dayjs(date).format("h:mm A")}</span>
+          </div>
+        ) : <span style={{ color: "var(--text-slate-400)" }}>—</span>,
+    },
+    {
       title: "Leadership",
       key: "projectManager",
       render: (_: any, record: any) => (
@@ -406,50 +507,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       title: "Actions",
       key: "actions",
       align: "right" as const,
+      width: 72,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Space onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="View Project Overview">
-            <Button
-              type="text"
-              className="premium-action-btn"
-              icon={<Eye size={16} />}
-              style={{ color: "var(--text-slate-400)" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/projects/${record.id}/overview`);
-              }}
-            />
-          </Tooltip>
-          {canUpdateClient && (
-            <Tooltip title="Edit Configuration">
-              <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
-            </Tooltip>
-          )}
-          {canUpdateClient && (
-            <Popconfirm
-              title="Delete project?"
-              description={`"${record.name}" will be permanently removed. This cannot be undone.`}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-              onConfirm={(e) => {
-                e?.stopPropagation();
-                handleDeleteProject(record.id, record.name);
-              }}
-              onPopupClick={(e) => e.stopPropagation()}
-            >
-              <Tooltip title="Delete Project">
-                <Button
-                  type="text"
-                  className="premium-action-btn"
-                  icon={<Trash2 size={16} />}
-                  style={{ color: "var(--text-slate-400)" }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Tooltip>
-            </Popconfirm>
-          )}
-        </Space>
+        <Dropdown
+          menu={projectActionMenu(record)}
+          overlayClassName="pp-action-pop"
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            className="pp-icon-btn"
+            icon={<MoreHorizontal size={16} />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -465,23 +538,23 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
+      {modalContextHolder}
 
       <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
         <TimeTrackingHeader
-          icon={<Layers size={20} color="#8b5cf6" />}
+          icon={<Layers size={20} color="#3b82f6" />}
           title="Projects"
           description="Monitor project lifecycles, budget utilization, and leadership assignments"
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
           extra={
             <div style={{ display: "flex", gap: "12px", flexWrap: "nowrap", alignItems: "center" }}>
               {canUpdateClient && (
                 <Button
-                  size="large"
                   icon={<FolderInputIcon size={16} />}
                   onClick={() => setIsImportModalVisible(true)}
                   style={{
-                    borderRadius: 10,
-                    height: 38,
+                    borderRadius: 8,
+                    height: 32,
                     fontWeight: 600,
                     display: "flex",
                     alignItems: "center",
@@ -498,20 +571,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               {canUpdateClient && (
                 <Button
                   type="primary"
-                  size="large"
                   icon={<Plus size={16} />}
                   onClick={() => setIsModalVisible(true)}
                   style={{
-                    borderRadius: 10,
-                    height: 38,
+                    borderRadius: 8,
+                    height: 32,
                     fontWeight: 600,
                     display: "flex",
                     alignItems: "center",
-                    // background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
                     background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                     border: "none",
                     boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                    // boxShadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
                     whiteSpace: "nowrap"
                   }}
                 >
@@ -523,7 +593,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         />
       </div>
 
-      <div style={{ margin: "20px 0 16px 0", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <Input
           placeholder="Search by name or project code..."
           prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
@@ -532,23 +602,64 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           style={{ width: "320px" }}
           allowClear
         />
+
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="ptab-segmented">
+            <button
+              type="button"
+              className={viewMode === "grid" ? "is-active" : ""}
+              onClick={() => setViewMode("grid")}
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "list" ? "is-active" : ""}
+              onClick={() => setViewMode("list")}
+              aria-label="List view"
+            >
+              <List size={15} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
-        <Table
-          dataSource={filteredProjects}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSize: 8, hideOnSinglePage: true }}
-          className="premium-table"
-          scroll={{ x: "max-content" }}
-          onRow={(record) => ({
-            onClick: () => router.push(`/projects/${record.id}/overview`),
-            style: { cursor: "pointer" },
-          })}
-          locale={{
-            emptyText: (
+      <div className="ptab-divider" />
+
+      {viewMode === "list" ? (
+        <div className="pp-table-wrap">
+          <Table
+            dataSource={filteredProjects}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 8, hideOnSinglePage: true }}
+            className="pp-table"
+            scroll={{ x: "max-content" }}
+            onRow={(record) => ({
+              onClick: () => router.push(`/projects/${record.id}/overview`),
+              style: { cursor: "pointer" },
+            })}
+            locale={{
+              emptyText: (
+                <div className="ptab-empty">
+                  <div className="ptab-empty-icon">
+                    <Layers size={26} />
+                  </div>
+                  <div className="ptab-empty-title">No projects yet</div>
+                  <div className="ptab-empty-desc">
+                    Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                  </div>
+                </div>
+              ),
+            }}
+          />
+        </div>
+      ) : (
+        <div className="pp-grid">
+          {filteredProjects.length === 0 ? (
+            <div className="ptab-empty-wrapper">
               <div className="ptab-empty">
                 <div className="ptab-empty-icon">
                   <Layers size={26} />
@@ -558,10 +669,136 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   Initiate the first project under this client to start tracking budget, timelines, and ownership.
                 </div>
               </div>
-            ),
-          }}
-        />
-      </Card>
+            </div>
+          ) : (
+            filteredProjects.map((project) => {
+              const name = project.name;
+              const initials = (name?.[0] || "").toUpperCase();
+
+              const sKey = project.status || "Draft";
+              const statusConfig: any = {
+                Active: { color: "success", icon: <Activity size={10} /> },
+                Draft: { color: "processing", icon: <FileText size={10} /> },
+                "On Hold": { color: "warning", icon: <Clock size={10} /> },
+                Completed: { color: "default", icon: <CheckCircle2 size={10} /> },
+                Closed: { color: "error", icon: <AlertCircle size={10} /> },
+              };
+              const statusItem = statusConfig[sKey] || { color: "default", icon: null };
+
+              const created = project.createdAt ? dayjs(project.createdAt) : null;
+              const updated = project.updatedAt ? dayjs(project.updatedAt) : null;
+
+              const symbol = currencyOptions.find((c) => c.value === project.currency)?.symbol || "$";
+              const budget = Number(project.budget || 0);
+              const invoiced = Number(project.invoicedAmount || 0);
+              const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
+
+              return (
+                <div key={project.id} className="pc-card" onClick={() => router.push(`/projects/${project.id}/overview`)}>
+                  <div className="pc-top">
+                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
+                      {initials}
+                    </div>
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span>{name}</span>
+                        <Tag
+                          color={statusItem.color}
+                          icon={statusItem.icon}
+                          style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
+                        >
+                          {sKey.toUpperCase()}
+                        </Tag>
+                      </div>
+                      <div className="pc-client-line">
+                        <span className="pc-client-key">Code:</span>
+                        <span className="pc-client-val">{project.code}</span>
+                      </div>
+                    </div>
+                    <Dropdown
+                      menu={projectActionMenu(project)}
+                      overlayClassName="pp-action-pop"
+                      trigger={["click"]}
+                      placement="bottomRight"
+                    >
+                      <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </Dropdown>
+                  </div>
+
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created by</span>
+                        <Avatar size={16} src={project.createdBy?.avatarUrl || project.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                          {(project.createdBy?.name?.[0] || "—").toUpperCase()}
+                        </Avatar>
+                        <span className="pc-foot-val">{project.createdBy?.name || "—"}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created</span>
+                        <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Updated</span>
+                        <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                      </span>
+                    </div>
+
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <Briefcase size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{project.billingType}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <User size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                          {project.projectManager?.name || (project.projectManager?.first_name ? `${project.projectManager.first_name} ${project.projectManager.last_name}` : "Unassigned")}
+                        </span>
+                      </span>
+                      {project.startDate && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                              {dayjs(project.startDate).format("MMM DD, YYYY")}
+                            </span>
+                          </span>
+                        </>
+                      )}
+                      {budget > 0 && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item" style={{ gap: "6px" }}>
+                            <span style={{ color: "var(--text-slate-500)", fontWeight: 500, fontSize: "11px" }}>Budget: {symbol}{budget.toLocaleString()}</span>
+                            <div style={{ width: "36px", display: "inline-flex", alignItems: "center" }}>
+                              <Progress
+                                percent={percentage}
+                                size="small"
+                                showInfo={false}
+                                strokeColor="var(--premium-blue)"
+                                trailColor="var(--border-slate-100)"
+                                strokeWidth={3}
+                                style={{ margin: 0 }}
+                              />
+                            </div>
+                            <span style={{ color: "var(--text-slate-600)", fontWeight: 600, fontSize: "10.5px" }}>{Math.round(percentage)}% used</span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* Create Modal */}
       <Modal
@@ -887,31 +1124,31 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .premium-table .ant-table {
-          background: transparent !important;
-          color: var(--text-slate-700) !important;
+        [data-theme="dark"] .pmodal-body .ant-picker,
+        [data-theme="dark"] .premium-modal .ant-input,
+        [data-theme="dark"] .premium-modal .ant-input-affix-wrapper,
+        [data-theme="dark"] .premium-modal .ant-select-selector,
+        [data-theme="dark"] .premium-modal .ant-input-number,
+        [data-theme="dark"] .ptab-segmented button.is-active {
+          background: var(--bg-slate-900);
+          color: #a78bfa;
         }
-        .premium-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-50) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          padding: 16px 24px !important;
-          border-bottom: 1px solid var(--border-slate-100) !important;
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
         }
-        .premium-table .ant-table-thead > tr > th::before { display: none !important; }
-        .premium-table .ant-table-tbody > tr > td {
-          padding: 16px 24px !important;
-          border-bottom: 1px solid var(--border-slate-100) !important;
-        }
-        .premium-table .ant-table-tbody > tr:hover > td {
-          background: var(--bg-slate-50) !important;
-        }
-        .premium-table .ant-table-placeholder > td {
-          background: transparent !important;
-        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
         .premium-action-btn:hover {
           background: var(--bg-slate-50) !important;
           color: #8b5cf6 !important;
@@ -924,22 +1161,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           color: #a78bfa !important;
         }
 
-        /* Dynamic TabPane padding overrides to enable full-bleed elements without clipping */
-        body .cd-tabs .ant-tabs-content-holder {
-          padding: 0 !important;
-        }
-        body .cd-tab-pane {
-          padding: 8px 32px 48px 32px !important;
-        }
-        @media (max-width: 900px) {
-          body .cd-tab-pane {
-            padding: 8px 20px 48px 20px !important;
-          }
-        }
-        @media (max-width: 720px) {
-          body .cd-tab-pane {
-            padding: 8px 16px 48px 16px !important;
-          }
+        /* Prevent horizontal overflow from edge-to-edge header bleed */
+        .cd-tabs .ant-tabs-content-holder {
+          overflow-x: hidden !important;
         }
 
         /* Full bleed header styling flush with vertical sidebar border */
@@ -948,8 +1172,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -971,8 +1195,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
         /* Borderless/transparent unified search and filter dropdown controls */
         .projects-search-input.ant-input-affix-wrapper {
-          height: 38px !important;
-          border-radius: 10px !important;
+          height: 32px !important;
+          border-radius: 8px !important;
           background: var(--bg-slate-50) !important;
           border: 1px solid var(--border-slate-200) !important;
           box-shadow: none !important;
@@ -1193,7 +1417,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           background-color: var(--bg-slate-50) !important;
           border: 1px solid var(--border-slate-200) !important;
           color: var(--text-slate-900) !important;
-          height: 38px !important;
+          height: 32px !important;
           border-radius: 8px !important;
         }
         html body .import-project-search-input .ant-input {

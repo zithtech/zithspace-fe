@@ -125,6 +125,9 @@ body {
   --text-blue-700: #1D4ED8;
   --border-slate-100: #F1F5F9;
   --border-slate-200: #E2E8F0;
+  --bg-slate-800: #1E293B;
+  --border-slate-700: #334155;
+  --border-slate-800: #CBD5E1;
   --bg-table-header: #F8FAFC;
   --bg-leave: #fff1f2;
   --bg-holiday: #f0fdf4;
@@ -387,6 +390,9 @@ body {
   --text-blue-700: #60A5FA;
   --border-slate-100: #1F2937;
   --border-slate-200: #374151;
+  --bg-slate-800: #1F2937;
+  --border-slate-700: #374151;
+  --border-slate-800: #1F2937;
   --bg-table-header: #161B22;
   --bg-leave: rgba(244, 63, 94, 0.15);
   --bg-holiday: rgba(16, 185, 129, 0.15);
@@ -676,7 +682,7 @@ body {
 }
 
 [data-theme='dark'] .saas-header-container {
-  background: rgba(11, 15, 26, 0.8) !important;
+  background: transparent !important;
 }
 
 [data-theme='dark'] .saas-segmented-premium {
@@ -2041,10 +2047,9 @@ select:-webkit-autofill:focus {
 }
 
 .saas-header-container {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01) !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 .saas-card {
@@ -17689,7 +17694,7 @@ select:-webkit-autofill:focus {
   padding-top: 10px !important;
   padding-bottom: 12px !important;
   margin-bottom: 0 !important;
-  background: var(--bg-primary) !important;
+  background: transparent !important;
   border-bottom: 1px solid var(--border-slate-200) !important;
 }
 

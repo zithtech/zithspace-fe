@@ -13,6 +13,7 @@ export interface ClientRelease {
   description: string | null;
   releaseDate: string | null;
   createdById: string | null;
+  createdByName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

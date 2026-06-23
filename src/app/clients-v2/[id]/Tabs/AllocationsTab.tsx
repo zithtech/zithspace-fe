@@ -346,12 +346,14 @@ export default function AllocationsTab({
           </div>
         </div>
 
+        <div className="pp-table-wrap">
         <Table
-          dataSource={filteredAllocations}
+          dataSource={allocations}
           columns={columns}
           rowKey="id"
-          pagination={false}
-          className="premium-table"
+          loading={loading}
+          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          className="pp-table"
           scroll={{ x: "max-content" }}
           locale={{
             emptyText: (
@@ -367,6 +369,7 @@ export default function AllocationsTab({
             ),
           }}
         />
+        </div>
       </Card>
 
       {/* Add Modal */}

@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -11,6 +12,8 @@ import {
   Popconfirm,
   Switch,
   Tooltip,
+  Table,
+  Dropdown,
 } from "antd";
 import {
   Plus,
@@ -25,6 +28,10 @@ import {
   Trash2,
   Crown,
   Briefcase,
+  Search,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   teamService,
@@ -41,6 +48,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
 
@@ -134,9 +142,10 @@ interface Props {
   clientId: string;
   projects?: { id: string; name: string; code?: string | null }[];
   onRefresh?: () => void;
+  onCountChange?: (n: number) => void;
 }
 
-export default function TeamTab({ clientId, projects = [] }: Props) {
+export default function TeamTab({ clientId, projects = [], onCountChange }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -147,10 +156,112 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((m) => {
+      const searchLower = searchQuery.toLowerCase().trim();
+      if (searchLower) {
+        const nameMatch = m.displayName?.toLowerCase().includes(searchLower);
+        const roleMatch = m.roleLabel?.toLowerCase().includes(searchLower);
+        const disc = m.discipline ? DISCIPLINE_META[m.discipline]?.label.toLowerCase() : "";
+        const discMatch = disc ? disc.includes(searchLower) : false;
+        if (!nameMatch && !roleMatch && !discMatch) return false;
+      }
+      if (projectFilter && m.projectId !== projectFilter) return false;
+      return true;
+    });
+  }, [items, searchQuery, projectFilter]);
+
+  const teamMemberActionMenu = (m: TeamMember) => {
+    return {
+      items: [
+        {
+          key: "toggle-visibility",
+          label: (
+            <div className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
+                {m.isVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+              </span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title">{m.isVisible ? "Hide from portal" : "Make visible"}</span>
+                <span className="pp-menu-desc">{m.isVisible ? "Hide from client portal" : "Show to client portal"}</span>
+              </span>
+            </div>
+          ),
+          onClick: () => toggleVisible(m),
+        },
+        {
+          key: "toggle-primary",
+          label: (
+            <div className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#eab308", background: "rgba(234, 179, 8, 0.12)" }}>
+                <Star size={13} fill={m.isPrimaryContact ? "#eab308" : "none"} color="#eab308" />
+              </span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title">{m.isPrimaryContact ? "Remove primary" : "Set as primary"}</span>
+                <span className="pp-menu-desc">{m.isPrimaryContact ? "Remove primary contact role" : "Mark as primary contact"}</span>
+              </span>
+            </div>
+          ),
+          onClick: () => togglePrimary(m),
+        },
+        {
+          key: "edit",
+          label: (
+            <div className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#8b5cf6", background: "rgba(139, 92, 246, 0.12)" }}>
+                <Edit3 size={13} />
+              </span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title">Edit details</span>
+                <span className="pp-menu-desc">Modify team member info</span>
+              </span>
+            </div>
+          ),
+          onClick: () => {
+            setEditing(m);
+            setModalOpen(true);
+          },
+        },
+        {
+          key: "remove",
+          danger: true,
+          label: (
+            <div className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
+                <Trash2 size={13} />
+              </span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
+                <span className="pp-menu-desc">Remove from client portal</span>
+              </span>
+            </div>
+          ),
+          onClick: () => {
+            Modal.confirm({
+              title: "Remove team member?",
+              content: "They will disappear from the client portal immediately.",
+              okText: "Remove",
+              okType: "danger",
+              cancelText: "Cancel",
+              centered: true,
+              onOk: () => remove(m),
+            });
+          },
+        },
+      ],
+    };
+  };
+
   const load = async () => {
     setLoading(true);
     try {
-      setItems(await teamService.listForClient(clientId));
+      const loaded = await teamService.listForClient(clientId);
+      setItems(loaded);
+      onCountChange?.(loaded.length);
     } catch (err: any) {
       messageApi.error(`Failed to load team: ${err?.message || ""}`);
     } finally {
@@ -188,6 +299,172 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
     }
   };
 
+  const columns = useMemo(() => {
+    return [
+      {
+        title: "Team Member",
+        key: "displayName",
+        render: (_: any, m: TeamMember) => {
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Avatar member={m} c={c} size={32} />
+              <div>
+                <div style={{ fontWeight: 600, color: c.text, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  {m.displayName}
+                  {m.isPrimaryContact && (
+                    <Tooltip title="Primary contact for this client">
+                      <Crown size={11} style={{ color: "#eab308" }} />
+                    </Tooltip>
+                  )}
+                </div>
+                <div style={{ fontSize: 11.5, color: c.textSubtle }}>
+                  {m.roleLabel}
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        title: "Discipline",
+        dataIndex: "discipline",
+        key: "discipline",
+        render: (v: string) => {
+          const disc = v ? DISCIPLINE_META[v] : null;
+          if (!disc) return <span style={{ color: c.textFaint }}>—</span>;
+          return (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "1px 8px",
+                background: tones[disc.tone].bg,
+                border: `1px solid ${tones[disc.tone].border}`,
+                color: tones[disc.tone].text,
+                borderRadius: 999,
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+              }}
+            >
+              {disc.label}
+            </span>
+          );
+        },
+      },
+      {
+        title: "Contact Info",
+        key: "contact",
+        render: (_: any, m: TeamMember) => {
+          return (
+            <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
+              {m.contactEmail && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Mail size={11} style={{ color: c.textFaint }} />
+                  <span style={{ color: c.textMuted }}>{m.contactEmail}</span>
+                </div>
+              )}
+              {m.contactPhone && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Phone size={11} style={{ color: c.textFaint }} />
+                  <span style={{ color: c.textMuted }}>{m.contactPhone}</span>
+                </div>
+              )}
+              {!m.contactEmail && !m.contactPhone && <span style={{ color: c.textFaint }}>—</span>}
+            </div>
+          );
+        },
+      },
+      {
+        title: "Project",
+        dataIndex: "projectName",
+        key: "projectName",
+        render: (v: string | null) => {
+          if (!v) return <span style={{ color: c.textFaint }}>—</span>;
+          return (
+            <span style={{ fontSize: 12, color: c.textMuted, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Briefcase size={11} style={{ color: c.textFaint }} />
+              {v}
+            </span>
+          );
+        },
+      },
+      {
+        title: "Availability",
+        dataIndex: "availabilityStatus",
+        key: "availability",
+        render: (v: string, m: TeamMember) => {
+          const avail = AVAILABILITY_META[v] || AVAILABILITY_META.available;
+          return (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: tones[avail.tone].text, fontWeight: 600 }}>
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 999,
+                    background: avail.dot,
+                  }}
+                />
+                {avail.label}
+              </span>
+              {m.availabilityNote && (
+                <span style={{ fontSize: 11, color: c.textFaint }}>
+                  {m.availabilityNote}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        title: "Portal Visibility",
+        dataIndex: "isVisible",
+        key: "visibility",
+        render: (v: boolean, m: TeamMember) => {
+          return (
+            <Tooltip title={v ? "Visible to client" : "Hidden from client portal"}>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleVisible(m);
+                }}
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: v ? c.successText : c.dangerText }}
+              >
+                {v ? <Eye size={13} /> : <EyeOff size={13} />}
+                {v ? "Visible" : "Hidden"}
+              </span>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        title: "",
+        key: "actions",
+        width: 50,
+        render: (_: any, m: TeamMember) => {
+          return (
+            <Dropdown
+              menu={teamMemberActionMenu(m)}
+              overlayClassName="pp-action-pop"
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <button
+                type="button"
+                className="pc-actions"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+            </Dropdown>
+          );
+        },
+      },
+    ];
+  }, [c, tones, items]);
+
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
       {contextHolder}
@@ -210,7 +487,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
                 background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                 borderColor: "transparent",
                 borderRadius: "8px",
-                height: "36px",
+                height: "32px",
                 fontWeight: 600,
                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
                 display: "inline-flex",
@@ -220,9 +497,72 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
               Add team member
             </Button>
           }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
         />
       </div>
+
+      {/* Toolbar */}
+      {items.length > 0 && (
+        <>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              margin: "12px 0 8px 0",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <Input
+                allowClear
+                className="contacts-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, role…"
+                prefix={<Search size={14} style={{ color: c.textFaint }} />}
+                style={{
+                  width: 240,
+                }}
+              />
+
+              {projects.length > 0 && (
+                <SearchableDropdown
+                  placeholder="All projects"
+                  searchPlaceholder="Search projects"
+                  itemNoun="projects"
+                  value={projectFilter ?? undefined}
+                  onChange={(v) => setProjectFilter(v ?? null)}
+                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                  width={180}
+                  className="contacts-filter-select-sd"
+                />
+              )}
+            </div>
+
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
+          <div className="ptab-divider" />
+        </>
+      )}
 
       <div style={{ marginTop: 20 }}>
       {loading ? (
@@ -246,29 +586,40 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
             setModalOpen(true);
           }}
         />
+      ) : viewMode === "list" ? (
+        <div className="pp-table-wrap">
+          <Table
+            className="pp-table"
+            dataSource={filteredItems}
+            columns={columns}
+            rowKey="id"
+            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            scroll={{ x: "max-content" }}
+          />
+        </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {items.map((m) => (
-            <TeamCard
-              key={m.id}
-              member={m}
-              c={c}
-              tones={tones}
-              onEdit={() => {
-                setEditing(m);
-                setModalOpen(true);
-              }}
-              onToggleVisible={() => toggleVisible(m)}
-              onTogglePrimary={() => togglePrimary(m)}
-              onRemove={() => remove(m)}
-            />
-          ))}
+        <div className="pp-grid">
+          {filteredItems.length === 0 ? (
+            <div style={{ padding: 40, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 12, color: c.textSubtle, gridColumn: "1/-1" }}>
+              No team members match your filters.
+            </div>
+          ) : (
+            filteredItems.map((m) => (
+              <TeamCard
+                key={m.id}
+                member={m}
+                c={c}
+                tones={tones}
+                onEdit={() => {
+                  setEditing(m);
+                  setModalOpen(true);
+                }}
+                onToggleVisible={() => toggleVisible(m)}
+                onTogglePrimary={() => togglePrimary(m)}
+                onRemove={() => remove(m)}
+              />
+            ))
+          )}
         </div>
       )}
       </div>
@@ -304,8 +655,8 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -323,6 +674,178 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
             padding-left: 16px !important;
             padding-right: 16px !important;
           }
+        }
+
+        /* Segmented Toggles */
+        .ptab-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .ptab-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+        .ptab-segmented button:hover {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+        }
+        .ptab-segmented button.is-active {
+          background: var(--bg-blue-50) !important;
+          color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .ptab-segmented {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .ptab-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        /* Proposal Style Cards Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .ptab-empty-wrapper { grid-column: 1 / -1; }
+        @media (max-width: 700px) { .pp-grid { grid-template-columns: 1fr; } }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+        /* Dropdown Action Popover */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 200px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        /* Dark Theme Support */
+        [data-theme="dark"] .pp-table-wrap {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-800) !important;
+          border-color: var(--border-slate-700) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr > td {
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pc-card {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pc-card:hover {
+          border-color: var(--border-slate-700);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .pc-foot {
+          border-color: var(--border-slate-800);
+          background: var(--bg-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row + .pc-foot-row {
+          border-color: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-foot-item {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-title {
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pc-client-val {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-actions:hover {
+          background: var(--bg-slate-700);
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-800) !important;
         }
       `}} />
     </div>
@@ -405,270 +928,221 @@ function TeamCard({
   onTogglePrimary: () => void;
   onRemove: () => void;
 }) {
-  const [hover, setHover] = useState(false);
   const disc = member.discipline ? DISCIPLINE_META[member.discipline] : null;
   const avail = AVAILABILITY_META[member.availabilityStatus] || AVAILABILITY_META.available;
+
+  const teamMemberActionMenu = {
+    items: [
+      {
+        key: "toggle-visibility",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
+              {member.isVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">{member.isVisible ? "Hide from portal" : "Make visible"}</span>
+              <span className="pp-menu-desc">{member.isVisible ? "Hide from client portal" : "Show to client portal"}</span>
+            </span>
+          </div>
+        ),
+        onClick: onToggleVisible,
+      },
+      {
+        key: "toggle-primary",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#eab308", background: "rgba(234, 179, 8, 0.12)" }}>
+              <Star size={13} fill={member.isPrimaryContact ? "#eab308" : "none"} color="#eab308" />
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">{member.isPrimaryContact ? "Remove primary" : "Set as primary"}</span>
+              <span className="pp-menu-desc">{member.isPrimaryContact ? "Remove primary contact role" : "Mark as primary contact"}</span>
+            </span>
+          </div>
+        ),
+        onClick: onTogglePrimary,
+      },
+      {
+        key: "edit",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#8b5cf6", background: "rgba(139, 92, 246, 0.12)" }}>
+              <Edit3 size={13} />
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">Edit details</span>
+              <span className="pp-menu-desc">Modify team member info</span>
+            </span>
+          </div>
+        ),
+        onClick: onEdit,
+      },
+      {
+        key: "remove",
+        danger: true,
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
+              <Trash2 size={13} />
+            </span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
+              <span className="pp-menu-desc">Remove from client portal</span>
+            </span>
+          </div>
+        ),
+        onClick: () => {
+          Modal.confirm({
+            title: "Remove team member?",
+            content: "They will disappear from the client portal immediately.",
+            okText: "Remove",
+            okType: "danger",
+            cancelText: "Cancel",
+            centered: true,
+            onOk: onRemove,
+          });
+        },
+      },
+    ],
+  };
+
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      className="pc-card"
       style={{
-        background: c.surfaceElevated,
-        border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 16,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-        transition: "all 200ms cubic-bezier(0.4, 0, 0.2, 1)",
         opacity: member.isVisible ? 1 : 0.65,
-        transform: hover ? "translateY(-3px)" : "none",
-        boxShadow: hover ? "0 12px 24px -8px rgba(0,0,0,0.15)" : "0 2px 8px -2px rgba(0,0,0,0.04)",
       }}
     >
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+      <div className="pc-top">
         <Avatar member={member} c={c} />
-        <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="pc-identity-body">
           <div
+            className="pc-title"
             style={{
               display: "flex",
-              gap: 8,
+              gap: 6,
               alignItems: "center",
               flexWrap: "wrap",
             }}
           >
-            <div
-              style={{
-                fontSize: 15.5,
-                fontWeight: 600,
-                color: c.text,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {member.displayName}
-            </div>
+            <span>{member.displayName}</span>
             {member.isPrimaryContact && (
-              <Tooltip title="Primary contact for this client">
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 8px",
-                    background: "rgba(250, 204, 21, 0.08)",
-                    border: `1px solid rgba(250, 204, 21, 0.3)`,
-                    color: "#facc15",
-                    borderRadius: 999,
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  <Crown size={10} strokeWidth={2.5} />
-                  Primary
-                </span>
-              </Tooltip>
-            )}
-          </div>
-          <div
-            style={{
-              marginTop: 3,
-              fontSize: 13,
-              color: c.textMuted,
-              fontWeight: 400,
-            }}
-          >
-            {member.roleLabel}
-          </div>
-          {disc && (
-            <div style={{ marginTop: 8 }}>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "2px 10px",
+                  gap: 3,
+                  padding: "1px 6px",
+                  background: "rgba(250, 204, 21, 0.08)",
+                  border: `1px solid rgba(250, 204, 21, 0.3)`,
+                  color: "#eab308",
+                  borderRadius: 999,
+                  fontSize: 10,
+                  fontWeight: 600,
+                }}
+              >
+                <Crown size={9} strokeWidth={2.5} />
+                Primary
+              </span>
+            )}
+            {disc && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "1px 8px",
                   background: tones[disc.tone].bg,
                   border: `1px solid ${tones[disc.tone].border}`,
                   color: tones[disc.tone].text,
                   borderRadius: 999,
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  letterSpacing: "0.03em",
                 }}
               >
                 {disc.label}
               </span>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="pc-client-line">
+            <span className="pc-client-val" style={{ color: c.textMuted }}>{member.roleLabel}</span>
+          </div>
         </div>
+        <Dropdown
+          menu={teamMemberActionMenu}
+          overlayClassName="pp-action-pop"
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <button
+            type="button"
+            className="pc-actions"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+        </Dropdown>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          fontSize: 13,
-          color: c.textMuted,
-          marginTop: 2,
-        }}
-      >
-        {member.contactEmail && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Mail size={13} color={c.textFaint} />
+      <div className="pc-foot">
+        {/* Row 1 — Created & Updated */}
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Created</span>
+            <span className="pc-foot-val">
+              {member.createdAt ? dayjs(member.createdAt).format("MMM D, YYYY · h:mm A") : "—"}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Updated</span>
+            <span className="pc-foot-val">
+              {member.updatedAt ? dayjs(member.updatedAt).format("MMM D, YYYY · h:mm A") : "—"}
+            </span>
+          </span>
+        </div>
+
+        {/* Row 3 — Mail, Phone, Availability */}
+        <div className="pc-foot-row">
+          {member.contactEmail && (
+            <span className="pc-foot-item" style={{ minWidth: 0 }}>
+              <Mail size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+              <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {member.contactEmail}
+              </span>
+            </span>
+          )}
+          {member.contactPhone && (
+            <>
+              {member.contactEmail && <span className="pc-foot-div" />}
+              <span className="pc-foot-item" style={{ flexShrink: 0 }}>
+                <Phone size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>
+                  {member.contactPhone}
+                </span>
+              </span>
+            </>
+          )}
+          {(member.contactEmail || member.contactPhone) && <span className="pc-foot-div" />}
+          <span className="pc-foot-item">
             <span
               style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                color: c.text,
+                width: 6,
+                height: 6,
+                borderRadius: 999,
+                background: avail.dot,
+                display: "inline-block",
+                flexShrink: 0,
               }}
-            >
-              {member.contactEmail}
+            />
+            <span style={{ fontSize: "11.5px", color: tones[avail.tone].text, fontWeight: 600 }}>
+              {avail.label}
             </span>
-          </div>
-        )}
-        {member.contactPhone && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Phone size={13} color={c.textFaint} />
-            <span style={{ color: c.text }}>{member.contactPhone}</span>
-          </div>
-        )}
-        {member.projectName && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Briefcase size={13} color={c.textFaint} />
-            <span style={{ color: c.text }}>{member.projectName}</span>
-          </div>
-        )}
-      </div>
-
-      {member.bio && (
-        <div
-          style={{
-            fontSize: 12.5,
-            color: c.textSubtle,
-            lineHeight: 1.6,
-            padding: "10px 14px",
-            background: "rgba(0,0,0,0.15)",
-            border: `1px solid ${c.border}`,
-            borderRadius: 10,
-            display: "-webkit-box",
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            boxShadow: "inset 0 1px 4px rgba(0,0,0,0.1)",
-          }}
-        >
-          {member.bio}
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: "auto",
-          paddingTop: 16,
-          borderTop: `1px solid ${c.border}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: tones[avail.tone].text,
-            fontWeight: 600,
-            letterSpacing: "0.01em",
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              background: avail.dot,
-              display: "inline-block",
-              boxShadow: `0 0 0 2px ${tones[avail.tone].bg}`,
-            }}
-          />
-          {avail.label}
-          {member.availabilityNote && (
-            <span style={{ color: c.textFaint, fontWeight: 400 }}>
-              · {member.availabilityNote}
-            </span>
-          )}
-        </span>
-        <div style={{ display: "flex", gap: 2 }}>
-          <Tooltip
-            title={
-              member.isVisible
-                ? "Visible to client"
-                : "Hidden from client portal"
-            }
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={
-                member.isVisible ? (
-                  <Eye size={14} color={c.textSubtle} />
-                ) : (
-                  <EyeOff size={14} color={c.dangerText} />
-                )
-              }
-              onClick={onToggleVisible}
-              style={{ padding: "0 6px" }}
-            />
-          </Tooltip>
-          <Tooltip
-            title={
-              member.isPrimaryContact
-                ? "Remove primary-contact flag"
-                : "Mark as primary contact"
-            }
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={
-                member.isPrimaryContact ? (
-                  <Star size={14} color="#facc15" fill="#facc15" />
-                ) : (
-                  <Star size={14} color={c.textSubtle} />
-                )
-              }
-              onClick={onTogglePrimary}
-              style={{ padding: "0 6px" }}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              size="small"
-              type="text"
-              icon={<Edit3 size={14} color={c.textSubtle} />}
-              onClick={onEdit}
-              style={{ padding: "0 6px" }}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Remove team member?"
-            description="They'll disappear from the client portal immediately."
-            onConfirm={onRemove}
-            okText="Remove"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={<Trash2 size={14} color={c.textSubtle} />}
-              style={{ padding: "0 6px" }}
-            />
-          </Popconfirm>
+          </span>
         </div>
       </div>
     </div>
@@ -692,7 +1166,7 @@ function Avatar({
         style={{
           width: size,
           height: size,
-          borderRadius: size / 4,
+          borderRadius: "50%",
           objectFit: "cover",
           border: `1px solid ${c.border}`,
           flexShrink: 0,
@@ -705,10 +1179,10 @@ function Avatar({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 4,
-        background: c.accentBg,
-        border: `1px solid ${c.accentBorder}`,
-        color: c.accentText,
+        borderRadius: "50%",
+        background: "#3b82f6",
+        border: "none",
+        color: "#fff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

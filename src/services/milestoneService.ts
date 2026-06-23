@@ -34,6 +34,7 @@ export interface Milestone {
   position: number;
   createdAt: string;
   updatedAt: string;
+  createdByName?: string | null;
   itemsTotal: number;
   itemsDone: number;
   progress: number;

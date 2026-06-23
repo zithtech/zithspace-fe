@@ -141,4 +141,7 @@ export const approvalsService = {
   removeApprover(id: string, approverId: string) {
     return api.delete<void>(`/api/approvals/${id}/approvers/${approverId}`);
   },
+  remove(id: string) {
+    return api.delete<void>(`/api/approvals/${id}`);
+  },
 };

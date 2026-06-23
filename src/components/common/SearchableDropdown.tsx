@@ -458,11 +458,12 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   flex-direction: column;
   max-height: 380px;
+  min-width: 200px;
 }
 .sd-search-box {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
   gap: 8px;
 }
@@ -511,7 +512,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
@@ -573,6 +574,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   flex-direction: column;
   line-height: 1.35;
+  padding-right: 8px;
 }
 .sd-option-name {
   font-size: 12.5px;

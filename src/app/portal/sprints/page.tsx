@@ -88,8 +88,8 @@ const STATUS_META: Record<
 > = {
   planned: { label: "Planned", tone: "neutral", icon: Calendar },
   planning: { label: "Planning", tone: "neutral", icon: Calendar },
-  active: { label: "Active", tone: "indigo", icon: Activity },
-  in_progress: { label: "In progress", tone: "indigo", icon: Activity },
+  active: { label: "Active", tone: "accent", icon: Activity },
+  in_progress: { label: "In progress", tone: "accent", icon: Activity },
   paused: { label: "Paused", tone: "warning", icon: Pause },
   completed: { label: "Completed", tone: "success", icon: CheckCircle2 },
   done: { label: "Completed", tone: "success", icon: CheckCircle2 },
@@ -148,7 +148,7 @@ function daysBetween(iso: string | null): number | null {
 }
 
 function sprintTiming(s: PortalSprintListItem):
-  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success"; icon: any }
+  | { label: string; tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent"; icon: any }
   | null {
   if (isCompleted(s.status) && s.completedAt) {
     const days = daysBetween(s.completedAt);
@@ -173,13 +173,13 @@ function sprintTiming(s: PortalSprintListItem):
     }
     if (days === 0) return { label: "Ends today", tone: "warning", icon: Clock };
     if (days <= 3) return { label: `${days}d left`, tone: "warning", icon: Clock };
-    return { label: `${days}d left`, tone: "indigo", icon: Clock };
+    return { label: `${days}d left`, tone: "accent", icon: Clock };
   }
   if (isPlanning(s.status) && s.startDate) {
     const days = daysBetween(s.startDate);
     if (days == null) return null;
     if (days < 0) return null;
-    if (days === 0) return { label: "Starts today", tone: "indigo", icon: Clock };
+    if (days === 0) return { label: "Starts today", tone: "accent", icon: Clock };
     return { label: `Starts in ${days}d`, tone: "neutral", icon: Clock };
   }
   return null;
@@ -223,7 +223,7 @@ function TimingChip({
   label,
   compact,
 }: {
-  tone: "indigo" | "warning" | "danger" | "neutral" | "success";
+  tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent";
   icon: any;
   label: string;
   compact?: boolean;
@@ -826,17 +826,17 @@ export default function PortalSprintsPage() {
             transition: background 120ms ease;
           }
           .premium-sprint-card[data-active='true']::before {
-            background: #4f46e5;
+            background: #3b82f6;
           }
           .premium-sprint-card[data-completed='true']::before {
-            background: #a7f3d0;
+            background: #10b981;
           }
           .premium-sprint-card:hover {
-            border-color: #a5b4fc !important;
+            border-color: #93c5fd !important;
           }
           .premium-sprint-card:hover .premium-sprint-arrow {
             transform: translateX(2px);
-            color: #4f46e5;
+            color: #3b82f6;
           }
           .premium-sprint-arrow {
             transition: transform 140ms ease, color 140ms ease;
@@ -844,10 +844,10 @@ export default function PortalSprintsPage() {
 
           /* Current sprint card hover */
           .premium-current-card:hover {
-            border-color: #818cf8 !important;
+            border-color: #60a5fa !important;
           }
           .premium-current-card:hover .premium-current-cta {
-            background: #4338ca;
+            background: #2563eb;
             gap: 6px;
           }
 
@@ -1522,7 +1522,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         padding: "16px 18px 16px 22px",
         background:
           "linear-gradient(180deg, #fafbff 0%, #ffffff 70%)",
-        border: `1px solid ${p.indigoBorder}`,
+        border: `1px solid ${p.accentBorder}`,
         borderRadius: 12,
         textDecoration: "none",
         color: "inherit",
@@ -1537,7 +1537,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.indigo}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${p.accent}, ${p.accentText})`,
         }}
       />
 
@@ -1602,7 +1602,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             alignItems: "center",
             gap: 4,
             padding: "6px 11px",
-            background: p.indigo,
+            background: p.accent,
             color: "#ffffff",
             borderRadius: 7,
             fontSize: 11.5,
@@ -1631,7 +1631,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         >
           <Flag
             size={11}
-            color={p.indigo}
+            color={p.accent}
             style={{ verticalAlign: -1, marginRight: 5 }}
           />
           {sprint.goal}

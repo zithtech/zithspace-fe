@@ -21,7 +21,70 @@ export interface TimeTrackingEntry {
   updatedAt: string;
 }
 
+export interface PerformanceRow {
+  userId: string;
+  user?: { id: string; name: string; workEmail: string; avatarUrl?: string | null };
+  date: string;            // YYYY-MM-DD (in the requested timezone)
+  weekday: string;         // e.g. "Saturday"
+  isWeekend: boolean;
+  totalSeconds: number;
+  totalHours: number;
+  formattedDuration: string;
+  status: string;
+  sessionCount: number;
+  ticketCount: number;
+  projectBreakdown: { projectId: string; projectName: string; seconds: number }[];
+  entries: TimeTrackingEntry[];
+}
+
+export interface PerformanceLegend {
+  weekday: { label: string; minHours: number; maxHours: number | null }[];
+  weekend: { day: string; label: string }[];
+}
+
+export interface PerformanceSummary {
+  memberCount: number;
+  dayCount: number;
+  projectCount: number;
+  totalSeconds: number;
+  totalHours: number;
+  formattedTotal: string;
+  avgSecondsPerMember: number;
+}
+
+export interface PerformanceResponse {
+  timezone: string;
+  summary: PerformanceSummary;
+  legend: PerformanceLegend;
+  rows: PerformanceRow[];
+}
+
 export class TimeTrackingService {
+  /** Performance Tracker — aggregated per-member, per-day hours + status. */
+  static async getPerformance(filters?: {
+    projectId?: string;
+    userIds?: string[];
+    startDate?: string;
+    endDate?: string;
+    timezone?: string;
+  }): Promise<PerformanceResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.projectId) params.append('projectId', filters.projectId);
+      if (filters?.userIds?.length) params.append('userIds', filters.userIds.join(','));
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+      if (filters?.timezone) params.append('timezone', filters.timezone);
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const res = await api.get<PerformanceResponse>(`/api/time-tracking/performance${query}`);
+      return res;
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error('Failed to fetch performance data');
+    }
+  }
+
   static async getEntries(filters?: {
     ticketId?: string;
     projectId?: string;

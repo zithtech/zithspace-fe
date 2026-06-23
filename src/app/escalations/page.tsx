@@ -211,6 +211,16 @@ export default function EscalationListPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      if (viewParam) {
+        setSavedView(viewParam);
+      }
+    }
+  }, []);
+
   const handleUpdateStatus = async () => {
     if (!selectedEscalation || !tempStatus) return;
 
@@ -702,7 +712,14 @@ export default function EscalationListPage() {
                     key={v.key}
                     type="button"
                     className={`es-view-item ${active ? 'is-active' : ''}`}
-                    onClick={() => setSavedView(v.key)}
+                    onClick={() => {
+                      if (v.key === 'trash') {
+                        router.push('/escalations/trash');
+                      } else {
+                        setSavedView(v.key);
+                        router.replace(`/escalations?view=${v.key}`);
+                      }
+                    }}
                   >
                     <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
                     <span className="es-view-label">{v.label}</span>
@@ -902,7 +919,7 @@ export default function EscalationListPage() {
                         </div>
 
                         {/* ROW 2: Raised By & Raised Date */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderBottom: '1px solid var(--border-slate-100)', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto' }} className="scrollbar-hide">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderBottom: '1px solid var(--border-slate-100)', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span>Raised by</span>
                             <Avatar size={16} src={record.createdBy?.avatarUrl || record.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
@@ -1357,21 +1374,19 @@ export default function EscalationListPage() {
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
+          padding: 14px 14px 0;
           position: sticky;
           top: 0;
           height: calc(100vh - 64px);
         }
-        .es-sidebar-top {
-          padding: 14px 14px 12px 18px;
-        }
         .es-side-head {
-          display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px;
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
           border-bottom: 1px solid var(--border-slate-100);
         }
         .es-side-logo {
           flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
-        .es-side-logo .anticon { font-size: 24px !important; }
+        .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
         .es-side-head-text { display: flex; flex-direction: column; min-width: 0; }
         .es-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
         .es-side-subtitle {
@@ -1379,22 +1394,16 @@ export default function EscalationListPage() {
           text-transform: uppercase; letter-spacing: 0.07em;
         }
         .es-create-btn {
-          height: 32px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12.5px !important;
+          height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
           background: #3B82F6 !important;
           border: none !important; box-shadow: none !important;
           margin-bottom: 4px;
         }
         .es-create-btn:hover { background: #2563EB !important; }
         .es-create-btn .anticon { font-size: 12px !important; }
-        .es-side-scroll {
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding: 10px 10px 6px 16px;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .es-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px; }
+        .es-side-scroll::-webkit-scrollbar { width: 5px; }
+        .es-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
         .es-side-section-label {
           font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
           color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
@@ -1419,10 +1428,10 @@ export default function EscalationListPage() {
           color: #3B82F6; font-weight: 700;
           background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
         }
-        .es-side-filters { display: flex; flex-direction: column; gap: 8px; }
-        .es-side-sd { border-radius: 6px !important; }
+        .es-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+        .es-side-sd { border-radius: 8px !important; }
         .es-side-select .ant-select-selector {
-          border-radius: 6px !important; border-color: var(--border-slate-200) !important;
+          border-radius: 8px !important; border-color: var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
         }
         .es-clear-filters {
@@ -1476,10 +1485,18 @@ export default function EscalationListPage() {
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
         .es-stat-card {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 6px 8px; min-height: 54px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+          border-radius: 0; padding: 10px 14px; min-height: 80px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
           box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          transition: none !important;
+          transform: none !important;
         }
+        .es-stat-card:hover {
+          transform: none !important;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        /* Dark theme styles moved below */
         .es-stat-top { display: flex; align-items: center; justify-content: space-between; }
         .es-stat-left { display: flex; align-items: center; gap: 8px; }
         .es-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
@@ -1487,6 +1504,7 @@ export default function EscalationListPage() {
         .es-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
         .es-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
         .es-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .es-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
         .es-stat-spark { opacity: 0.95; }
 
         /* Table */
@@ -1568,15 +1586,13 @@ export default function EscalationListPage() {
         .ec-card {
           border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
-          transition: box-shadow .15s ease, border-color .15s ease;
         }
-        .ec-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
 
         .ec-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
         .ec-avatar {
           width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          color: #fff; font-weight: 800; font-size: 14px;
+          color: #fff; font-weight: 800; font-size: 12px;
         }
         .ec-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
         .ec-actions {
@@ -1588,15 +1604,23 @@ export default function EscalationListPage() {
           font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        .ec-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
-        .ec-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-        .ec-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ec-category-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .ec-category-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .ec-category-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .ec-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
         .ec-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
         .ec-foot-row + .ec-foot-row { border-top: 1px solid var(--border-slate-200); }
         .ec-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
         .ec-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .ec-foot-val { font-size: 11.5px; color: var(--text-slate-700); }
+        .ec-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+        .ec-view-btn {
+          background: none; border: none; cursor: pointer; padding: 0;
+          color: #3B82F6; font-weight: 700; font-size: 11.5px;
+        }
+        .ec-view-btn .anticon { font-size: 12px; }
+        .ec-view-btn:hover { text-decoration: underline; }
 
         /* Premium action dropdown */
         .es-action-pop .ant-dropdown-menu {
@@ -1629,6 +1653,133 @@ export default function EscalationListPage() {
         @media (max-width: 1100px) {
           .es-stats { grid-template-columns: repeat(2, 1fr); }
         }
+        [data-theme='dark'] .es-shell {
+          background:
+            radial-gradient(1200px 400px at 0% -100px, rgba(59, 130, 246, 0.08), transparent 60%),
+            radial-gradient(900px 360px at 100% -120px, rgba(139, 92, 246, 0.08), transparent 55%),
+            #0B0F1A;
+        }
+        [data-theme='dark'] .es-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-side-head {
+          border-bottom-color: #1F2937;
+        }
+        [data-theme='dark'] .es-side-title {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-view-item:hover {
+          background: #161B22;
+        }
+        [data-theme='dark'] .es-view-item.is-active {
+          background: rgba(255, 77, 79, 0.15);
+        }
+        [data-theme='dark'] .es-view-label {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-view-item.is-active .es-view-label {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-search-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-search {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-ghost-btn {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-divider {
+          background: #1F2937;
+        }
+        [data-theme='dark'] .es-stat-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          transform: none !important;
+        }
+        [data-theme='dark'] .es-stat-card:hover {
+          border-color: #1F2937 !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+        [data-theme='dark'] .es-stat-label {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-stat-value {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-table-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-thead > tr > th {
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-tbody > tr > td {
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-table .ant-table-tbody > tr.es-row:hover > td {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .es-name-title {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-creator-name {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-date-main {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-footer--sticky {
+          background: #0B0F1A !important;
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-footer-info {
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-footer-info strong {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-pager-btn, [data-theme='dark'] .es-pager-num {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8;
+        }
+        [data-theme='dark'] .es-empty-title {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-segmented {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-segmented button.is-active {
+          background: #161B22 !important;
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-action-pop .ant-dropdown-menu {
+          background: #161B22;
+          border-color: #1F2937;
+        }
+        [data-theme='dark'] .es-action-pop .ant-dropdown-menu-item:hover {
+          background: #1F2937 !important;
+        }
+        [data-theme='dark'] .es-action-pop .ant-dropdown-menu-item-divider {
+          background: #1F2937;
+        }
+        [data-theme='dark'] .es-menu-title {
+          color: #FFFFFF;
+        }
+        [data-theme='dark'] .es-action-pop .ant-dropdown-menu-item-danger:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+        }
+
         .es-mobile-menu-btn { display: none !important; }
 
         @media (max-width: 820px) {

@@ -41,6 +41,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
+import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import {
   ProjectUpdate,
   WorkStatus,
@@ -125,6 +126,7 @@ export default function SubmitDailyUpdatePage() {
 }
 
 function SubmitDailyUpdateContent() {
+  const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const router = useRouter();
@@ -261,6 +263,203 @@ function SubmitDailyUpdateContent() {
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
       messageApi.error("Failed to load tickets for this project");
+    }
+  };
+
+  const fetchTicketsForProjects = async (projectIds: string[]) => {
+    const newTicketsMap = { ...projectTickets };
+    let changed = false;
+
+    await Promise.all(
+      projectIds.map(async (projectId) => {
+        if (!newTicketsMap[projectId]) {
+          try {
+            const tickets = await TicketService.getProjectTickets(projectId);
+            newTicketsMap[projectId] = tickets;
+            changed = true;
+          } catch (error) {
+            console.error(`Failed to fetch tickets for project ${projectId}:`, error);
+          }
+        }
+      })
+    );
+
+    if (changed) {
+      setProjectTickets(newTicketsMap);
+    }
+    return newTicketsMap;
+  };
+
+  const [importing, setImporting] = useState(false);
+
+  const handleImportFromTimeTracking = async () => {
+    if (!user?.id) {
+      messageApi.error("User session not found");
+      return;
+    }
+
+    try {
+      setImporting(true);
+      const targetDate = isMissedUpdate && missedDate ? missedDate : dayjs();
+      const startDateStr = targetDate.startOf("day").toISOString();
+      const endDateStr = targetDate.endOf("day").toISOString();
+      const displayDateStr = targetDate.format("YYYY-MM-DD");
+
+      const entries = await TimeTrackingService.getEntries({
+        userId: user.id,
+        startDate: startDateStr,
+        endDate: endDateStr,
+      });
+
+      if (!entries || entries.length === 0) {
+        messageApi.warning(`No time tracking entries found for ${displayDateStr}`);
+        return;
+      }
+
+      // Collect all project IDs to fetch their tickets in parallel
+      const projectIds = Array.from(
+        new Set(entries.map((e) => e.projectId).filter(Boolean))
+      ) as string[];
+
+      // Fetch all project tickets and get the map
+      const ticketsMap = await fetchTicketsForProjects(projectIds);
+
+      // Map ticket status to WorkStatus
+      const mapTicketStatus = (ticketStatus?: string): WorkStatus => {
+        if (!ticketStatus) return "in_progress";
+        const s = ticketStatus.toLowerCase().replace(/[^a-z]/g, "_");
+        if (s === "pending" || s === "todo" || s === "to_do") return "pending";
+        if (s === "in_progress" || s === "inprogress") return "in_progress";
+        if (s === "dev_complete" || s === "devcomplete") return "dev_complete";
+        if (s === "in_testing" || s === "intesting" || s === "testing") return "in_testing";
+        if (s === "pushed_to_staging" || s === "pushedtostaging" || s === "staging") return "pushed_to_staging";
+        if (s === "pushed_to_production" || s === "pushedtoproduction" || s === "production") return "pushed_to_production";
+        if (s === "completed" || s === "complete" || s === "closed" || s === "done") return "completed";
+        return "in_progress";
+      };
+
+      // Sort entries chronologically by startTime
+      const sortedEntries = [...entries].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+
+      // Get the actual worked duration in seconds (excluding paused time)
+      const getActiveDuration = (entry: TimeTrackingEntry): number => {
+        let seconds = entry.duration || 0;
+        if (entry.status === "RUNNING") {
+          const lastLog = entry.logs && entry.logs.length > 0
+            ? [...entry.logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+            : null;
+          if (lastLog && (lastLog.action === "STARTED" || lastLog.action === "RESUMED")) {
+            const startMs = new Date(lastLog.createdAt).getTime();
+            const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+            seconds += elapsed;
+          } else {
+            const startMs = new Date(entry.startTime).getTime();
+            const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+            seconds += elapsed;
+          }
+        }
+        return seconds;
+      };
+
+      // Group consecutive entries by projectId
+      const groupedBlocks: { projectId: string; entries: typeof sortedEntries }[] = [];
+      for (const entry of sortedEntries) {
+        const projectId = entry.projectId || "";
+        const lastBlock = groupedBlocks[groupedBlocks.length - 1];
+        if (lastBlock && lastBlock.projectId === projectId) {
+          lastBlock.entries.push(entry);
+        } else {
+          groupedBlocks.push({
+            projectId,
+            entries: [entry]
+          });
+        }
+      }
+
+      // Map grouped blocks to projectUpdates state structure
+      const importedUpdates: ProjectUpdate[] = groupedBlocks.map((block) => {
+        const blockEntries = block.entries;
+        const entryProjectId = block.projectId;
+        const projectOpt = projects.find((p) => p.value === entryProjectId);
+        const resolvedProjectName = projectOpt?.label || blockEntries[0].project?.name || "";
+
+        const startTimeIso = blockEntries[0].startTime;
+
+        // End time is the calculated end time of the last entry in the group
+        const lastEntry = blockEntries[blockEntries.length - 1];
+        const lastEntryActiveDuration = getActiveDuration(lastEntry);
+        const endTimeIso = dayjs(lastEntry.startTime).add(lastEntryActiveDuration, "second").toISOString();
+
+        // Sum active worked duration in seconds for all entries in the group
+        const totalActiveDuration = blockEntries.reduce((sum, e) => sum + getActiveDuration(e), 0);
+        const hoursWorked = Math.round((totalActiveDuration / 3600) * 100) / 100;
+
+        const tasksList: any[] = [];
+        const seenTicketIds = new Set<string>();
+        const seenManualDescriptions = new Set<string>();
+
+        for (const entry of blockEntries) {
+          if (entry.ticketId) {
+            if (!seenTicketIds.has(entry.ticketId)) {
+              seenTicketIds.add(entry.ticketId);
+              const foundTicket = ticketsMap[entryProjectId]?.find(
+                (t) => t.id === entry.ticketId
+              );
+              tasksList.push({
+                type: "ticket" as const,
+                ticketId: entry.ticketId,
+                ticketNumber: entry.ticket?.ticketNumber || foundTicket?.ticketNumber || "",
+                ticketTitle: entry.ticket?.title || foundTicket?.title || "",
+                status: mapTicketStatus((entry.ticket as any)?.status || foundTicket?.status),
+              });
+            }
+          } else {
+            const desc = entry.description || "";
+            if (desc) {
+              if (!seenManualDescriptions.has(desc)) {
+                seenManualDescriptions.add(desc);
+                tasksList.push({
+                  type: "manual" as const,
+                  description: desc,
+                  status: "in_progress" as const,
+                });
+              }
+            } else {
+              if (!seenManualDescriptions.has("")) {
+                seenManualDescriptions.add("");
+                tasksList.push({
+                  type: "manual" as const,
+                  description: "",
+                  status: "in_progress" as const,
+                });
+              }
+            }
+          }
+        }
+
+        return {
+          projectId: entryProjectId,
+          projectName: resolvedProjectName,
+          startTime: startTimeIso,
+          endTime: endTimeIso,
+          hoursWorked: hoursWorked,
+          tasks: tasksList,
+          blockers: "",
+          notes: "",
+        };
+      });
+
+      setProjectUpdates(importedUpdates);
+      messageApi.success(
+        `Successfully imported ${entries.length} time tracking entries (grouped into ${importedUpdates.length} project blocks) for ${displayDateStr}!`
+      );
+    } catch (error: any) {
+      console.error("Failed to import from time tracking:", error);
+      messageApi.error(error.message || "Failed to import from time tracking");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -485,15 +684,7 @@ function SubmitDailyUpdateContent() {
   };
 
   const getAvailableProjects = (currentIndex: number) => {
-    const selectedProjectIds = projectUpdates
-      .map((update, index) =>
-        index !== currentIndex ? update.projectId : null,
-      )
-      .filter(Boolean);
-
-    return projects.filter(
-      (project) => !selectedProjectIds.includes(project.value),
-    );
+    return projects;
   };
 
   const getTotalHours = () => {
@@ -547,12 +738,7 @@ function SubmitDailyUpdateContent() {
       }
     }
 
-    const projectIds = projectUpdates.map((update) => update.projectId);
-    const uniqueProjectIds = new Set(projectIds);
-    if (projectIds.length !== uniqueProjectIds.size) {
-      messageApi.error("You cannot select the same project multiple times");
-      return false;
-    }
+
 
     return true;
   };
@@ -1085,24 +1271,45 @@ function SubmitDailyUpdateContent() {
                   · {projectUpdates.length} {projectUpdates.length === 1 ? "entry" : "entries"}
                 </Text>
               </div>
-              <Button
-                icon={<Plus size={14} />}
-                onClick={handleAddProject}
-                style={{
-                  height: 32,
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  border: "1px solid var(--border-slate-200)",
-                  background: "var(--bg-pure-white)",
-                  color: "var(--text-slate-700)",
-                }}
-              >
-                Add Project
-              </Button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button
+                  loading={importing}
+                  icon={<CalendarClock size={14} />}
+                  onClick={handleImportFromTimeTracking}
+                  style={{
+                    height: 32,
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    border: "1px solid var(--border-slate-200)",
+                    background: "var(--bg-pure-white)",
+                    color: "var(--text-slate-700)",
+                  }}
+                >
+                  Import from Time Tracking
+                </Button>
+                <Button
+                  icon={<Plus size={14} />}
+                  onClick={handleAddProject}
+                  style={{
+                    height: 32,
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    border: "1px solid var(--border-slate-200)",
+                    background: "var(--bg-pure-white)",
+                    color: "var(--text-slate-700)",
+                  }}
+                >
+                  Add Project
+                </Button>
+              </div>
             </div>
 
             {/* Project Cards */}

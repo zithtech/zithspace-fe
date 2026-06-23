@@ -1322,9 +1322,8 @@ function CrRow({
       onClick={onOpen}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="cr-card-row"
       style={{
-        display: "grid",
-        gridTemplateColumns: "44px minmax(0, 1.6fr) 130px 100px 130px 90px",
         gap: 14,
         padding: "14px 18px",
         background: hover ? c.surfaceMuted : c.surfaceElevated,

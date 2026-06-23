@@ -1265,9 +1265,8 @@ function ApprovalRow({
       onClick={onOpen}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="approval-card-row"
       style={{
-        display: "grid",
-        gridTemplateColumns: "44px minmax(0, 1.6fr) 130px 130px 130px 30px",
         gap: 14,
         padding: "14px 18px",
         background: hover ? c.surfaceMuted : c.surfaceElevated,

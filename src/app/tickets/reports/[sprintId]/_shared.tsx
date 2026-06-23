@@ -1,6 +1,26 @@
 "use client";
 
+import { createContext, useContext } from "react";
 import { useTheme } from "@/context/ThemeContext";
+
+/**
+ * Holds the full stored report snapshot (`report_data`) for a generated report.
+ * When present, section components read their slice from here instead of each
+ * making its own API call — so opening a generated report is a single DB-backed
+ * fetch. `null` means no snapshot (active/ungenerated sprint) → sections fetch
+ * their own live endpoints as before.
+ */
+export const SnapshotContext = createContext<Record<string, any> | null>(null);
+
+/**
+ * Returns the snapshot slice for a section key (e.g. "timeline"), or `undefined`
+ * when there is no snapshot — in which case the section should fetch live.
+ */
+export function useSnapshotSection<T = any>(key: string): T | undefined {
+  const snap = useContext(SnapshotContext);
+  const value = snap ? snap[key] : undefined;
+  return value == null ? undefined : (value as T);
+}
 
 export const ACCENT = "#6366f1"; // indigo-500
 export const ACCENT_SOFT_LIGHT = "rgba(99,102,241,0.10)";

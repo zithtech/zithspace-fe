@@ -161,7 +161,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             >
               {assignee.name?.charAt(0).toUpperCase()}
             </Avatar>
-            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name}</span>
+            <span style={{ color: 'var(--sc-text)', fontSize: 13 }}>{assignee.name?.split(" ")[0]}</span>
           </span>
         );
       },
@@ -225,7 +225,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             </span>
           </div>
 
-          {/* Highlight line */}
+          {/* Bottom flair */}
           <div
             style={{
               marginBottom: 12,

@@ -70,6 +70,7 @@ export interface BugListItem {
   externalLinks: BugExternalLink[];
   ticketId?: string | null;
   ticketNumber?: string | null;
+  ticketStatus?: string | null;
   assigneeId?: string | null;
   assignee?: { id: string; name: string; workEmail: string; avatarUrl?: string } | null;
   createdById: string;
@@ -135,6 +136,7 @@ export interface BugListFilters {
   createdById?: string;
   assigneeId?: string;
   scope?: "all" | "mine" | "trash" | "archived";
+  ticketStatus?: string;
   createdFrom?: string;
   createdTo?: string;
   updatedFrom?: string;
@@ -536,6 +538,17 @@ class BugListService {
     const res = await apiClient.post<{ success: boolean; data: ConvertedTicket[] }>(
       `/api/bug-list/bugs/bulk-convert`,
       { groups }
+    );
+    return res.data.data;
+  }
+
+  static async bulkMapToTicket(
+    ticketId: string,
+    bugIds: string[]
+  ): Promise<any> {
+    const res = await apiClient.post<{ success: boolean; data: any }>(
+      `/api/bug-list/bugs/bulk-map`,
+      { ticketId, bugIds }
     );
     return res.data.data;
   }

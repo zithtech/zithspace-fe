@@ -1870,7 +1870,7 @@ export default function AccountsPage() {
         .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
         .pp-btn-primary {
           background: #3B82F6 !important; border: none !important;
-          border-radius: 0 !important; font-weight: 600 !important;
+          border-radius: 8px !important; font-weight: 600 !important;
         }
         .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
@@ -2429,7 +2429,7 @@ export default function AccountsPage() {
         .accounts-tx-section {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 16px;
+          border-radius: 0 !important;
           padding: 12px 14px 4px;
           box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
@@ -2486,7 +2486,7 @@ export default function AccountsPage() {
         .accounts-tx-form .fp-trigger {
           width: 100% !important;
           height: 38px !important;
-          border-radius: 10px !important;
+          border-radius: 0 !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           padding: 0 14px !important;
@@ -2516,7 +2516,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
-          border-radius: 10px !important;
+          border-radius: 0 !important;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .accounts-tx-form .ant-input-textarea {
@@ -2526,7 +2526,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-lg,
         .accounts-tx-form .ant-picker-large,
         .accounts-tx-form .ant-select-lg .ant-select-selector {
-          border-radius: 10px !important;
+          border-radius: 0 !important;
         }
         .accounts-tx-form .ant-input:hover,
         .accounts-tx-form .ant-input-textarea:hover,

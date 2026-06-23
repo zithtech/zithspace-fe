@@ -280,14 +280,14 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
     <Drawer
       open={open}
       onClose={onClose}
-      width={560}
+      width={720}
       title={null}
       closable={false}
       styles={{ body: { padding: "0" } }}
     >
       <div className="daily-update-drawer-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Custom Header */}
-        <div style={{
+        <div className="sp-drawer-header" style={{
           position: "sticky",
           top: 0,
           zIndex: 10,
@@ -298,14 +298,14 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
           justifyContent: "space-between",
           alignItems: "center"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 10, color: "var(--text-slate-600)", display: "flex", border: "1px solid var(--border-slate-200)" }}>
+          <div className="sp-drawer-header-left" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 0, color: "var(--text-slate-600)", display: "flex", border: "1px solid var(--border-slate-200)" }}>
               <Activity size={20} />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>Manage Team Time Update</span>
+            <span className="sp-drawer-title" style={{ fontWeight: 700, fontSize: 15, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>Manage Team Time Update</span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="sp-drawer-header-right" style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {selectedUser && (
               <div style={{
                 display: "flex",
@@ -313,7 +313,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                 gap: 8,
                 padding: "6px 14px",
                 background: "var(--bg-pure-white)",
-                borderRadius: "10px",
+                borderRadius: 0,
                 border: "1px solid var(--border-slate-200)",
                 whiteSpace: "nowrap",
                 flexShrink: 0
@@ -350,7 +350,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
             background: var(--bg-pure-white) !important;
             color: var(--text-slate-600) !important;
             height: 38px !important;
-            border-radius: 10px !important;
+            border-radius: 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -363,7 +363,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
           
           .project-card-premium {
             border: 1px solid var(--border-slate-200) !important;
-            border-radius: 16px !important;
+            border-radius: 0 !important;
             overflow: hidden !important;
             transition: all 0.3s ease !important;
             background: var(--bg-pure-white) !important;
@@ -376,6 +376,67 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
           .project-card-premium .ant-card-head {
             background: var(--bg-table-header);
             border-bottom: 1px solid var(--border-slate-200);
+          }
+          
+          @media (max-width: 768px) {
+            .ant-drawer-content-wrapper {
+              width: 100% !important;
+            }
+            .sp-drawer-header {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              padding: 16px !important;
+              gap: 12px !important;
+            }
+            .sp-drawer-header-left {
+              width: 100% !important;
+              justify-content: flex-start !important;
+            }
+            .sp-drawer-header-right {
+              width: 100% !important;
+              justify-content: space-between !important;
+              flex-wrap: wrap !important;
+              gap: 12px !important;
+            }
+            .sp-drawer-header-right .ant-space {
+              width: 100% !important;
+              justify-content: flex-end !important;
+            }
+            .sp-drawer-title {
+              white-space: normal !important;
+              line-height: 1.3 !important;
+            }
+            
+            .sp-task-row {
+              flex-direction: column !important;
+              align-items: stretch !important;
+              border: 1px solid var(--border-slate-200) !important;
+              padding: 12px !important;
+              border-radius: 0 !important;
+              background: var(--bg-slate-50) !important;
+              gap: 8px !important;
+            }
+            .sp-task-row > * {
+              width: 100% !important;
+            }
+            .sp-task-delete-btn {
+              text-align: right !important;
+              display: block !important;
+              width: fit-content !important;
+              margin-left: auto !important;
+            }
+          }
+
+          /* Force flat sharp borders inside the drawer */
+          .daily-update-drawer-container .ant-select-selector,
+          .daily-update-drawer-container .ant-input,
+          .daily-update-drawer-container .ant-picker,
+          .daily-update-drawer-container .ant-btn,
+          .daily-update-drawer-container .ant-card,
+          .daily-update-drawer-container .ant-input-number,
+          .daily-update-drawer-container .ant-select-selection-item,
+          .daily-update-drawer-container .ant-select {
+            border-radius: 0 !important;
           }
         `}} />
 
@@ -403,31 +464,31 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
 
             {selectedUser ? (
               <>
-                <div style={{ background: "var(--bg-pure-white)", padding: "16px", borderRadius: 16, border: "1px solid var(--border-slate-100)", marginBottom: 24 }}>
+                <div style={{ background: "var(--bg-pure-white)", padding: "16px", borderRadius: 0, border: "1px solid var(--border-slate-100)", marginBottom: 24 }}>
                   <Row gutter={[16, 16]} align="middle">
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="date" label="Work Date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                        <DatePicker style={{ width: "100%", borderRadius: 10 }} />
+                        <DatePicker style={{ width: "100%", borderRadius: 0 }} />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="updateType" label="Update Type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                         <Select
-                          style={{ borderRadius: 10 }}
+                          style={{ borderRadius: 0 }}
                           options={[{ label: "BOD (Beginning of Day)", value: "BOD" }, { label: "EOD (End of Day)", value: "EOD" }]}
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="is_missed" label="Missed Update?" valuePropName="checked" style={{ marginBottom: 0 }}>
                         <Switch style={{ background: form.getFieldValue('is_missed') ? 'var(--text-sky-500)' : '#cbd5e1' }} />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item noStyle shouldUpdate={(p, c) => p.is_missed !== c.is_missed}>
                         {({ getFieldValue }) => getFieldValue('is_missed') ? (
                           <Form.Item name="missedDate" label="Target Date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                            <DatePicker style={{ width: "100%", borderRadius: 10 }} />
+                            <DatePicker style={{ width: "100%", borderRadius: 0 }} />
                           </Form.Item>
                         ) : null}
                       </Form.Item>
@@ -440,23 +501,23 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                     {({ getFieldValue }) => (
                       <Form.Item name="mood" label="How was your mood today?">
                         <Radio.Group style={{ width: "100%" }}>
-                          <Row gutter={12}>
-                            <Col span={6}>
+                          <Row gutter={[12, 12]}>
+                            <Col xs={12} sm={6}>
                               <Radio.Button value="happy" className={`mood-btn ${getFieldValue('mood') === 'happy' ? 'mood-btn-active-happy' : ''}`}>
                                 <Space><Smile size={16} /> Happy</Space>
                               </Radio.Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={12} sm={6}>
                               <Radio.Button value="neutral" className={`mood-btn ${getFieldValue('mood') === 'neutral' ? 'mood-btn-active-neutral' : ''}`}>
                                 <Space><Meh size={16} /> Neutral</Space>
                               </Radio.Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={12} sm={6}>
                               <Radio.Button value="stressed" className={`mood-btn ${getFieldValue('mood') === 'stressed' ? 'mood-btn-active-stressed' : ''}`}>
                                 <Space><Frown size={16} /> Stressed</Space>
                               </Radio.Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={12} sm={6}>
                               <Radio.Button value="blocked" className={`mood-btn ${getFieldValue('mood') === 'blocked' ? 'mood-btn-active-blocked' : ''}`}>
                                 <Space><Activity size={16} /> Blocked</Space>
                               </Radio.Button>
@@ -480,7 +541,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                     style={{ marginBottom: 24 }}
                     title={
                       <Space>
-                        <div style={{ background: "var(--bg-slate-50)", padding: 6, borderRadius: 8, display: "flex", color: "var(--text-slate-600)", border: "1px solid var(--border-slate-200)" }}>
+                        <div style={{ background: "var(--bg-slate-50)", padding: 6, borderRadius: 0, display: "flex", color: "var(--text-slate-600)", border: "1px solid var(--border-slate-200)" }}>
                           <Zap size={14} fill="var(--text-slate-400)" color="var(--text-slate-400)" />
                         </div>
                         <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>Project Update #{pIdx + 1}</Text>
@@ -508,7 +569,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={10}>
+                      <Col xs={24} sm={10}>
                         <Form.Item label="Start Time" required style={{ marginBottom: 0 }}>
                           <DatePicker
                             showTime
@@ -528,7 +589,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={10}>
+                      <Col xs={24} sm={10}>
                         <Form.Item label="End Time" required style={{ marginBottom: 0 }}>
                           <DatePicker
                             showTime
@@ -548,7 +609,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
+                      <Col xs={24} sm={4}>
                         <Form.Item label="Hrs" style={{ marginBottom: 0 }}>
                           <Tag style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>
                             {update.hoursWorked}h
@@ -563,18 +624,18 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                       </Text>
 
                       {update.tasks.map((task, tIdx) => (
-                        <div key={tIdx} style={{ marginBottom: 12, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                        <div key={tIdx} className="sp-task-row" style={{ marginBottom: 12, display: "flex", gap: 12, alignItems: "center", width: "100%" }}>
                           <Select
                             value={task.type}
                             onChange={val => handleTaskTypeChange(pIdx, tIdx, val as any)}
-                            style={{ width: 100 }}
+                            style={{ width: 100, flexShrink: 0 }}
                             options={[{ label: "Ticket", value: "ticket" }, { label: "Manual", value: "manual" }]}
                           />
 
                           {task.type === "ticket" ? (
                             <Select
                               placeholder="Select Ticket"
-                              style={{ flex: 1 }}
+                              style={{ flex: 1, minWidth: 0 }}
                               showSearch
                               optionFilterProp="label"
                               value={task.ticketId}
@@ -595,7 +656,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           ) : (
                             <Input
                               placeholder="What were you working on?"
-                              style={{ flex: 1 }}
+                              style={{ flex: 1, minWidth: 0 }}
                               value={task.description}
                               onChange={e => {
                                 const newUpdates = [...projectUpdates];
@@ -612,12 +673,12 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                               newUpdates[pIdx].tasks[tIdx].status = val as WorkStatus;
                               setProjectUpdates(newUpdates);
                             }}
-                            style={{ width: 140 }}
+                            style={{ width: 140, flexShrink: 0 }}
                             options={STATUS_OPTIONS}
                           />
 
                           {update.tasks.length > 1 && (
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleRemoveTask(pIdx, tIdx)} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleRemoveTask(pIdx, tIdx)} style={{ flexShrink: 0 }} className="sp-task-delete-btn" />
                           )}
                         </div>
                       ))}
@@ -627,14 +688,14 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                         onClick={() => handleAddTask(pIdx)}
                         block
                         icon={<PlusOutlined />}
-                        style={{ borderRadius: 8, marginTop: 4 }}
+                        style={{ borderRadius: 0, marginTop: 4 }}
                       >
                         Add Another Task
                       </Button>
                     </div>
 
-                    <Row gutter={12} style={{ marginTop: 24 }}>
-                      <Col span={12}>
+                    <Row gutter={[12, 12]} style={{ marginTop: 24 }}>
+                      <Col xs={24} sm={12}>
                         <Form.Item label="Blockers (if any)">
                           <TextArea
                             rows={2}
@@ -648,7 +709,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={12}>
+                      <Col xs={24} sm={12}>
                         <Form.Item label="Project Notes">
                           <TextArea
                             rows={2}
@@ -680,13 +741,13 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                   }])}
                   block
                   icon={<Plus size={16} />}
-                  style={{ height: 48, borderRadius: 14, marginBottom: 32, borderStyle: "dashed", borderColor: "#bfdbfe", color: "#2563eb", background: "#eff6ff", fontWeight: 600 }}
+                  style={{ height: 48, borderRadius: 0, marginBottom: 32, borderStyle: "dashed", borderColor: "#bfdbfe", color: "#2563eb", background: "#eff6ff", fontWeight: 600 }}
                 >
                   Add Another Project Update
                 </Button>
 
                 <Form.Item name="generalNotes" label="General/Daily Notes">
-                  <TextArea rows={4} placeholder="Overall summary of the day..." style={{ borderRadius: 12 }} />
+                  <TextArea rows={4} placeholder="Overall summary of the day..." style={{ borderRadius: 0 }} />
                 </Form.Item>
               </>
             ) : (

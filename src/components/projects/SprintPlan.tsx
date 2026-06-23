@@ -397,7 +397,7 @@ export default function SprintPlanComponent() {
         startDate: values?.startDate?.toISOString() || undefined,
         endDate: values?.endDate?.toISOString() || undefined,
         goal: values?.goal || "",
-        status: "planning",
+        status: editingPlan ? editingPlan.status : "planning",
         type: "sprint_plan",
         tickets: values?.tickets || [],
       };
@@ -430,29 +430,38 @@ export default function SprintPlanComponent() {
     }
   };
 
-  const handleEdit = (plan: ReleasePlan) => {
-    setEditingPlan(plan);
-    const projectId = typeof plan?.project === "object" ? plan.project?.id : "";
-    setSelectedProject(projectId || "");
+  const handleEdit = async (plan: ReleasePlan) => {
+    const hideLoading = message.loading("Loading plan details...", 0);
+    try {
+      const fullPlan = await ReleasePlanService.getReleasePlanById(plan.id);
+      setEditingPlan(fullPlan);
+      const projectId = typeof fullPlan?.project === "object" ? fullPlan.project?.id : "";
+      setSelectedProject(projectId || "");
 
-    const ticketIds = plan?.tickets?.map((t) => t?.id) || [];
+      const ticketIds = fullPlan?.tickets?.map((t) => t?.id) || [];
 
-    form.setFieldsValue({
-      name: plan?.name,
-      description: plan?.description,
-      project: projectId,
-      deadline: plan?.deadline ? dayjs(plan.deadline) : null,
-      startDate: plan?.startDate ? dayjs(plan.startDate) : null,
-      endDate: plan?.endDate ? dayjs(plan.endDate) : null,
-      goal: plan?.goal,
-      priority: plan?.priority,
-      tickets: ticketIds,
-    });
+      form.setFieldsValue({
+        name: fullPlan?.name,
+        description: fullPlan?.description,
+        project: projectId,
+        deadline: fullPlan?.deadline ? dayjs(fullPlan.deadline) : null,
+        startDate: fullPlan?.startDate ? dayjs(fullPlan.startDate) : null,
+        endDate: fullPlan?.endDate ? dayjs(fullPlan.endDate) : null,
+        goal: fullPlan?.goal,
+        priority: fullPlan?.priority,
+        tickets: ticketIds,
+      });
 
-    if (projectId) {
-      loadTicketsByProject(projectId);
+      if (projectId) {
+        await loadTicketsByProject(projectId);
+      }
+      setShowCreateModal(true);
+    } catch (error) {
+      console.error("Failed to load plan details for editing:", error);
+      message.error("Failed to load plan details");
+    } finally {
+      hideLoading();
     }
-    setShowCreateModal(true);
   };
 
   const handleDelete = async (planId: string) => {
@@ -2352,13 +2361,14 @@ export default function SprintPlanComponent() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
+          rootClassName="sp-detail-drawer"
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 28px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-slate-50)' },
             mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.18)' }
           }}
           extra={
-            <Space size={8}>
+            <Space size={8} wrap>
               {canReadActivityLog && drawerSprintPlan && (
                 <Tooltip title="Activity history">
                   <Button
@@ -3947,6 +3957,9 @@ export default function SprintPlanComponent() {
           border-color: rgba(59,130,246,0.3) !important;
         }
         /* ── Sprint detail drawer header ───────────────────────── */
+        .sp-detail-drawer .ant-drawer-header {
+          flex-wrap: wrap;
+        }
         .sp-detail-head {
           display: flex;
           align-items: center;
@@ -3955,7 +3968,7 @@ export default function SprintPlanComponent() {
         }
         .sp-detail-head .sp-view-icon-box { width: 44px; height: 44px; }
         .sp-detail-head-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
-        .sp-detail-head-eyebrow { display: flex; align-items: center; gap: 8px; }
+        .sp-detail-head-eyebrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .sp-detail-head-kicker {
           font-size: 10px; font-weight: 800; color: var(--text-slate-400);
           text-transform: uppercase; letter-spacing: 0.08em;
@@ -5432,6 +5445,11 @@ export default function SprintPlanComponent() {
           }
           .sp-metric {
             flex: 1 0 160px;
+          }
+        }
+        @media (max-width: 900px) {
+          .sp-main-stats {
+            display: none !important;
           }
         }
         @media (max-width: 640px) {
@@ -7499,6 +7517,22 @@ export default function SprintPlanComponent() {
           }
           .sp-plist-seg-name {
             font-size: 14px;
+          }
+          .sp-detail-drawer .ant-drawer-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+            padding: 16px 20px !important;
+          }
+          .sp-detail-drawer .ant-drawer-header-title {
+            width: 100% !important;
+            flex: none !important;
+          }
+          .sp-detail-drawer .ant-drawer-extra {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
           }
         }
       `}</style>

@@ -565,7 +565,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         .du-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .du-pagesize { margin-left: 5px; }
         .du-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
-        .du-side-group .sd-trigger { border-radius: 0 !important; }
+        .du-side-group .sd-trigger { border-radius: 8px !important; }
         `
       }} />
 

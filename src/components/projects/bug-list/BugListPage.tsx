@@ -94,6 +94,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { hivebugStyles } from "./hivebug-styles";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { STATUS_OPTIONS } from "@/utils/ticketUtils";
 
 const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
@@ -108,6 +109,7 @@ interface FilterState {
   module?: string;
   assigneeId?: string;
   createdById?: string;
+  ticketStatus?: string;
   createdRange?: [any, any] | null;
   updatedRange?: [any, any] | null;
 }
@@ -324,6 +326,7 @@ export default function BugListPage() {
       module: filters.module,
       assigneeId: filters.assigneeId,
       createdById: filters.createdById || undefined,
+      ticketStatus: filters.ticketStatus,
       createdFrom: filters.createdRange?.[0] ? dayjs(filters.createdRange[0]).startOf("day").toISOString() : undefined,
       createdTo: filters.createdRange?.[1] ? dayjs(filters.createdRange[1]).endOf("day").toISOString() : undefined,
       updatedFrom: filters.updatedRange?.[0] ? dayjs(filters.updatedRange[0]).startOf("day").toISOString() : undefined,
@@ -414,6 +417,7 @@ export default function BugListPage() {
     if (filters.module) n++;
     if (filters.assigneeId) n++;
     if (filters.createdById) n++;
+    if (filters.ticketStatus) n++;
     if (filters.createdRange) n++;
     if (filters.updatedRange) n++;
     return n;
@@ -1037,6 +1041,21 @@ export default function BugListPage() {
                     value: s,
                     label: s.toUpperCase(),
                     badge: <Tag size={14} />,
+                  }))}
+                />
+
+                <SearchableDropdown
+                  triggerLabel="Ticket status"
+                  placeholder="Any ticket status"
+                  itemNoun="statuses"
+                  value={filters.ticketStatus || undefined}
+                  onChange={(v) =>
+                    setFilters((f) => ({ ...f, ticketStatus: v || undefined }))
+                  }
+                  options={STATUS_OPTIONS.map((s) => ({
+                    value: s.value,
+                    label: s.label,
+                    badge: <CircleDot size={14} />,
                   }))}
                 />
 

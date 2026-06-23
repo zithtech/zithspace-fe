@@ -309,103 +309,105 @@ export default function MeetingsTab({
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="meetings-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Calendar size={20} color="#3b82f6" />}
-          title="Meeting minutes"
-          description="Capture decisions and action items from meetings with the client."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
+          <TimeTrackingHeader
+            icon={<Calendar size={20} color="#3b82f6" />}
+            title="Meeting minutes"
+            description="Capture decisions and action items from meetings with the client."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                New meeting
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+          />
+        </div>
+  
+        {/* ── Toolbar ── */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            margin: "12px 0 8px 0",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Search */}
+            <Input
+              allowClear
+              className="contacts-search-input"
+              prefix={<Search size={14} style={{ color: c.textFaint }} />}
+              placeholder="Search meetings…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "32px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
+                width: 220,
               }}
-            >
-              New meeting
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-        />
-      </div>
-
-      {/* ── Toolbar ── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          margin: "12px 0 8px 0",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Search */}
-          <Input
-            allowClear
-            className="contacts-search-input"
-            prefix={<Search size={14} style={{ color: c.textFaint }} />}
-            placeholder="Search meetings…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: 220,
-            }}
-          />
-
-          {/* Date range */}
-          <DatePicker.RangePicker
-            allowClear
-            placeholder={["From date", "To date"]}
-            onChange={(val) => setDateRange(val as any)}
-            className="contacts-search-input"
-          />
-
-          {/* Project filter */}
-          {projects.length > 0 && (
-            <SearchableDropdown
-              placeholder="All projects"
-              searchPlaceholder="Search projects"
-              itemNoun="projects"
-              value={projectFilter ?? undefined}
-              onChange={(v) => setProjectFilter(v ?? null)}
-              options={projects.map((p) => ({ value: p.id, label: p.name }))}
-              width={180}
-              className="contacts-filter-select-sd"
             />
-          )}
+  
+            {/* Date range */}
+            <DatePicker.RangePicker
+              allowClear
+              placeholder={["From date", "To date"]}
+              onChange={(val) => setDateRange(val as any)}
+              className="contacts-search-input"
+            />
+  
+            {/* Project filter */}
+            {projects.length > 0 && (
+              <SearchableDropdown
+                placeholder="All projects"
+                searchPlaceholder="Search projects"
+                itemNoun="projects"
+                value={projectFilter ?? undefined}
+                onChange={(v) => setProjectFilter(v ?? null)}
+                options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                width={180}
+                className="contacts-filter-select-sd"
+              />
+            )}
+          </div>
+  
+          {/* View toggle */}
+          <div className="ptab-segmented">
+            <button
+              type="button"
+              className={viewMode === "list" ? "is-active" : ""}
+              onClick={() => setViewMode("list")}
+              aria-label="List view"
+            >
+              <LayoutList size={15} />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Card view"
+            >
+              <LayoutGrid size={15} />
+            </button>
+          </div>
         </div>
-
-        {/* View toggle */}
-        <div className="ptab-segmented">
-          <button
-            type="button"
-            className={viewMode === "list" ? "is-active" : ""}
-            onClick={() => setViewMode("list")}
-            aria-label="List view"
-          >
-            <LayoutList size={15} />
-          </button>
-          <button
-            type="button"
-            className={viewMode === "card" ? "is-active" : ""}
-            onClick={() => setViewMode("card")}
-            aria-label="Card view"
-          >
-            <LayoutGrid size={15} />
-          </button>
-        </div>
+        <div className="ptab-divider" />
       </div>
-      <div className="ptab-divider" />
 
       {/* ── Content ── */}
       {(() => {

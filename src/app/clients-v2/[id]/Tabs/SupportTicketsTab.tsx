@@ -400,89 +400,91 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="support-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<LifeBuoy size={20} color="#3b82f6" />}
-          title="Support tickets"
-          description="Tickets raised by the client through the portal or opened by your team on their behalf."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "32px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
+          <TimeTrackingHeader
+            icon={<LifeBuoy size={20} color="#3b82f6" />}
+            title="Support tickets"
+            description="Tickets raised by the client through the portal or opened by your team on their behalf."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Create ticket
+              </Button>
+            }
+            style={{
+              background: "transparent",
+              borderBottom: "1px solid var(--border-slate-100)",
+              padding: "4px 32px",
+              marginBottom: "8px",
+            }}
+          />
+        </div>
+  
+        {/* Filters Row */}
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
+            <Input
+              allowClear
+              className="contacts-search-input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search subject or ticket #…"
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+              style={{ width: "320px" }}
+            />
+  
+            <SearchableDropdown
+              placeholder="Status"
+              searchPlaceholder="Search statuses"
+              itemNoun="statuses"
+              value={statusFilter === "all" ? undefined : statusFilter}
+              onChange={(v) => setStatusFilter(v ?? "all")}
+              options={(Object.keys(STATUS_META) as TicketStatus[]).map((key) => ({
+                value: key,
+                label: STATUS_META[key].label,
+              }))}
+              width={180}
+              className="contacts-filter-select-sd"
+            />
+          </div>
+  
+          {/* View toggle */}
+          <div className="ptab-segmented">
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Grid view"
             >
-              Create ticket
-            </Button>
-          }
-          style={{
-            background: "transparent",
-            borderBottom: "1px solid var(--border-slate-100)",
-            padding: "4px 32px",
-            marginBottom: "8px",
-          }}
-        />
-      </div>
-
-      {/* Filters Row */}
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
-          <Input
-            allowClear
-            className="contacts-search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search subject or ticket #…"
-            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-            style={{ width: "320px" }}
-          />
-
-          <SearchableDropdown
-            placeholder="Status"
-            searchPlaceholder="Search statuses"
-            itemNoun="statuses"
-            value={statusFilter === "all" ? undefined : statusFilter}
-            onChange={(v) => setStatusFilter(v ?? "all")}
-            options={(Object.keys(STATUS_META) as TicketStatus[]).map((key) => ({
-              value: key,
-              label: STATUS_META[key].label,
-            }))}
-            width={180}
-            className="contacts-filter-select-sd"
-          />
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "list" ? "is-active" : ""}
+              onClick={() => setViewMode("list")}
+              aria-label="List view"
+            >
+              <LayoutList size={15} />
+            </button>
+          </div>
         </div>
-
-        {/* View toggle */}
-        <div className="ptab-segmented">
-          <button
-            type="button"
-            className={viewMode === "card" ? "is-active" : ""}
-            onClick={() => setViewMode("card")}
-            aria-label="Grid view"
-          >
-            <LayoutGrid size={15} />
-          </button>
-          <button
-            type="button"
-            className={viewMode === "list" ? "is-active" : ""}
-            onClick={() => setViewMode("list")}
-            aria-label="List view"
-          >
-            <LayoutList size={15} />
-          </button>
-        </div>
+  
+        <div className="ptab-divider" />
       </div>
-
-      <div className="ptab-divider" />
 
       {/* Body */}
       {loading ? (

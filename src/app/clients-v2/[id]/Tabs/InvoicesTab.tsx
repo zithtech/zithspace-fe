@@ -200,63 +200,65 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
       
+      <div className="cd-tab-sticky-head">
       <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Receipt size={20} color="#3b82f6" />}
-          title="Invoices"
-          description="View all sent, partially paid, and paid invoices associated with this client"
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-          extra={
-            <Button 
-              icon={<RefreshCw size={16} />} 
-              onClick={fetchInvoices} 
-              loading={loading}
-              style={{
-                borderRadius: 8,
-                height: 32,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              Refresh
-            </Button>
-          }
-        />
-      </div>
-
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <Input
-          placeholder="Search by invoice number or customer name..."
-          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="projects-search-input"
-          style={{ width: "340px" }}
-          allowClear
-        />
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="ptab-segmented">
-            <button
-              type="button"
-              className={viewMode === "grid" ? "is-active" : ""}
-              onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              className={viewMode === "list" ? "is-active" : ""}
-              onClick={() => setViewMode("list")}
-              aria-label="List view"
-            >
-              <List size={15} />
-            </button>
+          <TimeTrackingHeader
+            icon={<Receipt size={20} color="#3b82f6" />}
+            title="Invoices"
+            description="View all sent, partially paid, and paid invoices associated with this client"
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+            extra={
+              <Button 
+                icon={<RefreshCw size={16} />} 
+                onClick={fetchInvoices} 
+                loading={loading}
+                style={{
+                  borderRadius: 8,
+                  height: 32,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                Refresh
+              </Button>
+            }
+          />
+        </div>
+  
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <Input
+            placeholder="Search by invoice number or customer name..."
+            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="projects-search-input"
+            style={{ width: "340px" }}
+            allowClear
+          />
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
           </div>
         </div>
+        <div className="ptab-divider" />
       </div>
-      <div className="ptab-divider" />
 
       {viewMode === "list" ? (
         <div className="pp-table-wrap">

@@ -385,106 +385,108 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       {contextHolder}
       {modalContextHolder}
 
+      <div className="cd-tab-sticky-head">
       <div className="contacts-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Users size={20} color="#3b82f6" />}
-          title="Points of Contact"
-          description="Manage multiple client representatives and communication details"
-          extra={
-            canUpdateClient && (
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                onClick={() => setIsModalOpen(true)}
-                className="ptab-primary-btn"
-                style={{
-                  // background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
-                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-
-                  borderColor: "transparent",
-                  borderRadius: "8px",
-                  height: "32px",
-                  fontWeight: 600,
-                  // boxShadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                Add Contact
-              </Button>
-            )
-          }
-          style={{
-            background: "transparent",
-            borderBottom: "1px solid var(--border-slate-100)",
-            padding: "4px 32px",
-            marginBottom: "8px",
-          }}
-        />
-      </div>
-
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
-          <Input
-            placeholder="Search by name or email..."
-            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="contacts-search-input"
-            style={{ width: "320px" }}
-            allowClear
-          />
-
-          <SearchableDropdown
-            placeholder="Category"
-            searchPlaceholder="Search categories"
-            itemNoun="categories"
-            value={selectedCategory === "all" ? undefined : selectedCategory}
-            onChange={(v) => setSelectedCategory(v ?? "all")}
-            options={[
-              { value: "primary", label: "Primary Contact" },
-              { value: "secondary", label: "Secondary Contact" },
-            ]}
-            width={180}
-            className="contacts-filter-select-sd"
-          />
-
-          <SearchableDropdown
-            placeholder="Project"
-            searchPlaceholder="Search projects"
-            itemNoun="projects"
-            value={selectedProject === "all" ? undefined : selectedProject}
-            onChange={(v) => setSelectedProject(v ?? "all")}
-            options={projects.map((p) => ({ value: p.id, label: p.name }))}
-            width={220}
-            disabled={projects.length === 0}
-            className="contacts-filter-select-sd"
+          <TimeTrackingHeader
+            icon={<Users size={20} color="#3b82f6" />}
+            title="Points of Contact"
+            description="Manage multiple client representatives and communication details"
+            extra={
+              canUpdateClient && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  onClick={() => setIsModalOpen(true)}
+                  className="ptab-primary-btn"
+                  style={{
+                    // background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+  
+                    borderColor: "transparent",
+                    borderRadius: "8px",
+                    height: "32px",
+                    fontWeight: 600,
+                    // boxShadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Add Contact
+                </Button>
+              )
+            }
+            style={{
+              background: "transparent",
+              borderBottom: "1px solid var(--border-slate-100)",
+              padding: "4px 32px",
+              marginBottom: "8px",
+            }}
           />
         </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="ptab-segmented">
-            <button
-              type="button"
-              className={viewMode === "grid" ? "is-active" : ""}
-              onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              className={viewMode === "list" ? "is-active" : ""}
-              onClick={() => setViewMode("list")}
-              aria-label="List view"
-            >
-              <List size={15} />
-            </button>
+  
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
+            <Input
+              placeholder="Search by name or email..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="contacts-search-input"
+              style={{ width: "320px" }}
+              allowClear
+            />
+  
+            <SearchableDropdown
+              placeholder="Category"
+              searchPlaceholder="Search categories"
+              itemNoun="categories"
+              value={selectedCategory === "all" ? undefined : selectedCategory}
+              onChange={(v) => setSelectedCategory(v ?? "all")}
+              options={[
+                { value: "primary", label: "Primary Contact" },
+                { value: "secondary", label: "Secondary Contact" },
+              ]}
+              width={180}
+              className="contacts-filter-select-sd"
+            />
+  
+            <SearchableDropdown
+              placeholder="Project"
+              searchPlaceholder="Search projects"
+              itemNoun="projects"
+              value={selectedProject === "all" ? undefined : selectedProject}
+              onChange={(v) => setSelectedProject(v ?? "all")}
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              width={220}
+              disabled={projects.length === 0}
+              className="contacts-filter-select-sd"
+            />
+          </div>
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
           </div>
         </div>
+  
+        <div className="ptab-divider" />
       </div>
-
-      <div className="ptab-divider" />
 
       {viewMode === "list" ? (
         <div className="pp-table-wrap">
@@ -742,12 +744,34 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="mobileNumber"
                   label="Contact number"
-                  rules={[{ required: true, message: "Contact number is required" }]}
+                  rules={[
+                    { required: true, message: "Contact number is required" },
+                    { pattern: /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/, message: "Please enter a valid phone number" },
+                    { validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        const digitCount = (value.match(/\d/g) || []).length;
+                        if (digitCount < 7 || digitCount > 15) {
+                          return Promise.reject("Phone number must contain between 7 and 15 digits");
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
                 >
                   <Input
                     placeholder="+1 (555) 000-0000"
-                    type="number"
                     prefix={<Phone size={14} style={{ color: "var(--text-slate-400)" }} />}
+                    onKeyDown={(e) => {
+                      if (
+                        !/^[0-9+\-()\s]$/.test(e.key) &&
+                        e.key !== "Backspace" &&
+                        e.key !== "ArrowLeft" &&
+                        e.key !== "ArrowRight" &&
+                        e.key !== "Tab"
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -893,12 +917,34 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="mobileNumber"
                   label="Contact number"
-                  rules={[{ required: true, message: "Contact number is required" }]}
+                  rules={[
+                    { required: true, message: "Contact number is required" },
+                    { pattern: /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/, message: "Please enter a valid phone number" },
+                    { validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        const digitCount = (value.match(/\d/g) || []).length;
+                        if (digitCount < 7 || digitCount > 15) {
+                          return Promise.reject("Phone number must contain between 7 and 15 digits");
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
                 >
                   <Input
                     placeholder="+1 (555) 000-0000"
-                    type="number"
                     prefix={<Phone size={14} style={{ color: "var(--text-slate-400)" }} />}
+                    onKeyDown={(e) => {
+                      if (
+                        !/^[0-9+\-()\s]$/.test(e.key) &&
+                        e.key !== "Backspace" &&
+                        e.key !== "ArrowLeft" &&
+                        e.key !== "ArrowRight" &&
+                        e.key !== "Tab"
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </Form.Item>
               </Col>

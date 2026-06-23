@@ -417,142 +417,144 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="milestones-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Flag size={20} color="#3b82f6" />}
-          title="Delivery tracker"
-          description="Milestones the client should know about, with a breakdown of the work behind each one."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => {
-                setEditing(null);
-                setCreateOpen(true);
-              }}
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              Add milestone
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
-      </div>
-
-      {/* Summary strip */}
-      {items.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 10,
-            marginTop: 20,
-            marginBottom: 16,
-          }}
-        >
-          <SummaryStat
-            c={c}
-            tone={tones.accent}
-            icon={Flag}
-            label="Milestones"
-            value={String(counts.total)}
-          />
-          <SummaryStat
-            c={c}
-            tone={tones.warning}
-            icon={Clock}
-            label="In progress"
-            value={String(counts.inProgress)}
-          />
-          <SummaryStat
-            c={c}
-            tone={tones.success}
-            icon={CheckCircle2}
-            label="Completed"
-            value={String(counts.completed)}
-          />
-          <SummaryStat
-            c={c}
-            tone={tones.purple}
-            icon={ListChecks}
-            label="Items done"
-            value={`${counts.itemsDone} / ${counts.itemsTotal}`}
+          <TimeTrackingHeader
+            icon={<Flag size={20} color="#3b82f6" />}
+            title="Delivery tracker"
+            description="Milestones the client should know about, with a breakdown of the work behind each one."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => {
+                  setEditing(null);
+                  setCreateOpen(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "36px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Add milestone
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
           />
         </div>
-      )}
-
-      {/* Filters & Toggles */}
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
-          <Input
-            placeholder="Search by milestone or project..."
-            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="contacts-search-input"
-            style={{ width: "320px" }}
-            allowClear
-          />
-
-          <SearchableDropdown
-            placeholder="Status"
-            searchPlaceholder="Search statuses"
-            itemNoun="statuses"
-            value={selectedStatus === "all" ? undefined : selectedStatus}
-            onChange={(v) => setSelectedStatus(v ?? "all")}
-            options={Object.keys(STATUS_META).map((key) => ({
-              value: key,
-              label: STATUS_META[key as MilestoneStatus].label,
-            }))}
-            width={180}
-            className="contacts-filter-select-sd"
-          />
-
-          <SearchableDropdown
-            placeholder="Project"
-            searchPlaceholder="Search projects"
-            itemNoun="projects"
-            value={selectedProject === "all" ? undefined : selectedProject}
-            onChange={(v) => setSelectedProject(v ?? "all")}
-            options={projects.map((p) => ({ value: p.id, label: p.name }))}
-            width={220}
-            disabled={projects.length === 0}
-            className="contacts-filter-select-sd"
-          />
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="ptab-segmented">
-            <button
-              type="button"
-              className={viewMode === "grid" ? "is-active" : ""}
-              onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              className={viewMode === "list" ? "is-active" : ""}
-              onClick={() => setViewMode("list")}
-              aria-label="List view"
-            >
-              <List size={15} />
-            </button>
+  
+        {/* Summary strip */}
+        {items.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 10,
+              marginTop: 20,
+              marginBottom: 16,
+            }}
+          >
+            <SummaryStat
+              c={c}
+              tone={tones.accent}
+              icon={Flag}
+              label="Milestones"
+              value={String(counts.total)}
+            />
+            <SummaryStat
+              c={c}
+              tone={tones.warning}
+              icon={Clock}
+              label="In progress"
+              value={String(counts.inProgress)}
+            />
+            <SummaryStat
+              c={c}
+              tone={tones.success}
+              icon={CheckCircle2}
+              label="Completed"
+              value={String(counts.completed)}
+            />
+            <SummaryStat
+              c={c}
+              tone={tones.purple}
+              icon={ListChecks}
+              label="Items done"
+              value={`${counts.itemsDone} / ${counts.itemsTotal}`}
+            />
+          </div>
+        )}
+  
+        {/* Filters & Toggles */}
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
+            <Input
+              placeholder="Search by milestone or project..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="contacts-search-input"
+              style={{ width: "320px" }}
+              allowClear
+            />
+  
+            <SearchableDropdown
+              placeholder="Status"
+              searchPlaceholder="Search statuses"
+              itemNoun="statuses"
+              value={selectedStatus === "all" ? undefined : selectedStatus}
+              onChange={(v) => setSelectedStatus(v ?? "all")}
+              options={Object.keys(STATUS_META).map((key) => ({
+                value: key,
+                label: STATUS_META[key as MilestoneStatus].label,
+              }))}
+              width={180}
+              className="contacts-filter-select-sd"
+            />
+  
+            <SearchableDropdown
+              placeholder="Project"
+              searchPlaceholder="Search projects"
+              itemNoun="projects"
+              value={selectedProject === "all" ? undefined : selectedProject}
+              onChange={(v) => setSelectedProject(v ?? "all")}
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              width={220}
+              disabled={projects.length === 0}
+              className="contacts-filter-select-sd"
+            />
+          </div>
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
           </div>
         </div>
+  
+        <div className="ptab-divider" />
       </div>
-
-      <div className="ptab-divider" />
 
       <div>
         {loading ? (

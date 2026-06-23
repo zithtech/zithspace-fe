@@ -759,7 +759,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                   ]}
                 >
                   <Input
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="+1234567890"
                     prefix={<Phone size={14} style={{ color: "var(--text-slate-400)" }} />}
                     onKeyDown={(e) => {
                       if (

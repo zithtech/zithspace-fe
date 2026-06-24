@@ -45,7 +45,6 @@ import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { AttendanceService } from "@/services/attendanceService";
-import { TimeTrackingService } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import TicketService from "@/services/ticketService";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";

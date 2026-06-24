@@ -81,6 +81,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import { useTheme } from "@/context/ThemeContext";
 import dayjs from "dayjs";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
@@ -184,6 +185,7 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const {
     canCreateTicket,
     canReadTicket,
@@ -295,6 +297,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  // Sprint actions bar state
+  const [buckets, setBuckets] = useState<any[]>([]);
+  const [bucketsLoading, setBucketsLoading] = useState(false);
+  const [bucketDropdownOpen, setBucketDropdownOpen] = useState(false);
+  const [newBucketName, setNewBucketName] = useState('');
+  const [creatingBucket, setCreatingBucket] = useState(false);
+  const [sprintDropdownOpen, setSprintDropdownOpen] = useState(false);
+  const [allSprints, setAllSprints] = useState<any[]>([]);
+  const [sprintsLoading, setSprintsLoading] = useState(false);
+  const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
 
   // Sidebar visibility. Defaults to OPEN for every user; once the user
   // toggles it (via the header show/hide button or the mobile drawer
@@ -2094,80 +2107,31 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             )}
           </div>
           <div className="tl-sprint-actions">
-            {showBulkActions ? (
-              <>
-                {canManageTickets && (
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                    onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                    style={{
-                      background: 'var(--premium-blue)',
-                      borderColor: 'var(--premium-blue)',
-                      fontWeight: 800,
-                      borderRadius: 4,
-                      height: 28,
-                      fontSize: 11,
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    Move to Archive
-                  </Button>
-                )}
-                {canDeleteTicket && (
-                  <Button
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                    onClick={() => {
-                      modal.confirm({
-                        title: 'Move to Trash',
-                        content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
-                        okText: 'Move to Trash',
-                        okType: 'danger',
-                        onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                      });
-                    }}
-                    style={{
-                      fontWeight: 800,
-                      borderRadius: 4,
-                      height: 28,
-                      fontSize: 11,
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    Delete
-                  </Button>
-                )}
-              </>
-            ) : (
-              <>
-                {activeSprint?.id && (
-                  <Button
-                    type="default"
-                    size="small"
-                    icon={<LineChartOutlined />}
-                    onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                    className="saas-button-item tl-sprint-burndown-btn"
-                  >
-                    Burndown
-                  </Button>
-                )}
-                {canUpdateTicketPlan && (
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<CheckCircleOutlined />}
-                    onClick={handleCompleteSprint}
-                    className="saas-button-item tl-sprint-complete-btn"
-                  >
-                    Complete Sprint
-                  </Button>
-                )}
-              </>
+            {activeSprint?.id && (
+              <Button
+                type="default"
+                size="small"
+                icon={<LineChartOutlined />}
+                onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                className="saas-button-item tl-sprint-burndown-btn"
+              >
+                Burndown
+              </Button>
+            )}
+            {canUpdateTicketPlan && (
+              <Button
+                type="primary"
+                size="small"
+                icon={<CheckCircleOutlined />}
+                onClick={handleCompleteSprint}
+                className="saas-button-item tl-sprint-complete-btn"
+              >
+                Complete Sprint
+              </Button>
             )}
           </div>
+
+
         </div>
 
         {/* Row 2: date range + ticket counts */}
@@ -3121,6 +3085,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
           background: #059669 !important;
           border-color: #059669 !important;
+        }
+
+        /* Sprint actions bar dropdown items */
+        .tl-action-item:hover {
+          background: #f8fafc !important;
+        }
+        [data-theme='dark'] .tl-action-item:hover {
+          background: #1e293b !important;
         }
 
         .tl-sprint-row2 {
@@ -4384,6 +4356,343 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </button>
                         </div>
                       )}
+                      {/* ── Sprint Actions Bar — visible when rows are selected ── */}
+                      {activeSelectedRowKeys.length > 0 && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '8px 12px',
+                          background: theme === 'dark' ? 'linear-gradient(135deg, #1e293b, #0f172a)' : 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
+                          borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #bfdbfe',
+                          flexWrap: 'wrap',
+                        }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: theme === 'dark' ? '#60a5fa' : '#1d4ed8', minWidth: 80 }}>
+                            {activeSelectedRowKeys.length} selected
+                          </span>
+
+                          {/* Assignee / Reassign */}
+                          {canAssignTicket && (
+                            <Dropdown
+                              open={assigneeDropdownOpen}
+                              onOpenChange={setAssigneeDropdownOpen}
+                              trigger={['click']}
+                              menu={{ items: [] }}
+                              dropdownRender={() => (
+                                <div style={{
+                                  background: theme === 'dark' ? '#1e293b' : '#fff',
+                                  borderRadius: 10,
+                                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                  padding: '6px 4px',
+                                  minWidth: 200,
+                                  maxHeight: 280,
+                                  overflowY: 'auto',
+                                }}>
+                                  <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Assign to</div>
+                                  {members.map(m => (
+                                    <div
+                                      key={m.value}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        activeSelectedRowKeys.forEach(ticketId => {
+                                          updateTicketMutation.mutate({ id: ticketId as string, data: { assignee: m.value }, optimisticData: {} });
+                                        });
+                                        setAssigneeDropdownOpen(false);
+                                        message.success(`Assigned ${activeSelectedRowKeys.length} ticket(s) to ${m.label}`);
+                                      }}
+                                    >
+                                      <Avatar src={(m as any).avatarUrl} size={24} style={{ background: '#3b82f6', fontSize: 10 }}>{m.label?.[0]?.toUpperCase()}</Avatar>
+                                      <span style={{ fontWeight: 500, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{m.label}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            >
+                              <Button
+                                size="small"
+                                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                                style={{
+                                  height: 28,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  borderColor: theme === 'dark' ? '#1e3a8a' : '#bfdbfe',
+                                  color: theme === 'dark' ? '#60a5fa' : '#1d4ed8',
+                                  background: theme === 'dark' ? '#172554' : '#eff6ff'
+                                }}
+                              >
+                                {activeSelectedRowKeys.length === 1 &&
+                                  pagedActiveTickets.find(t => t.id === activeSelectedRowKeys[0])?.assignee
+                                  ? 'Reassign' : 'Assignee'}
+                              </Button>
+                            </Dropdown>
+                          )}
+
+                          {/* Move to Archive */}
+                          {canManageTickets && (
+                            <Button
+                              size="small"
+                              icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                              loading={bulkArchiveMutation.isPending}
+                              style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: theme === 'dark' ? '#064e3b' : '#bbf7d0',
+                                color: theme === 'dark' ? '#34d399' : '#15803d',
+                                background: theme === 'dark' ? '#062f21' : '#f0fdf4'
+                              }}
+                              onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                            >
+                              Move to Archive
+                            </Button>
+                          )}
+
+                          {/* Move to Bucket */}
+                          <Dropdown
+                            open={bucketDropdownOpen}
+                            onOpenChange={(open) => {
+                              setBucketDropdownOpen(open);
+                              if (open && buckets.length === 0 && !bucketsLoading) {
+                                setBucketsLoading(true);
+                                import('@/services/bucketService').then(mod => {
+                                  mod.default.getBuckets(projectId).then(data => {
+                                    setBuckets(data);
+                                  }).catch(() => {}).finally(() => setBucketsLoading(false));
+                                });
+                              }
+                            }}
+                            trigger={['click']}
+                            menu={{ items: [] }}
+                            dropdownRender={() => (
+                              <div style={{
+                                background: theme === 'dark' ? '#1e293b' : '#fff',
+                                borderRadius: 10,
+                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                padding: '6px 4px',
+                                minWidth: 220,
+                                maxHeight: 320,
+                                overflowY: 'auto',
+                              }}>
+                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
+                                {bucketsLoading ? (
+                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
+                                ) : buckets.length === 0 ? (
+                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
+                                ) : (
+                                  buckets.map((b: any) => (
+                                    <div
+                                      key={b.id}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        import('@/services/bucketService').then(mod => {
+                                          mod.default.assignTicketsToBucket(b.id, activeSelectedRowKeys as string[]).then(() => {
+                                            message.success(`Moved ${activeSelectedRowKeys.length} ticket(s) to "${b.name}"`);
+                                            setActiveSelectedRowKeys([]);
+                                            setBacklogSelectedRowKeys([]);
+                                            refetchActive();
+                                            refetchBacklog();
+                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                            setBucketDropdownOpen(false);
+                                          }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
+                                        });
+                                      }}
+                                    >
+                                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
+                                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                                    </div>
+                                  ))
+                                )}
+                                <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
+                                  <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
+                                  <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
+                                    <input
+                                      placeholder="Bucket name..."
+                                      value={newBucketName}
+                                      onChange={e => setNewBucketName(e.target.value)}
+                                      onKeyDown={e => e.stopPropagation()}
+                                      style={{
+                                        flex: 1,
+                                        height: 28,
+                                        borderRadius: 6,
+                                        border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
+                                        padding: '0 8px',
+                                        fontSize: 12,
+                                        outline: 'none',
+                                        background: theme === 'dark' ? '#0f172a' : '#fff',
+                                        color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
+                                      }}
+                                    />
+                                    <button
+                                      disabled={!newBucketName.trim() || creatingBucket}
+                                      style={{
+                                        height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
+                                        background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
+                                        color: newBucketName.trim() ? '#fff' : '#94a3b8',
+                                        cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
+                                        fontSize: 12, fontWeight: 700,
+                                      }}
+                                      onClick={() => {
+                                        if (!newBucketName.trim()) return;
+                                        setCreatingBucket(true);
+                                        import('@/services/bucketService').then(mod => {
+                                          mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
+                                            setBuckets(prev => [newB, ...prev]);
+                                            return mod.default.assignTicketsToBucket(newB.id, activeSelectedRowKeys as string[]);
+                                          }).then(() => {
+                                            message.success(`Created bucket "${newBucketName.trim()}" and moved ${activeSelectedRowKeys.length} ticket(s)`);
+                                            setActiveSelectedRowKeys([]);
+                                            setBacklogSelectedRowKeys([]);
+                                            refetchActive();
+                                            refetchBacklog();
+                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                            setNewBucketName('');
+                                            setBucketDropdownOpen(false);
+                                          }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
+                                        });
+                                      }}
+                                    >
+                                      {creatingBucket ? '...' : 'Create'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          >
+                            <Button
+                              size="small"
+                              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                              style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: theme === 'dark' ? '#4c1d95' : '#ddd6fe',
+                                color: theme === 'dark' ? '#a78bfa' : '#7c3aed',
+                                background: theme === 'dark' ? '#2e1065' : '#f5f3ff'
+                              }}
+                            >
+                              Move to Bucket
+                            </Button>
+                          </Dropdown>
+
+                          {/* Move to Sprint */}
+                          <Dropdown
+                            open={sprintDropdownOpen}
+                            onOpenChange={(open) => {
+                              setSprintDropdownOpen(open);
+                              if (open && allSprints.length === 0 && !sprintsLoading) {
+                                setSprintsLoading(true);
+                                ReleasePlanService.getReleasePlans({ type: 'sprint_plan', projectId, limit: 100 }).then(res => {
+                                  setAllSprints(res.data || []);
+                                }).catch(() => {}).finally(() => setSprintsLoading(false));
+                              }
+                            }}
+                            trigger={['click']}
+                            menu={{ items: [] }}
+                            dropdownRender={() => (
+                              <div style={{
+                                background: theme === 'dark' ? '#1e293b' : '#fff',
+                                borderRadius: 10,
+                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                padding: '6px 4px',
+                                minWidth: 220,
+                                maxHeight: 300,
+                                overflowY: 'auto',
+                              }}>
+                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Sprint</div>
+                                {sprintsLoading ? (
+                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading sprints...</div>
+                                ) : allSprints.length === 0 ? (
+                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No sprints found</div>
+                                ) : (
+                                  allSprints.map((s: any) => (
+                                    <div
+                                      key={s.id}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        activeSelectedRowKeys.forEach(ticketId => {
+                                          updateTicketMutation.mutate({ id: ticketId as string, data: { releasePlan: s.id }, optimisticData: { releasePlan: s.id } });
+                                        });
+                                        setActiveSelectedRowKeys([]);
+                                        setBacklogSelectedRowKeys([]);
+                                        refetchActive();
+                                        refetchBacklog();
+                                        queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                        message.success(`Moved ${activeSelectedRowKeys.length} ticket(s) to ${s.version || s.name}`);
+                                        setSprintDropdownOpen(false);
+                                      }}
+                                    >
+                                      <PlayCircleOutlined style={{ color: s.status === 'active' ? '#10b981' : '#94a3b8', fontSize: 12 }} />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 12, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{s.version || s.name}</div>
+                                        {s.status && <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'capitalize' }}>{s.status}</div>}
+                                      </div>
+                                      {s.status === 'active' && <span style={{ fontSize: 9, fontWeight: 700, color: '#10b981', background: '#d1fae5', borderRadius: 4, padding: '2px 5px' }}>ACTIVE</span>}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          >
+                            <Button
+                              size="small"
+                              icon={<PlayCircleOutlined style={{ fontSize: 11 }} />}
+                              style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: theme === 'dark' ? '#7c2d12' : '#fed7aa',
+                                color: theme === 'dark' ? '#fb923c' : '#c2410c',
+                                background: theme === 'dark' ? '#431407' : '#fff7ed'
+                              }}
+                            >
+                              Move to Sprint
+                            </Button>
+                          </Dropdown>
+
+                          {/* Delete */}
+                          {canDeleteTicket && (
+                            <Button
+                              danger
+                              size="small"
+                              icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                              loading={bulkDeleteMutation.isPending}
+                              style={{ height: 28, fontSize: 11, fontWeight: 700, borderRadius: 6 }}
+                              onClick={() => {
+                                modal.confirm({
+                                  title: 'Move to Trash',
+                                  content: `Move ${activeSelectedRowKeys.length} selected ticket(s) to trash?`,
+                                  okText: 'Move to Trash',
+                                  okType: 'danger',
+                                  onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                                });
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          )}
+
+                          {/* Clear selection */}
+                          <button
+                            type="button"
+                            onClick={() => setActiveSelectedRowKeys([])}
+                            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: theme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <CloseOutlined style={{ fontSize: 10 }} /> Clear
+                          </button>
+                        </div>
+                      )}
+
                       <div className="pp-table-wrap">
                         <Table
                           rowSelection={activeRowSelection}

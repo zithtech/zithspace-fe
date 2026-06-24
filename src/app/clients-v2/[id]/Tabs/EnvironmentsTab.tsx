@@ -14,6 +14,8 @@ import {
   Empty,
   Tooltip,
   Tag,
+  Table,
+  Dropdown,
 } from "antd";
 import {
   Plus,
@@ -34,6 +36,11 @@ import {
   CheckCircle2,
   XCircle,
   CircleDot,
+  Search,
+  LayoutList,
+  LayoutGrid,
+  MoreHorizontal,
+  Clock,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -53,6 +60,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
 
@@ -185,9 +193,10 @@ interface Props {
   clientId: string;
   projects?: { id: string; name: string; code?: string | null }[];
   onRefresh?: () => void;
+  onCountChange?: (n: number) => void;
 }
 
-export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
+export default function EnvironmentsTab({ clientId, projects = [], onCountChange }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -198,10 +207,88 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
+  const [viewMode, setViewMode] = useState<"list" | "card">("card");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [drawerInitialEditing, setDrawerInitialEditing] = useState(false);
+  const [drawerInitialLogDeploy, setDrawerInitialLogDeploy] = useState(false);
+
+  const envActionMenu = (env: EnvListItem) => ({
+    className: "pp-action-pop",
+    items: [
+      {
+        key: "edit",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}><Edit3 size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">Edit</span>
+              <span className="pp-menu-desc">Modify settings</span>
+            </span>
+          </div>
+        )
+      },
+      {
+        key: "log_deploy",
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#10b981", background: "rgba(16, 185, 129, 0.12)" }}><Rocket size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title">Log Deploy</span>
+              <span className="pp-menu-desc">Record a deployment</span>
+            </span>
+          </div>
+        )
+      },
+      {
+        key: "delete",
+        danger: true,
+        label: (
+          <div className="pp-menu-item">
+            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
+            <span className="pp-menu-text">
+              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Delete</span>
+              <span className="pp-menu-desc">Remove environment</span>
+            </span>
+          </div>
+        )
+      }
+    ],
+    onClick: ({ key, domEvent }: any) => {
+      domEvent?.stopPropagation();
+      if (key === "edit") {
+        setDrawerInitialEditing(true);
+        setOpenId(env.id);
+      } else if (key === "log_deploy") {
+        setDrawerInitialLogDeploy(true);
+        setOpenId(env.id);
+      } else if (key === "delete") {
+        Modal.confirm({
+          title: "Delete Environment",
+          content: `Are you sure you want to delete "${env.name}"? This action cannot be undone.`,
+          okText: "Delete",
+          okType: "danger",
+          cancelText: "Cancel",
+          onOk: async () => {
+            try {
+              await environmentsService.remove(env.id);
+              messageApi.success("Environment deleted");
+              load();
+            } catch (err: any) {
+              messageApi.error(`Delete failed: ${err?.message || ""}`);
+            }
+          },
+        });
+      }
+    }
+  });
+
   const load = async () => {
     setLoading(true);
     try {
-      setItems(await environmentsService.listForClient(clientId));
+      const loaded = await environmentsService.listForClient(clientId);
+      setItems(loaded);
+      onCountChange?.(loaded.length);
     } catch (err: any) {
       messageApi.error(`Failed to load environments: ${err?.message || ""}`);
     } finally {
@@ -213,40 +300,317 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
+  const columns = [
+    {
+      title: "Environment",
+      key: "env",
+      render: (_: any, env: EnvListItem) => {
+        const kindMeta = KIND_META[env.kind] || KIND_META.other;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              className="pc-avatar"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "#3b82f6",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Server size={14} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <span style={{ fontWeight: 600, color: c.text, fontSize: 13 }}>{env.name}</span>
+              <span style={{ display: "inline-flex", marginTop: 2 }}>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 600,
+                    padding: "1px 6px",
+                    background: tones[kindMeta.tone].bg,
+                    border: `1px solid ${tones[kindMeta.tone].border}`,
+                    color: tones[kindMeta.tone].text,
+                    borderRadius: 999,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {kindMeta.label}
+                </span>
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "URL",
+      dataIndex: "url",
+      key: "url",
+      render: (url: string | null) =>
+        url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              color: c.accentText,
+              textDecoration: "none",
+              fontSize: 12.5,
+              fontWeight: 500,
+            }}
+          >
+            <Globe size={12} />
+            {url.replace(/^https?:\/\//, "")}
+            <ExternalLink size={10} />
+          </a>
+        ) : (
+          <span style={{ color: c.textFaint }}>—</span>
+        ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const st = STATUS_META[status] || STATUS_META.unknown;
+        const StIcon = st.icon;
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              background: tones[st.tone].bg,
+              border: `1px solid ${tones[st.tone].border}`,
+              color: tones[st.tone].text,
+              borderRadius: 999,
+              fontSize: 11.5,
+              fontWeight: 500,
+            }}
+          >
+            <StIcon size={10} />
+            {st.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Version",
+      dataIndex: "currentVersion",
+      key: "currentVersion",
+      render: (v: string | null) =>
+        v ? (
+          <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11.5, color: c.textMuted }}>
+            {v}
+          </span>
+        ) : (
+          <span style={{ color: c.textFaint }}>—</span>
+        ),
+    },
+    {
+      title: "Last Deploy",
+      dataIndex: "lastDeployedAt",
+      key: "lastDeployedAt",
+      render: (date: string | null) =>
+        date ? (
+          <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <Clock size={12} />
+            {fmtRelative(date)}
+          </span>
+        ) : (
+          <span style={{ color: c.textFaint }}>Never</span>
+        ),
+    },
+    {
+      title: "SSL Expiry",
+      dataIndex: "sslExpiresAt",
+      key: "sslExpiresAt",
+      render: (date: string | null) => {
+        const sslDays = daysUntil(date);
+        const sslTone =
+          sslDays == null
+            ? tones.neutral
+            : sslDays < 0
+              ? tones.danger
+              : sslDays <= 14
+                ? tones.warning
+                : tones.success;
+        const sslLabel =
+          sslDays == null
+            ? "—"
+            : sslDays < 0
+              ? `Expired`
+              : `${sslDays}d left`;
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              background: sslTone.bg,
+              border: `1px solid ${sslTone.border}`,
+              color: sslTone.text,
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 500,
+            }}
+          >
+            {sslDays != null && sslDays < 0 ? <ShieldAlert size={10} /> : <ShieldCheck size={10} />}
+            {sslLabel}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 72,
+      align: "right" as const,
+      fixed: "right" as const,
+      render: (_: any, env: EnvListItem) => (
+        <Dropdown
+          menu={envActionMenu(env)}
+          overlayClassName="pp-action-pop"
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            className="pp-icon-btn"
+            icon={<MoreHorizontal size={16} />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      ),
+    },
+  ];
+
+  const filtered = items.filter((env) => {
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      const matchesName = env.name.toLowerCase().includes(q);
+      const matchesUrl = (env.url || "").toLowerCase().includes(q);
+      const matchesVersion = (env.currentVersion || "").toLowerCase().includes(q);
+      if (!matchesName && !matchesUrl && !matchesVersion) return false;
+    }
+    if (projectFilter && env.projectId !== projectFilter) return false;
+    return true;
+  });
+
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="env-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Server size={20} color="#3b82f6" />}
-          title="Environments"
-          description="Track production, staging and UAT URLs, current versions, SSL certificates and backups."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
+          <TimeTrackingHeader
+            icon={<Server size={20} color="#3b82f6" />}
+            title="Environments"
+            description="Track production, staging and UAT URLs, current versions, SSL certificates and backups."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Add environment
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+          />
+        </div>
+  
+        {/* ── Toolbar ── */}
+        {items.length > 0 && (
+          <>
+            <div
               style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
+                display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
+                gap: 12,
+                margin: "12px 0 8px 0",
+                flexWrap: "wrap",
               }}
             >
-              Add environment
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                {/* Search */}
+                <Input
+                  allowClear
+                  className="contacts-search-input"
+                  prefix={<Search size={14} style={{ color: c.textFaint }} />}
+                  placeholder="Search environments…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: 220,
+                  }}
+                />
+  
+                {/* Project filter */}
+                {projects.length > 0 && (
+                  <SearchableDropdown
+                    placeholder="All projects"
+                    searchPlaceholder="Search projects"
+                    itemNoun="projects"
+                    value={projectFilter ?? undefined}
+                    onChange={(v) => setProjectFilter(v ?? null)}
+                    options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                    width={180}
+                    className="contacts-filter-select-sd"
+                  />
+                )}
+              </div>
+  
+              {/* View toggle */}
+              <div className="ptab-segmented">
+                <button
+                  type="button"
+                  className={viewMode === "list" ? "is-active" : ""}
+                  onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                >
+                  <LayoutList size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={viewMode === "card" ? "is-active" : ""}
+                  onClick={() => setViewMode("card")}
+                  aria-label="Card view"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+              </div>
+            </div>
+            <div className="ptab-divider" />
+          </>
+        )}
       </div>
 
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: filtered.length === 0 && items.length > 0 ? 20 : 0 }}>
         {loading ? (
           <div
             style={{
@@ -262,23 +626,42 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
           </div>
         ) : items.length === 0 ? (
           <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
-        ) : (
+        ) : filtered.length === 0 ? (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-              gap: 12,
+              padding: 40,
+              textAlign: "center",
+              border: `1px dashed ${c.border}`,
+              borderRadius: 12,
+              color: c.textSubtle,
             }}
           >
-            {items.map((env) => (
+            No environments match your filters.
+          </div>
+        ) : viewMode === "card" ? (
+          <div className="pp-grid">
+            {filtered.map((env) => (
               <EnvCard
                 key={env.id}
                 env={env}
                 c={c}
                 tones={tones}
                 onOpen={() => setOpenId(env.id)}
+                envActionMenu={envActionMenu}
               />
             ))}
+          </div>
+        ) : (
+          <div className="pp-table-wrap">
+            <Table
+              className="pp-table"
+              dataSource={filtered}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSize: 10, hideOnSinglePage: true }}
+              scroll={{ x: "max-content" }}
+              onRow={(env) => ({ onClick: () => setOpenId(env.id), style: { cursor: "pointer" } })}
+            />
           </div>
         )}
       </div>
@@ -302,8 +685,14 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
         tones={tones}
         projects={projects}
         messageApi={messageApi}
-        onClose={() => setOpenId(null)}
+        onClose={() => {
+          setOpenId(null);
+          setDrawerInitialEditing(false);
+          setDrawerInitialLogDeploy(false);
+        }}
         onMutated={load}
+        initialEditing={drawerInitialEditing}
+        initialLogDeploy={drawerInitialLogDeploy}
       />
 
       {/* Premium adaptive header styling */}
@@ -319,8 +708,8 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -338,6 +727,190 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
             padding-left: 16px !important;
             padding-right: 16px !important;
           }
+        }
+
+        /* Segmented Toggles */
+        .ptab-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .ptab-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+        .ptab-segmented button:hover {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+        }
+        .ptab-segmented button.is-active {
+          background: var(--bg-blue-50) !important;
+          color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .ptab-segmented {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .ptab-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        .pp-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+        .pp-icon-btn:hover { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
+
+        /* Proposal Style Cards Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
+        .pc-status-tag .anticon { font-size: 9px; }
+
+        /* Dropdown Action Popover */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 200px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        /* Dark Theme Support */
+        [data-theme="dark"] .pp-table-wrap {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-800) !important;
+          border-color: var(--border-slate-700) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr > td {
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pc-card {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pc-card:hover {
+          border-color: var(--border-slate-700);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .pc-foot {
+          border-color: var(--border-slate-800);
+          background: var(--bg-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row + .pc-foot-row {
+          border-color: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-foot-item {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-title {
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pc-client-val {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-actions:hover {
+          background: var(--bg-slate-700);
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .pp-menu-title {
+          color: var(--text-slate-200) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item-divider {
+          background: var(--border-slate-800) !important;
         }
       `}} />
     </div>
@@ -408,13 +981,14 @@ function EnvCard({
   c,
   tones,
   onOpen,
+  envActionMenu,
 }: {
   env: EnvListItem;
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof tonesOf>;
   onOpen: () => void;
+  envActionMenu: any;
 }) {
-  const [hover, setHover] = useState(false);
   const kindMeta = KIND_META[env.kind] || KIND_META.other;
   const st = STATUS_META[env.status] || STATUS_META.unknown;
   const StIcon = st.icon;
@@ -436,247 +1010,156 @@ function EnvCard({
 
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        background: c.surfaceElevated,
-        border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 14,
-        overflow: "hidden",
-        transition: "border-color 120ms ease",
-        display: "flex",
-        flexDirection: "column",
-      }}
+      className="pc-card"
+      onClick={onOpen}
     >
-      <div
-        style={{
-          padding: "16px 18px",
-          borderBottom: `1px solid ${c.border}`,
-          background: c.surfaceMuted,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+      <div className="pc-top">
+        <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Server size={14} />
+        </div>
+        <div className="pc-identity-body">
+          <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span>{env.name}</span>
             <span
+              className="pc-status-tag"
               style={{
-                fontSize: 10.5,
-                fontWeight: 600,
-                padding: "1px 8px",
+                marginLeft: "4px",
+                fontSize: "10px",
+                padding: "1px 6px",
                 background: tones[kindMeta.tone].bg,
                 border: `1px solid ${tones[kindMeta.tone].border}`,
                 color: tones[kindMeta.tone].text,
-                borderRadius: 999,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
               }}
             >
-              {kindMeta.label}
+              {kindMeta.label.toUpperCase()}
+            </span>
+            <span
+              className="pc-status-tag"
+              style={{
+                marginLeft: "4px",
+                fontSize: "10px",
+                padding: "1px 6px",
+                background: tones[st.tone].bg,
+                border: `1px solid ${tones[st.tone].border}`,
+                color: tones[st.tone].text,
+              }}
+            >
+              {st.label.toUpperCase()}
             </span>
             {env.visibility === "internal" && (
               <span
+                className="pc-status-tag"
                 style={{
-                  fontSize: 10.5,
-                  fontWeight: 500,
-                  padding: "1px 7px",
-                  background: c.surfaceElevated,
+                  marginLeft: "4px",
+                  fontSize: "10px",
+                  padding: "1px 6px",
+                  background: c.surfaceMuted,
                   border: `1px solid ${c.border}`,
                   color: c.textSubtle,
-                  borderRadius: 999,
                 }}
               >
-                Internal only
+                INTERNAL ONLY
               </span>
             )}
           </div>
-          <div
-            style={{
-              marginTop: 6,
-              fontSize: 15,
-              fontWeight: 600,
-              color: c.text,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {env.name}
-          </div>
+          {env.url && (
+            <div className="pc-client-line">
+              <span className="pc-client-key">URL:</span>
+              <a
+                href={env.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="cc-comm-link"
+                style={{ fontSize: "11.5px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
+              >
+                <Globe size={11} />
+                {env.url.replace(/^https?:\/\//, "")}
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          )}
         </div>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            padding: "3px 9px",
-            background: tones[st.tone].bg,
-            border: `1px solid ${tones[st.tone].border}`,
-            color: tones[st.tone].text,
-            borderRadius: 999,
-            fontSize: 11.5,
-            fontWeight: 500,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <StIcon size={11} />
-          {st.label}
-        </span>
-      </div>
-
-      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-        {env.url && (
-          <a
-            href={env.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "5px 10px",
-              background: c.accentBg,
-              border: `1px solid ${c.accentBorder}`,
-              borderRadius: 7,
-              color: c.accentText,
-              textDecoration: "none",
-              fontSize: 12.5,
-              fontWeight: 500,
-              alignSelf: "flex-start",
-              maxWidth: "100%",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={env.url}
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <Dropdown
+            menu={envActionMenu(env)}
+            overlayClassName="pp-action-pop"
+            trigger={["click"]}
+            placement="bottomRight"
           >
-            <Globe size={12} />
-            {env.url.replace(/^https?:\/\//, "")}
-            <ExternalLink size={11} />
-          </a>
-        )}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
-            fontSize: 12,
-          }}
-        >
-          <Metric
-            c={c}
-            label="Version"
-            value={
-              env.currentVersion ? (
-                <span
-                  style={{
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: 12.5,
-                  }}
-                >
-                  {env.currentVersion}
-                </span>
-              ) : (
-                <span style={{ color: c.textFaint }}>—</span>
-              )
-            }
-          />
-          <Metric
-            c={c}
-            label="Last deploy"
-            value={
-              env.lastDeployedAt
-                ? fmtRelative(env.lastDeployedAt)
-                : "Never"
-            }
-          />
-          <Metric
-            c={c}
-            label="Uptime"
-            value={
-              env.uptimePercent != null
-                ? `${Number(env.uptimePercent).toFixed(2)}%`
-                : "—"
-            }
-          />
-          <Metric
-            c={c}
-            label="Backup"
-            value={env.lastBackupAt ? fmtRelative(env.lastBackupAt) : "—"}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "2px 8px",
-              background: sslTone.bg,
-              border: `1px solid ${sslTone.border}`,
-              color: sslTone.text,
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 500,
-            }}
-          >
-            {sslDays != null && sslDays < 0 ? (
-              <ShieldAlert size={10} />
-            ) : (
-              <ShieldCheck size={10} />
-            )}
-            {sslLabel}
-          </span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "2px 8px",
-              background: c.surfaceMuted,
-              border: `1px solid ${c.border}`,
-              color: c.textSubtle,
-              borderRadius: 999,
-              fontSize: 11,
-            }}
-          >
-            <History size={10} />
-            {env.deploymentCount} deploys
-          </span>
+            <button type="button" className="pc-actions">
+              <MoreHorizontal size={14} />
+            </button>
+          </Dropdown>
         </div>
       </div>
 
-      <button
-        onClick={onOpen}
-        style={{
-          padding: "10px 14px",
-          background: "transparent",
-          borderTop: `1px solid ${c.border}`,
-          border: "none",
-          borderBottom: "none",
-          cursor: "pointer",
-          fontSize: 12.5,
-          fontWeight: 500,
-          color: c.textMuted,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        Open details &amp; deploy history
-        <ChevronRight size={14} color={c.textFaint} />
-      </button>
+      <div className="pc-foot">
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Version</span>
+            <span className="pc-foot-val" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+              {env.currentVersion || "—"}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Last deploy</span>
+            <span className="pc-foot-val">
+              {env.lastDeployedAt ? fmtRelative(env.lastDeployedAt) : "Never"}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Uptime</span>
+            <span className="pc-foot-val">
+              {env.uptimePercent != null ? `${Number(env.uptimePercent).toFixed(2)}%` : "—"}
+            </span>
+          </span>
+        </div>
+
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                background: sslTone.bg,
+                border: `1px solid ${sslTone.border}`,
+                color: sslTone.text,
+                borderRadius: 999,
+                fontSize: 10.5,
+                fontWeight: 600,
+              }}
+            >
+              {sslDays != null && sslDays < 0 ? <ShieldAlert size={10} /> : <ShieldCheck size={10} />}
+              {sslLabel.toUpperCase()}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                background: c.surfaceElevated,
+                border: `1px solid ${c.border}`,
+                color: c.textSubtle,
+                borderRadius: 999,
+                fontSize: 10.5,
+              }}
+            >
+              <History size={10} />
+              {env.deploymentCount} DEPLOYS
+            </span>
+          </span>
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -1008,6 +1491,8 @@ function EnvDetailDrawer({
   messageApi,
   onClose,
   onMutated,
+  initialEditing,
+  initialLogDeploy,
 }: {
   id: string | null;
   c: ReturnType<typeof palette>;
@@ -1016,6 +1501,8 @@ function EnvDetailDrawer({
   messageApi: any;
   onClose: () => void;
   onMutated: () => void;
+  initialEditing?: boolean;
+  initialLogDeploy?: boolean;
 }) {
   const [data, setData] = useState<EnvDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1050,10 +1537,11 @@ function EnvDetailDrawer({
   };
   useEffect(() => {
     setData(null);
-    setEditing(false);
+    setEditing(!!initialEditing);
+    setLogDeployOpen(!!initialLogDeploy);
     if (id) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, initialEditing, initialLogDeploy]);
 
   const saveSettings = async (v: any) => {
     if (!data) return;
@@ -1371,7 +1859,7 @@ function SettingsView({
       style={{
         background: c.surfaceElevated,
         border: `1px solid ${c.border}`,
-        borderRadius: 12,
+        borderRadius: 0,
         overflow: "hidden",
       }}
     >
@@ -1545,7 +2033,7 @@ function SettingsForm({
       style={{
         background: c.surfaceElevated,
         border: `1px solid ${c.border}`,
-        borderRadius: 12,
+        borderRadius: 0,
         padding: 16,
       }}
     >
@@ -1715,7 +2203,7 @@ function DeployHistory({
       style={{
         background: c.surfaceElevated,
         border: `1px solid ${c.border}`,
-        borderRadius: 12,
+        borderRadius: 0,
         overflow: "hidden",
       }}
     >

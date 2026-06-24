@@ -37,6 +37,8 @@ export interface CrListItem {
   linkedSprintVersion?: string | null;
   createdByPortalUserId?: string | null;
   createdByStaffUserId?: string | null;
+  createdByPortalName?: string | null;
+  createdByStaffName?: string | null;
   assignedStaffUserId?: string | null;
   assignedStaffName?: string | null;
   messageCount: number;

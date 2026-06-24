@@ -1,5 +1,7 @@
 "use client";
 
+import dayjs from "dayjs";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -33,6 +35,7 @@ import {
   LayoutList,
   LayoutGrid,
   X,
+  Search,
 } from "lucide-react";
 import {
   staffPortalTicketService,
@@ -49,6 +52,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
 
@@ -162,9 +166,10 @@ interface Props {
   clientId: string;
   projects?: { id: string; name: string; code?: string | null }[];
   onRefresh?: () => void;
+  onCountChange?: (n: number) => void;
 }
 
-export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
+export default function SupportTicketsTab({ clientId, projects = [], onCountChange }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -188,6 +193,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
         limit: 100,
       });
       setItems(data);
+      onCountChange?.(data.length);
     } catch (err: any) {
       messageApi.error(`Failed to load tickets: ${err?.message || ""}`);
     } finally {
@@ -238,17 +244,16 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
                 style={{
                   width: 28,
                   height: 28,
-                  borderRadius: 6,
-                  background: tones[cat.tone].bg,
-                  color: tones[cat.tone].text,
-                  border: `1px solid ${tones[cat.tone].border}`,
+                  borderRadius: "50%",
+                  background: "#3b82f6",
+                  color: "#fff",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <CatIcon size={14} />
+                <CatIcon size={13} />
               </div>
               <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>
                 {t.subject}
@@ -306,8 +311,25 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
         key: "assignedStaffName",
         width: 140,
         render: (v: string | null) => v ? (
-          <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 4, alignItems: "center" }}>
-            <UserIcon size={11} />{v}
+          <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 6, alignItems: "center" }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: "#3b82f6",
+                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {v[0].toUpperCase()}
+            </div>
+            {v}
           </span>
         ) : <span style={{ color: c.textFaint }}>Unassigned</span>,
       },
@@ -378,126 +400,90 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="support-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<LifeBuoy size={20} color="#3b82f6" />}
-          title="Support tickets"
-          description="Tickets raised by the client through the portal or opened by your team on their behalf."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              Create ticket
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
-      </div>
-
-      {/* Search & Filter Rows */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20, marginBottom: 16 }}>
-        {/* Top line: Search & View Toggle */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ width: "100%", maxWidth: 300 }}>
+          <TimeTrackingHeader
+            icon={<LifeBuoy size={20} color="#3b82f6" />}
+            title="Support tickets"
+            description="Tickets raised by the client through the portal or opened by your team on their behalf."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Create ticket
+              </Button>
+            }
+            style={{
+              background: "transparent",
+              borderBottom: "1px solid var(--border-slate-100)",
+              padding: "4px 32px",
+              marginBottom: "8px",
+            }}
+          />
+        </div>
+  
+        {/* Filters Row */}
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
             <Input
               allowClear
+              className="contacts-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search subject or ticket #…"
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+              style={{ width: "320px" }}
+            />
+  
+            <SearchableDropdown
+              placeholder="Status"
+              searchPlaceholder="Search statuses"
+              itemNoun="statuses"
+              value={statusFilter === "all" ? undefined : statusFilter}
+              onChange={(v) => setStatusFilter(v ?? "all")}
+              options={(Object.keys(STATUS_META) as TicketStatus[]).map((key) => ({
+                value: key,
+                label: STATUS_META[key].label,
+              }))}
+              width={180}
+              className="contacts-filter-select-sd"
             />
           </div>
-
+  
           {/* View toggle */}
-          <div
-            style={{
-              display: "flex",
-              gap: 2,
-              background: c.surfaceMuted,
-              border: `1px solid ${c.border}`,
-              borderRadius: 8,
-              padding: 3,
-            }}
-          >
-            <Tooltip title="List view">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 30,
-                  height: 30,
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  background: viewMode === "list" ? c.accentBg : "transparent",
-                  color: viewMode === "list" ? c.accentText : c.textSubtle,
-                  transition: "all 150ms ease",
-                }}
-              >
-                <LayoutList size={15} />
-              </button>
-            </Tooltip>
-            <Tooltip title="Card view">
-              <button
-                type="button"
-                onClick={() => setViewMode("card")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 30,
-                  height: 30,
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  background: viewMode === "card" ? c.accentBg : "transparent",
-                  color: viewMode === "card" ? c.accentText : c.textSubtle,
-                  transition: "all 150ms ease",
-                }}
-              >
-                <LayoutGrid size={15} />
-              </button>
-            </Tooltip>
+          <div className="ptab-segmented">
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "list" ? "is-active" : ""}
+              onClick={() => setViewMode("list")}
+              aria-label="List view"
+            >
+              <LayoutList size={15} />
+            </button>
           </div>
         </div>
-
-        {/* Bottom line: Filters */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <StatusChip
-            c={c}
-            tones={tones}
-            label="All"
-            count={counts.all}
-            active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
-          />
-          {(Object.keys(STATUS_META) as TicketStatus[]).map((s) => (
-            <StatusChip
-              key={s}
-              c={c}
-              tones={tones}
-              label={STATUS_META[s].label}
-              tone={STATUS_META[s].tone}
-              count={counts[s] || 0}
-              active={statusFilter === s}
-              onClick={() => setStatusFilter(s)}
-            />
-          ))}
-        </div>
+  
+        <div className="ptab-divider" />
       </div>
 
       {/* Body */}
@@ -517,37 +503,9 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
       ) : items.length === 0 ? (
         <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
       ) : viewMode === "list" ? (
-        <>
-          <style dangerouslySetInnerHTML={{
-            __html: `
-            .tickets-table .ant-table {
-              background: transparent !important;
-              color: ${c.text} !important;
-            }
-            .tickets-table .ant-table-thead > tr > th {
-              background: ${c.surfaceMuted} !important;
-              color: ${c.textSubtle} !important;
-              font-weight: 600 !important;
-              font-size: 11px !important;
-              text-transform: uppercase !important;
-              letter-spacing: 0.06em !important;
-              border-bottom: 1px solid ${c.border} !important;
-              padding: 10px 16px !important;
-            }
-            .tickets-table .ant-table-thead > tr > th::before { display: none !important; }
-            .tickets-table .ant-table-tbody > tr > td {
-              background: ${c.surfaceElevated} !important;
-              border-bottom: 1px solid ${c.border} !important;
-              padding: 12px 16px !important;
-            }
-            .tickets-table .ant-table-tbody > tr:hover > td {
-              background: ${c.surfaceMuted} !important;
-            }
-            .tickets-table .ant-table-tbody > tr > td:first-child { border-radius: 0 !important; }
-            .tickets-table { border: 1px solid ${c.border}; border-radius: 12px; overflow: hidden; }
-          ` }} />
+        <div className="pp-table-wrap">
           <Table
-            className="tickets-table"
+            className="pp-table"
             dataSource={items}
             columns={columns}
             rowKey="id"
@@ -556,15 +514,9 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
             scroll={{ x: "max-content" }}
             onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
           />
-        </>
+        </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="pp-grid">
           {items.map((t) => (
             <TicketCard
               key={t.id}
@@ -612,8 +564,8 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -630,7 +582,182 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
-          }
+        }
+
+        /* Searchable Dropdown Overrides */
+        .contacts-filter-select-sd.sd-trigger {
+          height: 32px !important;
+          border-radius: 8px !important;
+          background: var(--bg-slate-50) !important;
+          border: 1px solid var(--border-slate-200) !important;
+          transition: all 0.2s ease !important;
+          padding: 4px 12px !important;
+          width: auto !important;
+          min-width: 160px;
+        }
+        .contacts-filter-select-sd.sd-trigger:hover {
+          border-color: var(--border-slate-200) !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .contacts-filter-select-sd.sd-trigger.is-active {
+          border-color: #8b5cf6 !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .contacts-filter-select-sd.sd-trigger.is-open {
+          border-color: #8b5cf6 !important;
+          background: var(--bg-pure-white) !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+        }
+        [data-theme="dark"] .contacts-filter-select-sd.sd-trigger {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .contacts-filter-select-sd.sd-trigger:hover {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .contacts-filter-select-sd.sd-trigger.is-active,
+        [data-theme="dark"] .contacts-filter-select-sd.sd-trigger.is-open {
+          background: var(--bg-slate-900) !important;
+          border-color: #8b5cf6 !important;
+        }
+
+        /* Segmented Toggles */
+        .ptab-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .ptab-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+        .ptab-segmented button:hover {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+        }
+        .ptab-segmented button.is-active {
+          background: var(--bg-blue-50) !important;
+          color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .ptab-segmented {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .ptab-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        /* Proposal Style Cards Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .ptab-empty-wrapper { grid-column: 1 / -1; }
+        @media (max-width: 700px) { .pp-grid { grid-template-columns: 1fr; } }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+        /* Dark Theme Support */
+        [data-theme="dark"] .pp-table-wrap {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-800) !important;
+          border-color: var(--border-slate-700) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr > td {
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pc-card {
+          border-color: var(--border-slate-800);
+          background: var(--bg-secondary);
+        }
+        [data-theme="dark"] .pc-card:hover {
+          border-color: var(--border-slate-700);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .pc-foot {
+          border-color: var(--border-slate-800);
+          background: var(--bg-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row + .pc-foot-row {
+          border-color: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-foot-item {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-700);
+        }
+        [data-theme="dark"] .pc-title {
+          color: var(--text-slate-100);
+        }
+        [data-theme="dark"] .pc-client-val {
+          color: var(--text-slate-300);
+        }
+        [data-theme="dark"] .pc-actions:hover {
+          background: var(--bg-slate-700);
+          color: var(--text-slate-100);
         }
       `}} />
     </div>
@@ -953,7 +1080,6 @@ function TicketCard({
   tones: ReturnType<typeof tonesOf>;
   onClick: () => void;
 }) {
-  const [hover, setHover] = useState(false);
   const status = STATUS_META[t.status] || STATUS_META.new;
   const priority = PRIORITY_META[t.priority] || PRIORITY_META.medium;
   const cat = CATEGORY_META[t.category] || CATEGORY_META.other;
@@ -966,137 +1092,126 @@ function TicketCard({
 
   return (
     <div
+      className="pc-card"
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        background: c.surfaceElevated,
-        border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 14,
-        cursor: "pointer",
-        transition: "border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        position: "relative",
-        transform: hover ? "translateY(-2px)" : "translateY(0)",
-        boxShadow: hover ? "0 8px 28px rgba(59, 130, 246, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06)" : "none",
-      }}
     >
-      {/* Top accent bar */}
-      <div
-        style={{
-          height: 3,
-          background: `linear-gradient(90deg, ${tones[cat.tone].text}, ${tones[cat.tone].text}66)`,
-          flexShrink: 0,
-        }}
-      />
-
-      {/* Card body */}
-      <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
-        {/* Header row: Category Icon + ticketNumber & status */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: tones[cat.tone].bg,
-              color: tones[cat.tone].text,
-              border: `1px solid ${tones[cat.tone].border}`,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <CatIcon size={15} />
-          </div>
-
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <div className="pc-top">
+        <div
+          className="pc-avatar"
+          style={{
+            background: "#3b82f6",
+            color: "#fff",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CatIcon size={13} />
+        </div>
+        <div className="pc-identity-body">
+          <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span>{t.subject}</span>
+            {/* Ticket code */}
             <span
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: c.textSubtle,
+                color: "var(--text-slate-500)",
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                 padding: "1px 5px",
-                border: `1px solid ${c.border}`,
+                border: `1px solid var(--border-slate-200)`,
                 borderRadius: 4,
-                background: c.surfaceMuted,
+                background: "var(--bg-slate-50)",
+                flexShrink: 0,
               }}
             >
               {t.ticketNumber}
             </span>
+            {/* Status pill beside the code */}
             <PillTone
               tone={tones[status.tone]}
               label={status.label}
               dot={status.dot}
             />
           </div>
-        </div>
-
-        {/* Title/Subject */}
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: c.text,
-              lineHeight: 1.4,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {t.subject}
-          </div>
-        </div>
-
-        {/* Divider line */}
-        <div style={{ height: "1px", background: c.border, margin: "2px 0" }} />
-
-        {/* Footer meta info: Assigned, Comments, Date, Project */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 11.5, color: c.textSubtle }}>
-          {/* Project name (if any) */}
           {t.projectName && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <FolderKanban size={12} color={c.textFaint} />
-              <span style={{ fontWeight: 500 }}>{t.projectName}</span>
+            <div className="pc-client-line">
+              <span className="pc-client-key">Project:</span>
+              <span className="pc-client-val">{t.projectName}</span>
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Assigned & Comments & Clock in a row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <UserIcon size={12} color={c.textFaint} />
-              <span>
-                {t.assignedStaffName ? (
-                  t.assignedStaffName
-                ) : (
-                  <span style={{ color: c.textFaint }}>Unassigned</span>
-                )}
+      <div className="pc-foot">
+        {/* Row 1 — Created, Updated, Assignee */}
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Created</span>
+            <span className="pc-foot-val">
+              {t.createdAt ? dayjs(t.createdAt).format("MMM D, YYYY · h:mm A") : "—"}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Updated</span>
+            <span className="pc-foot-val">
+              {t.lastActivityAt ? dayjs(t.lastActivityAt).format("MMM D, YYYY · h:mm A") : "—"}
+            </span>
+          </span>
+          {t.assignedStaffName && (
+            <>
+              <span className="pc-foot-div" />
+              <span className="pc-foot-item">
+                <span className="pc-foot-key">Assignee</span>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    background: "#3b82f6",
+                    color: "#fff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "8.5px",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {t.assignedStaffName[0].toUpperCase()}
+                </div>
+                <span className="pc-foot-val">{t.assignedStaffName}</span>
               </span>
-            </div>
+            </>
+          )}
+        </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <MessageSquare size={12} color={c.textFaint} />
-                {t.messageCount}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: overdue ? tones.danger.text : c.textSubtle }}>
-                <Clock size={12} color={overdue ? tones.danger.text : c.textFaint} />
-                {fmtRelative(t.lastActivityAt)}
-              </span>
-            </div>
-          </div>
-
+        {/* Row 2 — Messages, Priority, Overdue */}
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <MessageSquare size={12} style={{ color: "var(--text-slate-400)" }} />
+            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>
+              {t.messageCount} message{t.messageCount === 1 ? "" : "s"}
+            </span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <PillTone
+              tone={tones[priority.tone]}
+              label={priority.label}
+              kind="priority"
+            />
+          </span>
           {overdue && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, color: tones.danger.text, fontWeight: 600 }}>
-              <AlertTriangle size={12} />
-              overdue
-            </div>
+            <>
+              <span className="pc-foot-div" />
+              <span className="pc-foot-item" style={{ color: tones.danger.text, fontWeight: 600 }}>
+                <AlertTriangle size={12} />
+                Overdue
+              </span>
+            </>
           )}
         </div>
       </div>
@@ -1610,18 +1725,25 @@ function TicketDetailDrawer({
               >
                 Status
               </span>
-              <Select
-                size="small"
-                style={{ width: 200 }}
+              <SearchableDropdown
+                placeholder="Status"
+                searchPlaceholder="Search statuses"
+                itemNoun="statuses"
                 value={detail.status}
                 disabled={savingStatus}
-                onChange={(v) => changeStatus(v as TicketStatus)}
+                onChange={(v) => {
+                  if (v) changeStatus(v as TicketStatus);
+                }}
                 options={(Object.keys(STATUS_META) as TicketStatus[]).map(
                   (s) => ({
                     value: s,
                     label: STATUS_META[s].label,
                   }),
                 )}
+                width={200}
+                style={{ width: 200 }}
+                allowClear={false}
+                hideAvatar={true}
               />
             </div>
           </div>

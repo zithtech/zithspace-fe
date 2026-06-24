@@ -75,6 +75,17 @@ export default function AccountsSettingsPage() {
   useActivitySource({ section: "FINANCE", module: "Accounts", page: "AccountsSettings" });
 
   const { message: messageApi } = App.useApp();
+
+  // Premium row/card action menu label helper
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -463,22 +474,28 @@ export default function AccountsSettingsPage() {
               ) : (
                 <div className="pp-grid">
                   {pagedCategories.map((category) => {
-                    const menuItems = [
-                      canUpdateAccountConfig && {
-                        key: "edit",
-                        icon: <EditOutlined style={{ fontSize: 13 }} />,
-                        label: "Edit",
-                        onClick: () => handleEdit(category),
-                      },
-                      canDeleteAccountConfig && { type: "divider" },
-                      canDeleteAccountConfig && {
-                        key: "delete",
-                        danger: true,
-                        icon: <DeleteOutlined style={{ fontSize: 13 }} />,
-                        label: "Delete",
-                        onClick: () => handleDelete(category.id),
-                      },
-                    ].filter(Boolean);
+                    const actionMenu = {
+                      className: 'pp-action-menu',
+                      items: [
+                        {
+                          key: "edit",
+                          disabled: !canUpdateAccountConfig,
+                          label: menuLabel('Edit category', 'Modify category details', <EditOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+                        },
+                        { type: "divider" as const },
+                        {
+                          key: "delete",
+                          danger: true,
+                          disabled: !canDeleteAccountConfig,
+                          label: menuLabel('Delete category', 'Permanently remove category', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)'),
+                        },
+                      ],
+                      onClick: ({ key, domEvent }: any) => {
+                        domEvent.stopPropagation();
+                        if (key === 'edit') handleEdit(category);
+                        else if (key === 'delete') handleDelete(category.id);
+                      }
+                    };
 
                     return (
                       <div
@@ -507,8 +524,10 @@ export default function AccountsSettingsPage() {
                             </div>
                           </div>
                           <Dropdown
-                            menu={{ items: menuItems as any }}
+                            menu={actionMenu}
+                            overlayClassName="pp-action-pop"
                             trigger={["click"]}
+                            placement="bottomRight"
                           >
                             <button
                               type="button"
@@ -1036,6 +1055,33 @@ export default function AccountsSettingsPage() {
         .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
         /* Empty state */
         .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }

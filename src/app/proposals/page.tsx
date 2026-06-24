@@ -327,8 +327,9 @@ export default function ProposalsListPage() {
           selectedKeys: [s],
           items: (Object.keys(STATUS_META) as Exclude<StatusKey, 'all'>[]).map((k) => ({
             key: k,
+            disabled: k === 'sent',
             label: (
-              <span className="pp-status-opt">
+              <span className="pp-status-opt" title={k === 'sent' ? "Status updates automatically when mail is sent" : undefined}>
                 <span className="pp-vis-dot" style={{ background: STATUS_META[k].color }} />
                 {STATUS_META[k].label}
               </span>
@@ -1039,7 +1040,7 @@ export default function ProposalsListPage() {
           visible={isMailDrawerVisible}
           onClose={() => { setIsMailDrawerVisible(false); setSelectedProposalForMail(null); }}
           lead={selectedProposalForMail ? {
-            id: selectedProposalForMail.lead_id || selectedProposalForMail.id,
+            id: selectedProposalForMail.lead_id,
             title: selectedProposalForMail.title,
             client_name: selectedProposalForMail.client_name,
             client_mail: selectedProposalForMail.client_mail || '',

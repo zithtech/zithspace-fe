@@ -837,6 +837,13 @@ export const hivebugStyles = `
   min-width: 0;
   max-width: 100%;
 }
+/* Top row inside filter bar: badge + reset + close */
+.hb-filterbar-toprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
 .hb-filterbar-header {
   display: flex;
   align-items: center;
@@ -918,6 +925,10 @@ export const hivebugStyles = `
   gap: 8px;
   align-items: stretch;
 }
+.hb-filter-grid .sd-trigger {
+  height: 42px !important;
+  box-sizing: border-box !important;
+}
 
 .hb-filter-range {
   display: flex;
@@ -928,9 +939,10 @@ export const hivebugStyles = `
   border: 1px solid var(--hb-border);
   border-radius: 8px;
   padding: 3px 10px;
-  height: 35px;
+  height: 42px;
   min-width: 0;
   transition: border-color 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
 }
 .hb-filter-range:hover {
   border-color: var(--hb-border-strong);
@@ -950,25 +962,49 @@ export const hivebugStyles = `
   color: var(--hb-text-muted);
   line-height: 1.1;
 }
-.hb-filter-range :where(.ant-picker) {
+.hb-filter-range .ant-picker {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
   width: 100%;
 }
-.hb-filter-range :where(.ant-picker-input > input) {
+.hb-filter-range .ant-picker-input > input {
   font-size: 11.5px !important;
   font-weight: 600 !important;
   color: var(--hb-text) !important;
+  -webkit-text-fill-color: var(--hb-text) !important;
 }
-.hb-filter-range :where(.ant-picker-input > input::placeholder) {
+.hb-filter-range .ant-picker-input > input::placeholder {
+  color: var(--hb-text-muted) !important;
+  -webkit-text-fill-color: var(--hb-text-muted) !important;
+}
+.hb-filter-range .ant-picker-suffix,
+.hb-filter-range .ant-picker-clear,
+.hb-filter-range .ant-picker-separator {
   color: var(--hb-text-muted) !important;
 }
-.hb-filter-range :where(.ant-picker-suffix),
-.hb-filter-range :where(.ant-picker-clear),
-.hb-filter-range :where(.ant-picker-separator) {
-  color: var(--hb-text-muted) !important;
+/* Ensure selected date text stays visible — override any Ant Design active/focused state resets */
+.hb-filter-range .ant-picker-input > input:focus,
+.hb-filter-range .ant-picker-input > input:active,
+.hb-filter-range .ant-picker-focused .ant-picker-input > input,
+.hb-filter-range .ant-picker-range .ant-picker-input > input {
+  color: var(--hb-text) !important;
+  -webkit-text-fill-color: var(--hb-text) !important;
+}
+/* Light theme: ensure date text is dark and readable */
+.hb-light .hb-filter-range .ant-picker-input > input {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+.hb-light .hb-filter-range .ant-picker-input > input::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+}
+.hb-light .hb-filter-range .ant-picker-suffix,
+.hb-light .hb-filter-range .ant-picker-clear,
+.hb-light .hb-filter-range .ant-picker-separator {
+  color: #9ca3af !important;
 }
 
 .hb-filter-group-label {
@@ -1467,6 +1503,8 @@ thead .hb-col-actions {
   text-decoration: none;
 }
 .hb-ticket-link:hover { color: var(--hb-text); border-color: var(--hb-border-strong); }
+.hb-ticket-link.is-live { color: var(--hb-success); }
+.hb-ticket-link.is-live:hover { color: var(--hb-success); filter: brightness(1.1); }
 
 .hb-create-ticket {
   display: inline-flex; align-items: center; gap: 4px;
@@ -3765,7 +3803,7 @@ thead .hb-col-actions {
 /* ── Mode picker ── */
 .hb-btm-modegrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   padding: 22px;
 }
@@ -5162,5 +5200,22 @@ thead .hb-col-actions {
   font-size: 12px !important;
   font-weight: 600 !important;
   color: var(--hb-text) !important;
+}
+
+/* Mapping Tickets custom selection styles */
+.hb-btm-ticket-item {
+  border: 1px solid var(--btm-border);
+  background: var(--btm-bg-row);
+  color: var(--btm-text);
+  outline: none;
+}
+.hb-btm-ticket-item:hover {
+  background: var(--btm-bg-hover) !important;
+  border-color: var(--btm-border-strong) !important;
+}
+.hb-btm-ticket-item.active {
+  background: var(--btm-bg-hover) !important;
+  border-color: var(--btm-accent) !important;
+  box-shadow: 0 0 0 1px var(--btm-accent);
 }
 `;

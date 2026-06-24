@@ -22,7 +22,6 @@ import {
 import {
   BankOutlined,
   ProjectOutlined,
-  TrophyOutlined,
   FieldTimeOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
@@ -56,7 +55,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
   const [workForm] = Form.useForm();
   const [empoyeeTimelineForm] = Form.useForm();
-  const [additionalForm] = Form.useForm();
   const { Option } = Select;
   const { Title, Text } = Typography;
   const [api, contextHolder] = notification.useNotification();
@@ -122,8 +120,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           ? dayjs(data.trainingCompletion)
           : null,
       });
-
-      additionalForm.setFieldsValue(data);
 
       // Parse workShift for display and modal state
       if (data.workShift) {
@@ -227,7 +223,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         await Promise.all([
           workForm.validateFields(),
           empoyeeTimelineForm.validateFields(),
-          additionalForm.validateFields(),
         ]);
         return true;
       } catch (error) {
@@ -656,41 +651,38 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         </Form>
       </Card>
 
-      <Row gutter={24}>
-        <Col span={12}>
-          {/* Employee Timeline */}
-          <Card
-            title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
-            <Form
-              layout="vertical"
-              form={empoyeeTimelineForm}
-              requiredMark={false}
-              onValuesChange={(_, allValues) =>
-                setEmploymentData((pre: any) => ({
-                  ...pre,
-                  ...allValues,
-                  trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
-                  joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
-                }))
-              }
-            >
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
+      {/* Employee Timeline */}
+      <Card
+        title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
+        bordered={false}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "8px 40px 24px" } }}
+      >
+        <Form
+          layout="vertical"
+          form={empoyeeTimelineForm}
+          requiredMark={false}
+          onValuesChange={(_, allValues) =>
+            setEmploymentData((pre: any) => ({
+              ...pre,
+              ...allValues,
+              trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
+              joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
+            }))
+          }
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
               <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
                 <Select showSearch placeholder="Select Manager" optionFilterProp="children">
                   {members?.map((member) => (
@@ -698,68 +690,21 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                   ))}
                 </Select>
               </Form.Item>
-
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
-                    <Select mode="multiple" allowClear placeholder="Select Projects" maxTagCount="responsive">
-                      {projects.map((project) => (
-                        <Select.Option key={project.id} value={project.id}>
-                          {project.name} ({project.code})
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Team" name="team" rules={[{ required: true }]}>
-                    <Select placeholder="Select Team">
-                      <Option value="Frontend">Frontend</Option>
-                      <Option value="Backend">Backend</Option>
-                      <Option value="Design">Design</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Form>
-          </Card>
-        </Col>
-
-        <Col span={12}>
-          {/* Additional Details */}
-          <Card
-            title={<Space><TrophyOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Additional Details</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
-            <Form
-              layout="vertical"
-              form={additionalForm}
-              requiredMark={false}
-              onValuesChange={(_, allValues) =>
-                setEmploymentData((pre: any) => ({ ...pre, ...allValues }))
-              }
-            >
-              <Form.Item label="Promotion Status" name="promotionStatus" rules={[{ required: true }]}>
-                <Select placeholder="Select Status">
-                  <Option value="Eligible">Eligible</Option>
-                  <Option value="Not Eligible">Not Eligible</Option>
-                  <Option value="Promoted">Promoted</Option>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
+                <Select mode="multiple" allowClear placeholder="Select Projects" maxTagCount="responsive">
+                  {projects.map((project) => (
+                    <Select.Option key={project.id} value={project.id}>
+                      {project.name} ({project.code})
+                    </Select.Option>
+                  ))}
                 </Select>
               </Form.Item>
-
-              <Form.Item label="Employee Grade" name="employeeGrade" rules={[{ required: true }]}>
-                <Select placeholder="Select Grade">
-                  <Option value="Grade A">Grade A</Option>
-                  <Option value="Grade B">Grade B</Option>
-                  <Option value="Grade C">Grade C</Option>
-                </Select>
-              </Form.Item>
-            </Form>
-          </Card>
-        </Col>
-      </Row>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -828,13 +773,13 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       <Modal
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0" }}>
-            <div style={{ padding: "8px", background: "#eff6ff", borderRadius: "8px", color: "#3b82f6" }}>
-              <Clock size={20} />
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "2px 0" }}>
+            <div style={{ padding: "7px", background: "#eff6ff", borderRadius: "8px", color: "#3b82f6", display: "inline-flex" }}>
+              <Clock size={17} />
             </div>
             <div>
-              <div style={{ fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Work Shift Configuration</div>
-              <div style={{ fontSize: "13px", fontWeight: 400, color: "#64748b" }}>Define the daily working hours and weekly schedule.</div>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>Work Shift Configuration</div>
+              <div style={{ fontSize: "12px", fontWeight: 400, color: "#64748b" }}>Define daily hours &amp; weekly schedule.</div>
             </div>
           </div>
         }
@@ -844,22 +789,22 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Button key="close" onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>,
           <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: "8px", background: "#3b82f6", border: "none" }}>Save Shift</Button>,
         ]}
-        width={800}
+        width={560}
         styles={{
-          header: { borderBottom: "1px solid #f1f5f9", padding: "16px 24px" },
-          body: { padding: "24px" }
+          header: { borderBottom: "1px solid #f1f5f9", padding: "12px 20px" },
+          body: { padding: "16px 20px" }
         }}
       >
-        <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9", marginBottom: "20px" }}>
-          <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-            <Info size={16} style={{ color: "#3b82f6", marginTop: "2px" }} />
-            <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
-              Configure individual shifts for each day of the week, or apply a common time for all selected days. This will be used to track attendance and calculate monthly working hours.
+        <div style={{ background: "#f8fafc", padding: "9px 12px", borderRadius: "8px", border: "1px solid #f1f5f9", marginBottom: "12px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+            <Info size={14} style={{ color: "#3b82f6", marginTop: "2px", flexShrink: 0 }} />
+            <div style={{ fontSize: "11.5px", color: "#64748b", lineHeight: "1.5" }}>
+              Set a shift per day, or apply a common time to all selected days. Used for attendance &amp; monthly hours.
             </div>
           </div>
         </div>
         {/* ✅ Select All + Common Time */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Row gutter={12} style={{ marginBottom: 12 }} align="middle">
           <Col>
             <Checkbox
               checked={selectAll}
@@ -904,6 +849,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             day,
           }))}
           pagination={false}
+          size="small"
         />
       </Modal>
     </div>

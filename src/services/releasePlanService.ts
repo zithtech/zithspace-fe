@@ -8,7 +8,7 @@ export interface ReleasePlanFormData {
   startDate?: string;
   endDate?: string;
   goal?: string;
-  status?: 'planning' | 'active' | 'completed' | 'cancelled';
+  status?: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
   tickets?: string[];
   type?: 'sprint_plan' | 'demo_plan' | 'release_plan';
 }

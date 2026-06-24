@@ -46,7 +46,9 @@ import {
   InfoCircleOutlined,
   CloseOutlined,
   ReloadOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined
 } from "@ant-design/icons";
 import {
   FolderKanban,
@@ -225,6 +227,13 @@ const ProjectsManageContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsSidebarOpen(window.innerWidth >= 1100);
+    }
+  }, []);
 
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
@@ -800,7 +809,13 @@ const ProjectsManageContent: React.FC = () => {
   return (
     <MainLayout noPadding>
       <div className="pm2-page">
-        <div className="pm2-shell-wrap">
+        <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+          {/* Mobile backdrop — closes the sidebar drawer when tapped */}
+          <div
+            className="pm2-sidebar-backdrop"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden
+          />
           <div className="pm2-shell">
             {/* ── Sidebar ───────────────────────────────────────────── */}
             <aside className="pm2-sidebar">
@@ -931,6 +946,24 @@ const ProjectsManageContent: React.FC = () => {
             <main className="pm2-main">
               {/* Toolbar */}
               <div className="pm2-toolbar">
+                <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                  <button
+                    type="button"
+                    className="pm2-sidebar-show-toggle"
+                    onClick={() => setIsSidebarOpen((v) => !v)}
+                    aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                    aria-pressed={!isSidebarOpen}
+                  >
+                    {isSidebarOpen ? (
+                      <MenuFoldOutlined style={{ fontSize: 14 }} />
+                    ) : (
+                      <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                    )}
+                  </button>
+                </Tooltip>
+
+                <Divider type="vertical" style={{ height: 24, margin: '0 12px 0 0', opacity: 0.5 }} className="pm2-sidebar-divider" />
+
                 <div className="pp-search-wrap" style={{ maxWidth: 320, flex: 1 }}>
                   <SearchOutlined className="pp-search-icon" />
                   <input
@@ -1284,12 +1317,65 @@ const ProjectsManageContent: React.FC = () => {
         .pm2-shell-wrap {
           flex: 1;
         }
+        .pm2-sidebar-backdrop { display: none; }
+
+        /* ── Sidebar show/hide toggle (always visible in top header) ── */
+        .pm2-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .pm2-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .pm2-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle {
+          background: #111720 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle:hover {
+          background: #1c232e !important;
+          border-color: #475569 !important;
+          color: #f1f5f9;
+        }
+
         .pm2-shell {
           display: grid;
           grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
+          transition: grid-template-columns 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* ── Desktop ≥1100px ────────────────────────────────── */
+        @media (min-width: 1100px) {
+          .pm2-shell-wrap.is-sidebar-closed .pm2-shell {
+            grid-template-columns: 0px minmax(0, 1fr);
+          }
+          .pm2-shell-wrap.is-sidebar-closed > .pm2-shell > aside.pm2-sidebar {
+            opacity: 0;
+            padding-left: 0;
+            padding-right: 0;
+            pointer-events: none;
+            border-right-color: transparent;
+          }
         }
         .pm2-main {
           min-width: 0;
@@ -1310,6 +1396,7 @@ const ProjectsManageContent: React.FC = () => {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
+          transition: opacity 0.3s ease, border-color 0.3s ease, transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
           position: sticky;
           top: 0;
           height: calc(100vh - 54px);
@@ -2894,6 +2981,71 @@ const ProjectsManageContent: React.FC = () => {
         @media (max-width: 640px) {
           .pp-stats {
             grid-template-columns: 1fr;
+          }
+        }
+
+        /* ── Tablet / Mobile <1100px ────────────────────────── */
+        @media (max-width: 1099.98px) {
+          .pm2-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+          }
+          .pm2-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            max-height: none;
+            z-index: 1050;
+            background: var(--bg-pure-white);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 16px 12px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+            border-right: 1px solid var(--border-slate-200);
+            border-top: none;
+            border-bottom: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+          [data-theme='dark'] .pm2-sidebar {
+            background: #0B0F1A !important;
+            border-right-color: #1f2937 !important;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
+            transform: translateX(0);
+          }
+          .pm2-shell-wrap.is-sidebar-closed .pm2-sidebar {
+            transform: translateX(-100%);
+          }
+          .pm2-sidebar-backdrop {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1040;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar-backdrop {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .pm2-main {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .pm2-sidebar-divider {
+            display: none !important;
           }
         }
       `}</style>

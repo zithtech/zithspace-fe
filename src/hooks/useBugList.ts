@@ -512,6 +512,21 @@ export const useBulkConvertBugsToTickets = () => {
   });
 };
 
+export const useBulkMapBugsToTicket = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: ({ ticketId, bugIds }: { ticketId: string; bugIds: string[] }) =>
+      BugListService.bulkMapToTicket(ticketId, bugIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      qc.invalidateQueries({ queryKey: ["tickets"] });
+      message.success("Bugs linked to ticket successfully");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
 // ==================== QA verify ====================
 export const useVerifyBug = () => {
   const qc = useQueryClient();

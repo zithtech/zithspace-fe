@@ -385,7 +385,7 @@ function BugRow({
         {bug.ticketNumber ? (
           <button
             type="button"
-            className="hb-ticket-link"
+            className={`hb-ticket-link ${bug.ticketStatus?.toLowerCase() === 'live' ? 'is-live' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               if (bug.ticketId) openTicketDrawer(bug.ticketId);

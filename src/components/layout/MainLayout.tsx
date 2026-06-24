@@ -39,6 +39,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
   // Determine active module based on current path
   useEffect(() => {
     if (!pathname) return;
+    if (authLoading || !user) return;
 
     // Find module that matches the path prefix
     const foundModule = NAVIGATION_CONFIG.find((module) =>
@@ -93,7 +94,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
         }
       }
     }
-  }, [pathname, user, hasPermission, hasAnyPermission]);
+  }, [pathname, user, authLoading, hasPermission, hasAnyPermission]);
 
   // Listen for service worker messages to play custom notification sounds in-tab
   useEffect(() => {

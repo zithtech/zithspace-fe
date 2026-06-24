@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Button, Input, Dropdown, App } from "antd";
+import { Button, Input, Dropdown, App, Avatar } from "antd";
 import type { MenuProps } from "antd";
 import {
   PlusOutlined,
@@ -21,7 +21,7 @@ interface InlineCreateTicketProps {
     priority: string[];
   };
   projects: Array<{ value: string; label: string; code: string }>;
-  members: Array<{ value: string; label: string; position: string }>;
+  members: Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>;
   onTicketCreated?: (ticket: Ticket) => void;
   visible?: boolean;
   onClose?: () => void;
@@ -38,6 +38,16 @@ const PRIORITY_DOT: Record<string, string> = {
   P1: "#ef4444",
   P2: "#f59e0b",
   P3: "#10b981",
+};
+
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
 };
 
 export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
@@ -172,12 +182,19 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
         {
           key: "__unassigned",
           label: (
-            <span className="ict-menu-row">
-              <span className="ict-menu-avatar ict-menu-avatar-empty">
-                <UserOutlined style={{ fontSize: 10 }} />
-              </span>
-              <span className="ict-menu-label">Unassigned</span>
-              {!assigneeId && <CheckOutlined className="ict-menu-check" />}
+            <span className="ict-menu-row" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+              <Avatar
+                size={20}
+                icon={<UserOutlined style={{ fontSize: 10 }} />}
+                style={{
+                  backgroundColor: "var(--bg-slate-100)",
+                  color: "var(--text-slate-400)",
+                  border: "1px dashed var(--text-slate-300)",
+                  flexShrink: 0,
+                }}
+              />
+              <span className="ict-menu-label" style={{ fontSize: 13, color: "var(--text-slate-800)" }}>Unassigned</span>
+              {!assigneeId && <CheckOutlined className="ict-menu-check" style={{ marginLeft: "auto" }} />}
             </span>
           ),
           onClick: () => setAssigneeId(undefined),
@@ -186,17 +203,28 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
         ...members.map((m) => ({
           key: m.value,
           label: (
-            <span className="ict-menu-row">
-              <span className="ict-menu-avatar">
+            <span className="ict-menu-row" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+              <Avatar
+                size={20}
+                src={m.avatarUrl || undefined}
+                style={{
+                  backgroundColor: m.avatarUrl ? "transparent" : avatarColorFor(m.value || m.label),
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
                 {(m.label || "?").charAt(0).toUpperCase()}
-              </span>
-              <span className="ict-menu-label">{m.label}</span>
-              {assigneeId === m.value && <CheckOutlined className="ict-menu-check" />}
+              </Avatar>
+              <span className="ict-menu-label" style={{ fontSize: 13, color: "var(--text-slate-800)" }}>{m.label}</span>
+              {assigneeId === m.value && <CheckOutlined className="ict-menu-check" style={{ marginLeft: "auto" }} />}
             </span>
           ),
           onClick: () => setAssigneeId(m.value),
         })),
       ],
+      style: { maxHeight: "250px", overflowY: "auto" },
     }),
     [assigneeId, members]
   );
@@ -205,6 +233,10 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     if (!assigneeId) return "Unassigned";
     const match = members.find((m) => m.value === assigneeId);
     return match?.label || "Unassigned";
+  }, [assigneeId, members]);
+
+  const selectedMember = useMemo(() => {
+    return members.find((m) => m.value === assigneeId);
   }, [assigneeId, members]);
 
   const typeLabel = useMemo(() => {
@@ -438,19 +470,27 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
           </Dropdown>
 
           <Dropdown menu={assigneeMenu} trigger={["click"]} placement="bottomRight">
-            <button type="button" className="ict-chip" title="Assignee">
-              <span
-                className={`ict-chip-avatar ${
-                  !assigneeId ? "ict-chip-avatar-empty" : ""
-                }`}
-              >
-                {assigneeId ? (
-                  (assigneeLabel || "?").charAt(0).toUpperCase()
-                ) : (
+            <button type="button" className="ict-chip" title="Assignee" style={{ paddingLeft: assigneeId ? 4 : 10 }}>
+              {assigneeId ? (
+                <Avatar
+                  size={18}
+                  src={selectedMember?.avatarUrl || undefined}
+                  style={{
+                    backgroundColor: selectedMember?.avatarUrl ? "transparent" : avatarColorFor(selectedMember?.value || selectedMember?.label || ""),
+                    fontSize: 9,
+                    fontWeight: 800,
+                    color: "#fff",
+                    flexShrink: 0
+                  }}
+                >
+                  {(assigneeLabel || "?").charAt(0).toUpperCase()}
+                </Avatar>
+              ) : (
+                <span className="ict-chip-avatar ict-chip-avatar-empty">
                   <UserOutlined style={{ fontSize: 9 }} />
-                )}
-              </span>
-              <span className="ict-chip-label">{assigneeLabel}</span>
+                </span>
+              )}
+              <span className="ict-chip-label" style={{ marginLeft: assigneeId ? 2 : 0 }}>{assigneeLabel}</span>
             </button>
           </Dropdown>
         </div>

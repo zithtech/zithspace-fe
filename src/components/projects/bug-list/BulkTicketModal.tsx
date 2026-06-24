@@ -20,13 +20,14 @@ import {
   ListChecks,
   Split,
 } from "lucide-react";
-import { useBulkConvertBugsToTickets } from "@/hooks/useBugList";
+import { useBulkConvertBugsToTickets, useBulkMapBugsToTicket } from "@/hooks/useBugList";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
 import type { BugListItem } from "@/services/bugListService";
+import TicketService, { Ticket } from "@/services/ticketService";
 
-type Mode = null | "manual";
+type Mode = null | "manual" | "map";
 type GroupKey = "none" | "severity" | "type" | "module";
 
 interface Props {
@@ -54,6 +55,48 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 
   const [mode, setMode] = useState<Mode>(null);
   const [pool, setPool] = useState<BugListItem[]>([]);
+
+  const bulkMap = useBulkMapBugsToTicket();
+  const [existingTickets, setExistingTickets] = useState<Ticket[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>();
+  const [searchingTickets, setSearchingTickets] = useState(false);
+  const [ticketSearchQuery, setTicketSearchQuery] = useState("");
+
+  const searchExistingTickets = async (query: string) => {
+    setTicketSearchQuery(query);
+    setSearchingTickets(true);
+    try {
+      const res = await TicketService.getTickets({ search: query || undefined, limit: 30 });
+      setExistingTickets(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSearchingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === "map") {
+      searchExistingTickets("");
+      setSelectedTicketId(undefined);
+    }
+  }, [mode]);
+
+  const handleMapBugs = async () => {
+    if (!selectedTicketId) {
+      message.warning("Please select a ticket to link");
+      return;
+    }
+    try {
+      await bulkMap.mutateAsync({
+        ticketId: selectedTicketId,
+        bugIds: pool.map((b) => b.id),
+      });
+      onClose();
+    } catch {
+      // handled by hook
+    }
+  };
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [groupBy, setGroupBy] = useState<GroupKey>("none");
   const [search, setSearch] = useState("");
@@ -258,7 +301,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
       footer={null}
       closable={false}
       destroyOnHidden
-      width={mode === "manual" ? 1080 : 720}
+      width={mode === "manual" || mode === "map" ? 1080 : 720}
       centered
       maskClosable={false}
       wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
@@ -285,6 +328,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
               onClose={onClose}
               onManual={() => setMode("manual")}
               onAi={onPickAi}
+              onMap={() => setMode("map")}
             />
           )}
 
@@ -322,6 +366,22 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
               theme={theme}
             />
           )}
+
+          {mode === "map" && (
+            <MapWorkspace
+              bugs={pool}
+              ticketId={selectedTicketId}
+              onTicketId={setSelectedTicketId}
+              tickets={existingTickets}
+              onSearchTickets={searchExistingTickets}
+              searchingTickets={searchingTickets}
+              searchQuery={ticketSearchQuery}
+              onSubmit={handleMapBugs}
+              onClose={onClose}
+              theme={theme}
+              loading={bulkMap.isPending}
+            />
+          )}
         </div>
       </ConfigProvider>
     </Modal>
@@ -338,12 +398,14 @@ function ModePicker({
   onClose,
   onManual,
   onAi,
+  onMap,
 }: {
   count: number;
   createdCount: number;
   onClose: () => void;
   onManual: () => void;
   onAi: () => void;
+  onMap: () => void;
 }) {
   return (
     <>
@@ -414,6 +476,28 @@ function ModePicker({
           </ul>
           <div className="hb-btm-modecard-cta">
             Continue with AI <ArrowRight size={14} />
+          </div>
+        </button>
+
+        <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
+          <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
+            background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
+            color: 'var(--btm-success)',
+            border: '1px solid color-mix(in oklab, var(--btm-success) 30%, transparent)'
+          }}>
+            <LinkIcon size={22} />
+          </div>
+          <div className="hb-btm-modecard-title">Mapping Tickets</div>
+          <div className="hb-btm-modecard-sub">
+            Link these bugs directly to an existing ticket from your workspace.
+          </div>
+          <ul className="hb-btm-modecard-list">
+            <li><CheckCircle2 size={12} /> Search by ticket number/title</li>
+            <li><CheckCircle2 size={12} /> Quick link option</li>
+            <li><CheckCircle2 size={12} /> Status updates to converted</li>
+          </ul>
+          <div className="hb-btm-modecard-cta" style={{ color: 'var(--btm-success)' }}>
+            Continue mapping <ArrowRight size={14} />
           </div>
         </button>
       </div>
@@ -979,4 +1063,212 @@ function cap(s: string) {
 function truncate(s: string, n: number) {
   if (s.length <= n) return s;
   return s.slice(0, n - 1).trimEnd() + "…";
+}
+
+function MapWorkspace({
+  bugs,
+  ticketId,
+  onTicketId,
+  tickets,
+  onSearchTickets,
+  searchingTickets,
+  searchQuery,
+  onSubmit,
+  onClose,
+  theme,
+  loading,
+}: {
+  bugs: BugListItem[];
+  ticketId: string | undefined;
+  onTicketId: (id: string | undefined) => void;
+  tickets: Ticket[];
+  onSearchTickets: (q: string) => void;
+  searchingTickets: boolean;
+  searchQuery: string;
+  onSubmit: () => void;
+  onClose: () => void;
+  theme: string;
+  loading: boolean;
+}) {
+  return (
+    <>
+      <div className="hb-btm-hero hb-btm-hero-compact">
+        <div className="hb-btm-hero-bg" />
+        <div className="hb-btm-hero-row">
+          <div className="hb-btm-hero-orb" style={{
+            background: 'linear-gradient(135deg, var(--btm-success) 0%, #10b981 100%)',
+            boxShadow: '0 6px 18px color-mix(in oklab, var(--btm-success) 35%, transparent)'
+          }}>
+            <LinkIcon size={20} />
+          </div>
+          <div className="hb-btm-hero-text">
+            <div className="hb-btm-eyebrow" style={{
+              background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
+              color: 'var(--btm-success)',
+              border: '1px solid color-mix(in oklab, var(--btm-success) 35%, transparent)'
+            }}>
+              <LinkIcon size={11} />
+              Mapping mode
+            </div>
+            <div className="hb-btm-title">
+              Map {bugs.length} bug{bugs.length === 1 ? "" : "s"} to an existing ticket
+            </div>
+            <div className="hb-btm-sub">
+              Search and select a ticket from your workspace to link these bugs.
+            </div>
+          </div>
+          <button className="hb-btm-close" onClick={onClose} aria-label="Close">
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="hb-btm-grid hb-btm-mapgrid">
+        {/* Left pane: Bug List summary */}
+        <div className="hb-btm-pane hb-btm-pane-pool">
+          <div className="hb-btm-poolhead">
+            <div className="hb-btm-drafthead-title">Bugs to link</div>
+          </div>
+          <div className="hb-btm-pool" style={{ padding: '16px' }}>
+            <div className="hb-btm-staged-chips" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {bugs.map((b) => (
+                <div key={b.id} className="hb-btm-chip" style={{ display: 'flex', width: '100%', padding: '8px 12px', borderRadius: '8px' }}>
+                  <span className="hb-btm-chip-num" style={{ minWidth: '70px' }}>
+                    {b.bugNumber || b.id.slice(-6).toUpperCase()}
+                  </span>
+                  <span className="hb-btm-chip-title" style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {b.title || b.description}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right pane: Ticket Search & Selection */}
+        <div className="hb-btm-pane hb-btm-pane-draft">
+          <div className="hb-btm-drafthead">
+            <div className="hb-btm-search" style={{ width: '100%', background: 'var(--btm-bg-soft)', border: '1px solid var(--btm-border)', borderRadius: '10px', padding: '6px 12px' }}>
+              <Search size={14} style={{ color: 'var(--btm-text-soft)' }} />
+              <input
+                className="hb-btm-search-input"
+                placeholder="Search tickets by number or title…"
+                value={searchQuery}
+                onChange={(e) => onSearchTickets(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--btm-text)', width: '100%', outline: 'none', marginLeft: '8px' }}
+              />
+              {searchingTickets && <Loader2 size={14} className="hb-btm-spin" style={{ color: 'var(--btm-text-soft)', marginLeft: '8px' }} />}
+            </div>
+          </div>
+
+          <div className="hb-btm-ticket-list" style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {tickets.length === 0 ? (
+              <div className="hb-btm-empty" style={{ padding: '40px 0' }}>
+                <LinkIcon size={24} style={{ opacity: 0.4, marginBottom: '8px' }} />
+                <div style={{ color: 'var(--btm-text-muted)' }}>No tickets found. Type above to search.</div>
+              </div>
+            ) : (
+              tickets.map((t) => {
+                const isSelected = ticketId === t.id;
+                const projectCode = typeof t.project === "object" ? t.project?.code : t.project;
+                return (
+                  <button
+                    key={t.id}
+                    className={`hb-btm-ticket-item ${isSelected ? "active" : ""}`}
+                    onClick={() => onTicketId(isSelected ? undefined : t.id)}
+                    type="button"
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: isSelected ? 'var(--btm-bg-hover)' : 'var(--btm-bg-row)',
+                      border: isSelected ? '1px solid var(--btm-accent)' : '1px solid var(--btm-border)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 120ms ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontFamily: 'monospace',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: isSelected ? 'var(--btm-accent)' : 'var(--btm-text-soft)',
+                          background: 'rgba(91, 155, 255, 0.1)',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          {t.ticketNumber}
+                        </span>
+                        <span style={{
+                          fontSize: '11px',
+                          color: 'var(--btm-text-muted)',
+                        }}>
+                          {projectCode}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: 'var(--btm-text)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {t.title}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
+                      <span style={{
+                        fontSize: '10px',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--btm-border)',
+                        color: 'var(--btm-text-soft)'
+                      }}>
+                        {t.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hb-btm-draftfoot">
+            <button className="hb-btm-secondary" onClick={onClose} disabled={loading}>
+              Cancel
+            </button>
+            <button
+              className="hb-btm-primary"
+              disabled={loading || !ticketId}
+              onClick={onSubmit}
+              style={{
+                background: ticketId ? 'linear-gradient(135deg, var(--btm-success) 0%, #10b981 100%)' : 'var(--btm-bg-soft)',
+                color: ticketId ? '#ffffff' : 'var(--btm-text-muted)',
+                borderColor: ticketId ? '#10b981' : 'var(--btm-border)'
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={14} className="hb-btm-spin" />
+                  Linking…
+                </>
+              ) : (
+                <>
+                  <LinkIcon size={14} />
+                  Link to Ticket
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }

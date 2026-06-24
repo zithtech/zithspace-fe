@@ -470,99 +470,101 @@ export default function TeamTab({ clientId, projects = [], onCountChange }: Prop
       {contextHolder}
 
       {/* Header */}
+      <div className="cd-tab-sticky-head">
       <div className="team-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Users size={20} color="#3b82f6" />}
-          title="Team &amp; contacts"
-          description="Devs, designers, QA and account managers who build your products."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => {
-                setEditing(null);
-                setModalOpen(true);
-              }}
+          <TimeTrackingHeader
+            icon={<Users size={20} color="#3b82f6" />}
+            title="Team &amp; contacts"
+            description="Devs, designers, QA and account managers who build your products."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => {
+                  setEditing(null);
+                  setModalOpen(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Add team member
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+          />
+        </div>
+  
+        {/* Toolbar */}
+        {items.length > 0 && (
+          <>
+            <div
               style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "32px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
+                display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
+                gap: 12,
+                margin: "12px 0 8px 0",
+                flexWrap: "wrap",
               }}
             >
-              Add team member
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-        />
-      </div>
-
-      {/* Toolbar */}
-      {items.length > 0 && (
-        <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-              margin: "12px 0 8px 0",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <Input
-                allowClear
-                className="contacts-search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, role…"
-                prefix={<Search size={14} style={{ color: c.textFaint }} />}
-                style={{
-                  width: 240,
-                }}
-              />
-
-              {projects.length > 0 && (
-                <SearchableDropdown
-                  placeholder="All projects"
-                  searchPlaceholder="Search projects"
-                  itemNoun="projects"
-                  value={projectFilter ?? undefined}
-                  onChange={(v) => setProjectFilter(v ?? null)}
-                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
-                  width={180}
-                  className="contacts-filter-select-sd"
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <Input
+                  allowClear
+                  className="contacts-search-input"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, role…"
+                  prefix={<Search size={14} style={{ color: c.textFaint }} />}
+                  style={{
+                    width: 240,
+                  }}
                 />
-              )}
+  
+                {projects.length > 0 && (
+                  <SearchableDropdown
+                    placeholder="All projects"
+                    searchPlaceholder="Search projects"
+                    itemNoun="projects"
+                    value={projectFilter ?? undefined}
+                    onChange={(v) => setProjectFilter(v ?? null)}
+                    options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                    width={180}
+                    className="contacts-filter-select-sd"
+                  />
+                )}
+              </div>
+  
+              <div className="ptab-segmented">
+                <button
+                  type="button"
+                  className={viewMode === "grid" ? "is-active" : ""}
+                  onClick={() => setViewMode("grid")}
+                  aria-label="Grid view"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={viewMode === "list" ? "is-active" : ""}
+                  onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                >
+                  <List size={15} />
+                </button>
+              </div>
             </div>
-
-            <div className="ptab-segmented">
-              <button
-                type="button"
-                className={viewMode === "grid" ? "is-active" : ""}
-                onClick={() => setViewMode("grid")}
-                aria-label="Grid view"
-              >
-                <LayoutGrid size={15} />
-              </button>
-              <button
-                type="button"
-                className={viewMode === "list" ? "is-active" : ""}
-                onClick={() => setViewMode("list")}
-                aria-label="List view"
-              >
-                <List size={15} />
-              </button>
-            </div>
-          </div>
-          <div className="ptab-divider" />
-        </>
-      )}
+            <div className="ptab-divider" />
+          </>
+        )}
+      </div>
 
       <div style={{ marginTop: 20 }}>
       {loading ? (

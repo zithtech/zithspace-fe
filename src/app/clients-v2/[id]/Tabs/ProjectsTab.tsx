@@ -57,6 +57,7 @@ import {
   ClientV2Service,
   ImportableProject,
 } from "@/services/clientV2Service";
+import { MembersService } from "@/services/membersService";
 
 const currencyOptions = [
   { value: "USD", label: "US Dollar", symbol: "$", minor: "Cent" },
@@ -257,7 +258,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
   const fetchEmployees = async () => {
     try {
-      const data = await api.get("/api/clients-v2/employees/select");
+      const data = await MembersService.getMembersForSelect();
       setEmployees(data || []);
     } catch (error) {
       console.error("Failed to fetch employees", error);
@@ -540,92 +541,94 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       {contextHolder}
       {modalContextHolder}
 
+      <div className="cd-tab-sticky-head">
       <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<Layers size={20} color="#3b82f6" />}
-          title="Projects"
-          description="Monitor project lifecycles, budget utilization, and leadership assignments"
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-          extra={
-            <div style={{ display: "flex", gap: "12px", flexWrap: "nowrap", alignItems: "center" }}>
-              {canUpdateClient && (
-                <Button
-                  icon={<FolderInputIcon size={16} />}
-                  onClick={() => setIsImportModalVisible(true)}
-                  style={{
-                    borderRadius: 8,
-                    height: 32,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    background: "var(--bg-slate-50)",
-                    border: "1px solid var(--border-slate-200)",
-                    color: "var(--text-slate-700)",
-                    whiteSpace: "nowrap"
-                  }}
-                  className="premium-action-btn-secondary"
-                >
-                  Import Projects
-                </Button>
-              )}
-              {canUpdateClient && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  onClick={() => setIsModalVisible(true)}
-                  style={{
-                    borderRadius: 8,
-                    height: 32,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  Initiate Project
-                </Button>
-              )}
+          <TimeTrackingHeader
+            icon={<Layers size={20} color="#3b82f6" />}
+            title="Projects"
+            description="Monitor project lifecycles, budget utilization, and leadership assignments"
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+            extra={
+              <div style={{ display: "flex", gap: "12px", flexWrap: "nowrap", alignItems: "center" }}>
+                {canUpdateClient && (
+                  <Button
+                    icon={<FolderInputIcon size={16} />}
+                    onClick={() => setIsImportModalVisible(true)}
+                    style={{
+                      borderRadius: 8,
+                      height: 32,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      background: "var(--bg-slate-50)",
+                      border: "1px solid var(--border-slate-200)",
+                      color: "var(--text-slate-700)",
+                      whiteSpace: "nowrap"
+                    }}
+                    className="premium-action-btn-secondary"
+                  >
+                    Import Projects
+                  </Button>
+                )}
+                {canUpdateClient && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    onClick={() => setIsModalVisible(true)}
+                    style={{
+                      borderRadius: 8,
+                      height: 32,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                      border: "none",
+                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    Initiate Project
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        </div>
+  
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <Input
+            placeholder="Search by name or project code..."
+            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="projects-search-input"
+            style={{ width: "320px" }}
+            allowClear
+          />
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
             </div>
-          }
-        />
-      </div>
-
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <Input
-          placeholder="Search by name or project code..."
-          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="projects-search-input"
-          style={{ width: "320px" }}
-          allowClear
-        />
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="ptab-segmented">
-            <button
-              type="button"
-              className={viewMode === "grid" ? "is-active" : ""}
-              onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              className={viewMode === "list" ? "is-active" : ""}
-              onClick={() => setViewMode("list")}
-              aria-label="List view"
-            >
-              <List size={15} />
-            </button>
           </div>
         </div>
+  
+        <div className="ptab-divider" />
       </div>
-
-      <div className="ptab-divider" />
 
       {viewMode === "list" ? (
         <div className="pp-table-wrap">
@@ -897,11 +900,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   <Select
                     placeholder="Assign a manager"
                     showSearch
+                    allowClear
                     optionFilterProp="children"
                   >
                     {employees.map((emp) => (
-                      <Select.Option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} ({emp.employee_code})
+                      <Select.Option key={emp.value} value={emp.value}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Avatar size="small" src={emp.avatarUrl} style={{ backgroundColor: "#3b82f6" }}>
+                            {emp.label?.charAt(0)}
+                          </Avatar>
+                          <div style={{ fontWeight: 500, fontSize: 13, lineHeight: 1 }}>{emp.label}</div>
+                        </div>
                       </Select.Option>
                     ))}
                   </Select>
@@ -1042,10 +1051,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             <Row gutter={20}>
               <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
-                  <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
+                  <Select showSearch allowClear optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
                     {employees.map((emp) => (
-                      <Select.Option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name}
+                      <Select.Option key={emp.value} value={emp.value}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Avatar size="small" src={emp.avatarUrl} style={{ backgroundColor: "#3b82f6" }}>
+                            {emp.label?.charAt(0)}
+                          </Avatar>
+                          <div style={{ fontWeight: 500, fontSize: 13, lineHeight: 1 }}>{emp.label}</div>
+                        </div>
                       </Select.Option>
                     ))}
                   </Select>
@@ -1148,6 +1162,78 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
         .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        .pp-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+        .pp-icon-btn:hover { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
+
+        /* Proposal Style Cards Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
+        .pc-status-tag .anticon { font-size: 9px; }
+
+        /* Dropdown Action Popover */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 200px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
         .premium-action-btn:hover {
           background: var(--bg-slate-50) !important;

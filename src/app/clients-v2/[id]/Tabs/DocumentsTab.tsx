@@ -664,69 +664,71 @@ export default function DocumentsTab({
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
       {modalContextHolder}
+      <div className="cd-tab-sticky-head">
       <div className="documents-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<FolderArchive size={20} color="#3b82f6" />}
-          title="Document Repository"
-          description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
-          extra={
-            canUpdateClient && (
-              <Button
-                type="primary"
-                icon={<FilePlus size={16} />}
-                onClick={() => setIsUploadModalVisible(true)}
-                className="ptab-primary-btn"
-                style={{
-                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                  borderColor: "transparent",
-                  borderRadius: "8px",
-                  height: "32px",
-                  fontWeight: 600,
-                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                  display: "flex",
-                  alignItems: "center",
-                }}
+          <TimeTrackingHeader
+            icon={<FolderArchive size={20} color="#3b82f6" />}
+            title="Document Repository"
+            description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
+            extra={
+              canUpdateClient && (
+                <Button
+                  type="primary"
+                  icon={<FilePlus size={16} />}
+                  onClick={() => setIsUploadModalVisible(true)}
+                  className="ptab-primary-btn"
+                  style={{
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                    borderColor: "transparent",
+                    borderRadius: "8px",
+                    height: "32px",
+                    fontWeight: 600,
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Add Document
+                </Button>
+              )
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+          />
+        </div>
+  
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <Input
+            placeholder="Search by name or classification..."
+            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="documents-search-input"
+            style={{ width: "320px" }}
+            allowClear
+          />
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
               >
-                Add Document
-              </Button>
-            )
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-        />
-      </div>
-
-      <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <Input
-          placeholder="Search by name or classification..."
-          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="documents-search-input"
-          style={{ width: "320px" }}
-          allowClear
-        />
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="ptab-segmented">
-            <button
-              type="button"
-              className={viewMode === "grid" ? "is-active" : ""}
-              onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              className={viewMode === "list" ? "is-active" : ""}
-              onClick={() => setViewMode("list")}
-              aria-label="List view"
-            >
-              <List size={15} />
-            </button>
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
           </div>
         </div>
+        <div className="ptab-divider" />
       </div>
-      <div className="ptab-divider" />
 
       {viewMode === "list" ? (
         <div className="pp-table-wrap">

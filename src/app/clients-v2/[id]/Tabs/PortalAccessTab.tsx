@@ -527,110 +527,112 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
     <div style={{ padding: "4px 0 24px", color: c.text }}>
 
       {/* ---------------- Header card ---------------- */}
+      <div className="cd-tab-sticky-head">
       <div className="portal-access-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<KeyRound size={20} color="#3b82f6" />}
-          title="Portal Access"
-          description="Create logins for client contacts to view their portal workspace."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              Create credential
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
-      </div>
-
-      {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
-      {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
-
-      {/* ---------------- Stats strip ---------------- */}
-      {users.length > 0 && (
-        <div className="cd-stat-grid" style={{ marginTop: 20 }}>
-          <StatPill
-            label="Total"
-            value={stats.total}
-            icon={User}
-            c={c}
-            tone="neutral"
-          />
-          <StatPill
-            label="Active"
-            value={stats.active}
-            icon={ShieldCheck}
-            c={c}
-            tone="success"
-          />
-          <StatPill
-            label="Disabled"
-            value={stats.disabled}
-            icon={ShieldOff}
-            c={c}
-            tone="danger"
-          />
-          <StatPill
-            label="Pending first sign-in"
-            value={stats.pending}
-            icon={Clock}
-            c={c}
-            tone="warning"
+          <TimeTrackingHeader
+            icon={<KeyRound size={20} color="#3b82f6" />}
+            title="Portal Access"
+            description="Create logins for client contacts to view their portal workspace."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "36px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Create credential
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
           />
         </div>
-      )}
-
-      {/* ---------------- Search & View Mode Toggle ---------------- */}
-      {users.length > 0 && (
-        <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 16 }}>
-            <Input
-              allowClear
-              className="contacts-search-input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, username, or email…"
-              prefix={<Search size={14} color={c.textFaint} />}
-              style={{
-                flex: 1,
-              }}
+  
+        {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
+        {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
+  
+        {/* ---------------- Stats strip ---------------- */}
+        {users.length > 0 && (
+          <div className="cd-stat-grid" style={{ marginTop: 20 }}>
+            <StatPill
+              label="Total"
+              value={stats.total}
+              icon={User}
+              c={c}
+              tone="neutral"
             />
-            <div className="ptab-segmented">
-              <Tooltip title="List view">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("list")}
-                  className={viewMode === "list" ? "is-active" : ""}
-                >
-                  <LayoutList size={15} />
-                </button>
-              </Tooltip>
-              <Tooltip title="Card view">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("card")}
-                  className={viewMode === "card" ? "is-active" : ""}
-                >
-                  <LayoutGrid size={15} />
-                </button>
-              </Tooltip>
-            </div>
+            <StatPill
+              label="Active"
+              value={stats.active}
+              icon={ShieldCheck}
+              c={c}
+              tone="success"
+            />
+            <StatPill
+              label="Disabled"
+              value={stats.disabled}
+              icon={ShieldOff}
+              c={c}
+              tone="danger"
+            />
+            <StatPill
+              label="Pending first sign-in"
+              value={stats.pending}
+              icon={Clock}
+              c={c}
+              tone="warning"
+            />
           </div>
-          <div className="ptab-divider" />
-        </>
-      )}
+        )}
+  
+        {/* ---------------- Search & View Mode Toggle ---------------- */}
+        {users.length > 0 && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 16 }}>
+              <Input
+                allowClear
+                className="contacts-search-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, username, or email…"
+                prefix={<Search size={14} color={c.textFaint} />}
+                style={{
+                  flex: 1,
+                }}
+              />
+              <div className="ptab-segmented">
+                <Tooltip title="List view">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={viewMode === "list" ? "is-active" : ""}
+                  >
+                    <LayoutList size={15} />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Card view">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("card")}
+                    className={viewMode === "card" ? "is-active" : ""}
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+            <div className="ptab-divider" />
+          </>
+        )}
+      </div>
 
       {/* ---------------- List ---------------- */}
       {loading ? (

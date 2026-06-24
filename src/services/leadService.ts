@@ -276,7 +276,7 @@ export class LeadService {
   /**
    * Send mail to lead
    */
-  static async sendLeadMail(mailData: { leadId?: string, to: string | string[], subject: string, body: string, attachments?: any[] }): Promise<any> {
+  static async sendLeadMail(mailData: { leadId?: string, proposalId?: string, to: string | string[], subject: string, body: string, attachments?: any[] }): Promise<any> {
     try {
       const response = await api.post('/api/leads/send-mail', mailData);
       return response;

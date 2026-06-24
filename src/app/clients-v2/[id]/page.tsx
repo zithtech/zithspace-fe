@@ -91,6 +91,7 @@ import { crService } from "@/services/crService";
 import { approvalsService } from "@/services/approvalsService";
 import { milestoneService } from "@/services/milestoneService";
 import { releaseService } from "@/services/releaseService";
+import { currencyOptions } from "@/utils/currencyOptions";
 
 const { Text } = Typography;
 
@@ -208,7 +209,8 @@ const EditableSelect: React.FC<{
   activeField: string | null;
   setActiveField: (f: string | null) => void;
   isEditMode: boolean;
-}> = ({ value, field, options, renderTag, onUpdate, activeField, setActiveField, isEditMode }) => {
+  showSearch?: boolean;
+}> = ({ value, field, options, renderTag, onUpdate, activeField, setActiveField, isEditMode, showSearch }) => {
   const isEditing = activeField === field;
   const [tempValue, setTempValue] = useState(value);
 
@@ -225,6 +227,8 @@ const EditableSelect: React.FC<{
           onChange={(val) => setTempValue(val)}
           style={{ width: "100%", minWidth: 140 }}
           open
+          showSearch={showSearch}
+          optionFilterProp="label"
         />
         <button
           type="button"
@@ -1287,7 +1291,19 @@ export default function ClientV2DetailsPage() {
                               />
                             </Field>
                             <Field label="Default Currency" icon={Wallet}>
-                              <span className="cd-currency-tag">{client.defaultCurrency || "USD"}</span>
+                              <EditableSelect
+                                value={client.defaultCurrency || "USD"}
+                                field="defaultCurrency"
+                                onUpdate={handleUpdateField}
+                                options={currencyOptions.map((c) => ({ value: c.value, label: `${c.value} - ${c.label}` }))}
+                                renderTag={(val) => (
+                                  <span className="cd-currency-tag">{val || "USD"}</span>
+                                )}
+                                activeField={activeField}
+                                setActiveField={setActiveField}
+                                isEditMode={editModes.finance}
+                                showSearch
+                              />
                             </Field>
                           </div>
                         </SectionCard>
@@ -1686,8 +1702,12 @@ export default function ClientV2DetailsPage() {
               position: sticky;
               top: 0;
               z-index: 100;
-              background: transparent;
+              background: var(--bg-pure-white);
               border-bottom: 1px solid var(--border-slate-200);
+            }
+            [data-theme="dark"] .cd-cmdbar {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-800);
             }
             .cd-crumbs {
               display: flex;

@@ -85,13 +85,13 @@ function LoginFormWithParams() {
     if (isLocalhost) {
       const parts = hostname.split('.');
       if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-        subdomain = parts[0];
+        if (parts[0] !== "app") subdomain = parts[0];
         rootHost = `localhost:${window.location.port || "3005"}`;
       }
     } else {
       const parts = hostname.split('.');
       if (parts.length > 2 && parts[0] !== "www") {
-        subdomain = parts[0];
+        if (parts[0] !== "app") subdomain = parts[0];
         rootHost = parts.slice(-2).join('.');
       }
     }
@@ -153,13 +153,13 @@ function LoginFormWithParams() {
     if (isLocalhost) {
       const parts = hostname.split('.');
       if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-        subdomain = parts[0];
+        if (parts[0] !== "app") subdomain = parts[0];
         rootHost = `localhost:${window.location.port || "3005"}`;
       }
     } else {
       const parts = hostname.split('.');
       if (parts.length > 2 && parts[0] !== "www") {
-        subdomain = parts[0];
+        if (parts[0] !== "app") subdomain = parts[0];
         rootHost = parts.slice(-2).join('.');
       }
     }
@@ -212,13 +212,13 @@ function LoginFormWithParams() {
           if (isLocalhost) {
             const parts = hostname.split('.');
             if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-              subdomain = parts[0];
+              if (parts[0] !== "app") subdomain = parts[0];
               rootHost = `localhost:${window.location.port || "3005"}`;
             }
           } else {
             const parts = hostname.split('.');
             if (parts.length > 2 && parts[0] !== "www") {
-              subdomain = parts[0];
+              if (parts[0] !== "app") subdomain = parts[0];
               rootHost = parts.slice(-2).join('.');
             }
           }

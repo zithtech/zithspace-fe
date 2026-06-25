@@ -38,6 +38,7 @@ export interface TrashListResponse {
         projectId: string;
         count: number;
       }[];
+      totalAllTrash?: number;
     };
   };
 }

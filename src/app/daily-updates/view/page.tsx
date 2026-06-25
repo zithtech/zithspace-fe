@@ -566,6 +566,129 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         .du-pagesize { margin-left: 5px; }
         .du-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
         .du-side-group .sd-trigger { border-radius: 8px !important; }
+
+        /* Dark-mode surfaces to match Proposal page */
+        [data-theme="dark"] .du-shell { background: #0B0F1A; }
+        [data-theme="dark"] .du-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-sidebar-top {
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-sidebar-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-sidebar-subtitle {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-side-label {
+          color: #64748B !important;
+        }
+        [data-theme="dark"] .du-side-view {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-side-view:hover {
+          background: #161B22 !important;
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll {
+          background: #0B0F1A !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll span {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll strong {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-main {
+          background: #0B0F1A;
+        }
+        [data-theme="dark"] .du-main-header {
+          background: #0B0F1A !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-main-header span,
+        [data-theme="dark"] .du-main-header label {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-main-header .dud-divider {
+          background: #374151 !important;
+        }
+        
+        /* Dropdown filters and pickers */
+        [data-theme='dark'] .du-sidebar .ant-select-selector,
+        [data-theme='dark'] .du-sidebar .ant-picker,
+        [data-theme='dark'] .du-sidebar .sd-trigger,
+        [data-theme='dark'] .du-main-header .ant-select-selector,
+        [data-theme='dark'] .du-main-header .ant-picker,
+        [data-theme='dark'] .du-main-header .sd-trigger {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #F1F5F9 !important;
+        }
+        [data-theme='dark'] .du-sidebar .ant-select-arrow,
+        [data-theme='dark'] .du-sidebar .ant-picker-suffix,
+        [data-theme='dark'] .du-main-header .ant-select-arrow,
+        [data-theme='dark'] .du-main-header .ant-picker-suffix {
+          color: #94A3B8 !important;
+        }
+
+        /* Pager & Sticky Footer */
+        [data-theme='dark'] .du-footer--sticky {
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
+        }
+        [data-theme='dark'] .du-footer-info {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .du-footer-info strong {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .du-pager-btn, [data-theme='dark'] .du-pager-num {
+          background: rgba(255,255,255,0.03) !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .du-pager-num.is-active {
+          background: #3B82F6 !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+        }
+        
+        /* UpdateCard overrides */
+        [data-theme='dark'] .premium-update-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .premium-update-card .ant-card-body > div:first-child {
+          background: #0B0F1A !important;
+        }
+        [data-theme='dark'] .premium-update-card .ant-card-body > div:last-child {
+          background: #161B22 !important;
+          border-top-color: #374151 !important;
+        }
+        [data-theme='dark'] .premium-update-card .ant-card-body > div:last-child > div:last-child {
+          border-top-color: #374151 !important;
+        }
+        [data-theme='dark'] .premium-update-card span {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .premium-update-card strong {
+          color: #FFFFFF !important;
+        }
+        
+        /* Stats Dashboard cards */
+        [data-theme='dark'] .du-stats-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .du-stats-card span {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .du-stats-card .text-\[26px\] {
+          color: #FFFFFF !important;
+        }
         `
       }} />
 

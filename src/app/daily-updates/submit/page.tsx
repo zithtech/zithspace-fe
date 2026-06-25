@@ -1071,6 +1071,120 @@ function SubmitDailyUpdateContent() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .dud-anim { animation: dudFadeUp .3s cubic-bezier(.2,.6,.2,1) both; }
+
+        /* Dark-mode surfaces to match Proposal page */
+        [data-theme="dark"] .du-shell { background: #0B0F1A; }
+        [data-theme="dark"] .du-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-sidebar-top {
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-sidebar-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-sidebar-subtitle {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-side-label {
+          color: #64748B !important;
+        }
+        [data-theme="dark"] .du-side-view {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-side-view:hover {
+          background: #161B22 !important;
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll {
+          background: #0B0F1A !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll span {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-sidebar-scroll strong {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .du-main {
+          background: #0B0F1A;
+        }
+        [data-theme="dark"] .du-main-header {
+          background: #0B0F1A !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .du-main-header span,
+        [data-theme="dark"] .du-main-header label {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .du-main-header .dud-divider {
+          background: #374151 !important;
+        }
+        [data-theme="dark"] .du-main .ant-select-selector,
+        [data-theme="dark"] .du-main .ant-input,
+        [data-theme="dark"] .du-main .ant-picker,
+        [data-theme="dark"] .du-main .sd-trigger {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #F1F5F9 !important;
+        }
+        [data-theme="dark"] .du-main .ant-select-arrow,
+        [data-theme="dark"] .du-main .ant-picker-suffix {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .premium-form-item .ant-form-item-label > label {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .dud-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme="dark"] .dud-card:hover {
+          border-color: #3B82F6 !important;
+        }
+        [data-theme="dark"] .dud-card-header {
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .dud-card-header span {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .dud-card-header strong {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .dud-index-badge {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .dud-tasks-container {
+          background: #161B22 !important;
+          border-color: #374151 !important;
+        }
+        [data-theme="dark"] .dud-tasks-container span {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .dud-task-row {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme="dark"] .dud-task-row:hover {
+          border-color: #3B82F6 !important;
+        }
+        [data-theme="dark"] .du-main-footer {
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
+        }
+        [data-theme="dark"] .mood-btn {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .mood-btn:hover {
+          border-color: #3B82F6 !important;
+          color: #FFFFFF !important;
+        }
+
       `}} />
 
       {/* Mobile drawer backdrop */}
@@ -1324,7 +1438,7 @@ function SubmitDailyUpdateContent() {
                   }}
                 >
                   {/* Card Header Strip */}
-                  <div style={{
+                  <div className="dud-card-header" style={{
                     padding: "10px 16px",
                     background: "var(--bg-slate-50)",
                     borderBottom: "1px solid var(--border-slate-100)",
@@ -1334,7 +1448,7 @@ function SubmitDailyUpdateContent() {
                     gap: 12,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <div style={{
+                      <div className="dud-index-badge" style={{
                         width: 22,
                         height: 22,
                         borderRadius: 6,
@@ -1490,7 +1604,7 @@ function SubmitDailyUpdateContent() {
                     </Row>
 
                     {/* Tasks Content Area */}
-                    <div style={{
+                    <div className="dud-tasks-container" style={{
                       marginTop: 4,
                       padding: 14,
                       background: "var(--bg-slate-50)",
@@ -1686,7 +1800,7 @@ function SubmitDailyUpdateContent() {
             </div>
           </div>
 
-          <div style={{
+          <div className="du-main-footer" style={{
             padding: "16px 24px",
             borderTop: "1px solid var(--border-slate-200)",
             background: "var(--bg-pure-white)",

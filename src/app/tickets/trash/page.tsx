@@ -13,6 +13,7 @@ import {
   Input,
   Popconfirm,
   Progress,
+  Select,
   Spin,
   Table,
   Tag,
@@ -98,6 +99,10 @@ export default function TrashPage() {
   const total = trashData?.summary?.total || 0;
   const expiringSoon = trashData?.summary?.expiringSoon || 0;
 
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
   // Per-project trash counts: derived from the projectCounts returned by the backend
   const projectFilterOptions = useMemo<ProjectFilterOption[]>(() => {
     if (!projects) return [];
@@ -115,10 +120,7 @@ export default function TrashPage() {
     }));
   }, [projects, trashData?.summary?.projectCounts]);
 
-  const totalAcrossProjects = useMemo(
-    () => projectFilterOptions.reduce((acc, p) => acc + p.count, 0),
-    [projectFilterOptions]
-  );
+  const totalAcrossProjects = trashData?.summary?.totalAllTrash ?? 0;
 
   const handleRestore = async (ids?: string[]) => {
     const ticketIds = ids || (selectedRowKeys as string[]);
@@ -493,10 +495,13 @@ export default function TrashPage() {
           .trs2-table {
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-200);
-            border-radius: 12px;
+            border-radius: 0;
             overflow: hidden;
           }
-          [data-theme='dark'] .trs2-table { background: #0f1419; border-color: #1f2937; }
+          [data-theme='dark'] .trs2-table {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
           .trs2-table .ant-table-thead > tr > th {
             background: var(--bg-slate-50) !important;
             color: var(--text-slate-500) !important;
@@ -508,9 +513,9 @@ export default function TrashPage() {
             border-bottom: 1px solid var(--border-slate-200) !important;
           }
           [data-theme='dark'] .trs2-table .ant-table-thead > tr > th {
-            background: #0f1419 !important;
+            background: #0B0F1A !important;
             color: #94a3b8 !important;
-            border-bottom-color: #1f2937 !important;
+            border-bottom-color: #1F2937 !important;
           }
           .trs2-table .ant-table-thead > tr > th::before { display: none; }
           .trs2-table .ant-table-tbody > tr > td {
@@ -519,14 +524,14 @@ export default function TrashPage() {
             font-size: 12.5px;
           }
           [data-theme='dark'] .trs2-table .ant-table-tbody > tr > td {
-            background: #0f1419 !important;
-            border-bottom-color: #1f2937 !important;
+            background: #0B0F1A !important;
+            border-bottom-color: #1F2937 !important;
           }
           .trs2-table .ant-table-tbody > tr:hover > td {
             background: var(--bg-slate-50) !important;
           }
           [data-theme='dark'] .trs2-table .ant-table-tbody > tr:hover > td {
-            background: #111720 !important;
+            background: #161B22 !important;
           }
           .trs2-table .ant-pagination { margin: 12px 0 !important; padding: 0 14px; }
 

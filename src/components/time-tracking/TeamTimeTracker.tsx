@@ -1209,9 +1209,85 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         .mtt-pagesize.ant-select .ant-select-selector {
           height: 28px !important; border-radius: 7px !important; font-size: 12.5px !important; font-weight: 600 !important;
         }
-        [data-theme='dark'] .mtt-footer, [data-theme='dark'] .mtt-footer--fixed { background: var(--bg-secondary); border-color: rgba(255,255,255,0.06); }
-        [data-theme='dark'] .mtt-pager-btn, [data-theme='dark'] .mtt-pager-num { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); color: var(--text-slate-400); }
-        [data-theme='dark'] .mtt-pager-num.is-active { background: #3B82F6; color: white; border-color: #3B82F6; }
+        /* Dark theme overrides to match Proposal page */
+        [data-theme='dark'] .mtt-tracker-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .mtt-tracker-card__head {
+          background: #0B0F1A !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme='dark'] .mtt-team-filters {
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme='dark'] .mtt-team-filters .ant-select .ant-select-selector,
+        [data-theme='dark'] .mtt-team-filters .ant-picker,
+        [data-theme='dark'] .mtt-team-filters .sd-trigger {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #F1F5F9 !important;
+        }
+        [data-theme='dark'] .mtt-team-filters .ant-select .ant-select-arrow,
+        [data-theme='dark'] .mtt-team-filters .ant-picker-suffix {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-team-filters .mtt-team-filters__clear {
+          border-color: #374151 !important;
+          background: #0B0F1A !important;
+          color: #F1F5F9 !important;
+        }
+        [data-theme='dark'] .mtt-team-filters .mtt-team-filters__clear:hover {
+          border-color: #ef4444 !important;
+          color: #ef4444 !important;
+        }
+        [data-theme='dark'] .mtt-team-card .mtt-team-table .ant-table-thead>tr>th {
+          background: #161B22 !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme='dark'] .mtt-team-card .mtt-team-table .ant-table-tbody>tr>td {
+          background-color: #0B0F1A !important;
+          color: #F1F5F9 !important;
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .mtt-team-card .mtt-team-table .ant-table-row:hover>td {
+          background-color: #161B22 !important;
+        }
+        [data-theme='dark'] .ant-table-expanded-row-fixed {
+          background-color: #0B0F1A !important;
+        }
+        [data-theme='dark'] .mtt-team-card .mtt-team-table .ant-table-expanded-row td {
+          background-color: #0B0F1A !important;
+        }
+        [data-theme='dark'] .glass-card {
+          background: #161B22 !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .dh-stats-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .dh-stats-card span {
+          color: #F1F5F9 !important;
+        }
+        [data-theme='dark'] .dh-stats-card .text-\[12\.5px\] {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-footer, [data-theme='dark'] .mtt-footer--fixed {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .mtt-pager-btn, [data-theme='dark'] .mtt-pager-num {
+          background: rgba(255,255,255,0.03) !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-pager-num.is-active {
+          background: #3B82F6 !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+        }
       `}</style>
 
       <TimeEntryEditModal

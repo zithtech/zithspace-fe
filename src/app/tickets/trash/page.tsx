@@ -79,7 +79,7 @@ export default function TrashPage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const { data: trashData, isLoading, refetch, isFetching } = useTrashTickets({
@@ -473,7 +473,7 @@ export default function TrashPage() {
                   pageSize,
                   total: pagination?.total || 0,
                   showSizeChanger: true,
-                  pageSizeOptions: ["15", "25", "50"],
+                  pageSizeOptions: [10, 20, 25, 50, 100],
                   showTotal: (t, range) => (
                     <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
                       Showing {range[0]}–{range[1]} of {t}

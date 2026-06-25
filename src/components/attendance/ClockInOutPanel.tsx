@@ -78,7 +78,7 @@ const formatDuration = (minutes?: number) => {
   return `${h}h ${m}m`;
 };
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 // Clock In / Out panel — 5 stacked full-width sections:
 //   1) Header   2) Clock band (horizontal)   3) Work Hours Insights (horizontal)
@@ -98,7 +98,7 @@ export default function ClockInOutPanel() {
   const [breakModalOpen, setBreakModalOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const monthStart = useMemo(() => dayjs().startOf('month'), []);
   const monthEnd = useMemo(() => dayjs().endOf('month'), []);

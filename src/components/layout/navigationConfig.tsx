@@ -713,9 +713,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "attendance-group",
+        key: "/attendance",
         label: "Attendance",
         icon: I(CalendarCheck),
+        path: "/attendance",
         requiredAnyPermission: [
           Permissions.ATTENDANCE_READ,
           Permissions.ATTENDANCE_DASHBOARD_READ,
@@ -723,34 +724,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.ATTENDANCE_CREATE,
           Permissions.ATTENDANCE_UPDATE,
           Permissions.ATTENDANCE_DELETE,
-        ],
-        children: [
-          {
-            key: "/attendance/dashboard",
-            label: "Dashboard",
-            icon: I(Gauge),
-            path: "/attendance/dashboard",
-            requiredPermission: Permissions.ATTENDANCE_DASHBOARD_READ,
-          },
-          {
-            key: "/attendance/clock-in-out",
-            label: "Clock In/Out",
-            icon: I(Clock),
-            path: "/attendance/clock-in-out",
-            requiredPermission: Permissions.ATTENDANCE_CLOCK_IN_OUT,
-          },
-          {
-            key: "/attendance/manage",
-            label: "Manage Attendance",
-            icon: I(UserCheck),
-            path: "/attendance/manage",
-            requiredAnyPermission: [
-              Permissions.ATTENDANCE_CREATE,
-              Permissions.ATTENDANCE_UPDATE,
-              Permissions.ATTENDANCE_READ,
-              Permissions.ATTENDANCE_DELETE,
-            ],
-          },
         ],
       },
 

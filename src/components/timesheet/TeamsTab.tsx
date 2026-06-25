@@ -382,7 +382,7 @@ export default function TeamsTab({
             rowKey="id"
             size="middle"
             loading={isLoading}
-            pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
             onRow={(record) => ({
               onClick: () => {
                 setSelectedTimesheet(record);

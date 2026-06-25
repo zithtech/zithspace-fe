@@ -20,7 +20,7 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
   onPageChange,
   onPageSizeChange,
   noun = "items",
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [10, 20, 25, 50, 100],
 }) => {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;

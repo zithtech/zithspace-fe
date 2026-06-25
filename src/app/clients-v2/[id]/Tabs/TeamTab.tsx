@@ -595,7 +595,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange }: Prop
             dataSource={filteredItems}
             columns={columns}
             rowKey="id"
-            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
             scroll={{ x: "max-content" }}
           />
         </div>

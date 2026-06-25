@@ -128,7 +128,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(20);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sprintPopoverOpen, setSprintPopoverOpen] = useState(false);
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
@@ -872,6 +872,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   setPageSize(s);
                 }}
                 showSizeChanger
+                pageSizeOptions={[10, 20, 25, 50, 100]}
                 size="small"
               />
             </div>

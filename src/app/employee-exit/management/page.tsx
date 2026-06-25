@@ -496,7 +496,7 @@ export default function EmployeeExitManagementPage() {
               loading={loading}
               size="middle"
               rowKey="id"
-              pagination={{ pageSize: 12, position: ["bottomRight"] }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 12, position: ["bottomRight"] }}
             />
           </Card>
         </div>

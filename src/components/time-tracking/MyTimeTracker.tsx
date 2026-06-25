@@ -9,7 +9,7 @@ import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col, Select, DatePicker, Tooltip } from "antd";
 
 const { RangePicker } = DatePicker;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import { parseDecimal } from "@/services/ticketService";

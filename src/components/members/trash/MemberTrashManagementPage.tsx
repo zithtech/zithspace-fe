@@ -119,7 +119,7 @@ export default function MemberTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const { message } = App.useApp();
 
@@ -1011,7 +1011,7 @@ export default function MemberTrashManagementPage() {
                 className="pp-pagesize"
                 value={pagination.pageSize}
                 onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                 popupMatchSelectWidth={120}
               />
             </div>

@@ -257,7 +257,7 @@ export default function ConfigurationPanel() {
               <div>
                 <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
                 {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
-                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSize: 8, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" />}
+                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" />}
               </div>
             </div>
           </div>
@@ -278,7 +278,7 @@ export default function ConfigurationPanel() {
             loading={polLoading}
             columns={policyCols}
             dataSource={policies}
-            pagination={{ pageSize: 8, hideOnSinglePage: true }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
             expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
             locale={{ emptyText: 'No active policies' }}
           />

@@ -491,7 +491,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
             dataSource={filteredData}
             rowKey="key"
             size="middle"
-            pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
             rowClassName={() => "history-table-row"}
             scroll={{ x: 1000 }}
           />

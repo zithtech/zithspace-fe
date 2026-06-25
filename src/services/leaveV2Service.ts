@@ -374,6 +374,11 @@ export const LeaveV2Service = {
     return unwrap<LeaveRequest>(res.data);
   },
 
+  async updateRequest(id: string, input: ApplyLeaveInput): Promise<LeaveRequest> {
+    const res = await apiClient.put(`${BASE}/requests/${id}`, input);
+    return unwrap<LeaveRequest>(res.data);
+  },
+
   async cancelRequest(id: string): Promise<void> {
     await apiClient.post(`${BASE}/requests/${id}/cancel`);
   },

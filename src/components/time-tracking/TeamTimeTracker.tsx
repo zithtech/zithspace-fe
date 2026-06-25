@@ -294,7 +294,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   const { data: members = [] } = useMembers();
   const { data: projects = [] } = useUserProjects();
 
-  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+  const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
 

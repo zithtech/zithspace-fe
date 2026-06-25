@@ -95,8 +95,7 @@ export interface RequisitionFilters {
 
 export interface PaginatedRequisitionResponse {
   data: JobRequisitionData[];
-  pagination: {
-    page: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
     limit: number;
     total: number;
     pages: number;

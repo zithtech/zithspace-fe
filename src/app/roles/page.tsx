@@ -111,6 +111,54 @@ const RESOURCE_LABELS: Record<string, string> = {
   activity_log: "Activity Log / Transaction History",
 };
 
+/**
+ * Leaves 2.0 — map each leave permission to the page it gates, so the Roles UI
+ * lists permissions under all 9 real pages (instead of collapsing several into a
+ * generic "Leaves Core"). Trash perms have no page → grouped as "Recycle Bin".
+ */
+const LEAVE_PAGE_BY_PERM: Record<string, string> = {
+  'leave.dashboard.read': 'Dashboard',
+  'leave.create': 'Apply Leave',
+  'leave.read': 'Apply Leave',
+  'leave.update': 'Apply Leave',
+  'leave.delete': 'Apply Leave',
+  'leave.approve': 'Approvals',
+  'leave.holiday.read': 'Government Holidays',
+  'leave.holiday.update': 'Government Holidays',
+  'leave.holiday.delete': 'Government Holidays',
+  'leave.adjustment.read': 'Leave Adjustment',
+  'leave.adjustment.create': 'Leave Adjustment',
+  'leave.adjustment.update': 'Leave Adjustment',
+  'leave.adjustment.delete': 'Leave Adjustment',
+  'leave.type.read': 'Leave Type',
+  'leave.type.create': 'Leave Type',
+  'leave.type.update': 'Leave Type',
+  'leave.type.delete': 'Leave Type',
+  'leave.policy.read': 'Leave Policy',
+  'leave.policy.create': 'Leave Policy',
+  'leave.policy.update': 'Leave Policy',
+  'leave.policy.delete': 'Leave Policy',
+  'leave.holiday.create': 'Add Government Holidays',
+  'leave.manage': 'Configuration',
+  'leave.trash.read': 'Recycle Bin',
+  'leave.trash.restore': 'Recycle Bin',
+  'leave.trash.delete': 'Recycle Bin',
+};
+
+/** Display order for the leave page sub-groups (mirrors the left-rail order). */
+const LEAVE_PAGE_ORDER = [
+  'Dashboard',
+  'Apply Leave',
+  'Approvals',
+  'Government Holidays',
+  'Leave Adjustment',
+  'Leave Type',
+  'Leave Policy',
+  'Add Government Holidays',
+  'Configuration',
+  'Recycle Bin',
+];
+
 /** Access Control drawer — premium SaaS tab groups */
 interface AccessGroup {
   key: string;
@@ -1633,6 +1681,15 @@ export default function RolesPage() {
 
                         // Sub-grouping logic (preserved)
                         const subGroups: Record<string, RBACPermission[]> = {};
+                        if (resource === 'leave') {
+                          // Group by the page each permission gates, so all 9
+                          // Leaves pages show up by name (see LEAVE_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = LEAVE_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else
                         perms.forEach((p) => {
                           const parts = p.name.split('.');
                           let subKey = `${label} Core`;
@@ -1678,7 +1735,10 @@ export default function RolesPage() {
                             </div>
 
                             <div className="rp-acc-card__body">
-                              {Object.entries(subGroups).map(([subTitle, subPerms]) => (
+                              {(resource === 'leave'
+                                ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                : Object.entries(subGroups)
+                              ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">
                                   <div className="rp-acc-subgroup__title">{subTitle}</div>
                                   <Row gutter={[10, 10]}>
@@ -1700,6 +1760,11 @@ export default function RolesPage() {
                                                 {(() => {
                                                   const name = perm.name;
                                                   const action = perm.action;
+                                                  if (name.startsWith('leave.')) {
+                                                    // Page is the sub-group title; show only the verb.
+                                                    const verb = action.split('.').pop() || action;
+                                                    return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                  }
                                                   if (name.startsWith('bug.')) {
                                                     if (action.includes('trash.')) {
                                                       const subAction = action.split('.')[1];

@@ -1,0 +1,560 @@
+'use client';
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Button,
+  Table,
+  Tag,
+  Drawer,
+  Input,
+  DatePicker,
+  App,
+  Tooltip,
+  Row,
+  Col,
+  Space,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs, { Dayjs } from 'dayjs';
+import {
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  WalletOutlined,
+  WarningOutlined,
+  CloseOutlined,
+  InfoCircleOutlined,
+  FilterOutlined,
+  CloseCircleOutlined,
+  StopOutlined,
+} from '@ant-design/icons';
+import { usePermission } from '@/hooks/usePermission';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import LeaveV2Service, {
+  ApplyLeaveInput,
+  DayPortion,
+  LeaveBalanceItem,
+  LeaveRequest,
+} from '@/services/leaveV2Service';
+
+const { TextArea } = Input;
+const { RangePicker } = DatePicker;
+
+const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
+const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
+  { value: 'full', label: 'Full day' },
+  { value: 'first_half', label: 'First half' },
+  { value: 'second_half', label: 'Second half' },
+];
+
+type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+const STATUS_TAG: Record<string, { color: string; label: string }> = {
+  pending: { color: 'blue', label: 'Pending' },
+  approved: { color: 'green', label: 'Approved' },
+  rejected: { color: 'red', label: 'Rejected' },
+  cancelled: { color: 'default', label: 'Cancelled' },
+};
+
+// Working-day units (mirrors the server): excludes weekends AND holidays.
+function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion, holidays: Set<string>): number {
+  if (!from || !to) return 0;
+  const iso = (d: Dayjs) => d.format('YYYY-MM-DD');
+  if (portion !== 'full') {
+    const dow = from.day();
+    if (dow === 0 || dow === 6 || holidays.has(iso(from))) return 0; // working, non-holiday day only
+    return 0.5;
+  }
+  let u = 0;
+  let d = from.startOf('day');
+  const end = to.startOf('day');
+  while (d.isBefore(end) || d.isSame(end, 'day')) {
+    const dow = d.day();
+    if (dow !== 0 && dow !== 6 && !holidays.has(iso(d))) u += 1;
+    d = d.add(1, 'day');
+  }
+  return u;
+}
+
+export default function ApplyLeavePanel() {
+  const { canReadLeave, canCreateLeave } = usePermission();
+  const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
+
+  const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
+
+  // drawer
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [leaveTypeId, setLeaveTypeId] = useState<string>();
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [portion, setPortion] = useState<DayPortion>('full');
+  const [reason, setReason] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [b, r, h] = await Promise.all([LeaveV2Service.getMyBalances(), LeaveV2Service.getMyRequests(), LeaveV2Service.getLeaveHolidayDates()]);
+      setBalances(b);
+      setRequests(r);
+      setHolidaySet(new Set(h));
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to load leave data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (canReadLeave) load();
+  }, [canReadLeave, load]);
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const available = balances.reduce((s, b) => s + b.available, 0);
+    const pending = requests.filter((r) => r.status === 'pending').length;
+    const approved = requests.filter((r) => r.status === 'approved').length;
+    const lop = requests.filter((r) => r.status !== 'rejected' && r.status !== 'cancelled').reduce((s, r) => s + r.lopUnits, 0);
+    return { available, pending, approved, lop };
+  }, [balances, requests]);
+
+  const statCells = [
+    { key: 'avail', title: 'Available', value: stats.available, period: 'days left', icon: <WalletOutlined />, color: PALETTE.green, tint: TINT.green },
+    { key: 'pending', title: 'Pending', value: stats.pending, period: 'requests', icon: <ClockCircleOutlined />, color: PALETTE.blue, tint: TINT.blue },
+    { key: 'approved', title: 'Approved', value: stats.approved, period: 'requests', icon: <CheckCircleOutlined />, color: PALETTE.grey, tint: TINT.grey },
+    { key: 'lop', title: 'Loss of Pay', value: stats.lop, period: 'days', icon: <WarningOutlined />, color: PALETTE.red, tint: TINT.red },
+  ];
+
+  // ── Filtering + paging ──────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return requests.filter((r) => {
+      if (q && !(r.leaveTypeName || '').toLowerCase().includes(q)) return false;
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      return true;
+    });
+  }, [requests, search, statusFilter]);
+
+  const total = filtered.length;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(total, tablePage * tablePageSize);
+  const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  useEffect(() => { setTablePage(1); }, [search, statusFilter, tablePageSize]);
+  useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
+
+  const hasFilters = !!search || statusFilter !== 'all';
+
+  // ── Apply drawer ────────────────────────────────────────────────────────────
+  const balanceFor = (id?: string) => balances.find((b) => b.leaveTypeId === id);
+  const from = range?.[0] ?? null;
+  const to = range?.[1] ?? null;
+  const isSingleDay = !!from && !!to && from.isSame(to, 'day');
+  const effectivePortion: DayPortion = isSingleDay ? portion : 'full';
+  const units = computeUnits(from, to, effectivePortion, holidaySet);
+  // Total leave span (calendar days, incl. weekends/holidays) — half-day counts as 0.5.
+  const calendarSpan = from && to ? to.startOf('day').diff(from.startOf('day'), 'day') + 1 : 0;
+  const totalDays = isSingleDay && effectivePortion !== 'full' ? 0.5 : calendarSpan;
+  const selectedBalance = balanceFor(leaveTypeId);
+  const isUnpaidType = !!selectedBalance && !selectedBalance.isPaid; // Loss of Pay = unlimited, all units are LOP
+  const available = selectedBalance?.available ?? 0;
+  const paid = isUnpaidType ? 0 : Math.min(units, Math.max(available, 0));
+  const lop = Number((units - paid).toFixed(2));
+
+  // Why submit is blocked (shown inline so the user always sees the reason).
+  const blockReason: string | null = !leaveTypeId
+    ? 'Select a leave type'
+    : !from || !to
+    ? 'Select the leave dates'
+    : units <= 0
+    ? 'Selected range has only weekends/holidays'
+    : null;
+
+  const openApply = () => {
+    setLeaveTypeId(undefined);
+    setRange(null);
+    setPortion('full');
+    setReason('');
+    setOpen(true);
+  };
+
+  const submit = async () => {
+    if (!leaveTypeId) return message.error('Pick a leave type');
+    if (!from || !to) return message.error('Pick the leave dates');
+    if (units <= 0) return message.error('The selected range has no working days');
+    setSaving(true);
+    try {
+      const payload: ApplyLeaveInput = {
+        leaveTypeId,
+        fromDate: from.format('YYYY-MM-DD'),
+        toDate: to.format('YYYY-MM-DD'),
+        dayPortion: effectivePortion,
+        reason: reason.trim() || null,
+      };
+      await LeaveV2Service.applyLeave(payload);
+      message.success('Leave request submitted');
+      setOpen(false);
+      await load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to submit leave');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelRequest = async (r: LeaveRequest) => {
+    try {
+      await LeaveV2Service.cancelRequest(r.id);
+      message.success('Request cancelled');
+      await load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to cancel');
+    }
+  };
+
+  const fmt = (d: string) => dayjs(d).format('MMM D, YYYY');
+
+  const columns: ColumnsType<LeaveRequest> = [
+    {
+      title: 'Leave Type',
+      key: 'lt',
+      render: (_, r) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: r.leaveTypeColor || PALETTE.grey, display: 'inline-block' }} />
+          <span style={{ fontWeight: 600 }}>{r.leaveTypeName}</span>
+        </span>
+      ),
+    },
+    {
+      title: 'Period',
+      key: 'period',
+      render: (_, r) => (
+        <span style={{ color: 'var(--text-slate-600)' }}>
+          {fmt(r.fromDate)}{r.toDate !== r.fromDate ? ` → ${fmt(r.toDate)}` : ''}
+          {r.dayPortion !== 'full' && <Tag style={{ marginLeft: 6 }}>{r.dayPortion === 'first_half' ? '1st half' : '2nd half'}</Tag>}
+        </span>
+      ),
+    },
+    { title: 'Days', dataIndex: 'totalUnits', key: 'days', render: (v) => <strong>{v}</strong> },
+    {
+      title: 'Paid / LOP',
+      key: 'split',
+      render: (_, r) => (
+        <span>
+          <Tag color="green">{r.paidUnits} paid</Tag>
+          {r.lopUnits > 0 && <Tag color="red">{r.lopUnits} LOP</Tag>}
+        </span>
+      ),
+    },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: (v) => <Tag color={STATUS_TAG[v]?.color}>{STATUS_TAG[v]?.label ?? v}</Tag> },
+    { title: 'Applied', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span style={{ color: 'var(--text-slate-500)' }}>{fmt(v)}</span> },
+    {
+      title: '',
+      key: 'actions',
+      width: 70,
+      align: 'right',
+      render: (_, r) =>
+        r.status === 'pending' ? (
+          <ConfirmDialog
+            tone="danger"
+            icon={<StopOutlined />}
+            title="Cancel this request?"
+            description={`Your ${r.leaveTypeName} request will be withdrawn.`}
+            confirmText="Cancel request"
+            cancelText="Keep"
+            placement="bottomRight"
+            onConfirm={() => cancelRequest(r)}
+          >
+            <Tooltip title="Cancel"><Button type="text" size="small" danger icon={<StopOutlined />} /></Tooltip>
+          </ConfirmDialog>
+        ) : null,
+    },
+  ];
+
+  if (!canReadLeave) {
+    return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view leave.</div>;
+  }
+
+  return (
+    <div className="lva">
+      {/* HEADER */}
+      <div className="lva-header">
+        <div className="lva-header-about">
+          <div className="lva-header-icon"><WalletOutlined /></div>
+          <div>
+            <div className="lva-header-title">Apply Leave</div>
+            <div className="lva-header-sub">Request time off against your balance</div>
+          </div>
+        </div>
+        <div className="lva-header-actions">
+          <div className="lva-search-wrap">
+            <SearchOutlined className="lva-search-icon" />
+            <input className="lva-search" placeholder="Search leave type…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <Tooltip title="Refresh"><button type="button" className="lva-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
+        </div>
+      </div>
+
+      {/* STAT CARDS */}
+      <div className="lva-stats">
+        {statCells.map((s) => (
+          <div key={s.key} className="lva-stat-card">
+            <div className="lva-stat-top">
+              <span className="lva-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
+              <span className="lva-stat-label">{s.title}</span>
+            </div>
+            <div className="lva-stat-bottom">
+              <span className="lva-stat-value">{s.value}</span>
+              <span className="lva-stat-period">{s.period}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* BALANCES STRIP */}
+      {balances.length > 0 && (
+        <div className="lva-balances">
+          {balances.map((b) => (
+            <div key={b.leaveTypeId} className="lva-bal">
+              <span className="lva-bal-dot" style={{ background: b.color || PALETTE.grey }} />
+              <span className="lva-bal-name">{b.name}</span>
+              <span className="lva-bal-val">{b.available}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FILTERS */}
+      <div className="lva-filters">
+        <span className="lva-filter-label"><FilterOutlined /> Filter</span>
+        <SearchableDropdown
+          className="lva-filter-dd"
+          placeholder="Status"
+          searchPlaceholder="Search statuses"
+          itemNoun="statuses"
+          value={statusFilter === 'all' ? undefined : statusFilter}
+          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
+          options={[
+            { value: 'pending', label: 'Pending' },
+            { value: 'approved', label: 'Approved' },
+            { value: 'rejected', label: 'Rejected' },
+            { value: 'cancelled', label: 'Cancelled' },
+          ]}
+          style={{ width: 160 }}
+          width={210}
+        />
+        <span className="lva-filter-count">{filtered.length} of {requests.length}</span>
+        {hasFilters && <button type="button" className="lva-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
+      </div>
+
+      {/* TABLE */}
+      <div className="lva-table-wrap">
+        <Table rowKey="id" size="small" className="lva-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lva-row' })} />
+      </div>
+
+      {total > 0 && (
+        <div className="lva-footer lva-footer--sticky">
+          <div className="lva-footer-info">Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong></div>
+          <div className="lva-pager">
+            <button type="button" className="lva-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+              <button key={p} type="button" className={`lva-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+            ))}
+            <button type="button" className="lva-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+            <SearchableDropdown className="lva-pagesize" placeholder="" allowClear={false} value={String(tablePageSize)} onChange={(v) => { setTablePageSize(Number(v)); setTablePage(1); }} options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: `${n} / page` }))} style={{ width: 110, height: 28 }} width={130} />
+          </div>
+        </div>
+      )}
+
+      {/* APPLY DRAWER */}
+      <Drawer
+        title={null}
+        open={open}
+        onClose={() => setOpen(false)}
+        width={480}
+        closable={false}
+        destroyOnClose
+        styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' }, mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' } }}
+      >
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}><PlusOutlined /></div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>Apply Leave</div>
+                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Request time off against your balance</div>
+              </div>
+            </div>
+            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
+          </div>
+
+          <div className="lva-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
+            <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', padding: '12px 22px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ width: 32, height: 32, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><InfoCircleOutlined /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)' }}>Leave Details</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)' }}>Type, dates and reason</div>
+                </div>
+              </div>
+
+              <Row gutter={16}>
+                <Col span={24} style={{ marginBottom: 14 }}>
+                  <span className="lva-label">Leave type</span>
+                  <div style={{ marginTop: 6 }}>
+                    <SearchableDropdown
+                      placeholder="Select leave type"
+                      itemNoun="leave types"
+                      allowClear={false}
+                      value={leaveTypeId}
+                      onChange={(v) => setLeaveTypeId(v as string)}
+                      options={balances.map((b) => {
+                        // Exhausted paid types can't be picked; unpaid (Loss of Pay) is always allowed.
+                        const exhausted = b.isPaid && b.available <= 0;
+                        return {
+                          value: b.leaveTypeId,
+                          label: b.name,
+                          description: b.isPaid
+                            ? `${b.available} available${exhausted ? ' · exhausted' : ''}`
+                            : 'Unlimited · unpaid (Loss of Pay)',
+                          disabled: exhausted,
+                        };
+                      })}
+                      style={{ width: '100%', height: 38 }}
+                      width={300}
+                    />
+                  </div>
+                </Col>
+                <Col span={24} style={{ marginBottom: 14 }}>
+                  <span className="lva-label">Dates</span>
+                  <div style={{ marginTop: 6 }}>
+                    <RangePicker style={{ width: '100%' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" />
+                  </div>
+                </Col>
+                <Col span={24} style={{ marginBottom: 14 }}>
+                  <span className="lva-label">Day portion {!isSingleDay && <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}>(single-day only)</span>}</span>
+                  <div style={{ marginTop: 6 }}>
+                    <SearchableDropdown
+                      placeholder="Full day"
+                      itemNoun="portions"
+                      allowClear={false}
+                      disabled={!isSingleDay}
+                      value={effectivePortion}
+                      onChange={(v) => setPortion(v as DayPortion)}
+                      options={DAY_PORTION_OPTIONS}
+                      style={{ width: '100%', height: 38 }}
+                      width={200}
+                    />
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <span className="lva-label">Reason</span>
+                  <TextArea rows={2} style={{ marginTop: 6 }} value={reason} maxLength={500} placeholder="Optional note for your manager" onChange={(e) => setReason(e.target.value)} />
+                </Col>
+              </Row>
+            </div>
+
+            {/* Live preview */}
+            {leaveTypeId && from && to && (
+              <div className="lva-preview">
+                <div className="lva-preview-row"><span>Total days leave</span><strong>{totalDays}</strong></div>
+                <div className="lva-preview-row"><span>Working days</span><strong>{units}</strong></div>
+                <div className="lva-preview-row"><span>Available balance</span><strong>{isUnpaidType ? 'Unlimited' : available}</strong></div>
+                <div className="lva-preview-row"><span>Paid</span><strong style={{ color: PALETTE.green }}>{paid}</strong></div>
+                {lop > 0 && (
+                  <div className="lva-preview-row lva-preview-lop">
+                    <span><WarningOutlined /> Loss of Pay</span><strong style={{ color: PALETTE.red }}>{lop}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0 }}>
+            <span style={{ fontSize: 11.5, color: blockReason ? PALETTE.red : 'var(--text-slate-400)' }}>
+              {blockReason ? blockReason : lop > 0 ? `${lop} day(s) will be Loss of Pay` : 'Within your balance'}
+            </span>
+            <Space size={10}>
+              <Button onClick={() => setOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
+              <Button type="primary" loading={saving} icon={<PlusOutlined />} onClick={submit} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Submit Request</Button>
+            </Space>
+          </div>
+        </div>
+      </Drawer>
+
+      <style jsx global>{`
+        .lva { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
+        .lva-header-about { display: flex; align-items: center; gap: 12px; }
+        .lva-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lva-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
+        .lva-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
+        .lva-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lva-search-wrap { display: flex; align-items: center; height: 34px; width: 220px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
+        .lva-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .lva-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .lva-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; }
+        .lva-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
+        .lva-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
+        .lva-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
+        .lva-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+        .lva-stat-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 12px 14px; min-height: 84px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+        .lva-stat-top { display: flex; align-items: center; gap: 8px; }
+        .lva-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .lva-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .lva-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
+        .lva-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); }
+        .lva-stat-period { font-size: 11px; color: var(--text-slate-400); }
+        .lva-balances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .lva-bal { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border-slate-200); border-radius: 8px; padding: 5px 10px; background: var(--bg-pure-white); }
+        .lva-bal-dot { width: 8px; height: 8px; border-radius: 2px; }
+        .lva-bal-name { font-size: 12px; color: var(--text-slate-600); }
+        .lva-bal-val { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
+        .lva-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lva-filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
+        .lva-filter-label .anticon { color: var(--text-slate-400); }
+        .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }
+        .lva-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
+        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
+        .lva-table .ant-table { background: transparent; font-size: 12px; }
+        .lva-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lva-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
+        .lva-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .lva-table .ant-table-tbody > tr.lva-row:hover > td { background: var(--bg-slate-50) !important; }
+        .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
+        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .lva-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .lva-pager { display: flex; align-items: center; gap: 3px; }
+        .lva-pager-btn, .lva-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
+        .lva-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .lva-pager-num.is-active { background: ${PALETTE.blue}; border-color: ${PALETTE.blue}; color: #fff; }
+        .lva-pagesize { margin-left: 5px; }
+        /* drawer */
+        .lva-label { font-size: 12px; font-weight: 600; color: var(--text-slate-700); }
+        .lva-drawer-form .ant-input, .lva-drawer-form .ant-picker { border-radius: 6px !important; border-color: var(--border-color) !important; }
+        .lva-drawer-form .ant-picker { height: 38px; width: 100%; }
+        .lva-preview { margin-top: 14px; background: var(--bg-pure-white); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 7px; }
+        .lva-preview-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-slate-600); }
+        .lva-preview-row strong { font-size: 15px; color: var(--text-slate-900); }
+        .lva-preview-lop { border-top: 1px dashed var(--border-slate-200); padding-top: 8px; }
+        .lva-preview-lop span { color: ${PALETTE.red}; display: inline-flex; align-items: center; gap: 6px; }
+      `}</style>
+    </div>
+  );
+}

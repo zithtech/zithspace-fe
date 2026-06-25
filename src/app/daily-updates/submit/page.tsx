@@ -20,6 +20,8 @@ import {
   Col,
   Switch,
   Spin,
+  Modal,
+  Checkbox,
 } from "antd";
 import {
   Clock,
@@ -35,11 +37,15 @@ import {
   Briefcase,
   ListChecks,
   CalendarClock,
+  CalendarCheck,
+  CheckCircle2,
   Menu,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
+import { AttendanceService } from "@/services/attendanceService";
+import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import TicketService from "@/services/ticketService";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import {
@@ -166,6 +172,20 @@ function SubmitDailyUpdateContent() {
   const [missedDate, setMissedDate] = useState<Dayjs | null>(null);
   // 🔐 24-hour edit window check
   const [isEditAllowed, setIsEditAllowed] = useState(true);
+
+  // End-of-day confirmation: stop timer + complete attendance.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [optStopTimer, setOptStopTimer] = useState(true);
+  const [optCompleteAtt, setOptCompleteAtt] = useState(true);
+  const [todayAtt, setTodayAtt] = useState<any>(null);
+  const { activeEntries, fetchActiveTimer } = useTimeTrackerStore();
+
+  useEffect(() => {
+    fetchActiveTimer();
+    AttendanceService.getTodayAttendance()
+      .then(setTodayAtt)
+      .catch(() => {});
+  }, [fetchActiveTimer]);
   // ✅ FETCH UPDATE FOR EDIT MODE
   const fetchUpdateById = async (id: string) => {
     try {
@@ -742,21 +762,44 @@ function SubmitDailyUpdateContent() {
 
     return true;
   };
-  const handleSubmit = async () => {
+  // Active timers (running or paused) — used to decide whether to offer "stop
+  // time tracking" and to actually stop them on submit.
+  const activeTimers = (activeEntries || []).filter(
+    (e: any) => e.status === "RUNNING" || e.status === "PAUSED",
+  );
+  const hasActiveTimer = activeTimers.length > 0;
+  const attCompletable = !!todayAtt?.canComplete;
+
+  // Button click → validate, then either submit directly (edit / nothing to
+  // wrap up) or open the end-of-day confirmation popup.
+  const handleSubmit = () => {
     if (alreadySubmitted && !isEditAllowed) {
       messageApi.error("You can only edit within 24 hours of submission");
       return;
     }
-
     if (!validateForm()) return;
-
     if (isMissedUpdate && !missedDate) {
       messageApi.error("Please select a missed update date");
       return;
     }
 
+    if (alreadySubmitted || (!hasActiveTimer && !attCompletable)) {
+      doSubmit({ stopTimer: false, completeAttendance: false });
+      return;
+    }
+
+    setOptStopTimer(hasActiveTimer);
+    setOptCompleteAtt(attCompletable);
+    setConfirmOpen(true);
+  };
+
+  const doSubmit = async (options: {
+    stopTimer: boolean;
+    completeAttendance: boolean;
+  }) => {
     try {
       setLoading(true);
+      setConfirmOpen(false);
 
       const values = form.getFieldsValue();
 
@@ -786,6 +829,23 @@ function SubmitDailyUpdateContent() {
       } else {
         await DailyUpdateService.createUpdate(data);
         messageApi.success("Daily update submitted successfully!");
+      }
+
+      // End-of-day actions (non-fatal — the update is already saved).
+      if (options.stopTimer && activeTimers.length) {
+        await Promise.allSettled(
+          activeTimers.map((e: any) => TimeTrackingService.stopTimer(e.id)),
+        );
+        fetchActiveTimer();
+        messageApi.success("Time tracking stopped");
+      }
+      if (options.completeAttendance && todayAtt?.canComplete) {
+        try {
+          await AttendanceService.complete();
+          messageApi.success("Attendance completed for today");
+        } catch (e) {
+          /* non-fatal */
+        }
       }
 
       setTimeout(() => {
@@ -819,6 +879,32 @@ function SubmitDailyUpdateContent() {
   }
 
   const totalHours = getTotalHours();
+
+  // ── End-of-day confirmation styles ──────────────────────────────────────
+  const edRow = (selected: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 14px",
+    borderRadius: 12,
+    userSelect: "none",
+    border: `1px solid ${selected ? "#bfdbfe" : "var(--border-slate-200)"}`,
+    background: selected ? "rgba(59,130,246,0.05)" : "var(--bg-pure-white)",
+    transition: "all .12s ease",
+  });
+  const edIcon = (color: string): React.CSSProperties => ({
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    flexShrink: 0,
+    background: `${color}1A`,
+    color,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  });
+  const edTitle: React.CSSProperties = { display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-slate-900)" };
+  const edDesc: React.CSSProperties = { display: "block", fontSize: 11.5, color: "var(--text-slate-500)", marginTop: 1 };
 
   return (
     <div className="du-shell">
@@ -1840,6 +1926,86 @@ function SubmitDailyUpdateContent() {
             </Button>
           </div>
         </Form>
+
+        {/* ── End-of-day confirmation ─────────────────────────────────────── */}
+        <Modal
+          open={confirmOpen}
+          onCancel={() => setConfirmOpen(false)}
+          footer={null}
+          width={460}
+          centered
+          closable={false}
+          styles={{
+            content: { padding: 0, overflow: "hidden", borderRadius: 14 },
+            body: { padding: 0 },
+            mask: { backdropFilter: "blur(2px)", background: "rgba(15,23,42,0.45)" },
+          }}
+        >
+          <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--border-slate-100)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(22,119,255,0.12)", color: "#1677ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>Wrap up your day?</div>
+                <div style={{ fontSize: 12.5, color: "var(--text-slate-500)" }}>Choose what to finalize along with this update.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: "14px 22px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {hasActiveTimer && (
+              <label onClick={() => setOptStopTimer((v) => !v)} style={{ ...edRow(optStopTimer), cursor: "pointer" }}>
+                <span style={edIcon("#10B981")}><Clock size={18} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={edTitle}>Stop time tracking</span>
+                  <span style={edDesc}>
+                    {activeTimers.length} active timer{activeTimers.length > 1 ? "s" : ""} will be stopped &amp; logged
+                  </span>
+                </span>
+                <Checkbox checked={optStopTimer} />
+              </label>
+            )}
+
+            <label
+              onClick={() => attCompletable && setOptCompleteAtt((v) => !v)}
+              style={{
+                ...edRow(optCompleteAtt && attCompletable),
+                cursor: attCompletable ? "pointer" : "not-allowed",
+                opacity: attCompletable ? 1 : 0.55,
+              }}
+            >
+              <span style={edIcon("#3B82F6")}><CalendarCheck size={18} /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={edTitle}>Complete today’s attendance</span>
+                <span style={edDesc}>
+                  {attCompletable ? "Your day will be marked complete" : "Not available — you’re not clocked in"}
+                </span>
+              </span>
+              <Checkbox checked={optCompleteAtt && attCompletable} disabled={!attCompletable} />
+            </label>
+          </div>
+
+          <div style={{ padding: "16px 22px 18px", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <Button onClick={() => setConfirmOpen(false)} style={{ height: 38, borderRadius: 8, fontWeight: 600, padding: "0 18px" }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              loading={loading}
+              icon={<Send size={15} />}
+              onClick={() =>
+                doSubmit({
+                  stopTimer: hasActiveTimer && optStopTimer,
+                  completeAttendance: attCompletable && optCompleteAtt,
+                })
+              }
+              style={{ height: 38, borderRadius: 8, fontWeight: 700, background: "#1677ff", border: "none", display: "flex", alignItems: "center", gap: 8, padding: "0 20px" }}
+            >
+              Submit Update
+            </Button>
+          </div>
+        </Modal>
       </main>
     </div>
   );

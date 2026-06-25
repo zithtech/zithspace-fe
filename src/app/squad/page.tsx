@@ -582,15 +582,16 @@ export default function SquadManagement() {
                 options={squadOptions}
                 width="100%"
               />
-              <Select
-                className="sq-side-select"
+              <SearchableDropdown
                 mode="multiple"
-                allowClear
+                className="sq-side-sd"
                 placeholder="Filter by Members"
+                searchPlaceholder="Search members..."
+                itemNoun="members"
                 value={selectedUserIds}
-                onChange={setSelectedUserIds}
+                onChange={(v) => setSelectedUserIds(v || [])}
                 options={userOptions}
-                maxTagCount="responsive"
+                width="100%"
               />
               {hasActiveFilters && (
                 <button type="button" className="sq-clear-filters" onClick={clearFilters}>
@@ -620,7 +621,7 @@ export default function SquadManagement() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-                <span className="sq-kbd">⌘K</span>
+
               </div>
             </div>
 
@@ -921,20 +922,6 @@ export default function SquadManagement() {
             background: var(--bg-pure-white) !important;
           }
           .sq-side-select { width: 100%; }
-          .sq-side-select .ant-select-selector { height: 36px !important; padding: 0 11px !important; display: flex; align-items: center; }
-          .sq-side-select .ant-select-selection-placeholder { 
-            font-size: 12px !important; 
-            font-weight: 600 !important;
-            color: var(--text-slate-900) !important;
-            display: flex !important; 
-            align-items: center; 
-            top: 50% !important; 
-            transform: translateY(-50%) !important; 
-            margin-top: 0 !important; 
-            line-height: normal !important;
-          }
-          .sq-side-select .ant-select-selection-item { font-size: 12px !important; font-weight: 600 !important; line-height: 34px !important; }
-          .sq-side-range { width: 100%; height: 36px; border-style: dashed !important; }
           .sq-side-range .ant-picker-input > input { font-size: 12.5px; }
           .sq-clear-filters {
             display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
@@ -1009,7 +996,7 @@ export default function SquadManagement() {
           .sq-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
           .sq-stat-card {
             background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-            border-radius: 4px; padding: 12px 14px; min-height: 92px;
+            border-radius: 0; padding: 12px 14px; min-height: 92px;
             display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
             box-shadow: 0 1px 2px rgba(15,23,42,0.04);
           }
@@ -1236,6 +1223,136 @@ export default function SquadManagement() {
             .sq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           }
         
+          /* ===================== Dark Theme Overrides ===================== */
+          [data-theme='dark'] .sq-shell,
+          [data-theme='dark'] .sq-main { background: #0B0F1A !important; }
+
+          [data-theme='dark'] .sq-sidebar {
+            background: #0B0F1A !important;
+            border-right-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-side-head {
+            border-bottom-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-side-title { color: #F1F5F9 !important; }
+          [data-theme='dark'] .sq-side-subtitle { color: #64748B !important; }
+          [data-theme='dark'] .sq-side-section-label { color: #64748B !important; }
+
+          [data-theme='dark'] .sq-view-item:hover { background: rgba(255,255,255,0.05) !important; }
+          [data-theme='dark'] .sq-view-item.is-active { background: rgba(59,130,246,0.15) !important; }
+          [data-theme='dark'] .sq-view-label { color: #94A3B8 !important; }
+          [data-theme='dark'] .sq-view-item.is-active .sq-view-label { color: #F1F5F9 !important; }
+          [data-theme='dark'] .sq-view-count { color: #64748B !important; }
+
+          [data-theme='dark'] .sq-side-select .ant-select-selector,
+          [data-theme='dark'] .sq-side-sd .sd-trigger {
+            background: #0B0F1A !important;
+            border-color: #374151 !important;
+            color: #F1F5F9 !important;
+          }
+          [data-theme='dark'] .sq-side-select .ant-select-arrow { color: #94A3B8 !important; }
+
+          [data-theme='dark'] .sq-topbar { background: #0B0F1A !important; }
+          [data-theme='dark'] .sq-search-wrap {
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-search { color: #F1F5F9 !important; }
+          [data-theme='dark'] .sq-search::placeholder { color: #64748B !important; }
+          [data-theme='dark'] .sq-kbd {
+            background: #161B22 !important;
+            border-color: #374151 !important;
+            color: #64748B !important;
+          }
+          [data-theme='dark'] .sq-divider { background: #374151 !important; }
+
+          /* Stat cards */
+          [data-theme='dark'] .sq-stat-card {
+            background: #0B0F1A !important;
+            border-color: #374151 !important;
+            box-shadow: none !important;
+          }
+          [data-theme='dark'] .sq-stat-label { color: #94A3B8 !important; }
+          [data-theme='dark'] .sq-stat-value { color: #F1F5F9 !important; }
+
+          /* Table */
+          [data-theme='dark'] .sq-table-wrap {
+            background: #0B0F1A !important;
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-table .ant-table-thead > tr > th {
+            background: #161B22 !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-table .ant-table-tbody > tr > td {
+            background: #0B0F1A !important;
+            color: #F1F5F9 !important;
+            border-bottom-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .sq-table .ant-table-tbody > tr.sq-row:hover > td {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .sq-name-title { color: #F1F5F9 !important; }
+
+          /* Grid cards */
+          [data-theme='dark'] .sc-card {
+            background: #0B0F1A !important;
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .sc-card:hover {
+            border-color: #4B5563 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+          }
+          [data-theme='dark'] .sc-title { color: #F1F5F9 !important; }
+          [data-theme='dark'] .sc-client-val { color: #94A3B8 !important; }
+          [data-theme='dark'] .sc-foot {
+            background: #161B22 !important;
+            border-top-color: #374151 !important;
+          }
+          [data-theme='dark'] .sc-foot-row { border-top-color: #374151 !important; }
+
+          /* Footer */
+          [data-theme='dark'] .sq-footer--sticky {
+            background: #0B0F1A !important;
+            border-top-color: #374151 !important;
+            box-shadow: 0 -4px 14px rgba(0,0,0,0.3) !important;
+          }
+          [data-theme='dark'] .sq-footer-info { color: #94A3B8 !important; }
+          [data-theme='dark'] .sq-footer-info strong { color: #F1F5F9 !important; }
+          [data-theme='dark'] .sq-pager-btn,
+          [data-theme='dark'] .sq-pager-num {
+            background: #161B22 !important;
+            border-color: #374151 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .sq-pager-num.is-active {
+            background: #3B82F6 !important;
+            border-color: #3B82F6 !important;
+            color: #fff !important;
+          }
+          [data-theme='dark'] .sq-pagesize .ant-select-selector {
+            background: #161B22 !important;
+            border-color: #374151 !important;
+            color: #94A3B8 !important;
+          }
+
+          /* Segmented view switcher */
+          [data-theme='dark'] .sq-segmented {
+            background: #161B22 !important;
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .sq-segmented button { color: #64748B !important; }
+          [data-theme='dark'] .sq-segmented button.is-active {
+            background: rgba(59,130,246,0.15) !important;
+            color: #3B82F6 !important;
+          }
+          [data-theme='dark'] .sq-ghost-btn {
+            background: #161B22 !important;
+            border-color: #374151 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .sq-topbar-meta { color: #64748B !important; }
+          [data-theme='dark'] .sq-topbar-meta strong { color: #94A3B8 !important; }
 
         `}</style>
     </MainLayout>

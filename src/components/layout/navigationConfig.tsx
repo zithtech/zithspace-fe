@@ -172,7 +172,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/squad", "/time-tracking", "/org-structure"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/squad", "/time-tracking"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -201,7 +201,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LEAD_READ,
       Permissions.LEAD_SETTING_READ,
       Permissions.LEAD_TRASH_READ,
-      Permissions.ORG_READ,
     ],
     items: [
       {
@@ -525,16 +524,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-      {
-        // Submodule navigation moved into the in-page left sidebar
-        // (see src/app/org-structure/layout.tsx). Each submodule keeps its
-        // own URL; this single entry opens the module on its Overview page.
-        key: "/org-structure",
-        icon: I(Network),
-        label: "Org-structure",
-        path: "/org-structure/overview",
-        requiredPermission: Permissions.ORG_READ,
-      },
     ],
   },
   {
@@ -549,6 +538,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/roles",
       "/members",
       "/members/trash",
+      "/org-structure",
     ],
     defaultPath: "/clients-v2",
     requiredAnyPermission: [
@@ -557,6 +547,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ROLE_READ,
       Permissions.USER_READ,
       Permissions.USER_TRASH_READ,
+      Permissions.ORG_READ,
     ],
     items: [
       {
@@ -646,6 +637,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(KeyRound),
         path: "/roles",
         requiredPermission: Permissions.ROLE_READ,
+      },
+      {
+        // Submodule navigation moved into the in-page left sidebar
+        // (see src/app/org-structure/layout.tsx). Each submodule keeps its
+        // own URL; this single entry opens the module on its Overview page.
+        key: "/org-structure",
+        icon: I(Network),
+        label: "Org Structure",
+        path: "/org-structure/overview",
+        requiredPermission: Permissions.ORG_READ,
       },
     ],
   },

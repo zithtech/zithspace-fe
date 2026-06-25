@@ -641,7 +641,11 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
             0 1px 0 rgba(255,255,255,0.06) inset,
             0 12px 32px -8px rgba(15, 23, 42, 0.18),
             0 8px 16px -8px rgba(15, 23, 42, 0.12);
-          border: 1px solid var(--border-slate-100);
+          border: 1px solid var(--border-slate-100) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .ttp-popover .ant-popover-inner {
+          border-color: #27273a !important;
         }
         .ttp-popover .ant-popover-title {
           padding: 4px 6px 12px;
@@ -675,16 +679,9 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
   if (isMenuItem) {
     return (
-      <div className={triggerClass} style={{ pointerEvents: 'none', border: '1px solid var(--border-slate-300)' }}>
+      <div className={triggerClass} style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
-        <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, textTransform: 'uppercase' }}>
-          {activeEntry
-            ? activeEntry.status === "RUNNING"
-              ? "Running"
-              : "Paused"
-            : "Idle"}
-        </span>
       </div>
     );
   }

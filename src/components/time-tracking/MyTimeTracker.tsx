@@ -615,6 +615,11 @@ export function MyTimeTracker({
           padding: 12px 16px !important;
           white-space: nowrap !important;
         }
+        [data-theme='dark'] .mtt-team-card .ant-table-thead > tr > th {
+          background: #0B0F1A !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #1F2937 !important;
+        }
         .ant-table-tbody > tr > td {
           padding: 8px 16px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
@@ -622,8 +627,16 @@ export function MyTimeTracker({
           font-size: 14px !important;
           color: var(--text-slate-900) !important;
         }
+        [data-theme='dark'] .mtt-team-card .ant-table-tbody > tr > td {
+          background-color: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+          color: #E2E8F0 !important;
+        }
         .ant-table-row:hover > td {
           background-color: var(--bg-table-header) !important;
+        }
+        [data-theme='dark'] .mtt-team-card .ant-table-row:hover > td {
+          background-color: #161B22 !important;
         }
         .running-row {
           background-color: var(--bg-running-row) !important;
@@ -686,9 +699,30 @@ export function MyTimeTracker({
         .mtt-pagesize.ant-select .ant-select-selector {
           height: 28px !important; border-radius: 7px !important; font-size: 12.5px !important; font-weight: 600 !important;
         }
-        [data-theme='dark'] .mtt-footer, [data-theme='dark'] .mtt-footer--fixed { background: var(--bg-secondary); border-color: rgba(255,255,255,0.06); }
-        [data-theme='dark'] .mtt-pager-btn, [data-theme='dark'] .mtt-pager-num { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); color: var(--text-slate-400); }
-        [data-theme='dark'] .mtt-pager-num.is-active { background: #3B82F6; color: white; border-color: #3B82F6; }
+        [data-theme='dark'] .mtt-footer,
+        [data-theme='dark'] .mtt-footer--fixed {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          box-shadow: 0 -4px 14px rgba(0,0,0,0.2);
+        }
+        [data-theme='dark'] .mtt-pager-btn,
+        [data-theme='dark'] .mtt-pager-num {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-pager-num.is-active {
+          background: #3B82F6 !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+        }
+        [data-theme='dark'] .mtt-pagesize.ant-select .ant-select-selector {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-footer-info { color: #94A3B8; }
+        [data-theme='dark'] .mtt-footer-info strong { color: #CBD5E1; }
       `}</style>
     </div>
   );

@@ -80,12 +80,13 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
 
   return (
     <div 
-      className="mtt-week-card flex flex-col"
+      className="flex flex-col"
       style={{
-        background: 'var(--bg-pure-white)',
-        borderRadius: 0,
+        background: 'transparent',
         border: '1px solid var(--border-slate-200)',
-        padding: '16px',
+        borderRadius: '8px',
+        padding: '12px',
+        boxShadow: 'none',
       }}
     >
       <div className="flex items-start gap-3 mb-4">

@@ -253,8 +253,8 @@ function CalendarPageContent() {
                     width={288}
                     theme="light"
                     style={{
-                        background: 'var(--cal-surface)',
-                        borderRight: '1px solid var(--cal-border)',
+                        background: 'var(--bg-pure-white)',
+                        borderRight: '1px solid var(--border-slate-200)',
                         overflow: 'auto',
                     }}
                 >
@@ -400,6 +400,24 @@ function CalendarPageContent() {
                 canEdit={canUpdateCalendar}
                 canDelete={canDeleteCalendar}
             />
+            <style jsx global>{`
+                /* Align side layout background color with Proposals page */
+                .cal-scope .ant-layout-sider {
+                    background: var(--bg-pure-white) !important;
+                    border-right-color: var(--border-slate-200) !important;
+                }
+                [data-theme='dark'] .cal-scope .ant-layout-sider {
+                    border-right-color: #1F2937 !important;
+                }
+
+                /* Disable hover effect on the mini-calendar day cells */
+                .cal-scope .mini-calendar .ant-picker-cell:hover .ant-picker-cell-inner {
+                    background: transparent !important;
+                }
+                .cal-scope .mini-calendar .calendar-day-hover:hover {
+                    background: transparent !important;
+                }
+            `}</style>
         </MainLayout>
     );
 }

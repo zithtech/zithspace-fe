@@ -634,30 +634,38 @@
         }
 
         .pm2-sidebar-clear {
-          display: inline-flex;
+          display: flex;
           align-items: center;
-          gap: 5px;
-          align-self: flex-start;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 3px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #ef4444;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
           margin-top: 6px;
-          width: auto;
-          justify-content: flex-start;
+          padding: 8px;
+          background: transparent;
+          border: 1px dashed rgba(239, 68, 68, 0.3);
+          border-radius: 8px;
+          color: #ef4444;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
 
         .pm2-sidebar-clear:hover {
-          opacity: 0.8;
           color: #ef4444;
-          border-color: transparent;
+          border-color: rgba(239, 68, 68, 0.5);
+          background: rgba(239, 68, 68, 0.05);
         }
 
         [data-theme="dark"] .pm2-sidebar-clear {
-          color: #ef4444 !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+          color: #f87171 !important;
+        }
+
+        [data-theme="dark"] .pm2-sidebar-clear:hover {
+          color: #fca5a5 !important;
+          border-color: rgba(239, 68, 68, 0.5) !important;
+          background: rgba(239, 68, 68, 0.08) !important;
         }
 
         /* ── Main toolbar ───────────────────────────────────────── */
@@ -900,6 +908,10 @@
           }
         }
 
+        .pm2-main-content {
+          padding-bottom: 24px;
+        }
+
         /* ── Sticky pagination footer ──────────────────────────── */
         .pm2-pagination {
           display: flex;
@@ -920,7 +932,7 @@
         }
 
         [data-theme="dark"] .pm2-pagination {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-top-color: #1f2937 !important;
         }
 
@@ -967,8 +979,8 @@
         }
 
         [data-theme="dark"] .pm2-list-card {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
         }
 
         .pm2-list-card:hover {
@@ -977,9 +989,9 @@
         }
 
         [data-theme="dark"] .pm2-list-card:hover {
-          background: #1c232e !important;
+          background: #0B0F1A !important;
           box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-          border-color: transparent !important;
+          border-color: #cbd5e1 !important;
         }
 
         .pm2-list-card-skel {

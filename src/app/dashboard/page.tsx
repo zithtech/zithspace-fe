@@ -810,13 +810,13 @@ function DashboardContent() {
                 accent: "#3B82F6",
                 accentLight: "#60A5FA",
               },
-              {
-                value: "freelancer" as const,
-                title: "Freelancer",
-                icon: <SolutionOutlined />,
-                accent: "#10B981",
-                accentLight: "#34D399",
-              },
+              // {
+              //   value: "freelancer" as const,
+              //   title: "Freelancer",
+              //   icon: <SolutionOutlined />,
+              //   accent: "#10B981",
+              //   accentLight: "#34D399",
+              // },
               {
                 value: "organization" as const,
                 title: "Organization",

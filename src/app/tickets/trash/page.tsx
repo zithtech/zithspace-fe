@@ -468,28 +468,58 @@ export default function TrashPage() {
               </div>
             ),
           }}
-          pagination={
-            tickets.length > 0
-              ? {
-                  current: page,
-                  pageSize,
-                  total: pagination?.total || 0,
-                  showSizeChanger: true,
-                  pageSizeOptions: [10, 20, 25, 50, 100],
-                  showTotal: (t, range) => (
-                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-                      Showing {range[0]}–{range[1]} of {t}
-                    </Text>
-                  ),
-                  onChange: (newPage, newPageSize) => {
-                    setPage(newPage);
-                    setPageSize(newPageSize);
-                  },
-                }
-              : false
-          }
+          pagination={false}
           scroll={{ x: 1100 }}
         />
+
+        {/* ── Sticky pagination footer ── */}
+        {tickets.length > 0 && (
+          <div className="trs2-footer">
+            <div className="trs2-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+              {selectedRowKeys.length > 0 && (
+                <span className="trs2-footer-sel"> · {selectedRowKeys.length} selected</span>
+              )}
+            </div>
+            <div className="trs2-pager">
+              <button
+                type="button"
+                className="trs2-pager-btn"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ‹
+              </button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1)
+                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                .map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`trs2-pager-num ${p === page ? "is-active" : ""}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+              <button
+                type="button"
+                className="trs2-pager-btn"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              >
+                ›
+              </button>
+              <Select
+                className="trs2-pagesize"
+                value={pageSize}
+                onChange={(v) => { setPageSize(v); setPage(1); }}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
+          </div>
+        )}
 
         <style jsx global>{`
           .trs2-table {
@@ -533,7 +563,65 @@ export default function TrashPage() {
           [data-theme='dark'] .trs2-table .ant-table-tbody > tr:hover > td {
             background: #161B22 !important;
           }
-          .trs2-table .ant-pagination { margin: 12px 0 !important; padding: 0 14px; }
+          .trs2-table .ant-pagination { display: none; }
+
+          /* ── Sticky footer pagination ── */
+          .trs2-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 16px;
+            height: 52px;
+            box-sizing: border-box;
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            background: var(--bg-pure-white);
+            border-top: 1px solid var(--border-slate-200);
+            box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
+            margin: auto -16px 0;
+            flex-shrink: 0;
+          }
+          [data-theme='dark'] .trs2-footer {
+            background: #0B0F1A;
+            border-top-color: #1F2937;
+            box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4);
+          }
+          .trs2-footer-info {
+            font-size: 12px;
+            color: var(--text-slate-500);
+          }
+          .trs2-footer-info strong {
+            color: var(--text-slate-700);
+            font-weight: 700;
+          }
+          [data-theme='dark'] .trs2-footer-info strong { color: #cbd5e1; }
+          .trs2-footer-sel { color: #3b82f6; font-weight: 600; }
+          .trs2-pager { display: flex; align-items: center; gap: 3px; }
+          .trs2-pager-btn, .trs2-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px;
+            border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600);
+            cursor: pointer; font-size: 12.5px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.12s ease;
+          }
+          .trs2-pager-btn:hover:not(:disabled), .trs2-pager-num:hover:not(.is-active) {
+            background: var(--bg-slate-50); border-color: var(--border-slate-300);
+          }
+          [data-theme='dark'] .trs2-pager-btn, [data-theme='dark'] .trs2-pager-num {
+            background: #161b22; border-color: #1f2937; color: #94a3b8;
+          }
+          [data-theme='dark'] .trs2-pager-btn:hover:not(:disabled),
+          [data-theme='dark'] .trs2-pager-num:hover:not(.is-active) {
+            background: #1f2937; border-color: #374151;
+          }
+          .trs2-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .trs2-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+          .trs2-pagesize { margin-left: 5px; }
+          .trs2-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
           .trs2-ticket-id {
             display: inline-block;

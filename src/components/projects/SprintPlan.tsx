@@ -3290,7 +3290,7 @@ export default function SprintPlanComponent() {
           font-family: ui-monospace, monospace;
         }
         [data-theme='dark'] .sp-search-kbd {
-          background: #0b0f1a !important;
+          background: #0B0F1A !important;
           border-color: #374151 !important;
         }
         .sp-filter-pill {
@@ -3465,9 +3465,10 @@ export default function SprintPlanComponent() {
           border: 1px solid var(--border-slate-200);
           border-radius: 0;
           overflow: hidden;
+          margin-bottom: 16px;
         }
         [data-theme='dark'] .sp-tbl-wrap {
-          background: #0f1620 !important;
+          background: #0B0F1A !important;
           border-color: #243042 !important;
         }
         .sp-tbl-head,
@@ -3484,7 +3485,7 @@ export default function SprintPlanComponent() {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tbl-head {
-          background: #131c28 !important;
+          background: #0B0F1A !important;
           border-bottom-color: #243042 !important;
         }
         .sp-tbl-th {
@@ -3519,7 +3520,7 @@ export default function SprintPlanComponent() {
         .sp-tbl-row.is-open::before,
         .sp-tbl-row:hover::before { opacity: 1; }
         [data-theme='dark'] .sp-tbl-row:hover,
-        [data-theme='dark'] .sp-tbl-row.is-open { background: #131c28 !important; }
+        [data-theme='dark'] .sp-tbl-row.is-open { background: #161B22 !important; }
         .sp-tbl-td { display: flex; align-items: center; min-width: 0; }
 
         .sp-tbl-col-name { gap: 10px; }
@@ -3602,7 +3603,7 @@ export default function SprintPlanComponent() {
           border-top: 1px solid var(--border-slate-200);
           padding: 14px 16px 16px 48px;
         }
-        [data-theme='dark'] .sp-tbl-children { background: #0c121b !important; border-top-color: #1c2733 !important; }
+        [data-theme='dark'] .sp-tbl-children { background: #0B0F1A !important; border-top-color: #1c2733 !important; }
         .sp-tbl-detail-goal {
           display: flex; align-items: flex-start; gap: 8px;
           font-size: 12.5px; font-weight: 500; color: var(--text-slate-600);
@@ -3778,6 +3779,9 @@ export default function SprintPlanComponent() {
           color: #94a3b8 !important;
           border-color: #161b22 !important;
         }
+        .sp-premium-table {
+          margin-bottom: 16px;
+        }
         .sp-premium-table .ant-table {
           background: transparent !important;
         }
@@ -3811,11 +3815,11 @@ export default function SprintPlanComponent() {
           border-bottom: none;
         }
         [data-theme='dark'] .sp-premium-table .ant-table-tbody > tr > td {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-bottom-color: #1f2937 !important;
         }
         [data-theme='dark'] .sp-premium-table .ant-table-tbody > tr:hover > td {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .sp-premium-table .ant-pagination {
           margin: 0 !important;
@@ -5002,7 +5006,7 @@ export default function SprintPlanComponent() {
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
         .sp-sidebar {
-          background: var(--bg-secondary);
+          background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200) !important;
           position: sticky;
           top: 0;
@@ -5062,7 +5066,7 @@ export default function SprintPlanComponent() {
           padding: 10px 10px 6px 16px;
         }
         [data-theme='dark'] .sp-sidebar {
-          background: #0f1419 !important;
+          background: #0B0F1A !important;
           border-right-color: #1f2937 !important;
         }
         .sp-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -5365,14 +5369,13 @@ export default function SprintPlanComponent() {
           position: sticky;
           top: 0;
           z-index: 20;
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(12px);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           margin: -24px -24px 16px -21px;
           border-left: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-main-topbar {
-          background: rgba(15, 20, 25, 0.85);
+          background: #0B0F1A !important;
           border-bottom-color: #1f2937;
         }
         .sp-main-search {
@@ -5692,7 +5695,7 @@ export default function SprintPlanComponent() {
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme='dark'] .sp-card-pagination {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-top-color: #1f2937 !important;
         }
 
@@ -5702,7 +5705,7 @@ export default function SprintPlanComponent() {
         .sp-card-pagination .ant-pagination-next .ant-pagination-item-link {
           border: 1px solid var(--border-slate-200) !important;
           border-radius: 6px !important;
-          background: transparent !important;
+          background: var(--bg-pure-white) !important;
           color: var(--text-slate-500) !important;
         }
         .sp-card-pagination .ant-pagination-item-active {

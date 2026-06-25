@@ -374,234 +374,234 @@ export default function OverviewPage() {
     <>
       <div className="org-ov-shell">
         <TimeTrackingHeader
-            icon={<Layout size={20} color="#3b82f6" />}
-            title="Organization Overview"
-            description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
-            style={{
-              borderBottom: '1px solid var(--border-slate-200)',
-              padding: '9px 32px',
-              marginBottom: 14,
-              position: 'sticky',
-              top: 0,
-              zIndex: 100,
-            }}
-            extra={
-              <Space size={12} align="center">
-                {canReadActivityLog && (
-                  <Button
-                    icon={<History size={15} />}
-                    onClick={() => setHistoryOpen(true)}
-                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)" }}
-                  >
-                    History
-                  </Button>
-                )}
-                <Tag className="org-ov-header-chip" style={{ margin: 0 }}>
-                  <ShieldCheck size={12} />
-                  {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
-                </Tag>
-              </Space>
-            }
-          />
+          icon={<Layout size={20} color="#3b82f6" />}
+          title="Organization Overview"
+          description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
+          style={{
+            borderBottom: '1px solid var(--border-slate-200)',
+            padding: '9px 32px',
+            marginBottom: 14,
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+          }}
+          extra={
+            <Space size={12} align="center">
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)" }}
+                >
+                  History
+                </Button>
+              )}
+              <Tag className="org-ov-header-chip" style={{ margin: 0 }}>
+                <ShieldCheck size={12} />
+                {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
+              </Tag>
+            </Space>
+          }
+        />
 
-          <div className="org-ov-content">
-            {/* Stats overview */}
-            <div className="org-ov-stat-grid">
-              <StatCard
-                label="Grades"
-                value={orgStats.grades}
-                icon={<ShieldCheck size={15} />}
-                trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.grades)}
-                loading={loading && orgStats.grades === 0}
-              />
-              <StatCard
-                label="Departments"
-                value={orgStats.departments}
-                icon={<Building2 size={15} />}
-                trend={stylizedTrend([0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0], orgStats.departments)}
-                loading={loading && orgStats.departments === 0}
-              />
-              <StatCard
-                label="Sub-Departments"
-                value={orgStats.subDepartments}
-                icon={<Layers size={15} />}
-                trend={stylizedTrend([0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0], orgStats.subDepartments)}
-                loading={loading && orgStats.subDepartments === 0}
-              />
-              <StatCard
-                label="Positions"
-                value={orgStats.positions}
-                icon={<User size={15} />}
-                trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.positions)}
-                highlight
-                loading={loading && orgStats.positions === 0}
-              />
-            </div>
+        <div className="org-ov-content">
+          {/* Stats overview */}
+          <div className="org-ov-stat-grid">
+            <StatCard
+              label="Grades"
+              value={orgStats.grades}
+              icon={<ShieldCheck size={15} />}
+              trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.grades)}
+              loading={loading && orgStats.grades === 0}
+            />
+            <StatCard
+              label="Departments"
+              value={orgStats.departments}
+              icon={<Building2 size={15} />}
+              trend={stylizedTrend([0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0], orgStats.departments)}
+              loading={loading && orgStats.departments === 0}
+            />
+            <StatCard
+              label="Sub-Departments"
+              value={orgStats.subDepartments}
+              icon={<Layers size={15} />}
+              trend={stylizedTrend([0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0], orgStats.subDepartments)}
+              loading={loading && orgStats.subDepartments === 0}
+            />
+            <StatCard
+              label="Positions"
+              value={orgStats.positions}
+              icon={<User size={15} />}
+              trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.positions)}
+              highlight
+              loading={loading && orgStats.positions === 0}
+            />
+          </div>
 
-            {/* Body — two columns */}
-            <Row gutter={20} className="org-ov-body">
-              {/* Grade Selector */}
-              <Col xs={24} lg={9} xl={8}>
+          {/* Body — two columns */}
+          <Row gutter={20} className="org-ov-body">
+            {/* Grade Selector */}
+            <Col xs={24} lg={9} xl={8}>
+              <div className="org-ov-panel">
+                <div className="org-ov-panel__header">
+                  <div className="org-ov-panel__icon is-blue">
+                    <ShieldCheck size={14} />
+                  </div>
+                  <div className="org-ov-panel__text">
+                    <div className="org-ov-panel__title">Grade Distribution</div>
+                    <div className="org-ov-panel__sub">
+                      Overview of {grades.length} organizational level{grades.length === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="org-ov-panel__body org-ov-scroll">
+                  {gradesLoading || positionsLoading ? (
+                    <div style={{ padding: 16 }}>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} active paragraph={{ rows: 1 }} style={{ marginBottom: 16 }} />
+                      ))}
+                    </div>
+                  ) : grades.length === 0 ? (
+                    <div className="org-ov-empty">
+                      <ShieldCheck size={28} className="org-ov-empty__icon" />
+                      <div className="org-ov-empty__title">No grades defined</div>
+                      <div className="org-ov-empty__sub">
+                        Add grade levels in the Grades configuration page.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="org-ov-grade-list">
+                      {grades.map((item) => {
+                        const isActive = activeStep === item.key;
+                        const stats = getGradeStats(item.key);
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setActiveStep(item.key)}
+                            className={`org-ov-grade${isActive ? ' is-active' : ''}`}
+                          >
+                            <span className="org-ov-grade__accent" />
+                            <div className="org-ov-grade__name-block">
+                              <span className="org-ov-grade__name">{item.name}</span>
+                              <span className="org-ov-grade__code">{item.code}</span>
+                            </div>
+                            <div className="org-ov-grade__stats">
+                              <span className="org-ov-grade__stat">
+                                <span className="org-ov-grade__stat-value">{stats.positions}</span>
+                                <span className="org-ov-grade__stat-label">POS</span>
+                              </span>
+                              <span className="org-ov-grade__stat">
+                                <span className="org-ov-grade__stat-value">{stats.departments}</span>
+                                <span className="org-ov-grade__stat-label">DEPT</span>
+                              </span>
+                              <span className="org-ov-grade__stat">
+                                <span className="org-ov-grade__stat-value">{stats.subDepartments}</span>
+                                <span className="org-ov-grade__stat-label">SUB</span>
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Col>
+
+            {/* Hierarchy Tree */}
+            <Col xs={24} lg={15} xl={16}>
+              {selectedGrade ? (
                 <div className="org-ov-panel">
                   <div className="org-ov-panel__header">
-                    <div className="org-ov-panel__icon is-blue">
+                    <div className="org-ov-panel__icon is-purple">
                       <ShieldCheck size={14} />
                     </div>
                     <div className="org-ov-panel__text">
-                      <div className="org-ov-panel__title">Grade Distribution</div>
+                      <div className="org-ov-panel__title">Hierarchy Visualization</div>
                       <div className="org-ov-panel__sub">
-                        Overview of {grades.length} organizational level{grades.length === 1 ? '' : 's'}
+                        Mapping for <strong>{selectedGrade.name}</strong> · {filteredCount} position
+                        {filteredCount === 1 ? '' : 's'}
+                        {treeSearch && ` matching "${treeSearch}"`}
                       </div>
+                    </div>
+                    <div className="org-ov-legend">
+                      <span className="org-ov-legend__item">
+                        <span className="org-ov-legend__dot is-cyan" />
+                        DEPT
+                      </span>
+                      <span className="org-ov-legend__item">
+                        <span className="org-ov-legend__dot is-orange" />
+                        SUB
+                      </span>
+                      <span className="org-ov-legend__item">
+                        <span className="org-ov-legend__dot is-purple" />
+                        POS
+                      </span>
                     </div>
                   </div>
 
-                  <div className="org-ov-panel__body org-ov-scroll">
-                    {gradesLoading || positionsLoading ? (
-                      <div style={{ padding: 16 }}>
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <Skeleton key={i} active paragraph={{ rows: 1 }} style={{ marginBottom: 16 }} />
-                        ))}
-                      </div>
-                    ) : grades.length === 0 ? (
+                  {/* Search */}
+                  <div className="org-ov-panel__toolbar">
+                    <Input
+                      className="org-ov-search"
+                      prefix={
+                        <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />
+                      }
+                      placeholder="Search position, department, or sub-department…"
+                      value={treeSearch}
+                      onChange={(e) => setTreeSearch(e.target.value)}
+                      allowClear
+                    />
+                  </div>
+
+                  <div className="org-ov-panel__body org-ov-scroll org-ov-tree-wrap">
+                    {treeData.length > 0 && treeData[0]?.children?.length === 0 ? (
                       <div className="org-ov-empty">
-                        <ShieldCheck size={28} className="org-ov-empty__icon" />
-                        <div className="org-ov-empty__title">No grades defined</div>
+                        <Search size={28} className="org-ov-empty__icon" />
+                        <div className="org-ov-empty__title">
+                          {treeSearch ? 'No matches' : 'No structure yet'}
+                        </div>
                         <div className="org-ov-empty__sub">
-                          Add grade levels in the Grades configuration page.
+                          {treeSearch
+                            ? 'Try a different keyword or clear the filter.'
+                            : 'No departments or positions assigned to this grade.'}
                         </div>
                       </div>
                     ) : (
-                      <div className="org-ov-grade-list">
-                        {grades.map((item) => {
-                          const isActive = activeStep === item.key;
-                          const stats = getGradeStats(item.key);
-                          return (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() => setActiveStep(item.key)}
-                              className={`org-ov-grade${isActive ? ' is-active' : ''}`}
-                            >
-                              <span className="org-ov-grade__accent" />
-                              <div className="org-ov-grade__name-block">
-                                <span className="org-ov-grade__name">{item.name}</span>
-                                <span className="org-ov-grade__code">{item.code}</span>
-                              </div>
-                              <div className="org-ov-grade__stats">
-                                <span className="org-ov-grade__stat">
-                                  <span className="org-ov-grade__stat-value">{stats.positions}</span>
-                                  <span className="org-ov-grade__stat-label">POS</span>
-                                </span>
-                                <span className="org-ov-grade__stat">
-                                  <span className="org-ov-grade__stat-value">{stats.departments}</span>
-                                  <span className="org-ov-grade__stat-label">DEPT</span>
-                                </span>
-                                <span className="org-ov-grade__stat">
-                                  <span className="org-ov-grade__stat-value">{stats.subDepartments}</span>
-                                  <span className="org-ov-grade__stat-label">SUB</span>
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <HierarchyTree
+                        nodes={treeData}
+                        expanded={expandedKeys}
+                        onToggle={(key) =>
+                          setExpandedKeys((prev) =>
+                            prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+                          )
+                        }
+                      />
                     )}
                   </div>
                 </div>
-              </Col>
-
-              {/* Hierarchy Tree */}
-              <Col xs={24} lg={15} xl={16}>
-                {selectedGrade ? (
-                  <div className="org-ov-panel">
-                    <div className="org-ov-panel__header">
-                      <div className="org-ov-panel__icon is-purple">
-                        <ShieldCheck size={14} />
-                      </div>
-                      <div className="org-ov-panel__text">
-                        <div className="org-ov-panel__title">Hierarchy Visualization</div>
-                        <div className="org-ov-panel__sub">
-                          Mapping for <strong>{selectedGrade.name}</strong> · {filteredCount} position
-                          {filteredCount === 1 ? '' : 's'}
-                          {treeSearch && ` matching "${treeSearch}"`}
-                        </div>
-                      </div>
-                      <div className="org-ov-legend">
-                        <span className="org-ov-legend__item">
-                          <span className="org-ov-legend__dot is-cyan" />
-                          DEPT
-                        </span>
-                        <span className="org-ov-legend__item">
-                          <span className="org-ov-legend__dot is-orange" />
-                          SUB
-                        </span>
-                        <span className="org-ov-legend__item">
-                          <span className="org-ov-legend__dot is-purple" />
-                          POS
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Search */}
-                    <div className="org-ov-panel__toolbar">
-                      <Input
-                        className="org-ov-search"
-                        prefix={
-                          <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />
-                        }
-                        placeholder="Search position, department, or sub-department…"
-                        value={treeSearch}
-                        onChange={(e) => setTreeSearch(e.target.value)}
-                        allowClear
-                      />
-                    </div>
-
-                    <div className="org-ov-panel__body org-ov-scroll org-ov-tree-wrap">
-                      {treeData.length > 0 && treeData[0]?.children?.length === 0 ? (
-                        <div className="org-ov-empty">
-                          <Search size={28} className="org-ov-empty__icon" />
-                          <div className="org-ov-empty__title">
-                            {treeSearch ? 'No matches' : 'No structure yet'}
-                          </div>
-                          <div className="org-ov-empty__sub">
-                            {treeSearch
-                              ? 'Try a different keyword or clear the filter.'
-                              : 'No departments or positions assigned to this grade.'}
-                          </div>
-                        </div>
-                      ) : (
-                        <HierarchyTree
-                          nodes={treeData}
-                          expanded={expandedKeys}
-                          onToggle={(key) =>
-                            setExpandedKeys((prev) =>
-                              prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-                            )
-                          }
-                        />
-                      )}
+              ) : (
+                <div className="org-ov-panel">
+                  <div className="org-ov-empty org-ov-empty--full">
+                    <Layout size={40} className="org-ov-empty__icon" />
+                    <div className="org-ov-empty__title">Select a grade level</div>
+                    <div className="org-ov-empty__sub">
+                      Pick a grade from the left to visualize its hierarchy.
                     </div>
                   </div>
-                ) : (
-                  <div className="org-ov-panel">
-                    <div className="org-ov-empty org-ov-empty--full">
-                      <Layout size={40} className="org-ov-empty__icon" />
-                      <div className="org-ov-empty__title">Select a grade level</div>
-                      <div className="org-ov-empty__sub">
-                        Pick a grade from the left to visualize its hierarchy.
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Col>
-            </Row>
-          </div>
+                </div>
+              )}
+            </Col>
+          </Row>
         </div>
-        <TransactionHistoryDrawer
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          module="OrgStructure"
-        />
+      </div>
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        module="OrgStructure"
+      />
       <style jsx global>{`
         /* Document-Hub style stat cards (minimal, mostly grey, one accent) */
         .org-ov-dh-card {

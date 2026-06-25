@@ -3,23 +3,23 @@
 // touch the global theme.
 export const hivebugStyles = `
 .hb-root {
-  --hb-bg: #070a12;
-  --hb-bg-elev: #0a0f1c;
-  --hb-bg-soft: #0f1524;
-  --hb-bg-hover: #141b2c;
-  --hb-bg-active: #1a2540;
-  --hb-border: #1a2030;
-  --hb-border-strong: #232a3c;
-  --hb-text: #e6e8ee;
-  --hb-text-soft: #aab1bd;
-  --hb-text-muted: #6f7684;
-  --hb-accent: #5b9bff;
-  --hb-accent-fg: #070a12;
-  --hb-danger: #ff5a4e;
-  --hb-success: #3fbf8f;
-  --hb-warning: #3b82f6;
-  --hb-bg-elev-rgb: 10, 15, 28;
-  --hb-accent-rgb: 91, 155, 255;
+  --hb-bg: #0B0F1A;
+  --hb-bg-elev: #0B0F1A;
+  --hb-bg-soft: #161B22;
+  --hb-bg-hover: #1F2937;
+  --hb-bg-active: rgba(59, 130, 246, 0.15);
+  --hb-border: #1F2937;
+  --hb-border-strong: #1F2937;
+  --hb-text: #F1F5F9;
+  --hb-text-soft: #94A3B8;
+  --hb-text-muted: #64748B;
+  --hb-accent: #3b82f6;
+  --hb-accent-fg: #ffffff;
+  --hb-danger: #ef4444;
+  --hb-success: #10b981;
+  --hb-warning: #f59e0b;
+  --hb-bg-elev-rgb: 11, 15, 26;
+  --hb-accent-rgb: 59, 130, 246;
 
   display: flex;
   height: calc(100vh - 54px);
@@ -200,6 +200,14 @@ export const hivebugStyles = `
   font-weight: 600;
   letter-spacing: 0.01em;
   border-radius: 8px;
+  background: #3B82F6 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.hb-sidebar-new-bug-btn:hover {
+  background: #2563EB !important;
+  color: #ffffff !important;
 }
 .hb-brand-icon {
   width: 26px; height: 26px;

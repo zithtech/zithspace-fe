@@ -655,17 +655,17 @@ export default function InvoiceNewinvoicePage() {
       ProjectService.getProjectsForSelect(selectedCustomerId)
         .then((projects) => {
           setCustomerProjects(projects);
-          
+
           const isCustomerChanged = prevCustomerId !== undefined && prevCustomerId !== selectedCustomerId;
-          
+
           if (projects.length === 1) {
             const singleProj = projects[0];
-            
+
             // Auto-select project at invoice level if not set or if customer changed
             if (!form.getFieldValue("projectId") || isCustomerChanged) {
               form.setFieldValue("projectId", singleProj.value);
             }
-            
+
             // Also update all existing line items to use this project
             const items = form.getFieldValue("lineItems") || [];
             const updatedItems = items.map((item: any) => {
@@ -681,7 +681,7 @@ export default function InvoiceNewinvoicePage() {
           } else if (isCustomerChanged) {
             form.setFieldValue("projectId", undefined);
           }
-          
+
           setPrevCustomerId(selectedCustomerId);
         })
         .catch((error) => {
@@ -760,7 +760,7 @@ export default function InvoiceNewinvoicePage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 py-3 lg:py-0 min-h-[56px] lg:h-14 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
+          <div className="px-8 py-2 lg:py-0 min-h-[48px] lg:h-12 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
@@ -838,7 +838,7 @@ export default function InvoiceNewinvoicePage() {
                   <FileText size={12} strokeWidth={2.25} />
                 </div>
                 <span
-                  className="hidden sm:block ml-2 mr-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                  className="hidden sm:flex items-center mb-[2px] ml-2 mr-1 text-[13px] font-semibold"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Template
@@ -981,9 +981,9 @@ export default function InvoiceNewinvoicePage() {
                 className="col-span-12 lg:col-span-3 lg:border-r lg:pr-7"
                 style={{ borderColor: "var(--border-color)" }}
               >
-                <div className="lg:sticky lg:top-14 lg:pt-6 lg:pb-12 space-y-6">
+                <div className="lg:sticky lg:top-12 lg:pt-3 lg:pb-6 space-y-2">
                   {/* From */}
-                  <div className="pt-1">
+                  <div className="pt-0">
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1006,7 +1006,7 @@ export default function InvoiceNewinvoicePage() {
                       <Form.Item
                         name="settingsProfileId"
                         rules={[{ required: true, message: "Please select a profile" }]}
-                        style={{ marginBottom: 12, marginTop: 10 }}
+                        style={{ marginBottom: 8, marginTop: 6 }}
                       >
                         <Select
                           placeholder="Select issuer profile"
@@ -1104,7 +1104,7 @@ export default function InvoiceNewinvoicePage() {
                       <Form.Item
                         name="customer_id"
                         rules={[{ required: true, message: "Please select a customer" }]}
-                        style={{ marginBottom: 12, marginTop: 10 }}
+                        style={{ marginBottom: 8, marginTop: 6 }}
                       >
                         <Select
                           placeholder="Select customer"
@@ -1203,7 +1203,7 @@ export default function InvoiceNewinvoicePage() {
                     )}
 
                     {/* Project dropdown */}
-                    <div className="mt-4">
+                    <div className="mt-2">
                       <div className="flex items-center gap-2 mb-2">
                         <span
                           className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1231,8 +1231,8 @@ export default function InvoiceNewinvoicePage() {
                             !selectedCustomerId
                               ? "Select customer first"
                               : loadingProjects
-                              ? "Loading projects..."
-                              : "Select project (optional)"
+                                ? "Loading projects..."
+                                : "Select project (optional)"
                           }
                           loading={loadingProjects}
                           disabled={!selectedCustomerId}
@@ -1257,7 +1257,7 @@ export default function InvoiceNewinvoicePage() {
 
                   {/* divider */}
                   <div
-                    className="h-px"
+                    className="h-px mt-1"
                     style={{ background: "var(--border-color)" }}
                   />
 
@@ -1455,10 +1455,10 @@ export default function InvoiceNewinvoicePage() {
               </aside>
 
               {/* RIGHT — line items, summary, notes */}
-              <section className="col-span-12 lg:col-span-9 space-y-5 lg:pt-6 lg:pb-12">
+              <section className="col-span-12 lg:col-span-9 space-y-3 lg:pt-6 lg:pb-6">
                 {/* Line items */}
                 <div
-                  className="rounded-2xl overflow-hidden"
+                  className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border-color)",
@@ -1486,14 +1486,14 @@ export default function InvoiceNewinvoicePage() {
 
                 {/* Summary — running totals */}
                 <div
-                  className="rounded-2xl overflow-hidden"
+                  className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border-color)",
                   }}
                 >
                   <div
-                    className="px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 border-b"
+                    className="px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b"
                     style={{ borderColor: "var(--border-color)" }}
                   >
                     <div className="flex items-center gap-2.5 flex-wrap">
@@ -1543,8 +1543,8 @@ export default function InvoiceNewinvoicePage() {
                       </div>
                     </Tooltip>
                   </div>
-                  <div className="px-4 sm:px-6 py-5 grid grid-cols-12 gap-4 sm:gap-6">
-                    <div className="col-span-12 sm:col-span-7 space-y-3">
+                  <div className="px-4 sm:px-6 py-3 grid grid-cols-12 gap-4 sm:gap-6">
+                    <div className="col-span-12 sm:col-span-7 space-y-2">
                       <div className="flex items-center justify-between text-[13px]">
                         <span style={{ color: "var(--text-secondary)" }}>
                           Subtotal
@@ -1607,7 +1607,7 @@ export default function InvoiceNewinvoicePage() {
                       </div>
                     </div>
                     <div
-                      className="col-span-12 sm:col-span-5 relative rounded-xl p-4 sm:p-5 flex flex-col justify-center overflow-hidden"
+                      className="col-span-12 sm:col-span-5 relative rounded-xl p-3 sm:p-4 flex flex-col justify-center overflow-hidden"
                       style={{
                         background:
                           "linear-gradient(135deg, var(--bg-blue-50) 0%, var(--bg-slate-50) 100%)",
@@ -1681,14 +1681,14 @@ export default function InvoiceNewinvoicePage() {
 
                 {/* Notes & terms */}
                 <div
-                  className="rounded-2xl overflow-hidden"
+                  className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border-color)",
                   }}
                 >
                   <div
-                    className="px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2 sm:gap-2.5 border-b"
+                    className="px-4 sm:px-6 py-2 flex flex-wrap items-center gap-2 sm:gap-2.5 border-b"
                     style={{ borderColor: "var(--border-color)" }}
                   >
                     <span

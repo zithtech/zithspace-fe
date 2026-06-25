@@ -1045,7 +1045,7 @@ export default function DynamicLineItems({
               onDragEnd={(e) => handleDragEnd(e, fields, move)}
             >
               {/* Toolbar */}
-              <div className="mb-0 flex flex-wrap justify-between items-center gap-y-2 bg-[var(--bg-secondary)] px-4 sm:px-6 py-3 sm:py-4 border-b border-[var(--border-color)]">
+              <div className="mb-0 flex flex-wrap justify-between items-center gap-y-2 bg-[var(--bg-secondary)] px-4 sm:px-6 py-2 border-b border-[var(--border-color)]">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1086,7 +1086,7 @@ export default function DynamicLineItems({
                     icon={<CopyOutlined style={{ fontSize: 13 }} />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDuplicateRows(fields, add)}
-                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
+                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-8 px-2.5 text-[12.5px] hover:border-slate-300 transition-all"
                   >
                     <span className="hidden sm:inline">Duplicate</span>
                   </Button>
@@ -1094,7 +1094,7 @@ export default function DynamicLineItems({
                     icon={<DeleteOutlined style={{ fontSize: 13 }} />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDeleteRows(remove, fields)}
-                    className="flex items-center gap-1 font-medium rounded-lg h-9 text-[12.5px] transition-all"
+                    className="flex items-center gap-1 font-medium rounded-lg h-8 px-2.5 text-[12.5px] transition-all"
                     style={{
                       color: selectedRowKeys.length === 0 ? undefined : '#dc2626',
                       borderColor: 'var(--border-color)',
@@ -1107,7 +1107,7 @@ export default function DynamicLineItems({
                   <Button
                     icon={<SettingOutlined style={{ fontSize: 13 }} />}
                     onClick={() => setShowAddFieldModal(true)}
-                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
+                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-8 px-2.5 text-[12.5px] hover:border-slate-300 transition-all"
                   >
                     <span className="hidden sm:inline">Customize</span>
                   </Button>
@@ -1115,7 +1115,7 @@ export default function DynamicLineItems({
                     type="primary"
                     icon={<PlusOutlined style={{ fontSize: 13 }} />}
                     onClick={() => handleAddRow(add)}
-                    className="flex items-center gap-1 font-semibold rounded-lg h-9 text-[12.5px] transition-all"
+                    className="flex items-center gap-1 font-semibold rounded-lg h-8 px-3 text-[12.5px] transition-all"
                     style={{ background: '#2563eb' }}
                   >
                     <span className="hidden sm:inline">Add row</span>
@@ -1125,7 +1125,7 @@ export default function DynamicLineItems({
 
               {/* Template Selector Removed - Now in Header */}
 
-              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-[var(--border-color)] border-t-0 shadow-sm relative">
+              <div className="overflow-x-auto custom-scrollbar border border-[var(--border-color)] border-t-0 shadow-sm relative">
                 <table className="w-full border-collapse bg-[var(--bg-secondary)] min-w-max border-hidden">
                   <thead>
                     <SortableContext items={activeColumns.map(c => c.key)} strategy={horizontalListSortingStrategy}>

@@ -16,8 +16,10 @@ import {
   InfoCircleOutlined,
   FilterOutlined,
   CloseCircleOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, {
   AdjustmentKind,
@@ -51,7 +53,7 @@ const ENTRY_LABEL: Record<string, string> = {
 };
 
 export default function LeaveAdjustmentPanel() {
-  const { canReadLeaveAdjustment, canCreateLeaveAdjustment } = usePermission();
+  const { canReadLeaveAdjustment, canCreateLeaveAdjustment, canDeleteLeaveAdjustment } = usePermission();
 
   const [rows, setRows] = useState<LeaveAdjustment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,6 +179,17 @@ export default function LeaveAdjustmentPanel() {
     }
   };
 
+  const remove = async (r: LeaveAdjustment) => {
+    try {
+      const res = await LeaveV2Service.deleteAdjustment(r.id);
+      message.success(`Adjustment removed — new balance ${res.newBalance}`);
+      await load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to delete adjustment');
+      throw err; // keep the confirm popover open on failure
+    }
+  };
+
   const fmt = (d: string) => dayjs(d).format('MMM D, YYYY');
 
   const columns: ColumnsType<LeaveAdjustment> = [
@@ -210,6 +223,25 @@ export default function LeaveAdjustmentPanel() {
     { title: 'Note', dataIndex: 'note', key: 'note', render: (v) => <span style={{ color: 'var(--text-slate-600)' }}>{v || '—'}</span> },
     { title: 'Effective', dataIndex: 'effectiveDate', key: 'eff', render: (v) => <span style={{ color: 'var(--text-slate-500)' }}>{fmt(v)}</span> },
     { title: 'Applied', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span style={{ color: 'var(--text-slate-400)' }}>{fmt(v)}</span> },
+    ...(canDeleteLeaveAdjustment ? [{
+      title: '',
+      key: 'actions',
+      width: 48,
+      align: 'right' as const,
+      render: (_: unknown, r: LeaveAdjustment) => (
+        <ConfirmDialog
+          tone="danger"
+          icon={<DeleteOutlined />}
+          title="Delete this adjustment?"
+          description={`Reverses ${r.units >= 0 ? `+${r.units}` : r.units} day(s) for ${r.userName} on ${r.leaveTypeName}. The balance is recalculated.`}
+          confirmText="Delete"
+          placement="bottomRight"
+          onConfirm={() => remove(r)}
+        >
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} />
+        </ConfirmDialog>
+      ),
+    }] : []),
   ];
 
   if (!canReadLeaveAdjustment) {

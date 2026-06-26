@@ -47,6 +47,8 @@ import {
 import { Sparkles, Mail } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
+import SaveAsTemplateModal from '@/components/proposals/SaveAsTemplateModal';
 import { userService } from '@/services/userService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -174,6 +176,65 @@ export default function ProposalsListPage() {
 
   const [messageApi, messageHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
+
+  // ─── Save proposal as template ──────────────────────────────────────────────
+  const createTemplate = useProposalLibraryStore((s) => s.createTemplate);
+  const [tplProposal, setTplProposal] = useState<any | null>(null);
+  const [tplName, setTplName] = useState('');
+  const [tplDesc, setTplDesc] = useState('');
+  const [tplSaving, setTplSaving] = useState(false);
+
+  const openSaveAsTemplate = async (p: any) => {
+    setTplProposal(p);
+    setTplName(`${resolveTitle(p) || 'Proposal'} Template`);
+    setTplDesc('');
+    // The list payload omits blocks_data (kept light) — fetch the full proposal
+    // so we can save its real content as the template.
+    if (p?.blocks_data == null) {
+      try {
+        const resp: any = await ProposalService.getProposalById(p.id);
+        const full = resp?.data || resp;
+        if (full?.blocks_data != null) {
+          setTplProposal((prev: any) => (prev && prev.id === full.id ? { ...prev, blocks_data: full.blocks_data } : prev));
+        }
+      } catch {
+        /* persist will warn if content is still missing */
+      }
+    }
+  };
+
+  const tplBlockCount = useMemo(() => {
+    if (!tplProposal) return 0;
+    try {
+      const b = typeof tplProposal.blocks_data === 'string' ? JSON.parse(tplProposal.blocks_data) : (tplProposal.blocks_data || []);
+      return Array.isArray(b) ? b.length : 0;
+    } catch { return 0; }
+  }, [tplProposal]);
+
+  const persistProposalAsTemplate = async () => {
+    if (!tplProposal) return;
+    if (!tplName.trim()) { messageApi.warning('Give the template a name'); return; }
+    let blocks: any[] = [];
+    try {
+      blocks = typeof tplProposal.blocks_data === 'string'
+        ? JSON.parse(tplProposal.blocks_data)
+        : (tplProposal.blocks_data || []);
+    } catch { blocks = []; }
+    if (!Array.isArray(blocks) || blocks.length === 0) {
+      messageApi.warning('This proposal has no content to save as a template.');
+      return;
+    }
+    setTplSaving(true);
+    try {
+      await createTemplate({ name: tplName.trim(), description: tplDesc, blocks });
+      messageApi.success('Saved as template');
+      setTplProposal(null);
+    } catch (err: any) {
+      messageApi.error(err?.message || 'Failed to save template');
+    } finally {
+      setTplSaving(false);
+    }
+  };
 
   // ─── Persisted local UI state (starred + recents) ───────────────────────────
   useEffect(() => {
@@ -527,6 +588,7 @@ export default function ProposalsListPage() {
     items: [
       { key: 'view', label: menuLabel('View proposal', 'Open the full view', <EyeOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { key: 'edit', disabled: !canUpdateProposal, label: menuLabel('Edit', 'Open in the builder', <EditOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
+      { key: 'template', disabled: !canCreateProposal, label: menuLabel('Save as Template', 'Reuse this layout', <SnippetsOutlined />, '#059669', 'rgba(5,150,105,0.12)') },
       { type: 'divider' as const },
       { key: 'pdf', label: menuLabel('Export PDF', 'Download as .pdf', <FilePdfOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
       { key: 'word', label: menuLabel('Export Word', 'Download as .docx', <FileWordOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
@@ -567,6 +629,7 @@ export default function ProposalsListPage() {
       domEvent.stopPropagation();
       if (key === 'view') openProposal(p);
       else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
+      else if (key === 'template') openSaveAsTemplate(p);
       else if (key === 'pdf') handleExport(p.id, 'pdf');
       else if (key === 'word') handleExport(p.id, 'word');
     },
@@ -1084,6 +1147,19 @@ export default function ProposalsListPage() {
           onClose={() => setPreviewProposal(null)}
           canEdit={canUpdateProposal}
           proposal={previewProposal ? { id: previewProposal.id, title: resolveTitle(previewProposal), client_name: previewProposal.client_name } : null}
+        />
+
+        <SaveAsTemplateModal
+          open={!!tplProposal}
+          variant="save"
+          blockCount={tplBlockCount}
+          name={tplName}
+          onNameChange={setTplName}
+          description={tplDesc}
+          onDescriptionChange={setTplDesc}
+          saving={tplSaving}
+          onCancel={() => setTplProposal(null)}
+          onSave={persistProposalAsTemplate}
         />
 
         <style jsx global>{`

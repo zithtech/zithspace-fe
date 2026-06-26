@@ -49,6 +49,7 @@ import {
   Megaphone,
   Sparkles,
   Settings2,
+  Zap,
   // ADMIN
   Building2,
   Settings,
@@ -172,7 +173,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/squad", "/time-tracking"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -523,6 +524,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.LEAD_TRASH_READ,
           },
         ],
+      },
+      {
+        key: "/bidiq",
+        label: "BidIq",
+        icon: I(Zap),
+        path: "/bidiq",
+        requiredPermission: Permissions.BIDIQ_READ,
       },
     ],
   },

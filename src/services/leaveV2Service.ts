@@ -426,6 +426,11 @@ export const LeaveV2Service = {
     return unwrap<{ added: number; skipped: number }>(res.data);
   },
 
+  async removeCatalogHolidays(catalogIds: string[]): Promise<{ removed: number; missing: number }> {
+    const res = await apiClient.post(`${BASE}/holidays/catalog/remove`, { catalogIds });
+    return unwrap<{ removed: number; missing: number }>(res.data);
+  },
+
   // ── Leave Adjustments ──────────────────────────────────────────────────────
   async listAdjustments(): Promise<LeaveAdjustment[]> {
     const res = await apiClient.get(`${BASE}/adjustments`);
@@ -445,6 +450,11 @@ export const LeaveV2Service = {
   async createAdjustment(input: CreateAdjustmentInput): Promise<{ entry: LeaveAdjustment; newBalance: number }> {
     const res = await apiClient.post(`${BASE}/adjustments`, input);
     return unwrap<{ entry: LeaveAdjustment; newBalance: number }>(res.data);
+  },
+
+  async deleteAdjustment(id: string): Promise<{ id: string; newBalance: number }> {
+    const res = await apiClient.delete(`${BASE}/adjustments/${id}`);
+    return unwrap<{ id: string; newBalance: number }>(res.data);
   },
 
   // ── Approvals (manager) ────────────────────────────────────────────────────

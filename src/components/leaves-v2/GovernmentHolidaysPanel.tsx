@@ -14,8 +14,10 @@ import {
   AppstoreAddOutlined,
   FilterOutlined,
   CloseCircleOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, { CatalogHoliday, HolidayType } from '@/services/leaveV2Service';
 
@@ -34,7 +36,7 @@ const TYPE_OPTIONS: { value: HolidayType; label: string }[] = [
 ];
 
 export default function GovernmentHolidaysPanel() {
-  const { canReadLeaveHoliday, canCreateLeaveHoliday } = usePermission();
+  const { canReadLeaveHoliday, canCreateLeaveHoliday, canDeleteLeaveHoliday } = usePermission();
 
   const [countries, setCountries] = useState<string[]>([]);
   const [country, setCountry] = useState<string>('IN');
@@ -104,6 +106,18 @@ export default function GovernmentHolidaysPanel() {
     }
   };
 
+  const removeAdded = async (r: CatalogHoliday) => {
+    try {
+      const res = await LeaveV2Service.removeCatalogHolidays([r.id]);
+      if (res.removed > 0) message.success(`Removed "${r.name}" from your holidays`);
+      else message.info('Holiday was not in your list');
+      await load(country);
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to remove holiday');
+      throw err; // keep the confirm popover open on failure
+    }
+  };
+
   const fmt = (d: string) => dayjs(d).format('ddd, MMM D, YYYY');
 
   const columns: ColumnsType<CatalogHoliday> = [
@@ -119,6 +133,28 @@ export default function GovernmentHolidaysPanel() {
             : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: PALETTE.green }}><GlobalOutlined /> All India</span>,
     },
     { title: 'Status', key: 'status', render: (_, r) => (r.added ? <Tag color="green">In your list</Tag> : <Tag>Not added</Tag>) },
+    ...(canDeleteLeaveHoliday ? [{
+      title: '',
+      key: 'actions',
+      width: 48,
+      align: 'right' as const,
+      render: (_: unknown, r: CatalogHoliday) =>
+        r.added ? (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined />}
+            title="Remove from your holidays?"
+            description={`"${r.name}" will be removed from your calendar. You can add it again from the catalog anytime.`}
+            confirmText="Remove"
+            placement="bottomRight"
+            onConfirm={() => removeAdded(r)}
+          >
+            <Tooltip title="Remove from your list">
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+            </Tooltip>
+          </ConfirmDialog>
+        ) : null,
+    }] : []),
   ];
 
   if (!canReadLeaveHoliday) {

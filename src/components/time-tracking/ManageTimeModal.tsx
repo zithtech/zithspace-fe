@@ -59,7 +59,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
 
   const { data: userTicketsResponse, isLoading: loadingTickets } = useQuery({
     queryKey: ['user-tickets', selectedUserId],
-    queryFn: () => TicketService.getTickets({ assigneeId: selectedUserId, limit: 1000 }),
+    queryFn: () => TicketService.getTickets({ assigneeId: selectedUserId, limit: 1000, sprintId: 'active' }),
     enabled: !!selectedUserId
   });
 

@@ -288,6 +288,11 @@ export const Permissions = {
   LEAD_TRASH_RESTORE:  'lead.trash.restore',
   LEAD_TRASH_DELETE:   'lead.trash.delete',
   LEAD_MANAGE: 'lead.manage', // lead distribution rules, source tracking, and conversion triggers
+
+  // BidIq — AI lead intelligence (read = see the BidIq menu/list, create = run analysis)
+  BIDIQ_READ:   'bidiq.read',
+  BIDIQ_CREATE: 'bidiq.create',
+
   PROPOSAL_CREATE: 'proposal.create',
   PROPOSAL_READ:   'proposal.read',
   PROPOSAL_UPDATE: 'proposal.update',

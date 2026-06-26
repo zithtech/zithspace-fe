@@ -303,6 +303,10 @@ export const usePermission = () => {
     canDeleteLeadTrash:   hasPermission(Permissions.LEAD_TRASH_DELETE),
     canManageLeads: hasPermission(Permissions.LEAD_MANAGE),
 
+    // ─── BidIq (AI lead intelligence) ───────────────────────────────
+    canReadBidiq:   hasPermission(Permissions.BIDIQ_READ),
+    canCreateBidiq: hasPermission(Permissions.BIDIQ_CREATE),
+
     // ─── Proposals ──────────────────────────────────────────────────
     canCreateProposal: hasPermission(Permissions.PROPOSAL_CREATE),
     canReadProposal:   hasPermission(Permissions.PROPOSAL_READ),

@@ -93,6 +93,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   daily_update: "Daily Updates",
   squad: "Squad Management",
   lead: "Lead Management",
+  bidiq: "BidIq",
   proposal: "Proposals",
   vendor: "Vendors",
   escalation: "Escalations",

@@ -841,6 +841,13 @@ export default function SprintPlanComponent() {
                     const count = projectCounts.map.get(proj.value) || 0;
                     const active = tableFilters.projectId === proj.value;
                     const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                    // Initials: first letter of the first two words, or the
+                    // first two letters when the name is a single word.
+                    const words = (proj.label || '').trim().split(/\s+/).filter(Boolean);
+                    const initials = (words.length > 1
+                      ? words[0][0] + words[1][0]
+                      : (words[0] || '?').slice(0, 2)
+                    ).toUpperCase();
                     return (
                       <button
                         key={proj.value}
@@ -848,8 +855,8 @@ export default function SprintPlanComponent() {
                         onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
                         title={proj.label}
                       >
-                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color: `${color}70`, borderColor: `${color}33` }}>
-                          <ProjectOutlined style={{ fontSize: 11 }} />
+                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}1A`, color: color, borderColor: `${color}3D`, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                          {initials}
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
                         <span className="sp-sidebar-item-count">{count}</span>

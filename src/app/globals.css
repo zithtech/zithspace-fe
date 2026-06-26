@@ -1847,6 +1847,165 @@ select:-webkit-autofill:focus {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* ============================================
+   Premium Sidebar Flyout (collapsed submenu popup)
+   Rendered in a portal on <body>, so styled globally.
+   ============================================ */
+.sidebar-flyout-popup.ant-menu-submenu-popup {
+  /* breathing room between the icon rail and the flyout card */
+  padding-left: 8px;
+}
+
+.sidebar-flyout-popup .ant-menu.ant-menu-vertical,
+.sidebar-flyout-popup .ant-menu.ant-menu-sub {
+  min-width: 220px;
+  padding: 0;
+  border-radius: 0;
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  box-shadow:
+    0 16px 40px -12px rgba(15, 23, 42, 0.22),
+    0 4px 10px -4px rgba(15, 23, 42, 0.10);
+  overflow: hidden;
+  animation: sidebar-flyout-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sidebar-flyout-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Group header = parent menu name — bold header band */
+.sidebar-flyout-popup .ant-menu-item-group-title {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #0F172A;
+  padding: 11px 14px 11px 16px;
+  margin: 0;
+  line-height: 1.2;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--premium-blue) 5%, var(--surface-light)) 0%,
+    var(--surface-light) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+/* accent bar on the header band */
+.sidebar-flyout-popup .ant-menu-item-group-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #3B82F6 0%, #6366F1 100%);
+}
+
+/* list padding lives on the group list, not the card */
+.sidebar-flyout-popup .ant-menu-item-group-list {
+  padding: 6px 0;
+}
+
+/* Child links — square, full-width rows */
+.sidebar-flyout-popup .ant-menu-item {
+  width: 100% !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  margin: 1px 0 !important;
+  padding-inline: 16px !important;
+  border-radius: 0 !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary) !important;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.sidebar-flyout-popup .ant-menu-item::after {
+  display: none !important;
+}
+.sidebar-flyout-popup .ant-menu-item .nav-lucide-icon,
+.sidebar-flyout-popup .ant-menu-item .anticon {
+  width: 15px;
+  height: 15px;
+  font-size: 15px;
+}
+
+/* hover — left accent bar + wash */
+.sidebar-flyout-popup .ant-menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--premium-blue);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.sidebar-flyout-popup .ant-menu-item {
+  position: relative;
+}
+.sidebar-flyout-popup .ant-menu-item:hover {
+  background: color-mix(in srgb, var(--premium-blue) 9%, transparent) !important;
+  color: var(--premium-blue) !important;
+}
+.sidebar-flyout-popup .ant-menu-item:hover::before {
+  opacity: 1;
+}
+
+.sidebar-flyout-popup .ant-menu-item-selected {
+  background: color-mix(in srgb, var(--premium-blue) 13%, transparent) !important;
+  color: var(--premium-blue) !important;
+  font-weight: 600 !important;
+}
+.sidebar-flyout-popup .ant-menu-item-selected::before {
+  opacity: 1;
+}
+.sidebar-flyout-popup .ant-menu-item-selected .nav-lucide-icon,
+.sidebar-flyout-popup .ant-menu-item-selected .anticon,
+.sidebar-flyout-popup .ant-menu-item-selected svg {
+  color: var(--premium-blue) !important;
+}
+
+/* Dark theme */
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu.ant-menu-vertical,
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu.ant-menu-sub {
+  background: var(--surface-dark);
+  border-color: var(--border-dark);
+  box-shadow:
+    0 16px 40px -12px rgba(0, 0, 0, 0.60),
+    0 4px 10px -4px rgba(0, 0, 0, 0.45);
+}
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item-group-title {
+  color: #F8FAFC;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--premium-blue) 14%, var(--surface-dark)) 0%,
+    var(--surface-dark) 100%);
+  border-bottom-color: var(--border-dark);
+}
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item {
+  color: var(--text-secondary) !important;
+}
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item:hover {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #93C5FD !important;
+}
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item-selected {
+  background: color-mix(in srgb, var(--premium-blue) 22%, transparent) !important;
+  color: #93C5FD !important;
+}
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item-selected .nav-lucide-icon,
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item-selected .anticon,
+[data-theme='dark'] .sidebar-flyout-popup .ant-menu-item-selected svg {
+  color: #93C5FD !important;
+}
+
 /* Ticket List Item Hover Animation */
 .ticket-list-item {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;

@@ -53,6 +53,7 @@ import {
   EllipsisOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
@@ -786,18 +787,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this category?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Category?"
               description="Inactive items won't appear in new escalations."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },
@@ -861,17 +866,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this priority?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Priority?"
+              description="Inactive items won't appear in new escalations."
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },
@@ -932,17 +942,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this status?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Status?"
+              description="Inactive items won't appear in new escalations."
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },

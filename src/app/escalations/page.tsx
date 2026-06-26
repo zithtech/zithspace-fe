@@ -64,6 +64,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 dayjs.extend(relativeTime);
 
@@ -511,25 +512,92 @@ export default function EscalationListPage() {
     items: record.isDeleted || record.is_deleted ? [
       { key: 'restore', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}><HistoryOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Restore</span><span className="es-menu-desc">Restore from trash</span></span></div> },
       { type: 'divider' as const },
-      { key: 'permanent_delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete Forever</span><span className="es-menu-desc">Irreversible</span></span></div> },
+      {
+        key: 'permanent_delete',
+        danger: true,
+        disabled: !canDeleteEscalation,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Forever"
+            description="Are you sure you want to permanently delete this escalation? This action cannot be undone."
+            confirmText="Delete Forever"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handlePermanentDelete(record.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Delete Forever</span>
+                  <span className="es-menu-desc">Irreversible</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ] : [
       { key: 'view', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><AlertOutlined /></span><span className="es-menu-text"><span className="es-menu-title">View details</span><span className="es-menu-desc">Open escalation</span></span></div> },
       { key: 'edit', disabled: !canUpdateEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Edit</span><span className="es-menu-desc">Modify escalation</span></span></div> },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete</span><span className="es-menu-desc">Move to trash</span></span></div> },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteEscalation,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Escalation"
+            description="Are you sure you want to move this escalation to the trash?"
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => {
+              handleDelete(record.id);
+              setTrashEscalations(prev => [record, ...prev]);
+            }}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Delete</span>
+                  <span className="es-menu-desc">Move to trash</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'restore') {
         handleRestore(record.id);
-      } else if (key === 'permanent_delete') {
-        modal.confirm({
-          title: 'Delete Forever',
-          content: 'Are you sure you want to permanently delete this escalation? This action cannot be undone.',
-          okText: 'Delete Forever',
-          okType: 'danger',
-          onOk: () => handlePermanentDelete(record.id),
-        });
       } else if (key === 'view') {
         setSelectedEscalation(record);
         setTempStatus(record.statusId || record.status);
@@ -538,17 +606,6 @@ export default function EscalationListPage() {
       } else if (key === 'edit') {
         setEditingRecord(record);
         setEditDrawerOpen(true);
-      } else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Escalation',
-          content: 'Are you sure you want to move this escalation to the trash?',
-          okText: 'Delete',
-          okType: 'danger',
-          onOk: () => {
-            handleDelete(record.id);
-            setTrashEscalations(prev => [record, ...prev]);
-          },
-        });
       }
     },
   });

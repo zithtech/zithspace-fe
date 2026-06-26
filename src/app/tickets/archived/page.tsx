@@ -19,6 +19,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   FolderOpenOutlined,
   SearchOutlined,
@@ -284,9 +285,14 @@ export default function ArchivedTicketsPage() {
             </Popconfirm>
           )}
           {canDeleteTicket && (
-            <Popconfirm
-              title="Delete Ticket"
-              description="Move this ticket to trash?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined />}
+              title="Delete Ticket?"
+              description={`Move ${record.ticketNumber} to trash?`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={async () => {
                 try {
                   await moveToTrash([record.id]);
@@ -297,9 +303,6 @@ export default function ArchivedTicketsPage() {
                   message.error('Failed to delete ticket');
                 }
               }}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete">
                 <Button
@@ -311,7 +314,7 @@ export default function ArchivedTicketsPage() {
                   loading={isDeleting && selectedRowKeys.includes(record.id)}
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -398,18 +401,20 @@ export default function ArchivedTicketsPage() {
                   </Button>
                 )}
                 {canDeleteTicket && (
-                  <Popconfirm
-                    title="Move to Trash"
-                    description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'} to trash?`}
-                    onConfirm={handleDelete}
-                    okText="Move to Trash"
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<DeleteOutlined />}
+                    title="Move to Trash?"
+                    description={`Move ${selectedRowKeys.length} selected ticket(s) to trash?`}
+                    confirmText="Delete"
                     cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
+                    placement="bottomRight"
+                    onConfirm={handleDelete}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting}>
                       Move to Trash
                     </Button>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 )}
                 <Button
                   type="text"

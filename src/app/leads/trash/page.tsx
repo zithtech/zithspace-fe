@@ -46,6 +46,7 @@ import {
   Briefcase
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useLeads } from "@/hooks/useLeads";
 import { useAuth } from "@/context/AuthContext";
@@ -260,15 +261,38 @@ export default function LeadsTrashPage() {
         key: 'delete',
         danger: true,
         label: (
-          <div className="es-menu-item">
-            <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
-              <DeleteOutlined />
-            </span>
-            <span className="es-menu-text">
-              <span className="es-menu-title">Permanent Delete</span>
-              <span className="es-menu-desc">Irreversible</span>
-            </span>
-          </div>
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Forever"
+            description="Are you sure you want to permanently delete this lead? This action cannot be undone."
+            confirmText="Delete Forever"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handlePermanentDelete(item.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
+                  <DeleteOutlined />
+                </span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Permanent Delete</span>
+                  <span className="es-menu-desc">Irreversible</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
         )
       } : null
     ].filter(Boolean) as any,
@@ -276,15 +300,6 @@ export default function LeadsTrashPage() {
       domEvent.stopPropagation();
       if (key === 'restore') {
         handleRestore(item.id);
-      } else if (key === 'delete') {
-        modal.confirm({
-          title: 'Permanently delete lead?',
-          content: 'This action cannot be undone.',
-          okText: 'Yes, delete',
-          okButtonProps: { danger: true },
-          cancelText: 'Cancel',
-          onOk: () => handlePermanentDelete(item.id)
-        });
       }
     }
   });
@@ -390,23 +405,26 @@ export default function LeadsTrashPage() {
             </Tooltip>
           )}
           {canDeleteLeadTrash && (
-            <Popconfirm
-              title="Permanently delete lead?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<ExclamationCircleOutlined style={{ fontSize: 16 }} />}
+              title="Delete Forever"
               description="This action cannot be undone."
-              onConfirm={() => handlePermanentDelete(record.id)}
-              okText="Yes, delete"
+              confirmText="Delete Forever"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-              icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
+              placement="topRight"
+              onConfirm={() => handlePermanentDelete(record.id)}
             >
-              <Tooltip title="Permanent Delete">
-                <Button
-                  type="text"
-                  className="es-icon-btn"
-                  icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
-                />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Permanent Delete">
+                  <Button
+                    type="text"
+                    className="es-icon-btn"
+                    icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
+                  />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
         </Space>
       ),
@@ -431,9 +449,15 @@ export default function LeadsTrashPage() {
               </div>
 
               {canDeleteLeadTrash && (
-                <Popconfirm
-                  title="Empty lead trash repository?"
+                <ConfirmDialog
+                  tone="danger"
+                  icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+                  title="Empty Trash"
                   description="This will permanently delete all leads currently in the trash. This action cannot be undone."
+                  confirmText="Empty All"
+                  cancelText="Cancel"
+                  placement="bottom"
+                  disabled={leads.length === 0 || loading}
                   onConfirm={async () => {
                     try {
                       await emptyTrash();
@@ -442,11 +466,6 @@ export default function LeadsTrashPage() {
                       message.error(error.message || "Failed to empty trash");
                     }
                   }}
-                  okText="Yes, empty all"
-                  cancelText="Cancel"
-                  okButtonProps={{ danger: true, loading }}
-                  icon={<DeleteOutlined style={{ color: "red" }} />}
-                  disabled={leads.length === 0 || loading}
                 >
                   <Button
                     icon={<DeleteOutlined />}
@@ -456,7 +475,7 @@ export default function LeadsTrashPage() {
                   >
                     Empty Trash
                   </Button>
-                </Popconfirm>
+                </ConfirmDialog>
               )}
             </div>
 
@@ -628,9 +647,14 @@ export default function LeadsTrashPage() {
                     </Button>
                   )}
                   {canDeleteLeadTrash && (
-                    <Popconfirm
-                      title={`Purge ${selectedRowKeys.length} leads?`}
-                      description="This will permanently delete the selected leads. This action cannot be undone."
+                    <ConfirmDialog
+                      tone="danger"
+                      icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+                      title="Purge Selected"
+                      description={`This will permanently delete the ${selectedRowKeys.length} selected leads. This action cannot be undone.`}
+                      confirmText="Purge Selected"
+                      cancelText="Cancel"
+                      placement="bottomRight"
                       onConfirm={async () => {
                         try {
                           await bulkDeleteLeads(selectedRowKeys as string[]);
@@ -640,9 +664,6 @@ export default function LeadsTrashPage() {
                           message.error("Failed to purge leads");
                         }
                       }}
-                      okText="Purge Selected"
-                      cancelText="Cancel"
-                      okButtonProps={{ danger: true, loading }}
                     >
                       <Button
                         type="text"
@@ -653,7 +674,7 @@ export default function LeadsTrashPage() {
                       >
                         Purge
                       </Button>
-                    </Popconfirm>
+                    </ConfirmDialog>
                   )}
                   <Button
                     type="text"

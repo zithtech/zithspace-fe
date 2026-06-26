@@ -7,7 +7,6 @@ import {
   Button,
   Typography,
   Tooltip,
-  Popconfirm,
   message,
   Input,
   Avatar,
@@ -20,6 +19,7 @@ import {
   DatePicker,
   Pagination,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   DeleteOutlined,
   UndoOutlined,
@@ -221,18 +221,25 @@ export default function ProjectTrashManagementPage() {
               loading={restoreProject.isPending}
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
             title="Permanently delete project?"
             description="This action cannot be undone. All associated data will be lost."
-            onConfirm={() => permanentDelete.mutate(record.id, {
-              onSuccess: () => {
-                message.success("Project permanently deleted");
-              }
+            onConfirm={() => new Promise<void>((resolve, reject) => {
+              permanentDelete.mutate(record.id, {
+                onSuccess: () => {
+                  message.success("Project permanently deleted");
+                  resolve();
+                },
+                onError: (err) => {
+                  reject(err);
+                }
+              });
             })}
-            okText="Yes, delete"
+            confirmText="Yes, delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-            icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
+            placement="left"
+            icon={<AlertTriangle size={16} />}
           >
             <Tooltip title="Permanent Delete">
               <Button
@@ -241,7 +248,7 @@ export default function ProjectTrashManagementPage() {
                 loading={permanentDelete.isPending}
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       ),
     },
@@ -264,14 +271,25 @@ export default function ProjectTrashManagementPage() {
                 </div>
               </div>
 
-              <Popconfirm
+              <ConfirmDialog
+                tone="danger"
                 title="Empty trash repository?"
                 description="This will permanently delete all projects currently in the trash. This action cannot be undone."
-                onConfirm={() => emptyTrash.mutate()}
-                okText="Yes, empty all"
+                onConfirm={() => new Promise<void>((resolve, reject) => {
+                  emptyTrash.mutate(undefined, {
+                    onSuccess: () => {
+                      message.success("Trash emptied successfully");
+                      resolve();
+                    },
+                    onError: (err) => {
+                      reject(err);
+                    }
+                  });
+                })}
+                confirmText="Yes, empty all"
                 cancelText="Cancel"
-                okButtonProps={{ danger: true, loading: emptyTrash.isPending }}
-                icon={<DeleteOutlined style={{ color: "red" }} />}
+                placement="bottom"
+                icon={<AlertTriangle size={16} />}
                 disabled={filteredProjects.length === 0 || isLoading}
               >
                 <Button
@@ -298,7 +316,7 @@ export default function ProjectTrashManagementPage() {
                 >
                   Empty Trash
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             </div>
 
             <div className="pm2-sidebar-scroll">
@@ -500,17 +518,25 @@ export default function ProjectTrashManagementPage() {
                     >
                       Restore
                     </Button>
-                    <Popconfirm
+                    <ConfirmDialog
+                      tone="danger"
                       title={`Purge ${selectedRowKeys.length} projects?`}
                       description="This will permanently delete the selected projects. This action cannot be undone."
-                      onConfirm={() => {
+                      onConfirm={() => new Promise<void>((resolve, reject) => {
                         bulkDelete.mutate(selectedRowKeys as string[], {
-                          onSuccess: () => setSelectedRowKeys([])
+                          onSuccess: () => {
+                            setSelectedRowKeys([]);
+                            resolve();
+                          },
+                          onError: (err) => {
+                            reject(err);
+                          }
                         });
-                      }}
-                      okText="Purge Selected"
+                      })}
+                      confirmText="Purge Selected"
                       cancelText="Cancel"
-                      okButtonProps={{ danger: true, loading: bulkDelete.isPending }}
+                      placement="bottomRight"
+                      icon={<AlertTriangle size={16} />}
                     >
                       <Button
                         type="text"
@@ -521,7 +547,7 @@ export default function ProjectTrashManagementPage() {
                       >
                         Purge
                       </Button>
-                    </Popconfirm>
+                    </ConfirmDialog>
                     <Button
                       type="text"
                       size="small"
@@ -628,16 +654,25 @@ export default function ProjectTrashManagementPage() {
                                 <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                                   {pmFullName.split(' ')[0]}
                                 </span>
-                              </span>
-                              <span className="pm2-list-foot-div"></span>
-                              <span className="pm2-list-foot-item" style={{ gap: 8 }}>
-                                <Popconfirm
+                                       <ConfirmDialog
+                                  tone="success"
                                   title="Restore project?"
                                   description="This will restore the project back to active status."
-                                  onConfirm={() => restoreProject.mutate(project.id)}
-                                  okText="Yes, restore"
+                                  onConfirm={() => new Promise<void>((resolve, reject) => {
+                                    restoreProject.mutate(project.id, {
+                                      onSuccess: () => {
+                                        message.success("Project restored successfully");
+                                        resolve();
+                                      },
+                                      onError: (err) => {
+                                        reject(err);
+                                      }
+                                    });
+                                  })}
+                                  confirmText="Yes, restore"
                                   cancelText="Cancel"
-                                  okButtonProps={{ loading: restoreProject.isPending }}
+                                  placement="topRight"
+                                  icon={<UndoOutlined />}
                                 >
                                   <button
                                     type="button"
@@ -648,14 +683,26 @@ export default function ProjectTrashManagementPage() {
                                     <UndoOutlined />
                                     Restore
                                   </button>
-                                </Popconfirm>
-                                <Popconfirm
+                                </ConfirmDialog>
+                                <ConfirmDialog
+                                  tone="danger"
                                   title="Permanently delete project?"
                                   description="This action cannot be undone."
-                                  onConfirm={() => permanentDelete.mutate(project.id)}
-                                  okText="Yes, Delete"
+                                  onConfirm={() => new Promise<void>((resolve, reject) => {
+                                    permanentDelete.mutate(project.id, {
+                                      onSuccess: () => {
+                                        message.success("Project permanently deleted");
+                                        resolve();
+                                      },
+                                      onError: (err) => {
+                                        reject(err);
+                                      }
+                                    });
+                                  })}
+                                  confirmText="Yes, Delete"
                                   cancelText="Cancel"
-                                  okButtonProps={{ danger: true, loading: permanentDelete.isPending }}
+                                  placement="topRight"
+                                  icon={<AlertTriangle size={16} />}
                                 >
                                   <button
                                     type="button"
@@ -666,7 +713,7 @@ export default function ProjectTrashManagementPage() {
                                     <DeleteOutlined />
                                     Purge
                                   </button>
-                                </Popconfirm>
+                                </ConfirmDialog>
                               </span>
                             </div>
                           </div>

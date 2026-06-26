@@ -52,6 +52,7 @@ import {
 } from "@/hooks/useInvoices";
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -541,20 +542,39 @@ export default function InvoiceTrashPage() {
           )}
           {canDeleteInvoiceTrash && (
             <Tooltip title="Delete permanently">
-              <button
-                type="button"
-                onClick={() => openDeleteModal(record)}
-                disabled={deletingId === record.id}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-60"
-                style={{
-                  background: "var(--bg-secondary)",
-                  color: "#f87171",
-                  border: "1px solid var(--border-color)",
+              <ConfirmDialog
+                tone="danger"
+                title="Permanent Delete"
+                description={`Are you sure you want to permanently delete invoice ${record.invoiceNumber}? This action cannot be undone.`}
+                confirmText="Delete"
+                onConfirm={async () => {
+                  try {
+                    setDeletingId(record.id);
+                    await permanentDeleteMutation.mutateAsync(record.id);
+                    messageApi.success("Invoice permanently deleted");
+                    refetch();
+                  } catch (error: any) {
+                    messageApi.error(error.message || "Failed to delete invoice");
+                  } finally {
+                    setDeletingId(null);
+                  }
                 }}
+                placement="left"
               >
-                <Trash2 size={11} strokeWidth={2.25} />
-                Delete
-              </button>
+                <button
+                  type="button"
+                  disabled={deletingId === record.id}
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-60"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    color: "#f87171",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <Trash2 size={11} strokeWidth={2.25} />
+                  Delete
+                </button>
+              </ConfirmDialog>
             </Tooltip>
           )}
         </div>

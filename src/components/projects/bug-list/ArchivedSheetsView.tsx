@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Skeleton, Avatar, Popconfirm, Tooltip } from "antd";
+import { Skeleton, Avatar, Tooltip } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Archive,
   RotateCcw,
@@ -286,19 +287,24 @@ function ArchivedSheetCard({
               Restore
             </button>
           </Tooltip>
-          <Popconfirm
-            title="Move to Trash"
-            description="This action cannot be undone."
-            okText="Move to Trash"
-            okButtonProps={{ danger: true }}
-            onConfirm={onDelete}
-          >
-            <Tooltip title="Move to Trash">
-              <button className="arc-action-btn arc-action-delete">
-                <Trash2 size={12} />
-              </button>
-            </Tooltip>
-          </Popconfirm>
+          <div onClick={(e) => e.stopPropagation()}>
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Move Sheet to Trash?"
+              description="This sheet and all its bugs will be moved to trash."
+              confirmText="Move to Trash"
+              cancelText="Cancel"
+              placement="bottomRight"
+              onConfirm={onDelete}
+            >
+              <Tooltip title="Move to Trash">
+                <button className="arc-action-btn arc-action-delete">
+                  <Trash2 size={12} />
+                </button>
+              </Tooltip>
+            </ConfirmDialog>
+          </div>
         </div>
       </div>
     </div>

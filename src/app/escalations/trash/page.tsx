@@ -36,6 +36,7 @@ import {
   EllipsisOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -354,15 +355,38 @@ export default function EscalationTrashPage() {
         danger: true,
         disabled: !canDeleteEscalation,
         label: (
-          <div className="es-menu-item">
-            <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
-              <DeleteOutlined />
-            </span>
-            <span className="es-menu-text">
-              <span className="es-menu-title">Delete Forever</span>
-              <span className="es-menu-desc">Irreversible</span>
-            </span>
-          </div>
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Forever"
+            description="Are you sure you want to permanently delete this escalation? This action cannot be undone."
+            confirmText="Delete Forever"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handlePermanentDelete(record.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
+                  <DeleteOutlined />
+                </span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Delete Forever</span>
+                  <span className="es-menu-desc">Irreversible</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
         ),
       },
     ],
@@ -370,14 +394,6 @@ export default function EscalationTrashPage() {
       domEvent.stopPropagation();
       if (key === 'restore') {
         handleRestore(record.id);
-      } else if (key === 'permanent_delete') {
-        modal.confirm({
-          title: 'Delete Forever',
-          content: 'Are you sure you want to permanently delete this escalation? This action cannot be undone.',
-          okText: 'Delete Forever',
-          okType: 'danger',
-          onOk: () => handlePermanentDelete(record.id),
-        });
       }
     },
   });
@@ -507,24 +523,27 @@ export default function EscalationTrashPage() {
             </Tooltip>
           )}
           {canDeleteEscalation && (
-            <Popconfirm
-              title="Permanently delete escalation?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<ExclamationCircleOutlined style={{ fontSize: 16 }} />}
+              title="Delete Forever"
               description="This action cannot be undone. All associated data will be lost."
-              onConfirm={() => handlePermanentDelete(record.id)}
-              okText="Yes, delete"
+              confirmText="Delete Forever"
               cancelText="Cancel"
-              okButtonProps={{ danger: true, loading: deletingId === record.id }}
-              icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+              placement="topRight"
+              onConfirm={() => handlePermanentDelete(record.id)}
             >
-              <Tooltip title="Permanent Delete">
-                <Button
-                  type="text"
-                  className="es-icon-btn"
-                  icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
-                  loading={deletingId === record.id}
-                />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Permanent Delete">
+                  <Button
+                    type="text"
+                    className="es-icon-btn"
+                    icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
+                    loading={deletingId === record.id}
+                  />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -572,15 +591,16 @@ export default function EscalationTrashPage() {
           </div>
 
           {canDeleteEscalation && (
-            <Popconfirm
-              title="Empty trash repository?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Empty Trash"
               description="This will permanently delete all escalations currently in the trash. This action cannot be undone."
-              onConfirm={handleEmptyTrash}
-              okText="Yes, empty all"
+              confirmText="Empty All"
               cancelText="Cancel"
-              okButtonProps={{ danger: true, loading: emptying }}
-              icon={<DeleteOutlined style={{ color: 'red' }} />}
+              placement="bottom"
               disabled={filteredEscalations.length === 0 || isViewLoading}
+              onConfirm={handleEmptyTrash}
             >
               <Button
                 icon={<DeleteOutlined />}
@@ -591,7 +611,7 @@ export default function EscalationTrashPage() {
               >
                 Empty Trash
               </Button>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
 
           <div className="es-side-scroll">
@@ -708,13 +728,15 @@ export default function EscalationTrashPage() {
                     </Button>
                   )}
                   {canDeleteEscalation && (
-                    <Popconfirm
-                      title={`Purge ${selectedRowKeys.length} escalations?`}
-                      description="This will permanently delete the selected escalations. This action cannot be undone."
-                      onConfirm={handleBulkPermanentDelete}
-                      okText="Purge Selected"
+                    <ConfirmDialog
+                      tone="danger"
+                      icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+                      title="Purge Selected"
+                      description={`This will permanently delete the ${selectedRowKeys.length} selected escalations. This action cannot be undone.`}
+                      confirmText="Purge Selected"
                       cancelText="Cancel"
-                      okButtonProps={{ danger: true }}
+                      placement="bottomRight"
+                      onConfirm={handleBulkPermanentDelete}
                     >
                       <Button
                         type="text"
@@ -724,7 +746,7 @@ export default function EscalationTrashPage() {
                       >
                         Purge
                       </Button>
-                    </Popconfirm>
+                    </ConfirmDialog>
                   )}
                   <Button
                     type="text"

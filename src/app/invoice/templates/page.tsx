@@ -44,6 +44,7 @@ import { InvoiceTemplate } from "@/services/invoiceTemplateService";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 
@@ -65,10 +66,17 @@ export default function InvoiceTemplatePage() {
   const [searchText, setSearchText] = useState("");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null);
   const { message: messageApi } = App.useApp();
   const router = useRouter();
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
   const {
     canReadInvoiceTemplate,
     canCreateInvoiceTemplate,
@@ -100,31 +108,7 @@ export default function InvoiceTemplatePage() {
     setDrawerVisible(true);
   };
 
-  const handleDelete = (template: InvoiceTemplate) => {
-    setTemplateToDelete(template);
-    setDeleteModalVisible(true);
-  };
 
-  const confirmDelete = async () => {
-    if (!templateToDelete) return;
-
-    try {
-      await deleteMutation.mutateAsync(templateToDelete.id);
-      messageApi.success("Template deleted successfully");
-      setDeleteModalVisible(false);
-      setTemplateToDelete(null);
-    } catch (error: any) {
-      console.error("Delete template error:", error);
-      if (error?.code === "23001" || error?.message?.includes("foreign key constraint")) {
-        messageApi.error(
-          "Cannot delete template: it's used by existing invoices. Please delete or reassign those invoices first.",
-          6
-        );
-      } else {
-        messageApi.error(error?.message || "Failed to delete template");
-      }
-    }
-  };
 
   const counts = useMemo(() => {
     const all = templates?.length || 0;
@@ -162,6 +146,63 @@ export default function InvoiceTemplatePage() {
   const pagedTemplates = useMemo(() => {
     return filteredTemplates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredTemplates, currentPage, pageSize]);
+
+  // ─── Shared action menu (table + cards) ───────────────────────────────────
+  const getMenuItems = (template: InvoiceTemplate): MenuProps["items"] => [
+    canUpdateInvoiceTemplate && {
+      key: "edit",
+      label: menuLabel("Edit template", "Modify template settings", <Edit3 size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      onClick: () => handleEdit(template),
+    },
+    {
+      key: "copy",
+      disabled: true,
+      label: menuLabel("Duplicate", "Clone this template", <Copy size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+    },
+    (canUpdateInvoiceTemplate || canDeleteInvoiceTemplate) && { type: "divider" as const },
+    canDeleteInvoiceTemplate && {
+      key: "delete",
+      danger: true,
+      label: (
+        <ConfirmDialog
+          tone="danger"
+          icon={<Trash2 size={14} />}
+          title="Delete Template"
+          description={`Are you sure you want to delete "${template.name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          placement="left"
+          onConfirm={async () => {
+            try {
+              await deleteMutation.mutateAsync(template.id);
+              messageApi.success("Template deleted successfully");
+            } catch (error: any) {
+              if (error?.code === "23001" || error?.message?.includes("foreign key constraint")) {
+                messageApi.error(
+                  "Cannot delete template: it's used by existing invoices. Please delete or reassign those invoices first.",
+                  6
+                );
+              } else {
+                messageApi.error(error?.message || "Failed to delete template");
+              }
+            }
+          }}
+        >
+          <div
+            style={{
+              margin: '-5px -12px',
+              padding: '5px 12px',
+              width: 'calc(100% + 24px)',
+              height: '100%',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {menuLabel("Delete", "Remove this template", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+          </div>
+        </ConfirmDialog>
+      ),
+    },
+  ].filter(Boolean) as MenuProps["items"];
 
   // Table columns
   const columns = [
@@ -289,15 +330,14 @@ export default function InvoiceTemplatePage() {
       key: "action",
       width: 60,
       render: (_: any, record: InvoiceTemplate) => {
-        const menuItems: MenuProps["items"] = [
-          canUpdateInvoiceTemplate && { key: "edit", icon: <Edit3 size={14} />, label: "Edit template", onClick: () => handleEdit(record) },
-          { key: "copy", icon: <Copy size={14} />, label: "Duplicate", disabled: true },
-          (canUpdateInvoiceTemplate || canDeleteInvoiceTemplate) && { type: "divider" },
-          canDeleteInvoiceTemplate && { key: "delete", danger: true, icon: <Trash2 size={14} />, label: "Delete", onClick: () => handleDelete(record) },
-        ].filter(Boolean) as MenuProps["items"];
         return (
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-            <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
+            <Dropdown
+              menu={{ items: getMenuItems(record) }}
+              overlayClassName="pp-action-pop"
+              trigger={["click"]}
+              placement="bottomRight"
+            >
               <Button
                 type="text"
                 icon={<MoreVertical size={16} style={{ color: "var(--text-secondary)" }} />}
@@ -623,30 +663,10 @@ export default function InvoiceTemplatePage() {
                           </div>
                         </div>
                         <Dropdown
-                          menu={{
-                            items: [
-                              canUpdateInvoiceTemplate && {
-                                key: "edit",
-                                icon: <Edit3 size={14} />,
-                                label: "Edit template",
-                                onClick: (e: any) => {
-                                  e.domEvent.stopPropagation();
-                                  handleEdit(template);
-                                },
-                              },
-                              canDeleteInvoiceTemplate && {
-                                key: "delete",
-                                danger: true,
-                                icon: <Trash2 size={14} />,
-                                label: "Delete",
-                                onClick: (e: any) => {
-                                  e.domEvent.stopPropagation();
-                                  handleDelete(template);
-                                },
-                              },
-                            ].filter(Boolean) as MenuProps["items"],
-                          }}
+                          menu={{ items: getMenuItems(template) }}
+                          overlayClassName="pp-action-pop"
                           trigger={["click"]}
+                          placement="bottomRight"
                         >
                           <button
                             type="button"
@@ -813,113 +833,7 @@ export default function InvoiceTemplatePage() {
         templateId={selectedTemplateId}
       />
 
-      {/* Delete confirmation modal — refined */}
-      <Modal
-        open={deleteModalVisible}
-        onCancel={() => {
-          setDeleteModalVisible(false);
-          setTemplateToDelete(null);
-        }}
-        footer={null}
-        width={440}
-        centered
-        closable={false}
-        styles={{
-          body: { padding: 0 },
-          mask: { backdropFilter: "blur(4px)", background: "rgba(15, 23, 42, 0.45)" },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
-        }}
-      >
-        <div
-          className="px-6 pt-5 pb-4 border-b"
-          style={{
-            background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: "#fef2f2",
-                color: "#dc2626",
-                border: "1px solid #fecaca",
-              }}
-            >
-              <Trash2 size={18} strokeWidth={2.25} />
-            </div>
-            <div className="min-w-0">
-              <div
-                className="text-[15px] font-semibold leading-tight"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Delete template
-              </div>
-              <div
-                className="text-[12px] mt-0.5"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                This action cannot be undone
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="px-6 py-5">
-          <p
-            className="text-[13px] leading-relaxed mb-4"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            You are about to permanently delete
-            {templateToDelete?.name && (
-              <>
-                {" "}
-                <span
-                  className="font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  "{templateToDelete.name}"
-                </span>
-              </>
-            )}
-            . The template structure, custom fields, and settings will be removed.
-          </p>
-
-          <div
-            className="rounded-lg p-3 mb-5 flex items-start gap-2"
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-            }}
-          >
-            <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: "#dc2626" }} />
-            <span className="text-[12px]" style={{ color: "#991b1b" }}>
-              If invoices reference this template, deletion will be blocked.
-            </span>
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              onClick={() => {
-                setDeleteModalVisible(false);
-                setTemplateToDelete(null);
-              }}
-              style={{ borderRadius: 8, height: 36 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              danger
-              type="primary"
-              loading={deleteMutation.isPending}
-              onClick={confirmDelete}
-              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-            >
-              Delete template
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <style jsx global>{`
         .pp-shell {
@@ -1172,6 +1086,41 @@ export default function InvoiceTemplatePage() {
         .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+          overflow: hidden !important;
+        }
+        .pp-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop,
+        .pp-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .pp-action-pop ::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
         @media (max-width: 820px) {
           .pp-sidebar { display: none; }

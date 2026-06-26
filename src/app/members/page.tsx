@@ -70,6 +70,7 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -1153,13 +1154,23 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         </Button>
 
         {(canDeleteUser || canManageUsers) && (
-          <Button
-            danger
-            onClick={onDelete}
-            style={{ height: 38, borderRadius: 8, fontWeight: 500, padding: "0 16px" }}
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined />}
+            title="Delete Member?"
+            description={`Are you sure you want to delete ${member.name}? This action will deactivate the member account and revoke their access.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="topRight"
+            onConfirm={onDelete}
           >
-            Delete
-          </Button>
+            <Button
+              danger
+              style={{ height: 38, borderRadius: 8, fontWeight: 500, padding: "0 16px" }}
+            >
+              Delete
+            </Button>
+          </ConfirmDialog>
         )}
 
 
@@ -1543,21 +1554,13 @@ export default function MembersPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedMember) return;
-
+  const handleDeleteMember = async (memberId: string) => {
     try {
-      setFormLoading(true);
-      const deletedId = selectedMember.id;
-      await MembersService.deleteMember(deletedId);
+      await MembersService.deleteMember(memberId);
       messageApi.success("Member moved to trash");
-      setIsModalVisible(false);
-      setSelectedMember(null);
-
-      // Remove from local state immediately so the row disappears from the table
-      setMembers((prev) => prev.filter((m) => m.id !== deletedId));
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
       setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
-      setAllMembers((prev) => prev.filter((m) => m.id !== deletedId));
+      setAllMembers((prev) => prev.filter((m) => m.id !== memberId));
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
@@ -1565,8 +1568,6 @@ export default function MembersPage() {
       } else {
         messageApi.error("Delete failed");
       }
-    } finally {
-      setFormLoading(false);
     }
   };
 
@@ -1610,11 +1611,7 @@ export default function MembersPage() {
     setIsModalVisible(true);
   };
 
-  const showDeleteModal = (member: Member) => {
-    setModalType("delete");
-    setSelectedMember(member);
-    setIsModalVisible(true);
-  };
+
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -1901,7 +1898,24 @@ export default function MembersPage() {
           menuItems.push({
             key: "delete",
             danger: true,
-            label: menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
+            label: (
+              <ConfirmDialog
+                tone="danger"
+                icon={<DeleteOutlined />}
+                title="Delete Member?"
+                description={`Are you sure you want to delete ${record.name}? This action will deactivate the member account and revoke their access.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                placement="left"
+                onConfirm={async () => {
+                  await handleDeleteMember(record.id);
+                }}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  {menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)")}
+                </div>
+              </ConfirmDialog>
+            ),
           });
         }
 
@@ -1915,7 +1929,6 @@ export default function MembersPage() {
                 onClick: ({ key, domEvent }: any) => {
                   domEvent.stopPropagation();
                   if (key === "edit") showEditModal(record);
-                  else if (key === "delete") showDeleteModal(record);
                 },
               }}
               trigger={["click"]}
@@ -2246,7 +2259,24 @@ export default function MembersPage() {
                       cardMenuItems.push({
                         key: "delete",
                         danger: true,
-                        label: menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
+                        label: (
+                          <ConfirmDialog
+                            tone="danger"
+                            icon={<DeleteOutlined />}
+                            title="Delete Member?"
+                            description={`Are you sure you want to delete ${item.name}? This action will deactivate the member account and revoke their access.`}
+                            confirmText="Delete"
+                            cancelText="Cancel"
+                            placement="left"
+                            onConfirm={async () => {
+                              await handleDeleteMember(item.id);
+                            }}
+                          >
+                            <div onClick={(e) => e.stopPropagation()}>
+                              {menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)")}
+                            </div>
+                          </ConfirmDialog>
+                        ),
                       });
                     }
 
@@ -2286,7 +2316,6 @@ export default function MembersPage() {
                                 onClick: ({ key, domEvent }: any) => {
                                   domEvent.stopPropagation();
                                   if (key === 'edit') showEditModal(item);
-                                  else if (key === 'delete') showDeleteModal(item);
                                 },
                               }}
                               trigger={['click']}
@@ -2388,70 +2417,7 @@ export default function MembersPage() {
         </main>
       </div>
 
-      {/* Delete confirmation modal */}
-      <Modal
-        className="mm-modal"
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "rgba(225,29,72,0.10)",
-                color: "#e11d48",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 16,
-              }}
-            >
-              <DeleteOutlined />
-            </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                Delete Member
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                This action will deactivate the account
-              </div>
-            </div>
-          </div>
-        }
-        open={isModalVisible && modalType === "delete"}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setSelectedMember(null);
-        }}
-        footer={null}
-        width={440}
-        destroyOnClose
-      >
-        <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5 }}>
-          Are you sure you want to delete{" "}
-          <strong style={{ color: "var(--text-slate-900)" }}>
-            {selectedMember?.name}
-          </strong>
-          ? This action will deactivate the member account and revoke their
-          access.
-        </Text>
-        <div style={{ marginTop: 24, textAlign: "right" }}>
-          <Space>
-            <Button onClick={() => setIsModalVisible(false)} style={{ borderRadius: 8 }}>
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              danger
-              loading={formLoading}
-              onClick={handleDelete}
-              style={{ borderRadius: 8, fontWeight: 600 }}
-            >
-              Delete Member
-            </Button>
-          </Space>
-        </div>
-      </Modal>
+
 
       {/* Preview Drawer */}
       <Drawer
@@ -2482,10 +2448,11 @@ export default function MembersPage() {
               showEditModal(previewMember);
             }
           }}
-          onDelete={() => {
+          onDelete={async () => {
             if (previewMember) {
+              await handleDeleteMember(previewMember.id);
               setPreviewVisible(false);
-              showDeleteModal(previewMember);
+              setPreviewMember(null);
             }
           }}
           shifts={shifts}
@@ -2966,15 +2933,32 @@ export default function MembersPage() {
         .mm-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .mm-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
         /* dark theme */
-        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu {
-          background: #1e2433 !important;
-          border-color: #2d3748 !important;
-          box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu,
+        [data-theme="dark"] .mm-action-pop .ant-dropdown-menu {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3) !important;
         }
-        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item:hover { background: rgba(255,255,255,0.06) !important; }
-        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item-divider { background: #2d3748 !important; }
-        [data-theme='dark'] .mm-menu-title { color: #e2e8f0; }
-        [data-theme='dark'] .mm-menu-desc { color: #64748b; }
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item:hover,
+        [data-theme="dark"] .mm-action-pop .ant-dropdown-menu-item:hover {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item-divider,
+        [data-theme="dark"] .mm-action-pop .ant-dropdown-menu-item-divider {
+          background: #1F2937 !important;
+        }
+        [data-theme='dark'] .mm-menu-title,
+        [data-theme="dark"] .mm-menu-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .mm-menu-desc,
+        [data-theme="dark"] .mm-menu-desc {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mm-action-pop .ant-dropdown-menu-item-danger:hover,
+        [data-theme="dark"] .mm-action-pop .ant-dropdown-menu-item-danger:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+        }
       `}</style>
     </MainLayout>
   );

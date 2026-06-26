@@ -18,7 +18,6 @@ import {
   Modal,
   message,
   Pagination,
-  Popconfirm,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
 import {
@@ -61,6 +60,7 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 
@@ -211,10 +211,7 @@ export default function ClientsV2ListPage() {
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
 
-  // Delete modal state
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -352,28 +349,7 @@ export default function ClientsV2ListPage() {
     }
   };
 
-  const handleDeleteClient = (clientId: string, clientName: string) => {
-    setClientToDelete({ id: clientId, name: clientName });
-    setIsDeleteModalVisible(true);
-  };
 
-  const confirmDeleteClient = async () => {
-    if (!clientToDelete) return;
-    try {
-      setIsDeleting(true);
-      await api.delete(`/api/clients-v2/${clientToDelete.id}`);
-      messageApi.success("Client deleted successfully");
-      setIsDeleteModalVisible(false);
-      setClientToDelete(null);
-      fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
-      fetchAllClientOptions();
-    } catch (err: any) {
-      console.error("Failed to delete client", err);
-      messageApi.error(err.response?.data?.error || "Failed to delete client");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   const handleExport = async () => {
     try {
@@ -497,7 +473,32 @@ export default function ClientsV2ListPage() {
         {
           key: 'delete',
           danger: true,
-          label: menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Client?"
+              description={`Are you sure you want to delete ${record.companyName}? This action cannot be undone.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              onConfirm={async () => {
+                try {
+                  await api.delete(`/api/clients-v2/${record.id}`);
+                  messageApi.success("Client deleted successfully");
+                  fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+                  fetchAllClientOptions();
+                } catch (err: any) {
+                  console.error("Failed to delete client", err);
+                  messageApi.error(err.response?.data?.error || "Failed to delete client");
+                }
+              }}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                {menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+              </div>
+            </ConfirmDialog>
+          )
         }
       ] : [])
     ],
@@ -509,8 +510,6 @@ export default function ClientsV2ListPage() {
         router.push(`/clients-v2/create?id=${record.id}`);
       } else if (key === 'view_projects') {
         router.push(`/clients-v2/${record.id}?tab=projects`);
-      } else if (key === 'delete') {
-        handleDeleteClient(record.id, record.companyName);
       }
     }
   });
@@ -811,77 +810,7 @@ export default function ClientsV2ListPage() {
         {modalContextHolder}
         {messageContextHolder}
 
-        <Modal
-          className="cm-delete-modal"
-          title={
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "rgba(225,29,72,0.10)",
-                  color: "#e11d48",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                }}
-              >
-                <Trash2 size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                  Delete Client
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                  This action cannot be undone
-                </div>
-              </div>
-            </div>
-          }
-          open={isDeleteModalVisible}
-          onCancel={() => {
-            if (!isDeleting) {
-              setIsDeleteModalVisible(false);
-              setClientToDelete(null);
-            }
-          }}
-          footer={
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-              <Button
-                onClick={() => {
-                  setIsDeleteModalVisible(false);
-                  setClientToDelete(null);
-                }}
-                style={{ borderRadius: 8 }}
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                danger
-                loading={isDeleting}
-                onClick={confirmDeleteClient}
-                style={{ borderRadius: 8, fontWeight: 600 }}
-              >
-                Delete Client
-              </Button>
-            </div>
-          }
-          width={440}
-          destroyOnClose
-        >
-          <div style={{ padding: "8px 0" }}>
-            <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5, lineHeight: 1.6 }}>
-              Are you sure you want to delete{" "}
-              <strong style={{ color: "var(--text-slate-900)" }}>{clientToDelete?.name}</strong>
-              ? This will permanently remove the client and all associated data, including contacts,
-              allocations, and documents.
-            </Text>
-          </div>
-        </Modal>
+
 
         <div className="bh2-page">
           <div className="bh2-shell-wrap">
@@ -1279,7 +1208,32 @@ export default function ClientsV2ListPage() {
                                             {
                                               key: 'delete',
                                               danger: true,
-                                              label: menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+                                              label: (
+                                                <ConfirmDialog
+                                                  tone="danger"
+                                                  icon={<Trash2 size={16} />}
+                                                  title="Delete Client?"
+                                                  description={`Are you sure you want to delete ${record.companyName}? This action cannot be undone.`}
+                                                  confirmText="Delete"
+                                                  cancelText="Cancel"
+                                                  placement="left"
+                                                  onConfirm={async () => {
+                                                    try {
+                                                      await api.delete(`/api/clients-v2/${record.id}`);
+                                                      messageApi.success("Client deleted successfully");
+                                                      fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+                                                      fetchAllClientOptions();
+                                                    } catch (err: any) {
+                                                      console.error("Failed to delete client", err);
+                                                      messageApi.error(err.response?.data?.error || "Failed to delete client");
+                                                    }
+                                                  }}
+                                                >
+                                                  <div onClick={(e) => e.stopPropagation()}>
+                                                    {menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                                                  </div>
+                                                </ConfirmDialog>
+                                              )
                                             }
                                           ] : [])
                                         ],
@@ -1287,7 +1241,6 @@ export default function ClientsV2ListPage() {
                                           domEvent.stopPropagation();
                                           if (key === 'view') router.push(`/clients-v2/${record.id}`);
                                           else if (key === 'edit') router.push(`/clients-v2/create?id=${record.id}`);
-                                          else if (key === 'delete') handleDeleteClient(record.id, record.companyName);
                                         }
                                       }}
                                       overlayClassName="pm2-action-pop"

@@ -22,7 +22,6 @@ import {
   Divider,
   Tooltip,
   Badge,
-  Popconfirm,
   Spin,
   Row,
   Col,
@@ -63,6 +62,7 @@ import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/service
 import { MembersService } from "@/services/membersService";
 import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -909,17 +909,19 @@ export default function RolesPage() {
             </Tooltip>
           )}
           {canDeleteRole && !record.isSystem && (
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
               title="Delete this role?"
               description="All members assigned this role will lose its permissions immediately."
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
               onConfirm={() => handleDeleteRole(record.id)}
-              okText="Delete"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete role">
                 <Button type="text" icon={<DeleteOutlined />} size="small" danger />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -1281,17 +1283,19 @@ export default function RolesPage() {
                             </Tooltip>
                           )}
                           {canDeleteRole && !record.isSystem && (
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="danger"
                               title="Delete this role?"
                               description="All members assigned this role will lose its permissions immediately."
+                              confirmText="Delete"
+                              cancelText="Cancel"
+                              placement="left"
                               onConfirm={() => handleDeleteRole(record.id)}
-                              okText="Delete"
-                              okButtonProps={{ danger: true }}
                             >
                               <Tooltip title="Delete role">
                                 <Button type="text" icon={<DeleteOutlined />} size="small" danger />
                               </Tooltip>
-                            </Popconfirm>
+                            </ConfirmDialog>
                           )}
                         </div>
                       </div>
@@ -2013,12 +2017,14 @@ export default function RolesPage() {
                             </div>
                           </div>
                           {canAssignRole && (
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="danger"
                               title="Remove from role?"
                               description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                              confirmText="Remove"
+                              cancelText="Cancel"
+                              placement="left"
                               onConfirm={() => handleRemoveMember(entry.user.id)}
-                              okText="Remove"
-                              okButtonProps={{ danger: true }}
                             >
                               <Tooltip title="Remove from role">
                                 <button
@@ -2029,7 +2035,7 @@ export default function RolesPage() {
                                   <MinusCircleOutlined />
                                 </button>
                               </Tooltip>
-                            </Popconfirm>
+                            </ConfirmDialog>
                           )}
                         </div>
                       ))}

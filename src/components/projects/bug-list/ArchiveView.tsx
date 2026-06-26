@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Skeleton, Avatar, Popconfirm, Tooltip, Empty, Tag } from "antd";
+import { Skeleton, Avatar, Tooltip, Empty, Tag } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Archive,
   RotateCcw,
@@ -301,8 +302,14 @@ export default function ArchiveView({
               <RotateCcw size={13} />
               Restore Selected
             </button>
-            <Popconfirm
-              title={`Move ${selectedIds.size} items to trash?`}
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Move to Trash?"
+              description={`Move ${selectedIds.size} selected item(s) to trash?`}
+              confirmText="Move to Trash"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={() => {
                 bulkDelete.mutate(Array.from(selectedIds));
                 setSelectedIds(new Set());
@@ -312,7 +319,7 @@ export default function ArchiveView({
                 <Trash2 size={13} />
                 Move to Trash
               </button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       )}
@@ -461,16 +468,18 @@ function ArchivedFolderCard({ folder, isSelected, onSelect, onView, onRestore, o
             </button>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
-            <Popconfirm
-              title="Move to Trash"
-              description="This folder will be moved to trash."
-              okText="Move to Trash"
-              okButtonProps={{ danger: true }}
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Move Folder to Trash?"
+              description="This folder and all its content sheets and bugs will be moved to trash."
+              confirmText="Move to Trash"
               cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={onDelete}
             >
               <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       </div>
@@ -542,16 +551,18 @@ function ArchivedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onR
             </Tooltip>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
-            <Popconfirm
-              title="Move to Trash"
-              description="This sheet will be moved to trash."
-              okText="Move to Trash"
-              okButtonProps={{ danger: true }}
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Move Sheet to Trash?"
+              description="This sheet and all its bugs will be moved to trash."
+              confirmText="Move to Trash"
               cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={onDelete}
             >
               <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       </div>
@@ -610,16 +621,18 @@ function ArchivedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelet
               <RotateCcw size={12} /> Restore Bug
             </button>
           </Tooltip>
-          <Popconfirm
-            title="Move to Trash"
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={16} />}
+            title="Move Bug to Trash?"
             description="This bug will be moved to trash."
-            okText="Move to Trash"
-            okButtonProps={{ danger: true }}
+            confirmText="Move to Trash"
             cancelText="Cancel"
+            placement="bottomRight"
             onConfirm={onDelete}
           >
             <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       </div>
     </div>

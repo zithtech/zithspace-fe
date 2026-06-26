@@ -109,6 +109,7 @@ import {
 } from "antd";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
@@ -134,6 +135,7 @@ import {
   EllipsisOutlined,
   ExpandAltOutlined,
   FilterOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
@@ -597,6 +599,7 @@ export default function LeadsPage() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [gridPage, setGridPage] = useState(1);
   const [gridPageSize, setGridPageSize] = useState(12);
@@ -651,6 +654,18 @@ export default function LeadsPage() {
   // the user previously saved.
   const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
   const tablePrefsSaveTimer = useRef<number | null>(null);
+
+  // ─── ⌘K focuses the search input ────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Load saved preferences from the backend on mount.
   useEffect(() => {
@@ -998,23 +1013,42 @@ export default function LeadsPage() {
       canUpdateLead ? { key: 'edit', label: menuLabel('Edit Lead', 'Open lead editor', <Settings size={14} />, '#64748b', 'rgba(100,116,139,0.12)') } : null,
       { key: 'timeline', label: menuLabel('View Timeline', 'Activity history', <History size={14} />, '#8b5cf6', 'rgba(139,92,246,0.12)') },
       (canUpdateLead || canDeleteLead) ? { type: 'divider' as const } : null,
-      canDeleteLead ? { key: 'delete', danger: true, label: menuLabel('Delete Lead', 'Remove this lead', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)') } : null,
+      canDeleteLead ? {
+        key: 'delete',
+        danger: true,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={15} />}
+            title="Delete Lead"
+            description="Are you sure you want to delete this lead? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {menuLabel('Delete Lead', 'Remove this lead', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      } : null,
     ].filter(Boolean) as MenuProps['items'],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'view') handleView(record);
       else if (key === 'edit') handleEdit(record);
       else if (key === 'timeline') openTimeline(record);
-      else if (key === 'delete') {
-        modal.confirm({
-          title: "Are you sure you want to delete this lead?",
-          content: "This action cannot be undone.",
-          okText: "Delete",
-          cancelText: "Cancel",
-          okButtonProps: { danger: true },
-          onOk: () => handleDelete(record.id)
-        });
-      }
     },
   });
 
@@ -2242,38 +2276,43 @@ export default function LeadsPage() {
     loading,
     chart,
   }) => (
-    <div className="lm-stat-card" style={{ ["--lm-accent" as any]: accent }}>
-      <div className="lm-stat-head">
-        <div
-          className="lm-stat-icon"
-          style={{
-            background: `${accent}12`,
-            color: accent,
-            boxShadow: `inset 0 0 0 1px ${accent}26`,
-          }}
-        >
-          <Icon size={16} color={accent} />
+    <div className="pp-stat-card" style={{ display: 'flex', flexDirection: 'column', padding: '8px 12px', gap: 3, minHeight: 80, borderRadius: 0 }}>
+      {/* Top row: Icon + Label on left, Value on right */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="pp-stat-icon" style={{ background: `${accent}1a`, color: accent, width: 22, height: 22, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={12} />
+          </span>
+          <span className="pp-stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {label}
+          </span>
         </div>
-        <Text className="lm-stat-label">{label}</Text>
-        <div className="lm-stat-value-wrap">
-          {loading ? (
-            <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
-          ) : (
-            <span className="lm-stat-value">{value}</span>
-          )}
-          {trend && (
-            <span className={`lm-trend ${trend.positive ? "up" : "down"}`}>
-              {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-              <span className="lm-trend-value">
-                {trend.value > 0 ? "+" : ""}
-                {trend.value}%
-              </span>
-            </span>
-          )}
-        </div>
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 32, height: 16 }} />
+        ) : (
+          <span className="pp-stat-value" style={{ fontSize: '20px', fontWeight: 800, lineHeight: 1 }}>
+            {value}
+          </span>
+        )}
       </div>
-      {subtle && <Text className="lm-stat-subtle">{subtle}</Text>}
-      {chart && <div className="lm-stat-chart">{chart}</div>}
+
+      {/* Middle row: Subtle description */}
+      <div className="pp-stat-period" style={{ paddingLeft: 28, marginTop: -6, fontSize: '10px' }}>
+        {subtle}
+      </div>
+
+      {/* Divider */}
+      <div style={{ borderTop: '1px dashed var(--border-slate-200)', margin: '2px 0', opacity: 0.6 }} />
+
+      {/* Bottom row: Sparkline container */}
+      <div style={{ paddingLeft: 28 }}>
+        {chart || (
+          <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
+            <span className="lm-progress-label" style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
+            <div style={{ width: 96, height: 26 }} />
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -2434,22 +2473,20 @@ export default function LeadsPage() {
 
             <div className="lm-main">
               <div className="lm-topbar">
-                <div className="lm-topbar-search-wrap">
+                <div className="pp-search-wrap">
                   <Button
                     className="lm-mobile-menu-btn"
                     type="text"
-                    icon={<Menu size={18} />}
+                    icon={<Menu size={18} style={{ marginRight: 6 }} />}
                     onClick={() => setMobileSidebarOpen(true)}
                   />
-                  <Input
+                  <SearchOutlined className="pp-search-icon" />
+                  <input
+                    ref={searchRef}
+                    className="pp-search"
                     placeholder="Search subject, target…"
-                    prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                    suffix={<span className="lm-kbd">⌘K</span>}
-                    className="lm-search-input"
-                    style={{ width: 600, borderRadius: 0, height: 24, fontSize: 12 }}
-                    onChange={(e) => setSearchText(e.target.value)}
                     value={searchText}
-                    allowClear
+                    onChange={(e) => setSearchText(e.target.value)}
                   />
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2672,6 +2709,201 @@ export default function LeadsPage() {
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
+                                </Space>
+                              </Select.Option>
+                            ))}
+                          </Select>
+
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <User size={11} />
+                            <span>Created by</span>
+                          </div>
+                          <Select
+                            placeholder="Anyone"
+                            className="lm-filter-select"
+                            style={{ width: "100%" }}
+                            allowClear
+                            value={filterCreatedBy}
+                            onChange={setFilterCreatedBy}
+                            showSearch
+                            filterOption={(input, option) =>
+                              String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                            }
+                          >
+                            {creatorOptions.map((name) => {
+                              const palette = getAvatarStyle(name);
+                              return (
+                                <Select.Option key={name} value={name}>
+                                  <Space size={8}>
+                                    <span
+                                      className="lm-creator-avatar"
+                                      style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                                    >
+                                      {getInitials(name)}
+                                    </span>
+                                    <span style={{ fontSize: 12.5 }}>{name}</span>
+                                  </Space>
+                                </Select.Option>
+                              );
+                            })}
+                          </Select>
+
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <Mail size={11} />
+                            <span>Mail status</span>
+                          </div>
+                          <Select
+                            placeholder="Any"
+                            className="lm-filter-select"
+                            style={{ width: "100%" }}
+                            allowClear
+                            value={filterMailStatus}
+                            onChange={setFilterMailStatus}
+                          >
+                            <Select.Option value="sent">
+                              <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                            </Select.Option>
+                            <Select.Option value="not_sent">
+                              <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                            </Select.Option>
+                          </Select>
+
+                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                            <Clock size={11} />
+                            <span>Posted on</span>
+                          </div>
+                          <DatePicker.RangePicker
+                            className="lm-filter-date"
+                            style={{ width: "100%" }}
+                            value={filterDateRange}
+                            onChange={(dates) => setFilterDateRange(dates as any)}
+                          />
+
+                          <div className="lm-popover-footer">
+                            <button
+                              type="button"
+                              className="lm-popover-reset"
+                              onClick={() => {
+                                setFilterStatus(null);
+                                setFilterPlatform(null);
+                                setFilterAction(null);
+                                setFilterDateRange(null);
+                                setFilterCreatedBy(null);
+                                setFilterMailStatus(null);
+                              }}
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <Button
+                        icon={<Filter size={13} />}
+                        className={`lm-filter-settings-btn lm-toolbar-filters-btn lm-filter-group-left ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
+                        style={{ height: 38, display: 'flex', alignItems: 'center' }}
+                      >
+                        Filters
+                        {(() => {
+                          const n =
+                            (filterAction ? 1 : 0) +
+                            (filterCreatedBy ? 1 : 0) +
+                            (filterMailStatus ? 1 : 0) +
+                            (filterDateRange ? 1 : 0);
+                          return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                        })()}
+                      </Button>
+                    </Popover>
+                    <Button
+                      icon={<Maximize2 size={12} strokeWidth={2.5} />}
+                      className={`lm-filter-settings-btn lm-filter-group-right ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
+                      style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
+                      aria-label="Expand toolbar"
+                      onClick={() => setIsFilterRowOpen(prev => !prev)}
+                    />
+                  </Space.Compact>
+
+                  <Button
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                    onClick={() => {
+                      const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                      const rows = filteredLeads.map(l => {
+                        const score = l.ai_score;
+                        const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                        return [
+                          l.title || "",
+                          l.client_name || "",
+                          l.status || "",
+                          l.platform || "",
+                          l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                          getLeadCreator(l) || "",
+                          priority,
+                          l.last_mail_at || l.updated_at || l.created_at || "",
+                          l.created_at || "",
+                        ];
+                      });
+                      const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                      const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download size={13} />
+                    Export
+                  </Button>
+
+                  <div className="lm-segmented">
+                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                </div>
+              </div>
+              <div className="lm-divider" />
+
+              {/* Saved-View Segments */}
+              {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+            {([
+              { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
+              { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
+              { key: "week", label: "This Week", icon: <Activity size={13} />, count: segmentCounts.week, accent: "#f59e0b" },
+              { key: "won", label: "Won / Closed", icon: <CheckCircle size={13} />, count: segmentCounts.won, accent: "#10b981" },
+            ] as const).map(seg => {
+              const isActive = activeSegment === seg.key;
+              const accent = (seg as any).accent || "#6366f1";
+              return (
+                <button
+                  key={seg.key}
+                  onClick={() => setActiveSegment(seg.key)}
+                  className={`lead-segment-btn${isActive ? " is-active" : ""}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    height: 32,
+                    borderRadius: 0,
+                    border: `1px solid ${isActive ? accent : "#e2e8f0"}`,
+                    background: isActive ? `${accent}10` : "#fff",
+                    color: isActive ? accent : "#475569",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    letterSpacing: "0.01em",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {seg.icon}
+                  {seg.label}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       minWidth: 20,
                       height: 18,
                       padding: "0 6px",
@@ -2689,7 +2921,7 @@ export default function LeadsPage() {
             })}
           </div> */}
 
-              <div className="lm-stat-grid">
+              <div className="pp-stats">
                 <StatCard
                   label="Total Leads"
                   value={leads.length}
@@ -2759,10 +2991,6 @@ export default function LeadsPage() {
                   }
                 />
               </div>
-
-
-
-              {/* Compact toolbar — Sort + Filters + Export + Settings */}
               {isFilterRowOpen && (
                 <div className="lm-table-toolbar">
                   <span className="lm-toolbar-count">
@@ -2803,82 +3031,82 @@ export default function LeadsPage() {
 
                   <SearchableDropdown
                     placeholder="Sort"
-                  options={sortDropdownOptions}
-                  value={sortKey}
-                  onChange={(v) => {
-                    if (v) setSortKey(v as any);
-                  }}
-                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
-                  width={200}
-                  allowClear={false}
-                />
+                    options={sortDropdownOptions}
+                    value={sortKey}
+                    onChange={(v) => {
+                      if (v) setSortKey(v as any);
+                    }}
+                    style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
+                    width={200}
+                    allowClear={false}
+                  />
 
-                <Popover
-                  trigger={["click"]}
-                  placement="bottomRight"
-                  classNames={{ root: "lm-table-settings-popover" }}
-                  content={
-                    <div style={{ width: 240 }}>
-                      <div className="lm-popover-section-label">
-                        <Settings size={11} />
-                        <span>Density</span>
+                  <Popover
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    classNames={{ root: "lm-table-settings-popover" }}
+                    content={
+                      <div style={{ width: 240 }}>
+                        <div className="lm-popover-section-label">
+                          <Settings size={11} />
+                          <span>Density</span>
+                        </div>
+                        <Segmented
+                          block
+                          value={tableDensity}
+                          onChange={(v) => setTableDensity(v as LmDensity)}
+                          options={[
+                            { label: "Compact", value: "compact" },
+                            { label: "Cozy", value: "comfortable" },
+                            { label: "Roomy", value: "spacious" },
+                          ]}
+                        />
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Layers size={11} />
+                          <span>Columns</span>
+                          <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                            {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                          </span>
+                        </div>
+                        <div className="lm-col-toggle-list">
+                          {TOGGLEABLE_COLUMNS.map((c) => (
+                            <label key={c.key} className="lm-col-toggle-row">
+                              <span>{c.label}</span>
+                              <Switch
+                                size="small"
+                                checked={!hiddenCols[c.key]}
+                                onChange={(checked) =>
+                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                                }
+                              />
+                            </label>
+                          ))}
+                        </div>
+                        <div className="lm-popover-footer">
+                          <button
+                            type="button"
+                            className="lm-popover-reset"
+                            onClick={() => {
+                              setHiddenCols(DEFAULT_HIDDEN_COLS);
+                              setTableDensity("comfortable");
+                            }}
+                          >
+                            Reset to defaults
+                          </button>
+                          <span className="lm-popover-saved">Saved automatically</span>
+                        </div>
                       </div>
-                      <Segmented
-                        block
-                        value={tableDensity}
-                        onChange={(v) => setTableDensity(v as LmDensity)}
-                        options={[
-                          { label: "Compact", value: "compact" },
-                          { label: "Cozy", value: "comfortable" },
-                          { label: "Roomy", value: "spacious" },
-                        ]}
+                    }
+                  >
+                    <Tooltip title="Table settings">
+                      <Button
+                        icon={<Settings size={14} />}
+                        className="lm-filter-settings-btn"
+                        aria-label="Table settings"
                       />
-                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                        <Layers size={11} />
-                        <span>Columns</span>
-                        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                          {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
-                        </span>
-                      </div>
-                      <div className="lm-col-toggle-list">
-                        {TOGGLEABLE_COLUMNS.map((c) => (
-                          <label key={c.key} className="lm-col-toggle-row">
-                            <span>{c.label}</span>
-                            <Switch
-                              size="small"
-                              checked={!hiddenCols[c.key]}
-                              onChange={(checked) =>
-                                setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                              }
-                            />
-                          </label>
-                        ))}
-                      </div>
-                      <div className="lm-popover-footer">
-                        <button
-                          type="button"
-                          className="lm-popover-reset"
-                          onClick={() => {
-                            setHiddenCols(DEFAULT_HIDDEN_COLS);
-                            setTableDensity("comfortable");
-                          }}
-                        >
-                          Reset to defaults
-                        </button>
-                        <span className="lm-popover-saved">Saved automatically</span>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Tooltip title="Table settings">
-                    <Button
-                      icon={<Settings size={14} />}
-                      className="lm-filter-settings-btn"
-                      aria-label="Table settings"
-                    />
-                  </Tooltip>
-                </Popover>
-              </div>
+                    </Tooltip>
+                  </Popover>
+                </div>
               )}
 
               {/* Collapsible Filter Row */}
@@ -2938,8 +3166,8 @@ export default function LeadsPage() {
                   />
 
                   {activeFilterChips.length > 0 && (
-                    <Button 
-                      type="text" 
+                    <Button
+                      type="text"
                       onClick={() => {
                         setFilterStatus(null);
                         setFilterAction(null);
@@ -3041,286 +3269,286 @@ export default function LeadsPage() {
 
               <div className="lm-body">
                 {view === 'list' ? (
-                <div className="lm-table-card" data-density={tableDensity}>
-                  {loading && leads.length === 0 ? (
-                    <div className="leads-skeleton" style={{ padding: "8px 0" }}>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                            padding: "16px 20px",
-                            borderBottom: "1px solid var(--border-slate-100)",
-                          }}
-                        >
-                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
-                          <div style={{ flex: 1 }}>
-                            <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
-                            <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
-                          </div>
-                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 0 }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Table
-                      columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                      dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
-                      rowKey="id"
-                      size="middle"
-                      scroll={{ x: "max-content" }}
-                      rowSelection={{
-                        selectedRowKeys,
-                        onChange: (keys) => setSelectedRowKeys(keys),
-                        columnWidth: 48,
-                      }}
-                      pagination={false}
-                      className="lm-table premium-table"
-                      rowClassName={() => "lm-row"}
-                      onRow={(record) => ({
-                        onClick: () => handleView(record),
-                        style: { cursor: 'pointer' }
-                      })}
-                      locale={{
-                        emptyText: (
-                          <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                            <div
-                              style={{
-                                width: 64,
-                                height: 64,
-                                margin: "0 auto 16px",
-                                borderRadius: 18,
-                                background: "var(--bg-blue-50)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#3b82f6",
-                              }}
-                            >
-                              <Layers size={28} />
-                            </div>
-                            <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                              {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                            </Title>
-                            <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                              {leads.length === 0
-                                ? "Add your first opportunity to start tracking your pipeline."
-                                : "Try clearing filters or switching to a different view."}
-                            </Text>
-                            {leads.length === 0 ? (
-                              <Button
-                                type="primary"
-                                icon={<Plus size={14} />}
-                                onClick={() => {
-                                  setEditingKey(null);
-                                  form.resetFields();
-                                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                                  const defaultStatus = configStatuses.find(s => s.is_default);
-                                  if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                                  setIsDrawerVisible(true);
-                                }}
-                                style={{
-                                  borderRadius: 6,
-                                  height: 36,
-                                  fontWeight: 700,
-                                  background: "#3b82f6",
-                                  border: "none",
-                                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
-                                }}
-                              >
-                                Add First Lead
-                              </Button>
-                            ) : (
-                              <Button
-                                icon={<RefreshCw size={14} />}
-                                onClick={() => {
-                                  setFilterStatus(null);
-                                  setFilterAction(null);
-                                  setFilterPlatform(null);
-                                  setFilterDateRange(null);
-                                  setFilterCreatedBy(null);
-                                  setFilterMailStatus(null);
-                                  setSearchText("");
-                                  setActiveSegment("all");
-                                }}
-                                style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
-                              >
-                                Clear all filters
-                              </Button>
-                            )}
-                          </div>
-                        ),
-                      }}
-                    />
-                  )}
-
-                </div>
-              ) : (
-                <div className="lm-grid-view">
-                  {loading && leads.length === 0 ? (
-                    <div className="lm-grid">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          <div style={{ display: 'flex', gap: 12 }}>
-                            <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                  <div className="lm-table-card" data-density={tableDensity}>
+                    {loading && leads.length === 0 ? (
+                      <div className="leads-skeleton" style={{ padding: "8px 0" }}>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              padding: "16px 20px",
+                              borderBottom: "1px solid var(--border-slate-100)",
+                            }}
+                          >
+                            <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
                             <div style={{ flex: 1 }}>
-                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 0, marginBottom: 8 }} />
-                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 0 }} />
+                              <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
+                              <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
                             </div>
+                            <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 0 }} />
                           </div>
-                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 0, marginTop: 'auto' }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : filteredLeads.length === 0 ? (
-                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
-                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
-                        <Layers size={28} />
+                        ))}
                       </div>
-                      <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                      </Typography.Title>
-                      <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                        {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
-                      </Typography.Text>
-                      {leads.length === 0 && (
-                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
-                      )}
-                    </div>
-                  ) : (
-                    <>
+                    ) : (
+                      <Table
+                        columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
+                        dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
+                        rowKey="id"
+                        size="middle"
+                        scroll={{ x: "max-content" }}
+                        rowSelection={{
+                          selectedRowKeys,
+                          onChange: (keys) => setSelectedRowKeys(keys),
+                          columnWidth: 40,
+                        }}
+                        pagination={false}
+                        className="lm-table premium-table"
+                        rowClassName={() => "lm-row"}
+                        onRow={(record) => ({
+                          onClick: () => handleView(record),
+                          style: { cursor: 'pointer' }
+                        })}
+                        locale={{
+                          emptyText: (
+                            <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                              <div
+                                style={{
+                                  width: 64,
+                                  height: 64,
+                                  margin: "0 auto 16px",
+                                  borderRadius: 18,
+                                  background: "var(--bg-blue-50)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#3b82f6",
+                                }}
+                              >
+                                <Layers size={28} />
+                              </div>
+                              <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                                {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                              </Title>
+                              <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                                {leads.length === 0
+                                  ? "Add your first opportunity to start tracking your pipeline."
+                                  : "Try clearing filters or switching to a different view."}
+                              </Text>
+                              {leads.length === 0 ? (
+                                <Button
+                                  type="primary"
+                                  icon={<Plus size={14} />}
+                                  onClick={() => {
+                                    setEditingKey(null);
+                                    form.resetFields();
+                                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                    const defaultStatus = configStatuses.find(s => s.is_default);
+                                    if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                    setIsDrawerVisible(true);
+                                  }}
+                                  style={{
+                                    borderRadius: 6,
+                                    height: 36,
+                                    fontWeight: 700,
+                                    background: "#3b82f6",
+                                    border: "none",
+                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
+                                  }}
+                                >
+                                  Add First Lead
+                                </Button>
+                              ) : (
+                                <Button
+                                  icon={<RefreshCw size={14} />}
+                                  onClick={() => {
+                                    setFilterStatus(null);
+                                    setFilterAction(null);
+                                    setFilterPlatform(null);
+                                    setFilterDateRange(null);
+                                    setFilterCreatedBy(null);
+                                    setFilterMailStatus(null);
+                                    setSearchText("");
+                                    setActiveSegment("all");
+                                  }}
+                                  style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
+                                >
+                                  Clear all filters
+                                </Button>
+                              )}
+                            </div>
+                          ),
+                        }}
+                      />
+                    )}
+
+                  </div>
+                ) : (
+                  <div className="lm-grid-view">
+                    {loading && leads.length === 0 ? (
                       <div className="lm-grid">
-                        {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
-                          const r = record as any;
-                          const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
-                          const initials = getInitials(name);
-                          const palette = getAvatarStyle(name);
-                          const statusCfg = configStatuses.find(s => s.name === record.status);
-                          const statusColor = statusCfg?.color || '#6366f1';
-                          const scoreLevel = getAIScoreLevel(record.ai_score);
-                          const ownerName = getLeadCreator(record) || 'Unknown';
-                          const ownerPalette = getAvatarStyle(ownerName);
-                          const isSent = !!record.last_mail_at || !!record.is_mail_sent;
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                              <div style={{ flex: 1 }}>
+                                <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 0, marginBottom: 8 }} />
+                                <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 0 }} />
+                              </div>
+                            </div>
+                            <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 0, marginTop: 'auto' }} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredLeads.length === 0 ? (
+                      <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
+                        <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+                          <Layers size={28} />
+                        </div>
+                        <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                          {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                        </Typography.Title>
+                        <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                          {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
+                        </Typography.Text>
+                        {leads.length === 0 && (
+                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="lm-grid">
+                          {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
+                            const r = record as any;
+                            const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
+                            const initials = getInitials(name);
+                            const palette = getAvatarStyle(name);
+                            const statusCfg = configStatuses.find(s => s.name === record.status);
+                            const statusColor = statusCfg?.color || '#6366f1';
+                            const scoreLevel = getAIScoreLevel(record.ai_score);
+                            const ownerName = getLeadCreator(record) || 'Unknown';
+                            const ownerPalette = getAvatarStyle(ownerName);
+                            const isSent = !!record.last_mail_at || !!record.is_mail_sent;
 
-                          const formatDate = (date: any) => {
-                            if (!date) return '—';
-                            const d = dayjs(date);
-                            if (!d.isValid()) return '—';
-                            return d.format('MMM D, YYYY · h:mm A');
-                          };
+                            const formatDate = (date: any) => {
+                              if (!date) return '—';
+                              const d = dayjs(date);
+                              if (!d.isValid()) return '—';
+                              return d.format('MMM D, YYYY · h:mm A');
+                            };
 
-                          const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
+                            const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
 
-                          return (
-                            <div key={record.id} className="lm-card" onClick={() => handleView(record)}>
-                              <div className="lm-card-head">
-                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color }}>{initials}</div>
-                                <div className="lm-card-title-group">
-                                  <div className="lm-card-title">{name}</div>
-                                  <div className="lm-card-subtitle">
-                                    <span className="lm-card-subtitle-key">Client:</span>
-                                    <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
-                                    <span style={{ color: '#94a3b8' }}>|</span>
-                                    <span style={{
-                                      width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
-                                    }}>
-                                      {ownerInitials}
-                                    </span>
-                                    <span className="lm-card-subtitle-val">{ownerName}</span>
+                            return (
+                              <div key={record.id} className="lm-card" onClick={() => handleView(record)}>
+                                <div className="lm-card-head">
+                                  <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color }}>{initials}</div>
+                                  <div className="lm-card-title-group">
+                                    <div className="lm-card-title">{name}</div>
+                                    <div className="lm-card-subtitle">
+                                      <span className="lm-card-subtitle-key">Client:</span>
+                                      <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
+                                      <span style={{ color: '#94a3b8' }}>|</span>
+                                      <span style={{
+                                        width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
+                                      }}>
+                                        {ownerInitials}
+                                      </span>
+                                      <span className="lm-card-subtitle-val">{ownerName}</span>
+                                    </div>
+                                  </div>
+                                  <div className="lm-card-actions">
+                                    {getLeadActionMenu(record)}
                                   </div>
                                 </div>
-                                <div className="lm-card-actions">
-                                  {getLeadActionMenu(record)}
-                                </div>
-                              </div>
 
-                              <div className="lm-card-footer">
-                                <div className="lm-card-footer-row">
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Source:</span>
-                                    <span className="lm-card-footer-val">{record.platform || 'Upwork'}</span>
-                                  </span>
-                                  <span className="lm-card-footer-div" />
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Value:</span>
-                                    <span className="lm-card-footer-val">{record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}</span>
-                                  </span>
-                                  <span className="lm-card-footer-div" />
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Status:</span>
-                                    <span className="lm-card-footer-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
-                                      <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
-                                      {record.status || '—'}
+                                <div className="lm-card-footer">
+                                  <div className="lm-card-footer-row">
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Source:</span>
+                                      <span className="lm-card-footer-val">{record.platform || 'Upwork'}</span>
                                     </span>
-                                  </span>
-                                </div>
-                                
-                                <div className="lm-card-footer-row">
-                                  {canManageLeads && record.lead_source_kind !== "website" && (() => {
-                                    const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
-                                    return (
+                                    <span className="lm-card-footer-div" />
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Value:</span>
+                                      <span className="lm-card-footer-val">{record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}</span>
+                                    </span>
+                                    <span className="lm-card-footer-div" />
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Status:</span>
+                                      <span className="lm-card-footer-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
+                                        <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
+                                        {record.status || '—'}
+                                      </span>
+                                    </span>
+                                  </div>
+
+                                  <div className="lm-card-footer-row">
+                                    {canManageLeads && record.lead_source_kind !== "website" && (() => {
+                                      const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
+                                      return (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: hasBidiq ? '#10b981' : '#3B82F6' }}
+                                          >
+                                            {hasBidiq ? <Eye size={12} /> : <Zap size={12} />}
+                                            {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      );
+                                    })()}
+
+                                    {canCreateProposal && (
                                       <>
                                         <button
                                           type="button"
-                                          onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
-                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: hasBidiq ? '#10b981' : '#3B82F6' }}
+                                          onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
                                         >
-                                          {hasBidiq ? <Eye size={12} /> : <Zap size={12} />}
-                                          {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                          {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
+                                          {record.proposal_id ? 'View Proposal' : 'Generate'}
                                         </button>
                                         <span className="lm-card-footer-div" />
                                       </>
-                                    );
-                                  })()}
-                                  
-                                  {canCreateProposal && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
-                                      >
-                                        {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
-                                        {record.proposal_id ? 'View Proposal' : 'Generate'}
-                                      </button>
-                                      <span className="lm-card-footer-div" />
-                                    </>
-                                  )}
-                                  
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: isSent ? '#10b981' : '#3B82F6' }}
-                                  >
-                                    {isSent ? <CheckCircle size={12} style={{ color: '#10b981' }} /> : <Mail size={12} />}
-                                    {isSent ? 'Sent' : 'Send Mail'}
-                                  </button>
-                                  
-                                  <span className="lm-card-footer-div" />
-                                  
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
-                                  >
-                                    <History size={12} />
-                                    <span className="lm-card-footer-key" style={{ color: '#3B82F6' }}>Timeline</span>
-                                  </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: isSent ? '#10b981' : '#3B82F6' }}
+                                    >
+                                      {isSent ? <CheckCircle size={12} style={{ color: '#10b981' }} /> : <Mail size={12} />}
+                                      {isSent ? 'Sent' : 'Send Mail'}
+                                    </button>
+
+                                    <span className="lm-card-footer-div" />
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
+                                    >
+                                      <History size={12} />
+                                      <span className="lm-card-footer-key" style={{ color: '#3B82F6' }}>Timeline</span>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               {filteredLeads.length > 0 && (
                 <div className="lm-bottom-bar lm-bottom-bar--sticky">
@@ -4450,6 +4678,74 @@ export default function LeadsPage() {
               background: var(--bg-pure-white);
               height: calc(100vh - 64px);
               overflow: hidden;
+            }
+
+            /* ---------------- Proposals Page CSS matching styles ---------------- */
+            .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+            .pp-stat-card {
+              background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+              border-radius: 0; padding: 12px 14px; min-height: 92px;
+              display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+              box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+            }
+            .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+            .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+            .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+            .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+            .pp-stat-delta {
+              display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+              color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+            }
+            .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+            .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+            .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+            .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+            .pp-stat-spark { opacity: 0.95; }
+
+            .pp-search-wrap {
+              position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+              height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-200); padding: 0 10px;
+            }
+            .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+            .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+            .pp-search {
+              flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+              font-size: 13px; color: var(--text-slate-900);
+            }
+            .pp-search::placeholder { color: var(--text-slate-400); }
+            .pp-kbd {
+              font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+              background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+              border-radius: 5px; padding: 1px 6px;
+            }
+            
+            /* Dark theme overrides for pp- stats & search */
+            [data-theme='dark'] .pp-stat-card {
+              background: var(--bg-secondary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .pp-search-wrap {
+              background: var(--bg-secondary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .pp-search {
+              color: var(--text-slate-200) !important;
+            }
+            [data-theme='dark'] .pp-kbd {
+              background: var(--bg-primary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+
+            .lm-table.ant-table-wrapper .ant-table-selection-column {
+              padding-inline: 6px !important;
+            }
+
+            @media (max-width: 1100px) {
+              .pp-stats { grid-template-columns: repeat(2, 1fr); }
+            }
+            @media (max-width: 600px) {
+              .pp-stats { grid-template-columns: 1fr; }
             }
             .lm-ambient {
               display: none;

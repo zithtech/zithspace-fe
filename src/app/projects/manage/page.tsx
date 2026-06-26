@@ -30,6 +30,7 @@ import {
   ConfigProvider,
 } from "antd";
 import { useSearchParams } from "next/navigation";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   PlusOutlined,
   EditOutlined,
@@ -783,7 +784,32 @@ const ProjectsManageContent: React.FC = () => {
         {
           key: 'delete',
           danger: true,
-          label: menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Project?"
+              description={`Are you sure you want to delete "${project.name}"? This action cannot be undone.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              onConfirm={() => handleDelete(project.id)}
+            >
+              <div 
+                style={{ 
+                  margin: '-5px -12px', 
+                  padding: '5px 12px',
+                  width: 'calc(100% + 24px)',
+                  height: '100%' 
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                {menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+              </div>
+            </ConfirmDialog>
+          ),
         }
       ] : [])
     ],
@@ -793,15 +819,6 @@ const ProjectsManageContent: React.FC = () => {
         router.push(`/projects/${project.id}/overview`);
       } else if (key === 'edit') {
         handleEdit(project);
-      } else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Project',
-          content: 'Are you sure you want to delete this project? This action cannot be undone.',
-          okText: 'Delete',
-          okType: 'danger',
-          cancelText: 'Cancel',
-          onOk: () => handleDelete(project.id),
-        });
       }
     }
   });
@@ -1584,6 +1601,33 @@ const ProjectsManageContent: React.FC = () => {
         .pm2-action-pop .ant-dropdown-menu-item-danger .pm2-menu-title { color: #ef4444; }
         .pm2-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .pm2-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        /* Dark Theme overrides */
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item:hover,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item:hover {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .pm2-menu-title,
+        [data-theme="dark"] .pm2-action-pop .pm2-menu-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .pm2-menu-desc,
+        [data-theme="dark"] .pm2-action-pop .pm2-menu-desc {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item-divider,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item-divider {
+          background: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item-danger:hover,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item-danger:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+        }
 
         .pm2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .pm2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); }

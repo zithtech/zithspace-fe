@@ -24,6 +24,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   ClearOutlined,
   CloseOutlined,
@@ -287,13 +288,15 @@ export default function TrashPage() {
             </Popconfirm>
           )}
           {canDeleteTicketTrash && (
-            <Popconfirm
-              title="Delete Permanently"
-              description="This action cannot be undone."
-              onConfirm={() => handlePermanentlyDelete([record.id])}
-              okText="Delete Forever"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined />}
+              title="Delete Forever?"
+              description={`Permanently delete ${record.ticketNumber}? This action cannot be undone.`}
+              confirmText="Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="bottomRight"
+              onConfirm={() => handlePermanentlyDelete([record.id])}
             >
               <Tooltip title="Delete forever">
                 <Button
@@ -304,7 +307,7 @@ export default function TrashPage() {
                   icon={<DeleteOutlined />}
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -351,13 +354,15 @@ export default function TrashPage() {
               />
             </Tooltip>
             {canDeleteTicketTrash && total > 0 && (
-              <Popconfirm
-                title="Empty Trash"
-                description="Permanently delete ALL tickets in trash? This cannot be undone."
-                onConfirm={handleEmptyTrash}
-                okText="Empty Trash"
+              <ConfirmDialog
+                tone="danger"
+                icon={<ClearOutlined />}
+                title="Empty Trash?"
+                description="Permanently delete ALL tickets in trash? This action cannot be undone."
+                confirmText="Empty Trash"
                 cancelText="Cancel"
-                okButtonProps={{ danger: true }}
+                placement="bottomRight"
+                onConfirm={handleEmptyTrash}
               >
                 <Button
                   danger
@@ -367,7 +372,7 @@ export default function TrashPage() {
                 >
                   Empty Trash
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             )}
           </>
         }
@@ -407,18 +412,20 @@ export default function TrashPage() {
                   </Button>
                 )}
                 {canDeleteTicketTrash && (
-                  <Popconfirm
-                    title="Delete Permanently"
-                    description={`Permanently delete ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}? This cannot be undone.`}
-                    onConfirm={() => handlePermanentlyDelete()}
-                    okText="Delete Forever"
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<DeleteOutlined />}
+                    title="Delete Forever?"
+                    description={`Permanently delete ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}? This action cannot be undone.`}
+                    confirmText="Delete"
                     cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
+                    placement="bottomRight"
+                    onConfirm={() => handlePermanentlyDelete()}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} loading={isPurging}>
                       Delete Forever
                     </Button>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 )}
                 <Button
                   type="text"

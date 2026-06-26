@@ -58,6 +58,7 @@ import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -186,7 +187,7 @@ export default function AccountsPage() {
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit' | 'delete'>('add');
+  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [breakdownDrawerVisible, setBreakdownDrawerVisible] = useState(false);
@@ -389,31 +390,6 @@ export default function AccountsPage() {
     }
   };
 
-  // Handle delete
-  const handleDelete = async () => {
-    if (!selectedTransaction) return;
-
-    try {
-      setFormLoading(true);
-
-      await TransactionsService.deleteTransaction(selectedTransaction.id);
-      messageApi.success('Transaction deleted successfully');
-      setIsModalVisible(false);
-      setSelectedTransaction(null);
-      fetchTransactions();
-      fetchSummary();
-    } catch (error) {
-      console.error('Delete transaction error:', error);
-      if (error instanceof Error) {
-        messageApi.error(error.message);
-      } else {
-        messageApi.error('Delete failed');
-      }
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
   // Modal handlers
   const showAddModal = () => {
     setModalType('add');
@@ -436,12 +412,6 @@ export default function AccountsPage() {
       notes: transaction.notes || '',
       date: dayjs(transaction.date),
     });
-    setIsModalVisible(true);
-  };
-
-  const showDeleteModal = (transaction: Transaction) => {
-    setModalType('delete');
-    setSelectedTransaction(transaction);
     setIsModalVisible(true);
   };
 
@@ -550,12 +520,54 @@ export default function AccountsPage() {
     items: [
       { key: 'edit', disabled: !canUpdateAccount, label: menuLabel('Edit transaction', 'Modify entry details', <EditOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteAccount, label: menuLabel('Delete transaction', 'Permanently remove entry', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)') },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteAccount,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            title="Delete Transaction"
+            description="Are you sure you want to delete this transaction? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={async () => {
+              try {
+                await TransactionsService.deleteTransaction(record.id);
+                messageApi.success('Transaction deleted successfully');
+                fetchTransactions();
+                fetchSummary();
+              } catch (error) {
+                console.error('Delete transaction error:', error);
+                if (error instanceof Error) {
+                  messageApi.error(error.message);
+                } else {
+                  messageApi.error('Delete failed');
+                }
+              }
+            }}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {menuLabel('Delete transaction', 'Permanently remove entry', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'edit') showEditModal(record);
-      else if (key === 'delete') showDeleteModal(record);
     },
   });
 
@@ -1127,40 +1139,6 @@ export default function AccountsPage() {
         </main>
       </div>
 
-      {/* Delete confirmation modal */}
-      <Modal
-        title="Delete Transaction"
-        open={isModalVisible && modalType === 'delete'}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setSelectedTransaction(null);
-        }}
-        footer={null}
-        width={400}
-      >
-        <div>
-          <Text>
-            Are you sure you want to delete this transaction?
-            This action cannot be undone.
-          </Text>
-          <div style={{ marginTop: 20, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={() => setIsModalVisible(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                danger
-                loading={formLoading}
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
-            </Space>
-          </div>
-        </div>
-      </Modal>
-
       {/* Transaction Add/Edit Drawer */}
       <Drawer
         title={
@@ -1180,7 +1158,7 @@ export default function AccountsPage() {
         }
         placement="right"
         width={420}
-        open={isModalVisible && modalType !== 'delete'}
+        open={isModalVisible}
         onClose={() => {
           setIsModalVisible(false);
           form.resetFields();
@@ -1922,10 +1900,12 @@ export default function AccountsPage() {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item {
           padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
           transition: background .12s ease;
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
         .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }

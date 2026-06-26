@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -57,6 +57,7 @@ import {
   useDeleteCustomer,
 } from "@/hooks/use-customers";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 
@@ -280,6 +281,90 @@ export default function InvoiceproCustomerPage() {
     }
   };
 
+  // ─── Premium menu label helper ────────────────────────────────────────
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  // ─── Shared action menu (table + cards) ───────────────────────────────────
+  const getMenuItems = (customer: ServiceCustomer): MenuProps["items"] => [
+    {
+      key: "view",
+      label: menuLabel("View profile", "Open customer details", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      onClick: () => {
+        setSelectedCustomerForView(customer);
+        setViewDrawerVisible(true);
+      },
+    },
+    (canUpdateInvoiceCustomer || canDeleteInvoiceCustomer) && { type: "divider" as const },
+    canUpdateInvoiceCustomer && {
+      key: "status_toggle",
+      label: customer.isActive
+        ? menuLabel("Deactivate", "Disable this customer", <Ban size={14} />, '#f59e0b', 'rgba(245,158,11,0.12)')
+        : menuLabel("Activate", "Enable this customer", <ShieldCheck size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
+      onClick: async () => {
+        try {
+          await updateCustomer.mutateAsync({
+            id: customer.id,
+            data: { ...customer, isActive: !customer.isActive },
+          });
+          messageApi.success(`Customer ${customer.isActive ? "deactivated" : "activated"} successfully`);
+        } catch (error: any) {
+          messageApi.error(error.message || "Operation failed");
+        }
+      },
+    },
+    canUpdateInvoiceCustomer && {
+      key: "edit",
+      label: menuLabel("Edit", "Modify customer details", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+      onClick: () => handleEdit(customer),
+    },
+    canDeleteInvoiceCustomer && { type: "divider" as const },
+    canDeleteInvoiceCustomer && {
+      key: "delete",
+      danger: true,
+      label: (
+        <ConfirmDialog
+          tone="danger"
+          icon={<Trash2 size={14} />}
+          title="Delete Customer"
+          description={`Are you sure you want to delete "${customer.companyName}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          placement="left"
+          onConfirm={async () => {
+            try {
+              await deleteCustomer.mutateAsync(customer.id);
+              messageApi.success("Customer deleted successfully");
+            } catch (error: any) {
+              if (error?.code === "23001" || error?.message?.includes("foreign key constraint")) {
+                messageApi.error(
+                  "Cannot delete customer: This customer has associated invoices. Please delete or reassign the invoices first.",
+                  6
+                );
+              } else {
+                messageApi.error(error?.message || "Failed to delete customer");
+              }
+            }
+          }}
+        >
+          <div
+            style={{ margin: '-5px -12px', padding: '5px 12px', width: 'calc(100% + 24px)', height: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {menuLabel("Delete", "Remove this customer", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+          </div>
+        </ConfirmDialog>
+      ),
+    },
+  ].filter(Boolean) as MenuProps["items"];
+
   const columns = [
     {
       title: "CUSTOMER",
@@ -412,81 +497,21 @@ export default function InvoiceproCustomerPage() {
       width: 60,
       fixed: "right" as const,
       align: "center" as const,
-      render: (_: any, record: ServiceCustomer) => {
-        const menuItems: any[] = [
-          {
-            key: "view",
-            icon: <Eye size={14} />,
-            label: "View profile",
-            onClick: () => {
-              setSelectedCustomerForView(record);
-              setViewDrawerVisible(true);
-            },
-          },
-          (canUpdateInvoiceCustomer || canDeleteInvoiceCustomer) && { type: "divider" },
-          canUpdateInvoiceCustomer
-            ? {
-              key: "status_toggle",
-              icon: record.isActive ? <Ban size={14} /> : <ShieldCheck size={14} />,
-              label: record.isActive ? "Deactivate" : "Activate",
-              onClick: async () => {
-                try {
-                  await updateCustomer.mutateAsync({
-                    id: record.id,
-                    data: { ...record, isActive: !record.isActive },
-                  });
-                  messageApi.success(
-                    `Customer ${record.isActive ? "deactivated" : "activated"} successfully`
-                  );
-                } catch (error: any) {
-                  messageApi.error(error.message || "Operation failed");
-                }
-              },
-            }
-            : null,
-          canUpdateInvoiceCustomer
-            ? {
-              key: "edit",
-              icon: <Edit2 size={14} />,
-              label: "Edit",
-              onClick: () => handleEdit(record),
-            }
-            : null,
-          canDeleteInvoiceCustomer ? { type: "divider" } : null,
-          canDeleteInvoiceCustomer
-            ? {
-              key: "delete",
-              danger: true,
-              icon: <Trash2 size={14} />,
-              label: "Delete",
-              onClick: () => {
-                setDeletingCustomerId(record.id);
-                setIsDeleteModalOpen(true);
-              },
-            }
-            : null,
-        ].filter(Boolean);
-
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Dropdown
-              menu={{ items: menuItems as any }}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                type="text"
-                icon={
-                  <MoreVertical
-                    size={16}
-                    style={{ color: "var(--text-secondary)" }}
-                  />
-                }
-              />
-            </Dropdown>
-          </div>
-        );
-      },
+      render: (_: any, record: ServiceCustomer) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Dropdown
+            menu={{ items: getMenuItems(record) }}
+            overlayClassName="pp-action-pop"
+            trigger={["click"]}
+            placement="bottomRight"
+          >
+            <Button
+              type="text"
+              icon={<MoreVertical size={16} style={{ color: "var(--text-secondary)" }} />}
+            />
+          </Dropdown>
+        </div>
+      ),
     },
   ];
 
@@ -770,59 +795,10 @@ export default function InvoiceproCustomerPage() {
                           </div>
                         </div>
                         <Dropdown
-                          menu={{
-                            items: [
-                              {
-                                key: "view",
-                                icon: <Eye size={14} />,
-                                label: "View profile",
-                                onClick: () => {
-                                  setSelectedCustomerForView(customer);
-                                  setViewDrawerVisible(true);
-                                },
-                              },
-                              (canUpdateInvoiceCustomer || canDeleteInvoiceCustomer) && {
-                                type: "divider",
-                              },
-                              canUpdateInvoiceCustomer && {
-                                key: "status_toggle",
-                                icon: customer.isActive ? <Ban size={14} /> : <ShieldCheck size={14} />,
-                                label: customer.isActive ? "Deactivate" : "Activate",
-                                onClick: async () => {
-                                  try {
-                                    await updateCustomer.mutateAsync({
-                                      id: customer.id,
-                                      data: { ...customer, isActive: !customer.isActive },
-                                    });
-                                    messageApi.success(
-                                      `Customer ${customer.isActive ? "deactivated" : "activated"
-                                      } successfully`
-                                    );
-                                  } catch (error: any) {
-                                    messageApi.error(error.message || "Operation failed");
-                                  }
-                                },
-                              },
-                              canUpdateInvoiceCustomer && {
-                                key: "edit",
-                                icon: <Edit2 size={14} />,
-                                label: "Edit",
-                                onClick: () => handleEdit(customer),
-                              },
-                              canDeleteInvoiceCustomer && { type: "divider" },
-                              canDeleteInvoiceCustomer && {
-                                key: "delete",
-                                danger: true,
-                                icon: <Trash2 size={14} />,
-                                label: "Delete",
-                                onClick: () => {
-                                  setDeletingCustomerId(customer.id);
-                                  setIsDeleteModalOpen(true);
-                                },
-                              },
-                            ].filter(Boolean) as MenuProps["items"],
-                          }}
+                          menu={{ items: getMenuItems(customer) }}
+                          overlayClassName="pp-action-pop"
                           trigger={["click"]}
+                          placement="bottomRight"
                         >
                           <button
                             type="button"
@@ -985,110 +961,7 @@ export default function InvoiceproCustomerPage() {
         onSave={handleSave}
       />
 
-      {/* Delete confirmation modal */}
-      <Modal
-        open={isDeleteModalOpen}
-        onCancel={() => {
-          setIsDeleteModalOpen(false);
-          setDeletingCustomerId(null);
-        }}
-        footer={null}
-        width={440}
-        centered
-        closable={false}
-        styles={{
-          body: { padding: 0 },
-          mask: {
-            backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)",
-          },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
-        }}
-      >
-        <div
-          className="px-6 pt-5 pb-4 border-b"
-          style={{
-            background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: "rgba(248,113,113,0.08)",
-                color: "#f87171",
-                border: "1px solid rgba(248,113,113,0.25)",
-              }}
-            >
-              <Trash2 size={18} strokeWidth={2.25} />
-            </div>
-            <div className="min-w-0">
-              <div
-                className="text-[15px] font-semibold leading-tight"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Delete customer
-              </div>
-              <div
-                className="text-[12px] mt-0.5"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                This action cannot be undone
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="px-6 py-5">
-          <p
-            className="text-[13px] leading-relaxed mb-4"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            The customer profile, contact details and tax identifiers will be
-            permanently removed.
-          </p>
-
-          <div
-            className="rounded-lg p-3 mb-5 flex items-start gap-2"
-            style={{
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.20)",
-            }}
-          >
-            <AlertCircle
-              size={14}
-              className="mt-0.5 flex-shrink-0"
-              style={{ color: "#f87171" }}
-            />
-            <span className="text-[12px]" style={{ color: "#f87171" }}>
-              If the customer has invoices linked to them, deletion will be
-              blocked.
-            </span>
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              onClick={() => {
-                setIsDeleteModalOpen(false);
-                setDeletingCustomerId(null);
-              }}
-              style={{ borderRadius: 8, height: 36 }}
-            >
-              Keep customer
-            </Button>
-            <Button
-              danger
-              type="primary"
-              loading={deleteCustomer.status === "pending"}
-              onClick={confirmDelete}
-              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-            >
-              Delete customer
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <CustomerViewDrawer
         open={viewDrawerVisible}
@@ -1384,6 +1257,40 @@ export default function InvoiceproCustomerPage() {
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .pp-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop,
+        .pp-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .pp-action-pop ::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
       `}</style>
     </MainLayout>
   );

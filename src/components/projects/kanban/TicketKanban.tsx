@@ -29,6 +29,7 @@ import { Ticket } from '@/services/ticketService';
 import { STATUS_OPTIONS } from '@/utils/ticketUtils';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 type ColumnSortKey = 'priority' | 'date' | 'title';
 
@@ -340,18 +341,28 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
             </Button>
           )}
           {onBulkDelete && canDeleteTicket && (
-            <Button
-              size="small"
-              danger
+            <ConfirmDialog
+              tone="danger"
               icon={<DeleteOutlined />}
-              className="kb-bulk-btn"
-              onClick={() => {
+              title="Move to Trash?"
+              description={`Move ${selectedTicketIds.size} selected ticket(s) to trash?`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
+              onConfirm={() => {
                 onBulkDelete(Array.from(selectedTicketIds));
                 clearSelection();
               }}
             >
-              Delete
-            </Button>
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                className="kb-bulk-btn"
+              >
+                Delete
+              </Button>
+            </ConfirmDialog>
           )}
           <Button
             size="small"

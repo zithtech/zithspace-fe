@@ -55,6 +55,7 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Button,
   Col,
@@ -580,7 +581,7 @@ const HubCard: React.FC<{
   onOpen: (id: string) => void;
   onToggleStar: (e: React.MouseEvent, hub: DocumentHub) => void;
   onShare: (e: React.MouseEvent, hub: DocumentHub) => void;
-  onDelete: (e: React.MouseEvent, id: string, name: string) => void;
+  onDelete: (id: string) => void;
   variant?: 'rail' | 'grid';
 }> = ({ hub, starred, onOpen, onToggleStar, onShare, onDelete, variant = 'rail' }) => {
   const { canDeleteDocument } = usePermission();
@@ -694,16 +695,28 @@ const HubCard: React.FC<{
               </button>
             </Tooltip>
             {canDeleteDocument && (
-              <Tooltip title="Move to trash">
-                <button
-                  type="button"
-                  onClick={(e) => onDelete(e, hub.id, hub.name)}
-                  className="dh-card-action-btn dh-card-action-danger"
-                  aria-label="Delete"
-                >
-                  <DeleteOutlined style={{ fontSize: 11 }} />
-                </button>
-              </Tooltip>
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={15} />}
+                title="Delete Document Hub"
+                description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                placement="topRight"
+                onConfirm={() => onDelete(hub.id)}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Tooltip title="Move to trash">
+                    <button
+                      type="button"
+                      className="dh-card-action-btn dh-card-action-danger"
+                      aria-label="Delete"
+                    >
+                      <DeleteOutlined style={{ fontSize: 11 }} />
+                    </button>
+                  </Tooltip>
+                </div>
+              </ConfirmDialog>
             )}
           </div>
         </div>
@@ -965,24 +978,15 @@ const DocumentHubPage = () => {
     }
   };
 
-  const handleDeleteHub = (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation();
-    modal.confirm({
-      title: "Delete Document Hub",
-      content: `Are you sure you want to delete "${name}"? This will move it to trash.`,
-      okText: "Delete",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          await DocumentHubService.deleteDocumentHub(id);
-          messageApi.success("Document Hub moved to trash");
-          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
-        } catch (error) {
-          console.error(error);
-          messageApi.error("Failed to delete Document Hub");
-        }
-      },
-    });
+  const executeDeleteHub = async (id: string) => {
+    try {
+      await DocumentHubService.deleteDocumentHub(id);
+      messageApi.success("Document Hub moved to trash");
+      queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Failed to delete Document Hub");
+    }
   };
 
   const handleShareHub = (e: React.MouseEvent, hub: any) => {
@@ -1554,16 +1558,28 @@ const DocumentHubPage = () => {
             </button>
           </Tooltip>
           {canDeleteDocument && (
-            <Tooltip title="Move to trash">
-              <button
-                type="button"
-                onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-                className="dh-row-action-btn dh-row-action-danger"
-                aria-label="Delete"
-              >
-                <DeleteOutlined style={{ fontSize: 13 }} />
-              </button>
-            </Tooltip>
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={15} />}
+              title="Delete Document Hub"
+              description={`Are you sure you want to delete "${record.name}"? This will move it to trash.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => executeDeleteHub(record.id)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Move to trash">
+                  <button
+                    type="button"
+                    className="dh-row-action-btn dh-row-action-danger"
+                    aria-label="Delete"
+                  >
+                    <DeleteOutlined style={{ fontSize: 13 }} />
+                  </button>
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -1711,7 +1727,7 @@ const DocumentHubPage = () => {
                 onOpen={openHub}
                 onToggleStar={handleToggleStar}
                 onShare={handleShareHub}
-                onDelete={handleDeleteHub}
+                onDelete={executeDeleteHub}
                 variant="rail"
               />
             ))}
@@ -1732,7 +1748,7 @@ const DocumentHubPage = () => {
                 onOpen={openHub}
                 onToggleStar={handleToggleStar}
                 onShare={handleShareHub}
-                onDelete={handleDeleteHub}
+                onDelete={executeDeleteHub}
                 variant="rail"
               />
             ))}
@@ -2031,8 +2047,33 @@ const DocumentHubPage = () => {
                             { type: 'divider' as const },
                             {
                               key: 'delete',
-                              label: renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true),
-                              onClick: ({ domEvent }: any) => handleDeleteHub(domEvent, hub.id, hub.name)
+                              danger: true,
+                              label: (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  icon={<Trash2 size={15} />}
+                                  title="Delete Document Hub"
+                                  description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
+                                  confirmText="Delete"
+                                  cancelText="Cancel"
+                                  placement="left"
+                                  onConfirm={() => executeDeleteHub(hub.id)}
+                                >
+                                  <div
+                                    style={{
+                                      margin: '-5px -12px',
+                                      padding: '5px 12px',
+                                      width: 'calc(100% + 24px)',
+                                      height: '100%'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    {renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true)}
+                                  </div>
+                                </ConfirmDialog>
+                              )
                             }
                           ] : [])
                         ]

@@ -53,6 +53,7 @@ import {
   EllipsisOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
@@ -349,7 +350,13 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
             <Form.Item
               name="name"
               label="Display name"
-              rules={[{ required: true, message: 'Enter a name' }]}
+              rules={[
+                { required: true, message: 'Enter a name' },
+                { 
+                  pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
+                  message: 'Name can only contain letters, numbers, and basic punctuation' 
+                }
+              ]}
             >
               <Input
                 placeholder={
@@ -362,6 +369,11 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                 className="es-input"
                 maxLength={64}
                 showCount
+                onKeyPress={(e) => {
+                  if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
             </Form.Item>
 
@@ -500,7 +512,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               </div>
 
               <div className="es-toggle-cards">
-                <Form.Item name="isDefault" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                <Form.Item name="isDefault" valuePropName="checked" hidden>
                   <Switch />
                 </Form.Item>
                 <button
@@ -520,7 +532,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                   </span>
                 </button>
 
-                <Form.Item name="isFinal" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                <Form.Item name="isFinal" valuePropName="checked" hidden>
                   <Switch />
                 </Form.Item>
                 <button
@@ -775,18 +787,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this category?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Category?"
               description="Inactive items won't appear in new escalations."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },
@@ -850,17 +866,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this priority?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Priority?"
+              description="Inactive items won't appear in new escalations."
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },
@@ -921,17 +942,22 @@ export default function EscalationSettingsPage() {
             <Tooltip title="Edit">
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
             </Tooltip>
-            <Popconfirm
-              title="Retire this status?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Retire"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 16 }} />}
+              title="Retire Status?"
+              description="Inactive items won't appear in new escalations."
+              confirmText="Retire"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="topRight"
+              onConfirm={() => handleDelete(record.id)}
             >
-              <Tooltip title="Retire">
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Retire">
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           </div>
         ),
     },

@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Table, Avatar, Tag, Space, Typography, Button, Popconfirm, Tooltip, Pagination, Select, Dropdown, Modal } from "antd";
+import { Table, Avatar, Tag, Space, Typography, Button, Tooltip, Pagination, Select, Dropdown } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   MoreHorizontal,
   Clock,
@@ -356,7 +357,36 @@ export default function UpdateTable({
           items.push({
             key: 'delete',
             danger: true,
-            label: menuLabel('Delete', 'Remove this update', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')
+            label: (
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={15} />}
+                title="Delete Update?"
+                description="Are you sure you want to delete this status update? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                placement="left"
+                onConfirm={async () => {
+                  if (onDeleteUpdate) {
+                    await onDeleteUpdate(update.id);
+                  }
+                }}
+              >
+                <div
+                  style={{
+                    margin: '-5px -12px',
+                    padding: '5px 12px',
+                    width: 'calc(100% + 24px)',
+                    height: '100%'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  {menuLabel('Delete', 'Remove this update', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                </div>
+              </ConfirmDialog>
+            )
           });
         }
 
@@ -370,20 +400,6 @@ export default function UpdateTable({
                   if (key === 'view') onViewDetails(update);
                   else if (key === 'edit') {
                     if (!editDisabled) router.push(`/daily-updates/submit?edit=${update.id}`);
-                  }
-                  else if (key === 'delete') {
-                    Modal.confirm({
-                      title: 'Delete Update',
-                      content: 'Are you sure you want to delete this status update?',
-                      okText: 'Delete',
-                      cancelText: 'Cancel',
-                      okButtonProps: { danger: true },
-                      onOk: async () => {
-                        if (onDeleteUpdate) {
-                          await onDeleteUpdate(update.id);
-                        }
-                      }
-                    });
                   }
                 }
               }} 

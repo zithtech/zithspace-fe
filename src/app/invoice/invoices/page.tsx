@@ -83,6 +83,7 @@ import type {
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 
@@ -189,6 +190,15 @@ const INVOICE_STATUS_META: Record<
 
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
   const { message: messageApi } = App.useApp();
   const {
     canReadInvoice,
@@ -238,8 +248,6 @@ export default function InvoiceInvoicesPage() {
 
   // For delete state
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
 
   // For payment proof drawer
   const [proofDrawerVisible, setProofDrawerVisible] = useState(false);
@@ -324,34 +332,7 @@ export default function InvoiceInvoicesPage() {
     });
   };
 
-  const openDeleteModal = (record: any) => {
-    setInvoiceToDelete(record);
-    setDeleteModalVisible(true);
-  };
 
-  const handleDeleteInvoice = async () => {
-    if (!invoiceToDelete) return;
-
-    try {
-      setDeletingId(invoiceToDelete.id);
-      await deleteMutation.mutateAsync(invoiceToDelete.id, {
-        onSuccess: () => {
-          messageApi.success(`Invoice ${invoiceToDelete.invoiceNumber} moved to trash successfully`);
-          refetch();
-          setDeleteModalVisible(false);
-          setInvoiceToDelete(null);
-          setDeletingId(null);
-        },
-        onError: (error: any) => {
-          messageApi.error(error.message || 'Failed to move invoice to trash');
-          setDeletingId(null);
-        }
-      });
-    } catch (error) {
-      console.error('Moving to trash failed:', error);
-      setDeletingId(null);
-    }
-  };
 
   const openBulkDeleteModal = () => {
     if (selectedInvoices.length === 0) {
@@ -429,24 +410,27 @@ export default function InvoiceInvoicesPage() {
   const getMenuItems = (record: any): MenuProps["items"] => [
     {
       key: "view",
-      icon: <Eye size={14} />,
-      label: "View Details",
+      label: menuLabel("View Details", "Open detailed view", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
       onClick: () => {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
       },
     },
     canUpdateInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
       key: "edit",
-      icon: <Edit2 size={14} />,
-      label: "Edit Invoice",
+      label: menuLabel("Edit Invoice", "Modify invoice information", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
         router.push(`/invoice/newinvoice?edit=${record.id}`);
       },
     },
     {
       key: "download",
-      icon: <Download size={14} />,
-      label: record.id === downloadingId && isDownloading ? "Downloading..." : "Download PDF",
+      label: menuLabel(
+        record.id === downloadingId && isDownloading ? "Downloading..." : "Download PDF",
+        "Save document locally",
+        <Download size={14} />,
+        '#3b82f6',
+        'rgba(59,130,246,0.12)'
+      ),
       disabled: isDownloading,
       onClick: () => {
         downloadInvoice(record.id);
@@ -454,14 +438,12 @@ export default function InvoiceInvoicesPage() {
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
-      icon: <Mail size={14} />,
-      label: "Quick Send Email",
+      label: menuLabel("Quick Send Email", "Send email directly", <Mail size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
       onClick: () => handleQuickSend(record),
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
-      icon: <Edit2 size={14} />,
-      label: "Compose & Send",
+      label: menuLabel("Compose & Send", "Customize and send mail", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
         setSelectedInvoiceForEmail(record);
         setEmailDrawerOpen(true);
@@ -469,8 +451,7 @@ export default function InvoiceInvoicesPage() {
     },
     canReadInvoiceHistory && {
       key: "transactions",
-      icon: <DollarSign size={14} />,
-      label: "Transaction History",
+      label: menuLabel("Transaction History", "View payment timeline", <DollarSign size={14} />, '#f59e0b', 'rgba(245,158,11,0.12)'),
       onClick: () => {
         setTransactionInvoice(record);
         setTransactionDrawerOpen(true);
@@ -479,13 +460,50 @@ export default function InvoiceInvoicesPage() {
     (canUpdateInvoice || canDeleteInvoice || canDeleteInvoiceTrash) && { type: "divider" },
     (canDeleteInvoice || canDeleteInvoiceTrash) && {
       key: "delete",
-      icon: <Trash2 size={14} />,
-      label: deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
       danger: true,
-      disabled: deletingId === record.id && deleteMutation.isPending,
-      onClick: () => {
-        openDeleteModal(record);
-      },
+      label: (
+        <ConfirmDialog
+          tone="danger"
+          icon={<Trash2 size={14} />}
+          title="Move to Trash"
+          description={`Are you sure you want to move invoice ${record.invoiceNumber} to trash?`}
+          confirmText="Move to Trash"
+          cancelText="Cancel"
+          placement="left"
+          onConfirm={async () => {
+            try {
+              setDeletingId(record.id);
+              await deleteMutation.mutateAsync(record.id);
+              messageApi.success(`Invoice ${record.invoiceNumber} moved to trash successfully`);
+              refetch();
+            } catch (error: any) {
+              messageApi.error(error.message || 'Failed to move invoice to trash');
+            } finally {
+              setDeletingId(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              margin: '-5px -12px',
+              padding: '5px 12px',
+              width: 'calc(100% + 24px)',
+              height: '100%'
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {menuLabel(
+              deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
+              "Move invoice to trash",
+              <Trash2 size={14} />,
+              '#ef4444',
+              'rgba(239,68,68,0.12)'
+            )}
+          </div>
+        </ConfirmDialog>
+      )
     },
   ].filter(Boolean) as MenuProps["items"];
 
@@ -921,6 +939,7 @@ export default function InvoiceInvoicesPage() {
         return (
           <Dropdown
             overlay={menu}
+            overlayClassName="pp-action-pop"
             trigger={['click']}
             placement="bottomRight"
             onOpenChange={(open) => {
@@ -1307,7 +1326,7 @@ export default function InvoiceInvoicesPage() {
                     dataSource={[]}
                     loading={true}
                     pagination={false}
-                    scroll={{ x: 1100 }}
+                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                     className="pp-table"
                   />
                 </div>
@@ -1367,6 +1386,7 @@ export default function InvoiceInvoicesPage() {
                         </div>
                         <Dropdown
                           overlay={<Menu items={getMenuItems(record)} />}
+                          overlayClassName="pp-action-pop"
                           trigger={["click"]}
                           placement="bottomRight"
                         >
@@ -1448,7 +1468,7 @@ export default function InvoiceInvoicesPage() {
                     key: inv.id,
                   }))}
                   pagination={false}
-                  scroll={{ x: 1100 }}
+                  scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                   className="pp-table"
                   onRow={(record) => ({
                     onClick: (e) => {
@@ -1593,54 +1613,7 @@ export default function InvoiceInvoicesPage() {
         </div>
       </Modal>
 
-      {/* Single Trash Confirmation Modal */}
-      <Modal
-        title="Move to Trash"
-        open={deleteModalVisible}
-        onCancel={() => {
-          setDeleteModalVisible(false);
-          setInvoiceToDelete(null);
-        }}
-        onOk={handleDeleteInvoice}
-        confirmLoading={deletingId === invoiceToDelete?.id}
-        okText="Move to Trash"
-        okType="danger"
-        cancelText="Cancel"
-        width={500}
-      >
-        {invoiceToDelete && (
-          <div className="py-4">
-            <div className="flex items-center mb-3">
-              <AlertCircle size={20} className="text-yellow-500 mr-2" />
-              <Text strong>Are you sure you want to move this invoice to trash?</Text>
-            </div>
-            <div className="mb-4 p-3 rounded" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Text type="secondary" className="block text-sm">Invoice Number</Text>
-                  <Text strong className="text-lg">{invoiceToDelete.invoiceNumber}</Text>
-                </div>
-                <div>
-                  <Text type="secondary" className="block text-sm">Amount</Text>
-                  <Text strong className="text-lg">${Number(invoiceToDelete.grandTotal || invoiceToDelete.total || 0).toFixed(2)}</Text>
-                </div>
-                <div className="col-span-2">
-                  <Text type="secondary" className="block text-sm">Customer</Text>
-                  <Text strong>
-                    {(invoiceToDelete.customerSnapshot as any)?.companyName || invoiceToDelete.customer?.companyName || "Unknown"}
-                  </Text>
-                </div>
-              </div>
-            </div>
-            <Alert
-              message="Note: Invoice will be moved to Trash"
-              description="You can restore this invoice later from the Trash folder if needed."
-              type="warning"
-              showIcon
-            />
-          </div>
-        )}
-      </Modal>
+
 
       {/* Payment Status Modal */}
       <Modal
@@ -2518,10 +2491,54 @@ export default function InvoiceInvoicesPage() {
       </Drawer>
 
       <style jsx global>{`
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .pp-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop,
+        .pp-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .pp-action-pop ::-webkit-scrollbar { display: none !important; }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+          overflow: hidden !important;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu {
+          background: var(--bg-pure-white) !important;
+          border-color: var(--border-slate-100) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-50) !important;
+        }
+
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -2650,7 +2667,7 @@ export default function InvoiceInvoicesPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;

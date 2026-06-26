@@ -83,6 +83,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+
 import dayjs from "dayjs";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
@@ -2018,33 +2019,43 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       key: 'delete',
                       danger: true,
                       label: (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <ConfirmDialog
-                            tone="danger"
-                            title="Confirm Deletion"
-                            description={
-                              <div style={{ marginTop: 8 }}>
-                                <Text>Are you sure you want to move <b>{record.ticketNumber}</b> to trash?</Text>
-                                <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
-                                  You can restore it for up to 7 days from the Trash Repository.
-                                </Text>
-                              </div>
-                            }
-                            confirmText="Move to Trash"
-                            onConfirm={() => handleDeleteTicket(record.id)}
-                            placement="left"
-                          >
-                            <div className="tl-menu-item" style={{ padding: 0 }}>
-                              <span className="tl-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
-                                <DeleteOutlined />
-                              </span>
-                              <span className="tl-menu-text">
-                                <span className="tl-menu-title" style={{ color: '#ef4444' }}>Delete Ticket</span>
-                                <span className="tl-menu-desc">Move to trash</span>
-                              </span>
+                        <ConfirmDialog
+                          tone="danger"
+                          icon={<DeleteOutlined />}
+                          title="Delete Ticket"
+                          description={
+                            <div style={{ marginTop: 8 }}>
+                              <Text style={{ color: 'var(--text-slate-900)' }}>
+                                Are you sure you want to move <b>{record.ticketNumber}</b> to trash?
+                              </Text>
+                              <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
+                                You can restore it for up to 7 days from the Trash Repository.
+                              </Text>
                             </div>
-                          </ConfirmDialog>
-                        </div>
+                          }
+                          confirmText="Delete"
+                          cancelText="Cancel"
+                          placement="left"
+                          onConfirm={() => handleDeleteTicket(record.id)}
+                        >
+                          <div 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px', 
+                              margin: '-5px -12px', 
+                              padding: '5px 12px',
+                              width: 'calc(100% + 24px)',
+                              height: '100%' 
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <DeleteOutlined style={{ fontSize: '14px' }} />
+                            <span>Delete Ticket</span>
+                          </div>
+                        </ConfirmDialog>
                       )
                     }
                   ].filter(Boolean) as any
@@ -4833,6 +4844,56 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           size="small"
                           className="saas-select-minimal"
                         />
+                        {backlogSelectedRowKeys.length > 0 && (
+                          <Space size={8}>
+                            {canManageTickets && (
+                              <Button
+                                type="primary"
+                                size="small"
+                                icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                                onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                                style={{
+                                  background: 'var(--premium-blue)',
+                                  borderColor: 'var(--premium-blue)',
+                                  fontWeight: 800,
+                                  height: 24,
+                                  fontSize: 10,
+                                  borderRadius: 4,
+                                  textTransform: 'uppercase'
+                                }}
+                              >
+                                Move to Archive
+                              </Button>
+                            )}
+                            {canDeleteTicket && (
+                              <ConfirmDialog
+                                tone="danger"
+                                icon={<DeleteOutlined />}
+                                title="Move to Trash?"
+                                description={`Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`}
+                                confirmText="Delete"
+                                cancelText="Cancel"
+                                placement="bottomRight"
+                                onConfirm={() => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])}
+                              >
+                                <Button
+                                  danger
+                                  size="small"
+                                  icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                                  style={{
+                                    fontWeight: 800,
+                                    height: 24,
+                                    fontSize: 10,
+                                    borderRadius: 4,
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Delete
+                                </Button>
+                              </ConfirmDialog>
+                            )}
+                          </Space>
+                        )}
                         <Input
                           placeholder="Search backlog..."
                           prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
@@ -5386,13 +5447,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     } : undefined}
                     onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
                     onBulkDelete={(ids) => {
-                      modal.confirm({
-                        title: 'Move to Trash',
-                        content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
-                        okText: 'Move to Trash',
-                        okType: 'danger',
-                        onOk: () => bulkDeleteMutation.mutate(ids),
-                      });
+                      bulkDeleteMutation.mutate(ids);
                     }}
                   />
                 ) : (

@@ -159,9 +159,7 @@ export const hivebugStyles = `
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--hb-border);
+  padding: 14px 14px 12px 18px;
   overflow: hidden;
 }
 /* Top row: icon + text + collapse toggle */
@@ -170,6 +168,9 @@ export const hivebugStyles = `
   align-items: center;
   gap: 10px;
   min-width: 0;
+  padding-bottom: 14px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--hb-border);
 }
 /* Push collapse btn to the far right */
 .hb-sidebar-collapse-btn {
@@ -186,21 +187,23 @@ export const hivebugStyles = `
 .hb-sidebar-collapsed .hb-brand {
   padding: 12px 10px;
   align-items: center;
-  gap: 0;
 }
 .hb-sidebar-collapsed .hb-brand-top {
   justify-content: center;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
 }
 /* New Bug button in sidebar — full width, centred */
 .hb-sidebar-new-bug-btn {
   width: 100%;
   justify-content: center;
-  padding: 5px 10px;
-  font-size: 12px;
+  height: 36px !important;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  border-radius: 8px;
-  background: #3B82F6 !important;
+  border-radius: 6px !important;
+  background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: none !important;
@@ -210,22 +213,23 @@ export const hivebugStyles = `
   color: #ffffff !important;
 }
 .hb-brand-icon {
-  width: 26px; height: 26px;
-  border-radius: 6px;
+  width: 36px; height: 36px;
+  border-radius: 10px;
   background: transparent;
   color: var(--hb-text);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.hb-brand-name { font-weight: 700; font-size: 14px; line-height: 1.1; letter-spacing: -0.02em; }
+.hb-brand-name { font-weight: 800; font-size: 15px; line-height: 1.1; letter-spacing: -0.02em; margin: 0; color: var(--hb-text); }
 .hb-brand-sub { color: var(--hb-text-muted); font-size: 9px; letter-spacing: 0.14em; margin-top: 4px; font-weight: 600; }
 
 .hb-brand-workspace {
+  font-size: 10.5px;
   color: var(--hb-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
+  font-weight: 700;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 .hb-project-context {
@@ -741,8 +745,8 @@ export const hivebugStyles = `
 .hb-stats-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 4px 14px 0 0;
+  gap: 12px;
+  margin: 10px 14px 0 0;
   padding: 0 0 0 12px;
 }
 /* Proposal-style stat card: flat, horizontal centered layout */
@@ -750,8 +754,8 @@ export const hivebugStyles = `
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
   border-radius: 0;
-  padding: 6px 10px;
-  min-height: 46px;
+  padding: 14px 16px;
+  min-height: 80px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1400,7 +1404,7 @@ thead .hb-col-actions {
   border-bottom: 1px solid var(--hb-border);
 }
 .hb-table tbody td {
-  padding: 3px 6px;
+  padding: 5px 10px;
   border-bottom: 1px solid var(--hb-border);
   font-size: 12px;
   vertical-align: middle;
@@ -4467,7 +4471,7 @@ thead .hb-col-actions {
   .hb-table-wrapper { overflow-x: auto; }
   .hb-table { width: 100%; min-width: 900px; }
   .hb-table thead th { padding: 4px 6px; font-size: 10px; }
-  .hb-table tbody td { padding: 3px 6px; font-size: 12px; }
+  .hb-table tbody td { padding: 6.5px 10px; font-size: 12px; }
   .hb-pagination {
     flex-direction: column;
     align-items: stretch;
@@ -4504,7 +4508,7 @@ thead .hb-col-actions {
 /* Mobile — single column, dense */
 @media (max-width: 480px) {
   .hb-root { padding: 6px; gap: 6px; }
-  .hb-brand { padding: 10px 12px; }
+  .hb-brand { padding: 14px 14px 12px 18px; }
   .hb-header { padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
   .hb-header-tools { width: 100%; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
   .hb-search { flex: 1 1 100%; width: 100%; }

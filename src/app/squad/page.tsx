@@ -60,6 +60,7 @@ import { useActivitySource } from '@/hooks/useActivitySource';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
 import { Menu } from 'lucide-react';
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text } = Typography;
 
@@ -369,16 +370,32 @@ export default function SquadManagement() {
       { key: 'view', label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><EyeOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">View details</span><span className="sq-menu-desc">Open squad details</span></span></div> },
       { key: 'edit', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Manage</span><span className="sq-menu-desc">Edit squad configuration</span></span></div> },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span></div> },
+      { 
+        key: 'delete', 
+        danger: true, 
+        disabled: !canDeleteSquad, 
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            title="Delete Squad"
+            description={`Are you sure you want to delete "${squad.squadName}"? This action cannot be undone.`}
+            confirmText="Delete"
+            onConfirm={() => handleDelete(squad.id)}
+            placement="left"
+          >
+            <div className="sq-menu-item" style={{ margin: '-7px -9px', padding: '7px 9px', width: 'calc(100% + 18px)' }} onClick={(e) => e.stopPropagation()}>
+              <span className="sq-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
+              <span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span>
+            </div>
+          </ConfirmDialog>
+        ) 
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'view') handleOpen(squad);
       else if (key === 'edit') handleManage(squad);
-      else if (key === 'delete') {
-        // Confirmation is handled via popconfirm in list, but here we can show a modal if triggered from dropdown
-        handleDelete(squad.id);
-      }
+      // delete is handled by ConfirmDialog
     },
   });
 
@@ -1168,6 +1185,10 @@ export default function SquadManagement() {
             border: 1px solid var(--border-slate-100);
             box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
           }
+          .sq-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+          .sq-action-pop,
+          .sq-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+          .sq-action-pop ::-webkit-scrollbar { display: none !important; }
           .sq-action-pop .ant-dropdown-menu-item {
             padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
             transition: background .12s ease;

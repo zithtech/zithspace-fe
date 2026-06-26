@@ -1580,6 +1580,10 @@ const ProjectsManageContent: React.FC = () => {
           box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04) !important;
           border: 1px solid var(--border-slate-200) !important;
         }
+        .pm2-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .pm2-action-pop,
+        .pm2-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .pm2-action-pop ::-webkit-scrollbar { display: none !important; }
         .pm2-action-pop .ant-dropdown-menu-item {
           border-radius: 0px !important;
           padding: 0 !important;

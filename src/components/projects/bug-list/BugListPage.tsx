@@ -183,7 +183,7 @@ export default function BugListPage() {
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
-  const [filtersVisible, setFiltersVisible] = useState(true);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");

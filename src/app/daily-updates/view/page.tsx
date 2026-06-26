@@ -697,6 +697,10 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           border: 1px solid var(--border-slate-100) !important;
           box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03) !important;
         }
+        .du-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .du-action-pop,
+        .du-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .du-action-pop ::-webkit-scrollbar { display: none !important; }
         .du-action-pop .ant-dropdown-menu-item {
           padding: 0 !important; border-radius: 0px !important; margin: 1px 0 !important;
           transition: background .12s ease;

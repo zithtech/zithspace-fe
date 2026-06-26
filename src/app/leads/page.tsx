@@ -332,8 +332,6 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
 const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
   actions_item: true,
   ai_score: true,
-  bidiq: true,
-  proposal: true,
   mail: true,
   created_at: true,
 };
@@ -2628,6 +2626,74 @@ export default function LeadsPage() {
                     />
                   </Space.Compact>
 
+                  <Popover
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    classNames={{ root: "lm-table-settings-popover" }}
+                    content={
+                      <div style={{ width: 240 }}>
+                        <div className="lm-popover-section-label">
+                          <Settings size={11} />
+                          <span>Density</span>
+                        </div>
+                        <Segmented
+                          block
+                          value={tableDensity}
+                          onChange={(v) => setTableDensity(v as LmDensity)}
+                          options={[
+                            { label: "Compact", value: "compact" },
+                            { label: "Cozy", value: "comfortable" },
+                            { label: "Roomy", value: "spacious" },
+                          ]}
+                        />
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Layers size={11} />
+                          <span>Columns</span>
+                          <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                            {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                          </span>
+                        </div>
+                        <div className="lm-col-toggle-list">
+                          {TOGGLEABLE_COLUMNS.map((c) => (
+                            <label key={c.key} className="lm-col-toggle-row">
+                              <span>{c.label}</span>
+                              <Switch
+                                size="small"
+                                checked={!hiddenCols[c.key]}
+                                onChange={(checked) =>
+                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                                }
+                              />
+                            </label>
+                          ))}
+                        </div>
+                        <div className="lm-popover-footer">
+                          <button
+                            type="button"
+                            className="lm-popover-reset"
+                            onClick={() => {
+                              setHiddenCols(DEFAULT_HIDDEN_COLS);
+                              setTableDensity("comfortable");
+                            }}
+                          >
+                            Reset to defaults
+                          </button>
+                          <span className="lm-popover-saved">Saved automatically</span>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Tooltip title="Table settings">
+                      <Button
+                        icon={<Settings size={14} />}
+                        className={`lm-filter-settings-btn ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
+                        style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
+                        aria-label="Table settings"
+                      />
+                    </Tooltip>
+                  </Popover>
+
+
                   <Button
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
                     onClick={() => {
@@ -3041,71 +3107,7 @@ export default function LeadsPage() {
                     allowClear={false}
                   />
 
-                  <Popover
-                    trigger={["click"]}
-                    placement="bottomRight"
-                    classNames={{ root: "lm-table-settings-popover" }}
-                    content={
-                      <div style={{ width: 240 }}>
-                        <div className="lm-popover-section-label">
-                          <Settings size={11} />
-                          <span>Density</span>
-                        </div>
-                        <Segmented
-                          block
-                          value={tableDensity}
-                          onChange={(v) => setTableDensity(v as LmDensity)}
-                          options={[
-                            { label: "Compact", value: "compact" },
-                            { label: "Cozy", value: "comfortable" },
-                            { label: "Roomy", value: "spacious" },
-                          ]}
-                        />
-                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                          <Layers size={11} />
-                          <span>Columns</span>
-                          <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                            {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
-                          </span>
-                        </div>
-                        <div className="lm-col-toggle-list">
-                          {TOGGLEABLE_COLUMNS.map((c) => (
-                            <label key={c.key} className="lm-col-toggle-row">
-                              <span>{c.label}</span>
-                              <Switch
-                                size="small"
-                                checked={!hiddenCols[c.key]}
-                                onChange={(checked) =>
-                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                                }
-                              />
-                            </label>
-                          ))}
-                        </div>
-                        <div className="lm-popover-footer">
-                          <button
-                            type="button"
-                            className="lm-popover-reset"
-                            onClick={() => {
-                              setHiddenCols(DEFAULT_HIDDEN_COLS);
-                              setTableDensity("comfortable");
-                            }}
-                          >
-                            Reset to defaults
-                          </button>
-                          <span className="lm-popover-saved">Saved automatically</span>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Tooltip title="Table settings">
-                      <Button
-                        icon={<Settings size={14} />}
-                        className="lm-filter-settings-btn"
-                        aria-label="Table settings"
-                      />
-                    </Tooltip>
-                  </Popover>
+
                 </div>
               )}
 
@@ -3305,7 +3307,7 @@ export default function LeadsPage() {
                         rowSelection={{
                           selectedRowKeys,
                           onChange: (keys) => setSelectedRowKeys(keys),
-                          columnWidth: 40,
+                          columnWidth: 48,
                         }}
                         pagination={false}
                         className="lm-table premium-table"
@@ -4704,7 +4706,7 @@ export default function LeadsPage() {
 
             .pp-search-wrap {
               position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
-              height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+              height: 32px; border-radius: 8px; background: transparent;
               border: 1px solid var(--border-slate-200); padding: 0 10px;
             }
             .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
@@ -4726,7 +4728,7 @@ export default function LeadsPage() {
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .pp-search-wrap {
-              background: var(--bg-secondary) !important;
+              background: transparent !important;
               border-color: var(--border-slate-100) !important;
             }
             [data-theme='dark'] .pp-search {
@@ -4986,13 +4988,18 @@ export default function LeadsPage() {
               border-top-right-radius: 0 !important;
               border-bottom-right-radius: 0 !important;
             }
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn {
+              border-radius: 0 !important;
+            }
             .lm-topbar-actions button.lm-filter-group-right.ant-btn {
               border-top-left-radius: 0 !important;
               border-bottom-left-radius: 0 !important;
             }
             .lm-topbar-actions button.lm-filter-group-left.ant-btn:hover,
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn:hover,
             .lm-topbar-actions button.lm-filter-group-right.ant-btn:hover,
             .lm-topbar-actions button.lm-filter-group-left.ant-btn:focus,
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn:focus,
             .lm-topbar-actions button.lm-filter-group-right.ant-btn:focus {
               border-color: #3b82f6 !important;
               color: #3b82f6 !important;

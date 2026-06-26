@@ -330,8 +330,6 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
 const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
   actions_item: true,
   ai_score: true,
-  bidiq: true,
-  proposal: true,
   mail: true,
   created_at: true,
 };
@@ -2444,7 +2442,7 @@ export default function LeadsPage() {
                   <Input
                     placeholder="Search subject, target…"
                     prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                    suffix={<span className="lm-kbd">⌘K</span>}
+                    // suffix={}
                     className="lm-search-input"
                     style={{ width: 600, borderRadius: 0, height: 24, fontSize: 12 }}
                     onChange={(e) => setSearchText(e.target.value)}
@@ -2590,6 +2588,74 @@ export default function LeadsPage() {
                       onClick={() => setIsFilterRowOpen(prev => !prev)}
                     />
                   </Space.Compact>
+
+                  <Popover
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    classNames={{ root: "lm-table-settings-popover" }}
+                    content={
+                      <div style={{ width: 240 }}>
+                        <div className="lm-popover-section-label">
+                          <Settings size={11} />
+                          <span>Density</span>
+                        </div>
+                        <Segmented
+                          block
+                          value={tableDensity}
+                          onChange={(v) => setTableDensity(v as LmDensity)}
+                          options={[
+                            { label: "Compact", value: "compact" },
+                            { label: "Cozy", value: "comfortable" },
+                            { label: "Roomy", value: "spacious" },
+                          ]}
+                        />
+                        <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                          <Layers size={11} />
+                          <span>Columns</span>
+                          <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                            {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                          </span>
+                        </div>
+                        <div className="lm-col-toggle-list">
+                          {TOGGLEABLE_COLUMNS.map((c) => (
+                            <label key={c.key} className="lm-col-toggle-row">
+                              <span>{c.label}</span>
+                              <Switch
+                                size="small"
+                                checked={!hiddenCols[c.key]}
+                                onChange={(checked) =>
+                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                                }
+                              />
+                            </label>
+                          ))}
+                        </div>
+                        <div className="lm-popover-footer">
+                          <button
+                            type="button"
+                            className="lm-popover-reset"
+                            onClick={() => {
+                              setHiddenCols(DEFAULT_HIDDEN_COLS);
+                              setTableDensity("comfortable");
+                            }}
+                          >
+                            Reset to defaults
+                          </button>
+                          <span className="lm-popover-saved">Saved automatically</span>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Tooltip title="Table settings">
+                      <Button
+                        icon={<Settings size={14} />}
+                        className={`lm-filter-settings-btn ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
+                        style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
+                        aria-label="Table settings"
+                      />
+                    </Tooltip>
+                  </Popover>
+
 
                   <Button
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
@@ -2803,82 +2869,18 @@ export default function LeadsPage() {
 
                   <SearchableDropdown
                     placeholder="Sort"
-                  options={sortDropdownOptions}
-                  value={sortKey}
-                  onChange={(v) => {
-                    if (v) setSortKey(v as any);
-                  }}
-                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
-                  width={200}
-                  allowClear={false}
-                />
+                    options={sortDropdownOptions}
+                    value={sortKey}
+                    onChange={(v) => {
+                      if (v) setSortKey(v as any);
+                    }}
+                    style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
+                    width={200}
+                    allowClear={false}
+                  />
 
-                <Popover
-                  trigger={["click"]}
-                  placement="bottomRight"
-                  classNames={{ root: "lm-table-settings-popover" }}
-                  content={
-                    <div style={{ width: 240 }}>
-                      <div className="lm-popover-section-label">
-                        <Settings size={11} />
-                        <span>Density</span>
-                      </div>
-                      <Segmented
-                        block
-                        value={tableDensity}
-                        onChange={(v) => setTableDensity(v as LmDensity)}
-                        options={[
-                          { label: "Compact", value: "compact" },
-                          { label: "Cozy", value: "comfortable" },
-                          { label: "Roomy", value: "spacious" },
-                        ]}
-                      />
-                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                        <Layers size={11} />
-                        <span>Columns</span>
-                        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                          {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
-                        </span>
-                      </div>
-                      <div className="lm-col-toggle-list">
-                        {TOGGLEABLE_COLUMNS.map((c) => (
-                          <label key={c.key} className="lm-col-toggle-row">
-                            <span>{c.label}</span>
-                            <Switch
-                              size="small"
-                              checked={!hiddenCols[c.key]}
-                              onChange={(checked) =>
-                                setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                              }
-                            />
-                          </label>
-                        ))}
-                      </div>
-                      <div className="lm-popover-footer">
-                        <button
-                          type="button"
-                          className="lm-popover-reset"
-                          onClick={() => {
-                            setHiddenCols(DEFAULT_HIDDEN_COLS);
-                            setTableDensity("comfortable");
-                          }}
-                        >
-                          Reset to defaults
-                        </button>
-                        <span className="lm-popover-saved">Saved automatically</span>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Tooltip title="Table settings">
-                    <Button
-                      icon={<Settings size={14} />}
-                      className="lm-filter-settings-btn"
-                      aria-label="Table settings"
-                    />
-                  </Tooltip>
-                </Popover>
-              </div>
+
+                </div>
               )}
 
               {/* Collapsible Filter Row */}
@@ -2938,8 +2940,8 @@ export default function LeadsPage() {
                   />
 
                   {activeFilterChips.length > 0 && (
-                    <Button 
-                      type="text" 
+                    <Button
+                      type="text"
                       onClick={() => {
                         setFilterStatus(null);
                         setFilterAction(null);
@@ -3041,286 +3043,286 @@ export default function LeadsPage() {
 
               <div className="lm-body">
                 {view === 'list' ? (
-                <div className="lm-table-card" data-density={tableDensity}>
-                  {loading && leads.length === 0 ? (
-                    <div className="leads-skeleton" style={{ padding: "8px 0" }}>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                            padding: "16px 20px",
-                            borderBottom: "1px solid var(--border-slate-100)",
-                          }}
-                        >
-                          <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
-                          <div style={{ flex: 1 }}>
-                            <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
-                            <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
-                          </div>
-                          <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 0 }} />
-                          <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 0 }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Table
-                      columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                      dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
-                      rowKey="id"
-                      size="middle"
-                      scroll={{ x: "max-content" }}
-                      rowSelection={{
-                        selectedRowKeys,
-                        onChange: (keys) => setSelectedRowKeys(keys),
-                        columnWidth: 48,
-                      }}
-                      pagination={false}
-                      className="lm-table premium-table"
-                      rowClassName={() => "lm-row"}
-                      onRow={(record) => ({
-                        onClick: () => handleView(record),
-                        style: { cursor: 'pointer' }
-                      })}
-                      locale={{
-                        emptyText: (
-                          <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                            <div
-                              style={{
-                                width: 64,
-                                height: 64,
-                                margin: "0 auto 16px",
-                                borderRadius: 18,
-                                background: "var(--bg-blue-50)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#3b82f6",
-                              }}
-                            >
-                              <Layers size={28} />
-                            </div>
-                            <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                              {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                            </Title>
-                            <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                              {leads.length === 0
-                                ? "Add your first opportunity to start tracking your pipeline."
-                                : "Try clearing filters or switching to a different view."}
-                            </Text>
-                            {leads.length === 0 ? (
-                              <Button
-                                type="primary"
-                                icon={<Plus size={14} />}
-                                onClick={() => {
-                                  setEditingKey(null);
-                                  form.resetFields();
-                                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                                  const defaultStatus = configStatuses.find(s => s.is_default);
-                                  if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                                  setIsDrawerVisible(true);
-                                }}
-                                style={{
-                                  borderRadius: 6,
-                                  height: 36,
-                                  fontWeight: 700,
-                                  background: "#3b82f6",
-                                  border: "none",
-                                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
-                                }}
-                              >
-                                Add First Lead
-                              </Button>
-                            ) : (
-                              <Button
-                                icon={<RefreshCw size={14} />}
-                                onClick={() => {
-                                  setFilterStatus(null);
-                                  setFilterAction(null);
-                                  setFilterPlatform(null);
-                                  setFilterDateRange(null);
-                                  setFilterCreatedBy(null);
-                                  setFilterMailStatus(null);
-                                  setSearchText("");
-                                  setActiveSegment("all");
-                                }}
-                                style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
-                              >
-                                Clear all filters
-                              </Button>
-                            )}
-                          </div>
-                        ),
-                      }}
-                    />
-                  )}
-
-                </div>
-              ) : (
-                <div className="lm-grid-view">
-                  {loading && leads.length === 0 ? (
-                    <div className="lm-grid">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          <div style={{ display: 'flex', gap: 12 }}>
-                            <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                  <div className="lm-table-card" data-density={tableDensity}>
+                    {loading && leads.length === 0 ? (
+                      <div className="leads-skeleton" style={{ padding: "8px 0" }}>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              padding: "16px 20px",
+                              borderBottom: "1px solid var(--border-slate-100)",
+                            }}
+                          >
+                            <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
                             <div style={{ flex: 1 }}>
-                              <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 0, marginBottom: 8 }} />
-                              <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 0 }} />
+                              <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
+                              <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
                             </div>
+                            <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 0 }} />
+                            <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 0 }} />
                           </div>
-                          <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 0, marginTop: 'auto' }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : filteredLeads.length === 0 ? (
-                    <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
-                      <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
-                        <Layers size={28} />
+                        ))}
                       </div>
-                      <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                      </Typography.Title>
-                      <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                        {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
-                      </Typography.Text>
-                      {leads.length === 0 && (
-                        <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
-                      )}
-                    </div>
-                  ) : (
-                    <>
+                    ) : (
+                      <Table
+                        columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
+                        dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
+                        rowKey="id"
+                        size="middle"
+                        scroll={{ x: "max-content" }}
+                        rowSelection={{
+                          selectedRowKeys,
+                          onChange: (keys) => setSelectedRowKeys(keys),
+                          columnWidth: 48,
+                        }}
+                        pagination={false}
+                        className="lm-table premium-table"
+                        rowClassName={() => "lm-row"}
+                        onRow={(record) => ({
+                          onClick: () => handleView(record),
+                          style: { cursor: 'pointer' }
+                        })}
+                        locale={{
+                          emptyText: (
+                            <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                              <div
+                                style={{
+                                  width: 64,
+                                  height: 64,
+                                  margin: "0 auto 16px",
+                                  borderRadius: 18,
+                                  background: "var(--bg-blue-50)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#3b82f6",
+                                }}
+                              >
+                                <Layers size={28} />
+                              </div>
+                              <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                                {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                              </Title>
+                              <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                                {leads.length === 0
+                                  ? "Add your first opportunity to start tracking your pipeline."
+                                  : "Try clearing filters or switching to a different view."}
+                              </Text>
+                              {leads.length === 0 ? (
+                                <Button
+                                  type="primary"
+                                  icon={<Plus size={14} />}
+                                  onClick={() => {
+                                    setEditingKey(null);
+                                    form.resetFields();
+                                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                    const defaultStatus = configStatuses.find(s => s.is_default);
+                                    if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                    setIsDrawerVisible(true);
+                                  }}
+                                  style={{
+                                    borderRadius: 6,
+                                    height: 36,
+                                    fontWeight: 700,
+                                    background: "#3b82f6",
+                                    border: "none",
+                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
+                                  }}
+                                >
+                                  Add First Lead
+                                </Button>
+                              ) : (
+                                <Button
+                                  icon={<RefreshCw size={14} />}
+                                  onClick={() => {
+                                    setFilterStatus(null);
+                                    setFilterAction(null);
+                                    setFilterPlatform(null);
+                                    setFilterDateRange(null);
+                                    setFilterCreatedBy(null);
+                                    setFilterMailStatus(null);
+                                    setSearchText("");
+                                    setActiveSegment("all");
+                                  }}
+                                  style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
+                                >
+                                  Clear all filters
+                                </Button>
+                              )}
+                            </div>
+                          ),
+                        }}
+                      />
+                    )}
+
+                  </div>
+                ) : (
+                  <div className="lm-grid-view">
+                    {loading && leads.length === 0 ? (
                       <div className="lm-grid">
-                        {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
-                          const r = record as any;
-                          const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
-                          const initials = getInitials(name);
-                          const palette = getAvatarStyle(name);
-                          const statusCfg = configStatuses.find(s => s.name === record.status);
-                          const statusColor = statusCfg?.color || '#6366f1';
-                          const scoreLevel = getAIScoreLevel(record.ai_score);
-                          const ownerName = getLeadCreator(record) || 'Unknown';
-                          const ownerPalette = getAvatarStyle(ownerName);
-                          const isSent = !!record.last_mail_at || !!record.is_mail_sent;
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} className="lm-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <div className="sk-shimmer" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                              <div style={{ flex: 1 }}>
+                                <div className="sk-shimmer" style={{ width: '60%', height: 14, borderRadius: 0, marginBottom: 8 }} />
+                                <div className="sk-shimmer" style={{ width: '40%', height: 12, borderRadius: 0 }} />
+                              </div>
+                            </div>
+                            <div className="sk-shimmer" style={{ width: '100%', height: 12, borderRadius: 0, marginTop: 'auto' }} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredLeads.length === 0 ? (
+                      <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
+                        <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+                          <Layers size={28} />
+                        </div>
+                        <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                          {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                        </Typography.Title>
+                        <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                          {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
+                        </Typography.Text>
+                        {leads.length === 0 && (
+                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="lm-grid">
+                          {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
+                            const r = record as any;
+                            const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
+                            const initials = getInitials(name);
+                            const palette = getAvatarStyle(name);
+                            const statusCfg = configStatuses.find(s => s.name === record.status);
+                            const statusColor = statusCfg?.color || '#6366f1';
+                            const scoreLevel = getAIScoreLevel(record.ai_score);
+                            const ownerName = getLeadCreator(record) || 'Unknown';
+                            const ownerPalette = getAvatarStyle(ownerName);
+                            const isSent = !!record.last_mail_at || !!record.is_mail_sent;
 
-                          const formatDate = (date: any) => {
-                            if (!date) return '—';
-                            const d = dayjs(date);
-                            if (!d.isValid()) return '—';
-                            return d.format('MMM D, YYYY · h:mm A');
-                          };
+                            const formatDate = (date: any) => {
+                              if (!date) return '—';
+                              const d = dayjs(date);
+                              if (!d.isValid()) return '—';
+                              return d.format('MMM D, YYYY · h:mm A');
+                            };
 
-                          const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
+                            const ownerInitials = ownerName.trim().split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase() || '—';
 
-                          return (
-                            <div key={record.id} className="lm-card" onClick={() => handleView(record)}>
-                              <div className="lm-card-head">
-                                <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color }}>{initials}</div>
-                                <div className="lm-card-title-group">
-                                  <div className="lm-card-title">{name}</div>
-                                  <div className="lm-card-subtitle">
-                                    <span className="lm-card-subtitle-key">Client:</span>
-                                    <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
-                                    <span style={{ color: '#94a3b8' }}>|</span>
-                                    <span style={{
-                                      width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
-                                    }}>
-                                      {ownerInitials}
-                                    </span>
-                                    <span className="lm-card-subtitle-val">{ownerName}</span>
+                            return (
+                              <div key={record.id} className="lm-card" onClick={() => handleView(record)}>
+                                <div className="lm-card-head">
+                                  <div className="lm-card-avatar" style={{ background: palette.bg, color: palette.color }}>{initials}</div>
+                                  <div className="lm-card-title-group">
+                                    <div className="lm-card-title">{name}</div>
+                                    <div className="lm-card-subtitle">
+                                      <span className="lm-card-subtitle-key">Client:</span>
+                                      <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
+                                      <span style={{ color: '#94a3b8' }}>|</span>
+                                      <span style={{
+                                        width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
+                                      }}>
+                                        {ownerInitials}
+                                      </span>
+                                      <span className="lm-card-subtitle-val">{ownerName}</span>
+                                    </div>
+                                  </div>
+                                  <div className="lm-card-actions">
+                                    {getLeadActionMenu(record)}
                                   </div>
                                 </div>
-                                <div className="lm-card-actions">
-                                  {getLeadActionMenu(record)}
-                                </div>
-                              </div>
 
-                              <div className="lm-card-footer">
-                                <div className="lm-card-footer-row">
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Source:</span>
-                                    <span className="lm-card-footer-val">{record.platform || 'Upwork'}</span>
-                                  </span>
-                                  <span className="lm-card-footer-div" />
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Value:</span>
-                                    <span className="lm-card-footer-val">{record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}</span>
-                                  </span>
-                                  <span className="lm-card-footer-div" />
-                                  <span className="lm-card-footer-item">
-                                    <span className="lm-card-footer-key">Status:</span>
-                                    <span className="lm-card-footer-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
-                                      <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
-                                      {record.status || '—'}
+                                <div className="lm-card-footer">
+                                  <div className="lm-card-footer-row">
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Source:</span>
+                                      <span className="lm-card-footer-val">{record.platform || 'Upwork'}</span>
                                     </span>
-                                  </span>
-                                </div>
-                                
-                                <div className="lm-card-footer-row">
-                                  {canManageLeads && record.lead_source_kind !== "website" && (() => {
-                                    const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
-                                    return (
+                                    <span className="lm-card-footer-div" />
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Value:</span>
+                                      <span className="lm-card-footer-val">{record.budget ? `$${record.budget}` : (record.hour_based_amount ? `$${record.hour_based_amount}/hr` : '—')}</span>
+                                    </span>
+                                    <span className="lm-card-footer-div" />
+                                    <span className="lm-card-footer-item">
+                                      <span className="lm-card-footer-key">Status:</span>
+                                      <span className="lm-card-footer-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: 'var(--bg-slate-100)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-200)' }}>
+                                        <Clock size={11} style={{ color: 'var(--text-slate-400)' }} />
+                                        {record.status || '—'}
+                                      </span>
+                                    </span>
+                                  </div>
+
+                                  <div className="lm-card-footer-row">
+                                    {canManageLeads && record.lead_source_kind !== "website" && (() => {
+                                      const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
+                                      return (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: hasBidiq ? '#10b981' : '#3B82F6' }}
+                                          >
+                                            {hasBidiq ? <Eye size={12} /> : <Zap size={12} />}
+                                            {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      );
+                                    })()}
+
+                                    {canCreateProposal && (
                                       <>
                                         <button
                                           type="button"
-                                          onClick={(e) => { e.stopPropagation(); if (hasBidiq) { router.push(`/leads/bidiq/${record.id}`); } else { openBidiqPreview(record); } }}
-                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: hasBidiq ? '#10b981' : '#3B82F6' }}
+                                          onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
                                         >
-                                          {hasBidiq ? <Eye size={12} /> : <Zap size={12} />}
-                                          {hasBidiq ? 'View BidIq' : 'BidIq'}
+                                          {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
+                                          {record.proposal_id ? 'View Proposal' : 'Generate'}
                                         </button>
                                         <span className="lm-card-footer-div" />
                                       </>
-                                    );
-                                  })()}
-                                  
-                                  {canCreateProposal && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
-                                      >
-                                        {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
-                                        {record.proposal_id ? 'View Proposal' : 'Generate'}
-                                      </button>
-                                      <span className="lm-card-footer-div" />
-                                    </>
-                                  )}
-                                  
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: isSent ? '#10b981' : '#3B82F6' }}
-                                  >
-                                    {isSent ? <CheckCircle size={12} style={{ color: '#10b981' }} /> : <Mail size={12} />}
-                                    {isSent ? 'Sent' : 'Send Mail'}
-                                  </button>
-                                  
-                                  <span className="lm-card-footer-div" />
-                                  
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
-                                  >
-                                    <History size={12} />
-                                    <span className="lm-card-footer-key" style={{ color: '#3B82F6' }}>Timeline</span>
-                                  </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); setSelectedLeadForMail(record); setIsMailDrawerVisible(true); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: isSent ? '#10b981' : '#3B82F6' }}
+                                    >
+                                      {isSent ? <CheckCircle size={12} style={{ color: '#10b981' }} /> : <Mail size={12} />}
+                                      {isSent ? 'Sent' : 'Send Mail'}
+                                    </button>
+
+                                    <span className="lm-card-footer-div" />
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); openTimeline(record); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
+                                    >
+                                      <History size={12} />
+                                      <span className="lm-card-footer-key" style={{ color: '#3B82F6' }}>Timeline</span>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               {filteredLeads.length > 0 && (
                 <div className="lm-bottom-bar lm-bottom-bar--sticky">
@@ -4690,13 +4692,18 @@ export default function LeadsPage() {
               border-top-right-radius: 0 !important;
               border-bottom-right-radius: 0 !important;
             }
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn {
+              border-radius: 0 !important;
+            }
             .lm-topbar-actions button.lm-filter-group-right.ant-btn {
               border-top-left-radius: 0 !important;
               border-bottom-left-radius: 0 !important;
             }
             .lm-topbar-actions button.lm-filter-group-left.ant-btn:hover,
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn:hover,
             .lm-topbar-actions button.lm-filter-group-right.ant-btn:hover,
             .lm-topbar-actions button.lm-filter-group-left.ant-btn:focus,
+            .lm-topbar-actions button.lm-filter-group-middle.ant-btn:focus,
             .lm-topbar-actions button.lm-filter-group-right.ant-btn:focus {
               border-color: #3b82f6 !important;
               color: #3b82f6 !important;

@@ -12,6 +12,7 @@ import {
 import { useCreateTicket } from "@/hooks/useTickets";
 import { Ticket, TicketFormData } from "@/services/ticketService";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 interface InlineCreateTicketProps {
   projectId: string;
@@ -176,58 +177,22 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     [priority]
   );
 
-  const assigneeMenu: MenuProps = useMemo(
-    () => ({
-      items: [
-        {
-          key: "__unassigned",
-          label: (
-            <span className="ict-menu-row" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-              <Avatar
-                size={20}
-                icon={<UserOutlined style={{ fontSize: 10 }} />}
-                style={{
-                  backgroundColor: "var(--bg-slate-100)",
-                  color: "var(--text-slate-400)",
-                  border: "1px dashed var(--text-slate-300)",
-                  flexShrink: 0,
-                }}
-              />
-              <span className="ict-menu-label" style={{ fontSize: 13, color: "var(--text-slate-800)" }}>Unassigned</span>
-              {!assigneeId && <CheckOutlined className="ict-menu-check" style={{ marginLeft: "auto" }} />}
-            </span>
-          ),
-          onClick: () => setAssigneeId(undefined),
-        },
-        ...(members.length > 0 ? [{ type: "divider" as const }] : []),
-        ...members.map((m) => ({
-          key: m.value,
-          label: (
-            <span className="ict-menu-row" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-              <Avatar
-                size={20}
-                src={m.avatarUrl || undefined}
-                style={{
-                  backgroundColor: m.avatarUrl ? "transparent" : avatarColorFor(m.value || m.label),
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "#fff",
-                  flexShrink: 0,
-                }}
-              >
-                {(m.label || "?").charAt(0).toUpperCase()}
-              </Avatar>
-              <span className="ict-menu-label" style={{ fontSize: 13, color: "var(--text-slate-800)" }}>{m.label}</span>
-              {assigneeId === m.value && <CheckOutlined className="ict-menu-check" style={{ marginLeft: "auto" }} />}
-            </span>
-          ),
-          onClick: () => setAssigneeId(m.value),
-        })),
-      ],
-      style: { maxHeight: "250px", overflowY: "auto" },
-    }),
-    [assigneeId, members]
-  );
+  const searchableAssignees = useMemo(() => {
+    return [
+      {
+        value: "__unassigned",
+        label: "Unassigned",
+        badge: (
+          <UserOutlined style={{ fontSize: 10 }} />
+        ),
+      },
+      ...members.map((m) => ({
+        value: m.value,
+        label: m.label,
+        avatarUrl: m.avatarUrl,
+      })),
+    ];
+  }, [members]);
 
   const assigneeLabel = useMemo(() => {
     if (!assigneeId) return "Unassigned";
@@ -469,30 +434,37 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
             </button>
           </Dropdown>
 
-          <Dropdown menu={assigneeMenu} trigger={["click"]} placement="bottomRight">
-            <button type="button" className="ict-chip" title="Assignee" style={{ paddingLeft: assigneeId ? 4 : 10 }}>
-              {assigneeId ? (
-                <Avatar
-                  size={18}
-                  src={selectedMember?.avatarUrl || undefined}
-                  style={{
-                    backgroundColor: selectedMember?.avatarUrl ? "transparent" : avatarColorFor(selectedMember?.value || selectedMember?.label || ""),
-                    fontSize: 9,
-                    fontWeight: 800,
-                    color: "#fff",
-                    flexShrink: 0
-                  }}
-                >
-                  {(assigneeLabel || "?").charAt(0).toUpperCase()}
-                </Avatar>
-              ) : (
-                <span className="ict-chip-avatar ict-chip-avatar-empty">
-                  <UserOutlined style={{ fontSize: 9 }} />
-                </span>
-              )}
-              <span className="ict-chip-label" style={{ marginLeft: assigneeId ? 2 : 0 }}>{assigneeLabel}</span>
-            </button>
-          </Dropdown>
+          <SearchableDropdown
+            options={searchableAssignees}
+            value={assigneeId || "__unassigned"}
+            onChange={(val) => setAssigneeId(val === "__unassigned" ? undefined : val)}
+            placeholder="Search assignees..."
+            allowClear={false}
+            customTrigger={
+              <button type="button" className="ict-chip" title="Assignee" style={{ paddingLeft: assigneeId ? 4 : 10 }}>
+                {assigneeId ? (
+                  <Avatar
+                    size={18}
+                    src={selectedMember?.avatarUrl || undefined}
+                    style={{
+                      backgroundColor: selectedMember?.avatarUrl ? "transparent" : avatarColorFor(selectedMember?.value || selectedMember?.label || ""),
+                      fontSize: 9,
+                      fontWeight: 800,
+                      color: "#fff",
+                      flexShrink: 0
+                    }}
+                  >
+                    {(assigneeLabel || "?").charAt(0).toUpperCase()}
+                  </Avatar>
+                ) : (
+                  <span className="ict-chip-avatar ict-chip-avatar-empty">
+                    <UserOutlined style={{ fontSize: 9 }} />
+                  </span>
+                )}
+                <span className="ict-chip-label" style={{ marginLeft: assigneeId ? 2 : 0 }}>{assigneeLabel}</span>
+              </button>
+            }
+          />
         </div>
 
         <div className="ict-divider" />

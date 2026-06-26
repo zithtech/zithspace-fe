@@ -66,6 +66,8 @@ export interface SearchableDropdownProps {
   defaultOpen?: boolean;
   /** Notified whenever the overlay opens/closes (e.g. for click-outside cancel). */
   onOpenChange?: (open: boolean) => void;
+  /** Custom trigger element to render instead of the default styled div. */
+  customTrigger?: React.ReactElement;
 }
 
 const initialsFor = (s: string): string => {
@@ -109,6 +111,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   style,
   defaultOpen = false,
   onOpenChange,
+  customTrigger,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -305,29 +308,33 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       overlayClassName="sd-overlay-popover"
       destroyOnHidden
     >
-      <div className={triggerClasses} style={style}>
-        <div className="sd-trigger-content">
-          {triggerLabel && (
-            <span className="sd-trigger-label">{triggerLabel}</span>
+      {customTrigger ? (
+        customTrigger
+      ) : (
+        <div className={triggerClasses} style={style}>
+          <div className="sd-trigger-content">
+            {triggerLabel && (
+              <span className="sd-trigger-label">{triggerLabel}</span>
+            )}
+            <span className="sd-trigger-value">{displayLabel}</span>
+          </div>
+          {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
+            <XIcon
+              className="sd-trigger-clear"
+              size={14}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
+              }}
+            />
+          ) : (
+            <ChevronDown
+              className={`sd-trigger-chevron ${open ? "is-open" : ""}`}
+              size={14}
+            />
           )}
-          <span className="sd-trigger-value">{displayLabel}</span>
         </div>
-        {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
-          <XIcon
-            className="sd-trigger-clear"
-            size={14}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
-            }}
-          />
-        ) : (
-          <ChevronDown
-            className={`sd-trigger-chevron ${open ? "is-open" : ""}`}
-            size={14}
-          />
-        )}
-      </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: SEARCHABLE_DROPDOWN_CSS }} />
     </Popover>

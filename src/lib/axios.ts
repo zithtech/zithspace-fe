@@ -79,8 +79,7 @@ interface ErrorResponse {
 
 export interface PaginatedResponse<T = any> {
   data: T[];
-  pagination: {
-    current: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], current: number;
     pageSize: number;
     total: number;
     totalPages: number;
@@ -406,13 +405,12 @@ export const apiUtils = {
 
     const response = await apiClient.get(fullUrl);
 
-    // Backend returns: { success: true, data: [...], pagination: {...} }
-    // We need to transform it to: { data: [...], pagination: {...} }
+    // Backend returns: { success: true, data: [...], pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...} }
+    // We need to transform it to: { data: [...], pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...} }
     if (response.data.success) {
       return {
         data: response.data.data,
-        pagination: {
-          current: response.data.pagination.page,
+        pagination: { pageSizeOptions: [10, 20, 25, 50, 100], current: response.data.pagination.page,
           pageSize: response.data.pagination.limit,
           total: response.data.pagination.total,
           totalPages: response.data.pagination.pages,

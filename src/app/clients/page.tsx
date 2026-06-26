@@ -773,8 +773,7 @@
 //               onRow={(record) => ({
 //                 onClick: () => showViewModal(record),
 //               })}
-//               pagination={{
-//                 current: pagination.current,
+//               pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], //                 current: pagination.current,
 //                 pageSize: pagination.pageSize,
 //                 total: pagination.total,
 //                 showSizeChanger: true,
@@ -1609,8 +1608,7 @@
 //               onRow={(record) => ({
 //                 onClick: () => showViewModal(record),
 //               })}
-//               pagination={{
-//                 current: pagination.current,
+//               pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], //                 current: pagination.current,
 //                 pageSize: pagination.pageSize,
 //                 total: pagination.total,
 //                 showSizeChanger: true,
@@ -1896,7 +1894,7 @@ export default function ClientsPage() {
   // Pagination and filtering
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
   });
   const [searchTerm, setSearchTerm] = useState("");
@@ -2401,8 +2399,7 @@ export default function ClientsPage() {
               onRow={(record) => ({
                 onClick: () => showViewModal(record),
               })}
-              pagination={{
-                current: pagination.current,
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
                 pageSize: pagination.pageSize,
                 total: pagination.total,
                 showSizeChanger: true,
@@ -2413,7 +2410,7 @@ export default function ClientsPage() {
                   setPagination((prev) => ({
                     ...prev,
                     current: page,
-                    pageSize: pageSize || 10,
+                    pageSize: pageSize || 20,
                   })),
               }}
               size="small"

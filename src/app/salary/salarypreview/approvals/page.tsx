@@ -259,8 +259,7 @@ const ApprovalsPage = () => {
           dataSource={data} 
           loading={loading}
           rowKey="id"
-          pagination={{ 
-            pageSize: 10, 
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, 
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} approvals`
           }}

@@ -118,8 +118,7 @@ export interface SprintCompletionLog {
 
 export interface SprintCompletionLogResponse {
   logs: SprintCompletionLog[];
-  pagination: {
-    page: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
     limit: number;
     total: number;
     pages: number;

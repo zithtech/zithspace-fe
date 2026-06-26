@@ -68,7 +68,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
 }) => {
   const { modal, message } = App.useApp();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSize, setPageSize] = useState<number>(20);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [activeBulkAction, setActiveBulkAction] = useState<{
     action: BulkActionType;
@@ -476,9 +476,9 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               dataSource={pendingTickets}
               rowKey="id"
               pagination={{
-                defaultPageSize: 10,
+                defaultPageSize: 20,
                 showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50, 100],
+                pageSizeOptions: [10, 20, 25, 50, 100],
                 onShowSizeChange: (_current, size) => setPageSize(size),
                 onChange: (_page, size) => {
                   if (size !== pageSize) setPageSize(size);

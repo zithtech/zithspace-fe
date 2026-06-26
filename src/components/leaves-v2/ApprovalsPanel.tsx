@@ -23,7 +23,7 @@ import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled';
 const STATUS_TAG: Record<string, { color: string; label: string }> = {
@@ -43,7 +43,7 @@ export default function ApprovalsPanel() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {

@@ -43,7 +43,7 @@ const TYPE_META = (type: string): { cls: string; icon: React.ReactNode } => {
 };
 
 export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ tickets }) => {
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSize, setPageSize] = useState<number>(20);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const totalPoints = tickets.reduce((sum, ticket) => sum + (ticket.storyPoint || 0), 0);
   const contributors = new Set(tickets.map((t) => t.assignee?.id).filter(Boolean)).size;
@@ -260,7 +260,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
                 pageSize,
                 total: tickets.length,
                 showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50, 100],
+                pageSizeOptions: [10, 20, 25, 50, 100],
                 onShowSizeChange: (_current, size) => setPageSize(size),
                 onChange: (_page, size) => {
                   if (size !== pageSize) setPageSize(size);

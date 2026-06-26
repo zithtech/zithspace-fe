@@ -213,7 +213,7 @@ export default function BucketManagementPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedBucketId, setExpandedBucketId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -1514,7 +1514,7 @@ export default function BucketManagementPage() {
                     setPageSize(s);
                   }}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                 />
               </div>
             )}

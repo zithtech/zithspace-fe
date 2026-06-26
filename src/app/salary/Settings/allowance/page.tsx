@@ -403,8 +403,7 @@ const SalaryComponentManagement = () => {
         columns={columns}
         dataSource={components}
         rowKey="id" 
-        pagination={{
-          current: pagination?.current,
+        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: pagination?.current,
           pageSize: pagination?.pageSize,
           total: pagination?.total,
           showSizeChanger: true,
@@ -413,7 +412,7 @@ const SalaryComponentManagement = () => {
             setPageSize(pageSize);
           },
         }}
-        pagination={{ pageSize: 7 }}
+        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 7 }}
       /> */}
 
       {/* <Table
@@ -421,7 +420,7 @@ const SalaryComponentManagement = () => {
         columns={columns}
         dataSource={components}
         rowKey="key" // use key, not id
-        pagination={{ pageSize: 7 }}
+        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 7 }}
       /> */}
 
       <div style={{ marginTop: 22 }}>
@@ -437,7 +436,7 @@ const SalaryComponentManagement = () => {
             columns={columns}
             dataSource={components}
             rowKey="key"
-            pagination={{ pageSize: 7 }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 7 }}
             size="middle"
             rowClassName={() => "salary-table-row"}
           />

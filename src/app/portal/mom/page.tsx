@@ -1347,7 +1347,7 @@ const PaginationBar: React.FC<{
       total={total}
       onChange={onChange}
       showSizeChanger
-      pageSizeOptions={["10", "20", "50"]}
+      pageSizeOptions={[10, 20, 25, 50, 100]}
       showTotal={(t, range) => (
         <span
           style={{

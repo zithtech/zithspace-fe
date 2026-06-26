@@ -302,8 +302,7 @@ export default function VendorListPage() {
               columns={columns}
               dataSource={data}
               rowKey="id"
-              pagination={{
-                ...pagination,
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], ...pagination,
                 showSizeChanger: true,
                 showTotal: (totalItem) => `Total ${totalItem} vendors`,
               }}

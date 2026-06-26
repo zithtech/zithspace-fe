@@ -573,7 +573,7 @@ export default function SalaryStructurePage() {
           columns={columns}
           dataSource={structures}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
           size="middle"
         />
       </div>

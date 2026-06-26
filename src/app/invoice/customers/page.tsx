@@ -914,7 +914,7 @@ export default function InvoiceproCustomerPage() {
                     className: "cursor-pointer",
                   })}
                   className="customers-table"
-                  scroll={{ x: 'max-content' }}
+                  scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
                 />
               </div>
             )}
@@ -1110,7 +1110,8 @@ export default function InvoiceproCustomerPage() {
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -1220,7 +1221,7 @@ export default function InvoiceproCustomerPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;

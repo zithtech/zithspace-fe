@@ -539,6 +539,7 @@ class TicketService {
     includeArchived?: boolean;
     archivedOnly?: boolean;
     ticketIds?: string;
+    sprintId?: string;
   } = {}): Promise<TicketListResponse> {
     try {
       const queryParams = new URLSearchParams();

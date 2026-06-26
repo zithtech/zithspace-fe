@@ -349,7 +349,13 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
             <Form.Item
               name="name"
               label="Display name"
-              rules={[{ required: true, message: 'Enter a name' }]}
+              rules={[
+                { required: true, message: 'Enter a name' },
+                { 
+                  pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
+                  message: 'Name can only contain letters, numbers, and basic punctuation' 
+                }
+              ]}
             >
               <Input
                 placeholder={
@@ -362,6 +368,11 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                 className="es-input"
                 maxLength={64}
                 showCount
+                onKeyPress={(e) => {
+                  if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
             </Form.Item>
 
@@ -500,7 +511,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               </div>
 
               <div className="es-toggle-cards">
-                <Form.Item name="isDefault" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                <Form.Item name="isDefault" valuePropName="checked" hidden>
                   <Switch />
                 </Form.Item>
                 <button
@@ -520,7 +531,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                   </span>
                 </button>
 
-                <Form.Item name="isFinal" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                <Form.Item name="isFinal" valuePropName="checked" hidden>
                   <Switch />
                 </Form.Item>
                 <button

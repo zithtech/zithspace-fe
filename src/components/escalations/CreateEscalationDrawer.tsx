@@ -681,13 +681,24 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
           <Form.Item
             name="subject"
             label="Subject"
-            rules={[{ required: true, message: 'Enter a subject' }]}
+            rules={[
+              { required: true, message: 'Enter a subject' },
+              { 
+                pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
+                message: 'Subject can only contain letters, numbers, and basic punctuation' 
+              }
+            ]}
           >
             <Input
               placeholder="e.g. Repeated regressions on Employee Profile deploy"
               className="ced-input"
               maxLength={140}
               showCount
+              onKeyPress={(e) => {
+                if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
             />
           </Form.Item>
 

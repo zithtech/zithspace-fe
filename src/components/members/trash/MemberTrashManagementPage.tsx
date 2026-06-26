@@ -119,7 +119,7 @@ export default function MemberTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const { message } = App.useApp();
 
@@ -924,8 +924,8 @@ export default function MemberTrashManagementPage() {
                             {item.deletedBy && (
                               <>
                                 <span className="pc-foot-div" style={{ backgroundColor: 'rgba(248, 113, 113, 0.2)', height: '10px', margin: '0 6px' }} />
-                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
-                                  By {item.deletedBy}
+                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-slate-500)' }}>
+                                  Deleted by <span style={{ color: '#f87171' }}>{item.deletedBy}</span>
                                 </span>
                               </>
                             )}
@@ -1017,7 +1017,7 @@ export default function MemberTrashManagementPage() {
                 className="pp-pagesize"
                 value={pagination.pageSize}
                 onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                 popupMatchSelectWidth={120}
               />
             </div>
@@ -1083,7 +1083,21 @@ export default function MemberTrashManagementPage() {
           color: #ff4d4f !important;
         }
         .pp-create-btn:hover { background: #ffccc7 !important; border-color: #ffa39e !important; color: #ff4d4f !important; }
-        .pp-create-btn .anticon { font-size: 12px !important; color: #ff4d4f !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; color: inherit !important; }
+        [data-theme='dark'] .pp-create-btn {
+          background: transparent !important;
+          border: 1px solid #ff4d4f !important;
+          color: #ff4d4f !important;
+        }
+        [data-theme='dark'] .pp-create-btn:hover {
+          background: transparent !important;
+          color: #ff4d4f !important;
+        }
+        [data-theme='dark'] .pp-create-btn:disabled {
+          background: #1f1f1f !important;
+          color: #434343 !important;
+          border-color: #434343 !important;
+        }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;
@@ -1113,9 +1127,9 @@ export default function MemberTrashManagementPage() {
         .pp-clear-filters {
           display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
           background: none; border: none; cursor: pointer; padding: 3px;
-          font-size: 12px; font-weight: 600; color: #64748b;
+          font-size: 12px; font-weight: 600; color: #ef4444;
         }
-        .pp-clear-filters:hover { color: #3b82f6; }
+        .pp-clear-filters:hover { color: #dc2626; }
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }

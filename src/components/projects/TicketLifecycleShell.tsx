@@ -285,7 +285,7 @@ const TICKET_LIFECYCLE_CSS = `
 .tlc-page {
   margin: 0 -24px;
   background: var(--bg-pure-white);
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 54px);
   display: flex;
   flex-direction: column;
 }
@@ -398,12 +398,19 @@ const TICKET_LIFECYCLE_CSS = `
 }
 
 /* ── Shell ───────────────────────────────────────────── */
-.tlc-shell-wrap { flex: 1; }
+.tlc-shell-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .tlc-shell {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
   align-items: stretch;
-  min-height: calc(100vh - 64px - 60px);
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .tlc-sidebar-backdrop { display: none; }
@@ -414,8 +421,8 @@ const TICKET_LIFECYCLE_CSS = `
   border-right: 1px solid var(--border-slate-200);
   padding: 12px 12px 16px 20px;
   position: sticky;
-  top: 60px;
-  height: calc(100vh - 64px - 60px);
+  top: 56px;
+  height: calc(100vh - 54px - 56px);
   overflow-y: auto;
   align-self: start;
   scrollbar-width: none;
@@ -596,14 +603,16 @@ const TICKET_LIFECYCLE_CSS = `
 /* ── Main ───────────────────────────────────────────── */
 .tlc-main {
   min-width: 0;
-  padding: 0 16px 24px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
+  overflow-y: auto;
+  height: calc(100vh - 54px - 56px);
 }
 .tlc-toolbar {
   position: sticky;
-  top: 60px;
+  top: 0;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -611,6 +620,7 @@ const TICKET_LIFECYCLE_CSS = `
   padding: 10px 16px;
   background: var(--bg-pure-white);
   border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
 }
 [data-theme='dark'] .tlc-toolbar {
   background: #0B0F1A !important;
@@ -628,10 +638,12 @@ const TICKET_LIFECYCLE_CSS = `
   color: #94A3B8 !important;
 }
 .tlc-body {
-  padding: 0 16px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Desktop ≥ 1100px ────────────────────────────────── */
@@ -651,10 +663,10 @@ const TICKET_LIFECYCLE_CSS = `
   .tlc-shell { grid-template-columns: minmax(0, 1fr); }
   .tlc-shell > aside.tlc-sidebar {
     position: fixed;
-    top: 60px;
+    top: 56px;
     left: 0;
     width: 280px;
-    height: calc(100vh - 64px - 60px);
+    height: calc(100vh - 54px - 56px);
     z-index: 60;
     transform: translateX(-100%);
     transition: transform 0.2s ease;

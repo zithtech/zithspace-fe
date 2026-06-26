@@ -81,7 +81,7 @@ export default function TrashManagementPage() {
   const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
   useActivitySource({ section: "WORK", module: "Trash", page: "TrashView" });
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit, setLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
@@ -742,25 +742,65 @@ export default function TrashManagementPage() {
                 </div>
               ),
             }}
-            pagination={
-              hasItems
-                ? {
-                  current: page,
-                  pageSize: limit,
-                  total: trashData?.pagination.total || 0,
-                  onChange: (p) => setPage(p),
-                  showTotal: (total, range) => (
-                    <Text className="tr-pagination-total">
-                      Showing {range[0]}–{range[1]} of {total}
-                    </Text>
-                  ),
-                  style: { padding: "16px 24px", margin: 0 },
-                }
-                : false
-            }
+            pagination={false}
             scroll={{ x: 1100 }}
           />
         </Card>
+
+        {/* ── Sticky pagination footer ── */}
+        {hasItems && (() => {
+          const total = trashData?.pagination.total || 0;
+          const pageCount = Math.max(1, Math.ceil(total / limit));
+          const pageStart = total === 0 ? 0 : (page - 1) * limit + 1;
+          const pageEnd = Math.min(page * limit, total);
+          const visiblePages = Array.from({ length: pageCount }, (_, i) => i + 1)
+            .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5);
+          return (
+            <div className="tr-footer tr-footer--sticky">
+              <div className="tr-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+                {selectedRowKeys.length > 0 && (
+                  <span className="tr-footer-sel"> · {selectedRowKeys.length} selected</span>
+                )}
+              </div>
+              <div className="tr-pager">
+                <button
+                  type="button"
+                  className="tr-pager-btn"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ‹
+                </button>
+                {visiblePages.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`tr-pager-num ${p === page ? "is-active" : ""}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="tr-pager-btn"
+                  disabled={page >= pageCount}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                >
+                  ›
+                </button>
+                <Select
+                  className="tr-pagesize"
+                  value={limit}
+                  onChange={(v) => { setLimit(v); setPage(1); }}
+                  options={[10, 20, 25, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <style jsx global>{`
@@ -1037,7 +1077,7 @@ export default function TrashManagementPage() {
 
         /* ── Body ────────────────────────────────────────────────── */
         .tr-body {
-          padding: 0 32px 32px;
+          padding: 0 32px 80px;
         }
 
         /* ── Control bar ─────────────────────────────────────────── */
@@ -1611,17 +1651,104 @@ export default function TrashManagementPage() {
           border-radius: 7px !important;
         }
 
-        /* ── Pagination ──────────────────────────────────────────── */
-        .tr-pagination-total {
-          font-size: 12px !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 500;
+        /* ── Sticky footer pagination ────────────────────────────── */
+        .tr-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 0 14px;
+          border-top: 1px solid var(--border-slate-200);
+          height: 52px;
+          box-sizing: border-box;
         }
-        .tr-table .ant-pagination {
-          border-top: 1px solid var(--border-slate-100);
-        }
-        [data-theme='dark'] .tr-table .ant-pagination {
+        [data-theme='dark'] .tr-footer {
           border-top-color: #1f2937;
+        }
+        .tr-footer--sticky {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 200;
+          padding: 0 32px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.07);
+          border-top: 1px solid var(--border-slate-200);
+          height: 52px;
+          box-sizing: border-box;
+          margin: 0;
+        }
+        [data-theme='dark'] .tr-footer--sticky {
+          background: #0d1117;
+          border-top-color: #1f2937;
+          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4);
+        }
+        .tr-footer-info {
+          font-size: 12px;
+          color: var(--text-slate-500);
+        }
+        .tr-footer-info strong {
+          color: var(--text-slate-700);
+          font-weight: 700;
+        }
+        .tr-footer-sel {
+          color: #3b82f6;
+          font-weight: 600;
+        }
+        .tr-pager {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+        .tr-pager-btn,
+        .tr-pager-num {
+          min-width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          cursor: pointer;
+          font-size: 12.5px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.12s ease;
+        }
+        .tr-pager-btn:hover:not(:disabled),
+        .tr-pager-num:hover:not(.is-active) {
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-300);
+        }
+        [data-theme='dark'] .tr-pager-btn,
+        [data-theme='dark'] .tr-pager-num {
+          background: #161b22;
+          border-color: #1f2937;
+          color: #94a3b8;
+        }
+        [data-theme='dark'] .tr-pager-btn:hover:not(:disabled),
+        [data-theme='dark'] .tr-pager-num:hover:not(.is-active) {
+          background: #1f2937;
+          border-color: #374151;
+        }
+        .tr-pager-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .tr-pager-num.is-active {
+          background: #3b82f6;
+          border-color: #3b82f6;
+          color: #fff;
+        }
+        .tr-pagesize {
+          margin-left: 5px;
+        }
+        .tr-pagesize .ant-select-selector {
+          border-radius: 7px !important;
+          height: 28px !important;
         }
 
         .tr-filter-datepicker {

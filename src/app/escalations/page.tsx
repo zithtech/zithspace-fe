@@ -17,7 +17,8 @@ import {
   Select,
   Popconfirm,
   App,
-  Dropdown
+  Dropdown,
+  Upload
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,7 +45,9 @@ import {
   EllipsisOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
-  FilterOutlined
+  FilterOutlined,
+  PaperClipOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
@@ -150,7 +153,7 @@ export default function EscalationListPage() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   // Create drawer
@@ -158,6 +161,9 @@ export default function EscalationListPage() {
 
   // Edit drawer
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+
+  // File Preview Drawer
+  const [previewFile, setPreviewFile] = useState<any>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const searchRef = useRef<any>(null);
@@ -1050,7 +1056,7 @@ export default function EscalationListPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -1244,6 +1250,67 @@ export default function EscalationListPage() {
                   {selectedEscalation.description || selectedEscalation.detailed_description}
                 </div>
               </div>
+
+              {selectedEscalation.document_url && (() => {
+                let parsedUrls: string[] = [];
+                try {
+                  parsedUrls = JSON.parse(selectedEscalation.document_url);
+                  if (!Array.isArray(parsedUrls)) parsedUrls = [selectedEscalation.document_url];
+                } catch {
+                  parsedUrls = [selectedEscalation.document_url];
+                }
+
+                if (parsedUrls.length === 0) return null;
+
+                const fileList = parsedUrls.map((url, idx) => {
+                  let fileName = url.split('/').pop() || `Attachment ${idx + 1}`;
+                  const match = fileName.match(/^[\w-]{12}_(.+)$/);
+                  if (match) {
+                    fileName = match[1];
+                  }
+
+                  let fileUrl = url;
+                  if (url.startsWith('/')) {
+                    fileUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}${url}`;
+                  } else if (url.includes("r2.cloudflarestorage.com")) {
+                    fileUrl = url.replace(
+                      /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                      "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+                    );
+                  }
+                  
+                  if (fileUrl.includes(".r2.dev") && !fileUrl.includes(".r2.dev/")) {
+                    fileUrl = fileUrl.replace(".r2.dev", ".r2.dev/");
+                  }
+
+                  return {
+                    uid: `existing-${idx}`,
+                    name: fileName,
+                    status: 'done' as const,
+                    url: fileUrl,
+                  };
+                });
+
+                return (
+                  <div>
+                    <Space align="center" style={{ marginBottom: 8 }}>
+                      <PaperClipOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
+                      <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
+                        Attachments
+                      </Text>
+                    </Space>
+                    <Upload
+                      fileList={fileList}
+                      showUploadList={{
+                        showRemoveIcon: false,
+                        showDownloadIcon: true,
+                      }}
+                      onPreview={(file) => setPreviewFile(file)}
+                      onDownload={(file) => window.open(file.url, '_blank')}
+                    />
+                  </div>
+                );
+              })()}
 
               {selectedEscalation.tickets?.length > 0 && (
                 <div>
@@ -1730,7 +1797,7 @@ export default function EscalationListPage() {
           background: #161B22;
         }
         [data-theme='dark'] .es-view-item.is-active {
-          background: rgba(255, 77, 79, 0.15);
+          background: rgba(59, 130, 246, 0.15);
         }
         [data-theme='dark'] .es-view-label {
           color: #94A3B8;
@@ -1862,6 +1929,59 @@ export default function EscalationListPage() {
           .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
         }
       `}</style>
+
+      {/* File Preview Drawer */}
+      <Drawer
+        placement="left"
+        width={700}
+        closable={false}
+        title={null}
+        footer={null}
+        mask={false}
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
+        styles={{
+          body: { padding: 0, height: '100%' }
+        }}
+      >
+        {previewFile && (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography.Text strong>{previewFile.name}</Typography.Text>
+              <Space>
+                <Button type="text" icon={<DownloadOutlined />} onClick={() => window.open(previewFile.url || previewFile.preview, '_blank')} />
+                <Button type="text" icon={<CloseOutlined />} onClick={() => setPreviewFile(null)} />
+              </Space>
+            </div>
+            <div style={{ flex: 1, padding: 24, background: 'var(--bg-slate-50)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
+              {(() => {
+                const displayUrl = previewFile.url || previewFile.preview || '';
+                const isImage = /\.(jpeg|jpg|gif|png|webp|svg|bmp|ico)/i.test(displayUrl);
+                const isPdf = /\.pdf/i.test(displayUrl);
+
+                if (isImage) {
+                  return <img src={displayUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Preview" />;
+                }
+                if (isPdf) {
+                  const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(displayUrl)}&embedded=true`;
+                  return <iframe src={googleDocsUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />;
+                }
+
+                return (
+                  <div style={{ textAlign: 'center' }}>
+                    <FileTextOutlined style={{ fontSize: 48, color: 'var(--text-slate-400)', marginBottom: 16 }} />
+                    <Typography.Text type="secondary" style={{ display: 'block' }}>Preview not available for this file type</Typography.Text>
+                    <Button type="primary" style={{ marginTop: 16 }} onClick={() => window.open(displayUrl, '_blank')}>
+                      Download File
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+      </Drawer>
     </MainLayout>
   );
 }

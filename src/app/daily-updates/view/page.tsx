@@ -206,7 +206,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [cardPage, setCardPage] = useState(1);
-  const [cardPageSize, setCardPageSize] = useState(10);
+  const [cardPageSize, setCardPageSize] = useState(20);
   
   useEffect(() => {
     setCardPage(1);
@@ -1033,7 +1033,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                         className="du-pagesize"
                         value={cardPageSize}
                         onChange={(v) => { setCardPageSize(v); setCardPage(1); }}
-                        options={[10, 20, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                         popupMatchSelectWidth={120}
                       />
                     </div>

@@ -135,7 +135,7 @@ export default function SquadManagement() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   const searchRef = useRef<any>(null);
@@ -828,7 +828,7 @@ export default function SquadManagement() {
                   className="sq-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

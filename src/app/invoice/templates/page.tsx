@@ -132,7 +132,7 @@ export default function InvoiceTemplatePage() {
   }, [templates, searchText, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   // Reset page when filters change
   React.useEffect(() => {
@@ -792,6 +792,7 @@ export default function InvoiceTemplatePage() {
                   dataSource={pagedTemplates}
                   pagination={false}
                   className="pp-table"
+                  scroll={{ x: 1100, y: 'calc(100vh - 325px)' }}
                   onRow={(record) => ({
                     onClick: () =>
                       router.push(`/invoice/newinvoice?templateId=${record.id}`),
@@ -818,7 +819,7 @@ export default function InvoiceTemplatePage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
-                  options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -839,7 +840,8 @@ export default function InvoiceTemplatePage() {
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -942,7 +944,7 @@ export default function InvoiceTemplatePage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;

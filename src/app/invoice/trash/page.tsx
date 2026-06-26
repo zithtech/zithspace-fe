@@ -127,7 +127,7 @@ export default function InvoiceTrashPage() {
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 20 });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -1037,7 +1037,7 @@ export default function InvoiceTrashPage() {
                 className="pp-pagesize"
                 value={pagination.limit}
                 onChange={(v) => setPagination({ page: 1, limit: v })}
-                options={[5, 10, 15, 25, 50, 100].map((n) => ({
+                options={[10, 20, 25, 50, 100].map((n) => ({
                   value: n,
                   label: `${n} / page`,
                 }))}

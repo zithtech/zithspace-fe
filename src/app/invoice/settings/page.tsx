@@ -192,7 +192,7 @@ export default function InvoiceSettingPage() {
   }, [settingsList, searchText, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   // Reset page when filters change
   useEffect(() => {
@@ -1130,7 +1130,7 @@ export default function InvoiceSettingPage() {
                     setPageSize(v);
                     setCurrentPage(1);
                   }}
-                  options={[5, 10, 15, 25, 50, 100].map((n) => ({
+                  options={[10, 20, 25, 50, 100].map((n) => ({
                     value: n,
                     label: `${n} / page`,
                   }))}
@@ -2055,7 +2055,7 @@ export default function InvoiceSettingPage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); }
+        .pp-shell { display: flex; margin: 0 -24px; height: calc(100vh - 54px); overflow: hidden; background: var(--bg-pure-white); }
         .pp-shell,
         .pp-shell *,
         .ant-table,
@@ -2093,7 +2093,7 @@ export default function InvoiceSettingPage() {
         .pp-view-item.is-active .pp-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
         .pp-side-bottom-actions { margin: auto -14px 0 -38px; padding: 8px 14px 0 38px; border-top: 1px solid var(--border-slate-100); background: var(--bg-pure-white); }
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap { position: relative; flex: 1; max-width: 520px; display: flex; align-items: center; height: 32px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }

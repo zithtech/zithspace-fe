@@ -143,7 +143,7 @@ export const useCreateTicket = () => {
 
           // Apply update
           queryClient.setQueryData(queryKey, (old: any) => {
-            if (!old) return { data: [optimisticTicket], pagination: {} };
+            if (!old) return { data: [optimisticTicket], pagination: { pageSizeOptions: [10, 20, 25, 50, 100], } };
             if (!old.data) return old;
             return {
               ...old,
@@ -388,7 +388,7 @@ export const useUpdateTicket = () => {
             }
           }
 
-          queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { ...oldData.pagination, total } });
+          queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...oldData.pagination, total } });
         });
 
         // Optimistically update KANBAN
@@ -600,7 +600,7 @@ export const useUpdateTicket = () => {
           }
         }
 
-        queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { ...oldData.pagination, total } });
+        queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...oldData.pagination, total } });
       });
 
       // Iterate Kanban to update
@@ -720,8 +720,7 @@ export const useDeleteTicket = () => {
         return {
           ...oldData,
           data: oldData.data.filter((ticket: Ticket) => ticket.id !== id),
-          pagination: {
-            ...oldData.pagination,
+          pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...oldData.pagination,
             total: Math.max(0, (oldData.pagination?.total || 0) - 1)
           }
         };

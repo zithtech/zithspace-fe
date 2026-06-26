@@ -180,7 +180,7 @@ export default function GovernmentHolidaysPanel() {
           loading={loading}
           columns={columns}
           dataSource={filtered}
-          pagination={{ pageSize: 12, showSizeChanger: true, pageSizeOptions: ['12', '25', '50', '100'] }}
+          pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 25, 50, 100] }}
           rowSelection={canCreateLeaveHoliday ? {
             selectedRowKeys: selected,
             onChange: setSelected,

@@ -571,7 +571,7 @@ function InvitesContent() {
           loading={loading}
           columns={columns}
           dataSource={rows}
-          pagination={{ pageSize: 10, hideOnSinglePage: true, size: 'small' }}
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: 'small' }}
           onRow={() => ({ className: 'onbi-row' })}
           locale={{ emptyText: 'No invites yet — invite your first employee.' }}
         />

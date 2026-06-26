@@ -5495,17 +5495,6 @@ select:-webkit-autofill:focus {
   color: #ffffff;
   flex-shrink: 0;
   position: relative;
-}
-
-.svd-member-card.is-head .svd-member-card__avatar {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.svd-member-card.is-subhead .svd-member-card__avatar {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.svd-member-card.is-member .svd-member-card__avatar {
   background: linear-gradient(135deg, #3b82f6, #6366f1);
 }
 
@@ -5521,9 +5510,19 @@ select:-webkit-autofill:focus {
   align-items: center;
   justify-content: center;
   font-size: 9px;
-  color: var(--svd-card-accent);
   border: 2px solid var(--bg-pure-white);
-  box-shadow: 0 0 0 1px var(--svd-card-accent);
+}
+
+.svd-member-card.is-head .svd-member-card__avatar-badge {
+  color: #059669;
+}
+
+.svd-member-card.is-subhead .svd-member-card__avatar-badge {
+  color: #d97706;
+}
+
+.svd-member-card.is-member .svd-member-card__avatar-badge {
+  color: #3b82f6;
 }
 
 .svd-member-card__main {
@@ -5660,6 +5659,16 @@ select:-webkit-autofill:focus {
 
 [data-theme='dark'] .svd-member-card {
   background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .svd-member-card__avatar-badge {
+  background: var(--bg-secondary);
+  border-color: var(--bg-secondary);
+}
+
+[data-theme='dark'] .svd-tab.is-active {
+  background: var(--bg-pure-white);
+  color: var(--text-slate-900);
 }
 
 [data-theme='dark'] .svd-empty {

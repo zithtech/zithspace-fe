@@ -168,7 +168,7 @@ export default function AccountsPage() {
   // Pagination and filtering
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 15,
+    pageSize: 20,
     total: 0,
   });
 
@@ -459,7 +459,7 @@ export default function AccountsPage() {
     setPagination(prev => ({
       ...prev,
       current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 15,
+      pageSize: newPagination.pageSize || 20,
     }));
 
     if (sorter && !Array.isArray(sorter) && sorter.field && sorter.order) {
@@ -1130,7 +1130,7 @@ export default function AccountsPage() {
                   className="pp-pagesize"
                   value={pagination.pageSize}
                   onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                  options={[10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

@@ -445,7 +445,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             <Form.Item
               name="name"
               label="Full name"
-              rules={[{ required: true, message: "Please enter full name" }]}
+              normalize={(value) => (value || '').replace(/[^a-zA-Z\s]/g, '')}
+              rules={[
+                { required: true, message: "Please enter full name" },
+                {
+                  pattern: /^[a-zA-Z\s]*$/,
+                  message: "Only text is allowed",
+                },
+              ]}
             >
               <Input placeholder="e.g. Jane Doe" />
             </Form.Item>
@@ -572,7 +579,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <Form.Item
                 name="positionTitle"
                 label="Position Title"
-                rules={[{ required: true, message: "Please enter position title" }]}
+                normalize={(value) => (value || '').replace(/[^a-zA-Z\s]/g, '')}
+                rules={[
+                  { required: true, message: "Please enter position title" },
+                  {
+                    pattern: /^[a-zA-Z\s]*$/,
+                    message: "Only text is allowed",
+                  },
+                ]}
               >
                 <Input placeholder="e.g. Senior Software Architect" />
               </Form.Item>
@@ -1291,7 +1305,7 @@ export default function MembersPage() {
 
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
   });
   const [searchTerm, setSearchTerm] = useState("");
@@ -2408,7 +2422,7 @@ export default function MembersPage() {
                   className="pp-pagesize"
                   value={pagination.pageSize}
                   onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                  options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -2704,9 +2718,9 @@ export default function MembersPage() {
         .pp-clear-filters {
           display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
           background: none; border: none; cursor: pointer; padding: 3px;
-          font-size: 12px; font-weight: 600; color: #64748b;
+          font-size: 12px; font-weight: 600; color: #ef4444;
         }
-        .pp-clear-filters:hover { color: #3b82f6; }
+        .pp-clear-filters:hover { color: #dc2626; }
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }

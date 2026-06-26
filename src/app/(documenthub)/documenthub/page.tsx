@@ -788,7 +788,7 @@ const DocumentHubPage = () => {
     { key: 'updatedAt', dir: 'descend' },
   );
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [railVisibility, setRailVisibility] = useState<RailVisibility>(DEFAULT_RAILS);
   // Used by the "NEW" badge to re-render every minute so the pulse fades on schedule.
   const [, setTickNow] = useState(0);
@@ -2576,7 +2576,7 @@ const DocumentHubPage = () => {
                   pageSize={tablePageSize}
                   total={total}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                   onChange={(p, size) => { setTablePage(p); setTablePageSize(size); }}
                 />
               </div>

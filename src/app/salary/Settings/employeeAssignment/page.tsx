@@ -278,7 +278,7 @@ const EmployeeSalaryAssignmentPage = () => {
               columns={columns}
               loading={assignmentsLoading}
               rowKey="id"
-              pagination={{ pageSize: 12 }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 12 }}
               expandable={{
                 expandedRowRender: (record) => {
                   let earnings: any[] = [];

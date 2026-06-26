@@ -2237,7 +2237,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             className="pp-pagesize"
             value={pageSize}
             onChange={(v) => onPageSizeChange(v)}
-            options={[10, 20, 25, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+            options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
             popupMatchSelectWidth={120}
             size="small"
           />

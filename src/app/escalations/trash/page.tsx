@@ -124,7 +124,7 @@ export default function EscalationTrashPage() {
 
   // Pagination states
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { message, modal } = App.useApp();
@@ -916,7 +916,7 @@ export default function EscalationTrashPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -1279,7 +1279,7 @@ export default function EscalationTrashPage() {
           background: #161B22;
         }
         [data-theme='dark'] .es-view-item.is-active {
-          background: rgba(255, 77, 79, 0.15);
+          background: rgba(59, 130, 246, 0.15);
         }
         [data-theme='dark'] .es-view-label {
           color: #94A3B8;

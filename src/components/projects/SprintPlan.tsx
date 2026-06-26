@@ -626,7 +626,7 @@ export default function SprintPlanComponent() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setCurrentPage(1); }, [tableFilters.search, tableFilters.projectId, tableFilters.status, sortBy]);
 
   // Sorted view of sprintPlans
@@ -2117,7 +2117,7 @@ export default function SprintPlanComponent() {
                   total={sortedSprintPlans.length}
                   onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                 />
               </div>
             )}

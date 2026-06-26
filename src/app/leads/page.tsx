@@ -604,7 +604,7 @@ export default function LeadsPage() {
   const [gridPage, setGridPage] = useState(1);
   const [gridPageSize, setGridPageSize] = useState(12);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterAction, setFilterAction] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
@@ -3566,7 +3566,7 @@ export default function LeadsPage() {
                       className="lm-pagesize"
                       value={tablePageSize}
                       onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                      options={[15, 30, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                       popupMatchSelectWidth={120}
                     />
                   </div>

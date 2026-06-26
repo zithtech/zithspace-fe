@@ -28,7 +28,7 @@ import { useActivitySource } from '@/hooks/useActivitySource';
 import '../library.css';
 
 type SavedView = 'all' | 'archived';
-const PAGE_SIZE_OPTIONS = [12, 24, 48];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 const trendFor = (seed: number): number[] =>
   Array.from({ length: 8 }, (_, i) => 3 + ((seed * 7 + i * i * 5) % 11));
@@ -91,7 +91,7 @@ function TemplatesContent() {
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(12);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   // ── Builder modal state ──────────────────────────────────────────────
   const [builderOpen, setBuilderOpen] = useState(false);

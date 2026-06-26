@@ -244,7 +244,7 @@ const ProjectsManageContent: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
   });
 
@@ -254,7 +254,7 @@ const ProjectsManageContent: React.FC = () => {
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
     page: 1,
-    limit: 10,
+    limit: 20,
   });
 
   const renderPosition = (position: any) => {
@@ -1311,7 +1311,7 @@ const ProjectsManageContent: React.FC = () => {
                     total={pagination.total}
                     onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
                     showSizeChanger
-                    pageSizeOptions={[10, 15, 25, 50, 100]}
+                    pageSizeOptions={[10, 20, 25, 50, 100]}
                   />
                 </div>
               )}

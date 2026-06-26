@@ -47,7 +47,7 @@ const Stat: React.FC<{ label: string; value: number | string; color: string }> =
 export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = [] }) => {
   const [sortBy, setSortBy] = useState<string>("Contribution");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   const sorted = useMemo(() => {
     const copy = [...members];

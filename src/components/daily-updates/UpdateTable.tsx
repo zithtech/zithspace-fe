@@ -66,7 +66,7 @@ export default function UpdateTable({
   const router = useRouter();
 
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(10);
+  const [pageSize, setPageSize] = React.useState(20);
 
   const columns: ColumnsType<TableDataType> = [
     {
@@ -485,7 +485,7 @@ export default function UpdateTable({
               className="du-pagesize"
               value={pageSize}
               onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
-              options={[10, 20, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />
           </div>

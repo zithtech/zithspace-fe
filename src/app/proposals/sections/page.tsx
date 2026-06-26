@@ -26,7 +26,7 @@ import '../library.css';
 
 type SavedView = 'all' | 'global' | 'archived';
 
-const PAGE_SIZE_OPTIONS = [12, 24, 48];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 // Gradient for the card avatar, derived from the type's palette colour.
 const GRADIENTS: Record<string, [string, string]> = {
@@ -103,7 +103,7 @@ function SectionsContent() {
   const [catFilter, setCatFilter] = useState<SectionCategory | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(12);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<LibrarySection | null>(null);

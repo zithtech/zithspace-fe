@@ -513,7 +513,7 @@ export default function ArchivedTicketsPage() {
                   setPageSize(v);
                   setPage(1);
                 }}
-                options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                 popupMatchSelectWidth={120}
               />
             </div>

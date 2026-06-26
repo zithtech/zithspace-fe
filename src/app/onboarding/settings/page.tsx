@@ -605,7 +605,7 @@ function DocumentsNeededTab() {
           loading={loading}
           columns={columns}
           dataSource={rows}
-          pagination={{ pageSize: 10, hideOnSinglePage: true, size: "small" }}
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
           locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
         />
       </div>

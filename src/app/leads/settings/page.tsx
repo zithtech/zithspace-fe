@@ -545,9 +545,9 @@ export default function LeadSettingsPage() {
     const [filterMode, setFilterMode] = useState<"all" | "active" | "hidden">("all");
     const [view, setView] = useState<"list" | "grid">("grid");
     const [tablePage, setTablePage] = useState(1);
-    const [tablePageSize, setTablePageSize] = useState(10);
+    const [tablePageSize, setTablePageSize] = useState(20);
 
-    const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+    const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
     useEffect(() => {
         setTablePage(1);

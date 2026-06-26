@@ -57,7 +57,7 @@ const TINT = {
   grey: 'rgba(148,163,184,0.12)',
 } as const;
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 const SCOPE_TYPES: { value: PolicyScopeType; label: string }[] = [
   { value: 'grade', label: 'Grade' },
@@ -142,7 +142,7 @@ export default function LeavePolicyPanel() {
 
   // pagination
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);

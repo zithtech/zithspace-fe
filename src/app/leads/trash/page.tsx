@@ -695,7 +695,7 @@ export default function LeadsTrashPage() {
                     loading={false}
                     scroll={{ x: "max-content" }}
                     rowKey={(record: any) => record.id || Math.random()}
-                    pagination={{ pageSize: 10, size: "small" }}
+                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, size: "small" }}
                     className="es-table"
                     locale={{
                       emptyText: (

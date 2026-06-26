@@ -261,7 +261,7 @@ const ForecastDashboard: React.FC = () => {
                   columns={columns} 
                   dataSource={data.deals} 
                   rowKey="id"
-                  pagination={{ pageSize: 10 }}
+                  pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20 }}
                   className="custom-table"
                 />
               </Card>

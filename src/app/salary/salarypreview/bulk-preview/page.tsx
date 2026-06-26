@@ -879,7 +879,7 @@ export default function BulkSalaryPreviewPage() {
             dataSource={salaryData}
             loading={loading || employeesLoading}
             rowKey="employeeId"
-            pagination={{ pageSize: 20, position: ['bottomRight'], showSizeChanger: true }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, position: ['bottomRight'], showSizeChanger: true }}
             className="modern-table"
             size="small"
             expandable={{

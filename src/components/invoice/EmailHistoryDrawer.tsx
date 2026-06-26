@@ -181,8 +181,7 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
         dataSource={historyData?.data || []} 
         loading={isLoading}
         rowKey="id"
-        pagination={{
-            current: page,
+        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
             pageSize: 10,
             total: historyData?.pagination?.total || 0,
             onChange: (p) => setPage(p),

@@ -29,6 +29,7 @@ import {
   FilterOutlined,
   CloseCircleOutlined,
   StopOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -45,7 +46,7 @@ const { RangePicker } = DatePicker;
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
   { value: 'full', label: 'Full day' },
@@ -83,7 +84,7 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
 }
 
 export default function ApplyLeavePanel() {
-  const { canReadLeave, canCreateLeave } = usePermission();
+  const { canReadLeave, canCreateLeave, canUpdateLeave } = usePermission();
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
@@ -95,11 +96,12 @@ export default function ApplyLeavePanel() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   // drawer
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
   const [leaveTypeId, setLeaveTypeId] = useState<string>();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [portion, setPortion] = useState<DayPortion>('full');
@@ -171,7 +173,10 @@ export default function ApplyLeavePanel() {
   const totalDays = isSingleDay && effectivePortion !== 'full' ? 0.5 : calendarSpan;
   const selectedBalance = balanceFor(leaveTypeId);
   const isUnpaidType = !!selectedBalance && !selectedBalance.isPaid; // Loss of Pay = unlimited, all units are LOP
-  const available = selectedBalance?.available ?? 0;
+  let available = selectedBalance?.available ?? 0;
+  if (editingRequest && editingRequest.leaveTypeId === leaveTypeId && !isUnpaidType) {
+    available += editingRequest.paidUnits;
+  }
   const paid = isUnpaidType ? 0 : Math.min(units, Math.max(available, 0));
   const lop = Number((units - paid).toFixed(2));
 
@@ -185,10 +190,20 @@ export default function ApplyLeavePanel() {
     : null;
 
   const openApply = () => {
+    setEditingRequest(null);
     setLeaveTypeId(undefined);
     setRange(null);
     setPortion('full');
     setReason('');
+    setOpen(true);
+  };
+
+  const openEdit = (r: LeaveRequest) => {
+    setEditingRequest(r);
+    setLeaveTypeId(r.leaveTypeId);
+    setRange([dayjs(r.fromDate), dayjs(r.toDate)]);
+    setPortion(r.dayPortion);
+    setReason(r.reason || '');
     setOpen(true);
   };
 
@@ -205,12 +220,17 @@ export default function ApplyLeavePanel() {
         dayPortion: effectivePortion,
         reason: reason.trim() || null,
       };
-      await LeaveV2Service.applyLeave(payload);
-      message.success('Leave request submitted');
+      if (editingRequest) {
+        await LeaveV2Service.updateRequest(editingRequest.id, payload);
+        message.success('Leave request updated');
+      } else {
+        await LeaveV2Service.applyLeave(payload);
+        message.success('Leave request submitted');
+      }
       setOpen(false);
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to submit leave');
+      message.error(err?.response?.data?.error || (editingRequest ? 'Failed to update leave' : 'Failed to submit leave'));
     } finally {
       setSaving(false);
     }
@@ -269,18 +289,25 @@ export default function ApplyLeavePanel() {
       align: 'right',
       render: (_, r) =>
         r.status === 'pending' ? (
-          <ConfirmDialog
-            tone="danger"
-            icon={<StopOutlined />}
-            title="Cancel this request?"
-            description={`Your ${r.leaveTypeName} request will be withdrawn.`}
-            confirmText="Cancel request"
-            cancelText="Keep"
-            placement="bottomRight"
-            onConfirm={() => cancelRequest(r)}
-          >
-            <Tooltip title="Cancel"><Button type="text" size="small" danger icon={<StopOutlined />} /></Tooltip>
-          </ConfirmDialog>
+          <Space size="small">
+            {canUpdateLeave && (
+              <Tooltip title="Edit">
+                <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
+              </Tooltip>
+            )}
+            <ConfirmDialog
+              tone="danger"
+              icon={<StopOutlined />}
+              title="Cancel this request?"
+              description={`Your ${r.leaveTypeName} request will be withdrawn.`}
+              confirmText="Cancel request"
+              cancelText="Keep"
+              placement="bottomRight"
+              onConfirm={() => cancelRequest(r)}
+            >
+              <Tooltip title="Cancel"><Button type="text" size="small" danger icon={<StopOutlined />} /></Tooltip>
+            </ConfirmDialog>
+          </Space>
         ) : null,
     },
   ];
@@ -394,10 +421,12 @@ export default function ApplyLeavePanel() {
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
           <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}><PlusOutlined /></div>
+              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                {editingRequest ? <EditOutlined /> : <PlusOutlined />}
+              </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>Apply Leave</div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Request time off against your balance</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{editingRequest ? 'Edit Leave' : 'Apply Leave'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{editingRequest ? 'Update your pending leave request' : 'Request time off against your balance'}</div>
               </div>
             </div>
             <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
@@ -491,7 +520,9 @@ export default function ApplyLeavePanel() {
             </span>
             <Space size={10}>
               <Button onClick={() => setOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
-              <Button type="primary" loading={saving} icon={<PlusOutlined />} onClick={submit} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Submit Request</Button>
+              <Button type="primary" loading={saving} icon={editingRequest ? undefined : <PlusOutlined />} onClick={submit} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
+                {editingRequest ? 'Update Request' : 'Submit Request'}
+              </Button>
             </Space>
           </div>
         </div>

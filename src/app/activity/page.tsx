@@ -890,7 +890,7 @@ export default function ActivityPage() {
                   pageSize={pageSize}
                   total={total}
                   showSizeChanger
-                  pageSizeOptions={[25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                   showTotal={(t, [from, to]) =>
                     `${from.toLocaleString()}–${to.toLocaleString()} of ${t.toLocaleString()}`
                   }

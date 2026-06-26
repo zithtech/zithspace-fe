@@ -63,8 +63,7 @@ export interface PaginationParams {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  pagination: {
-    page: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
     limit: number;
     total: number;
     pages: number;

@@ -189,7 +189,7 @@ const FilesTab: React.FC<FilesTabProps> = ({ dealId }) => {
           dataSource={files} 
           loading={loading}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20 }}
         />
       </Card>
 

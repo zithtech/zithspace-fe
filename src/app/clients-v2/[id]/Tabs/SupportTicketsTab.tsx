@@ -510,7 +510,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
             columns={columns}
             rowKey="id"
             loading={loading}
-            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
             scroll={{ x: "max-content" }}
             onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
           />

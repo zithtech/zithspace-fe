@@ -111,13 +111,12 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
         style={{
           boxShadow: 'none',
           borderRadius: 4,
-          border: '1px solid var(--border-color)',
-          background: 'var(--bg-pure-white)'
+          border: '1px solid var(--border-color)'
         }}
       >
-        <div className="svd-member-card__avatar" style={{ borderRadius: '50%', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+        <div className="svd-member-card__avatar">
           {m.member.name.charAt(0).toUpperCase()}
-          <span className="svd-member-card__avatar-badge" style={{ borderRadius: '50%', background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' }}>{meta.badgeIcon}</span>
+          <span className="svd-member-card__avatar-badge">{meta.badgeIcon}</span>
         </div>
         <div className="svd-member-card__main">
           <div className="svd-member-card__name" title={m.member.name}>
@@ -245,9 +244,9 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
       >
         {/* Premium Details Card */}
         <div style={{
-          background: '#fafafa',
-          border: '1px solid #e2e8f0',
-          borderRadius: 2,
+          background: 'var(--bg-pure-white)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 6,
           padding: 16,
           marginBottom: 20,
           boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
@@ -256,7 +255,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             {/* Avatar */}
             <div style={{
-              width: 54, height: 54, borderRadius: 2, flexShrink: 0,
+              width: 54, height: 54, borderRadius: 6, flexShrink: 0,
               background: 'linear-gradient(135deg, #3b82f6, #60a5fa)', color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 22, fontWeight: 800,
@@ -266,18 +265,18 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
             </div>
             {/* Identity */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {squad.squadName}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)', fontFamily: 'monospace' }}>
                   {squad.squadCode}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: squad.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: squad.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${squad.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: squad.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: squad.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${squad.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                   <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor', marginRight: 4 }}></span>
                   {statusLabel}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)' }}>
                   <UserOutlined style={{ marginRight: 4 }} />
                   {total} members
                 </span>
@@ -286,11 +285,11 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
             {/* Led By */}
             {grouped.HEAD.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>Led By</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>Led By</div>
                 <Avatar.Group max={{ count: 3 }} size={28}>
                   {grouped.HEAD.map(h => (
                     <Tooltip key={h.id} title={h.member.name}>
-                      <Avatar style={{ border: '2px solid #fff', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                      <Avatar style={{ border: '2px solid var(--bg-pure-white)', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
                         {h.member.name.substring(0, 2).toUpperCase()}
                       </Avatar>
                     </Tooltip>
@@ -300,24 +299,24 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
             )}
           </div>
           {/* Divider */}
-          <div style={{ height: 1, background: '#e2e8f0', margin: '16px 0' }}></div>
+          <div style={{ height: 1, background: 'var(--border-color)', margin: '16px 0' }}></div>
           {/* Bottom Row: Metrics */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
-            <div style={{ borderRight: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{total}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
+            <div style={{ borderRight: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-slate-900)', lineHeight: 1 }}>{total}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
             </div>
-            <div style={{ borderRight: '1px solid #f1f5f9' }}>
+            <div style={{ borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{grouped.HEAD.length}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
             </div>
-            <div style={{ borderRight: '1px solid #f1f5f9' }}>
+            <div style={{ borderRight: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>{grouped.SUB_HEAD.length}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
             </div>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#64748b', lineHeight: 1 }}>{grouped.MEMBER.length}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-slate-500)', lineHeight: 1 }}>{grouped.MEMBER.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
             </div>
           </div>
         </div>

@@ -148,7 +148,7 @@ export default function InvoiceTemplatePage() {
   }, [templates, searchText, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   // Reset page when filters change
   React.useEffect(() => {
@@ -799,7 +799,7 @@ export default function InvoiceTemplatePage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
-                  options={[5, 10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

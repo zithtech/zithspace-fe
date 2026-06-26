@@ -352,7 +352,7 @@ export default function AllocationsTab({
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
           className="pp-table"
           scroll={{ x: "max-content" }}
           locale={{

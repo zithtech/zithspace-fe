@@ -152,7 +152,7 @@ export default function EscalationListPage() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   // Create drawer
@@ -999,7 +999,7 @@ export default function EscalationListPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -1740,7 +1740,7 @@ export default function EscalationListPage() {
           background: #161B22;
         }
         [data-theme='dark'] .es-view-item.is-active {
-          background: rgba(255, 77, 79, 0.15);
+          background: rgba(59, 130, 246, 0.15);
         }
         [data-theme='dark'] .es-view-label {
           color: #94A3B8;

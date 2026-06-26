@@ -300,8 +300,7 @@ export interface RecentActivityResponse {
 export interface TicketListResponse {
   success: boolean;
   data: Ticket[];
-  pagination: {
-    page: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
     limit: number;
     total: number;
     pages: number;

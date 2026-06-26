@@ -481,8 +481,7 @@ export default function RequisitionsPage() {
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
-          pagination={{
-            current: pagination.current,
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,

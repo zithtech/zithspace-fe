@@ -658,7 +658,7 @@ export default function EnvironmentsTab({ clientId, projects = [], onCountChange
               dataSource={filtered}
               columns={columns}
               rowKey="id"
-              pagination={{ pageSize: 10, hideOnSinglePage: true }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
               scroll={{ x: "max-content" }}
               onRow={(env) => ({ onClick: () => setOpenId(env.id), style: { cursor: "pointer" } })}
             />

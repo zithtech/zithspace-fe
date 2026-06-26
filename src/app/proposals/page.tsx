@@ -119,7 +119,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 
 const RECENTS_KEY = 'proposal_recents_v1';
 const STARRED_KEY = 'proposal_starred_v1';
-const PAGE_SIZE_OPTIONS = [15, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 const readLS = <T,>(key: string, fallback: T): T => {
   if (typeof window === 'undefined') return fallback;
@@ -161,7 +161,7 @@ export default function ProposalsListPage() {
   const [recents, setRecents] = useState<any[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
   const [selectedProposalForMail, setSelectedProposalForMail] = useState<any>(null);

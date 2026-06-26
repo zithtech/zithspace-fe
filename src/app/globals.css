@@ -21555,7 +21555,7 @@ select:-webkit-autofill:focus {
   border: 1px solid var(--border-slate-200);
   border-radius: 0;
   padding: 12px 14px;
-  min-height: 92px;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -21577,14 +21577,7 @@ select:-webkit-autofill:focus {
 }
 
 .rp-stat-accent {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  opacity: 0.55;
-  transition: opacity .25s ease;
-  pointer-events: none;
+  display: none !important;
 }
 
 .rp-stat-top {
@@ -22237,10 +22230,19 @@ select:-webkit-autofill:focus {
   background: var(--bg-pure-white);
 }
 
-[data-theme='dark'] .rp-stat-card,
 [data-theme='dark'] .rp-panel {
   background: var(--bg-secondary);
   border-color: var(--border-slate-100);
+}
+
+[data-theme='dark'] .rp-stat-card {
+  background: #0B0F1A !important;
+  border-color: #1F2937 !important;
+}
+
+[data-theme='dark'] .rp-stat-card:hover {
+  border-color: #1F2937 !important;
+  box-shadow: none !important;
 }
 
 [data-theme='dark'] .rp-toolbar {

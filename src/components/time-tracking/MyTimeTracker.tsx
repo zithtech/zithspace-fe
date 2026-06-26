@@ -6,7 +6,9 @@ import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
-import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col, Select, DatePicker, Tooltip } from "antd";
+import { Table, Tag, Button, Typography, Space, App, Tabs, Card, Row, Col, Select, DatePicker, Tooltip } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { AlertTriangle } from "lucide-react";
 
 const { RangePicker } = DatePicker;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
@@ -223,14 +225,18 @@ export function MyTimeTracker({
 
           if (canCreateTimeTracking) {
             return (
-              <Popconfirm
+              <ConfirmDialog
+                tone="warning"
                 title="Stop All Active Timers"
                 description="Are you sure you want to stop all running timers?"
-                onConfirm={(e) => handleStopAll(e as any)}
-                onCancel={(e) => e?.stopPropagation()}
+                onConfirm={handleStopAll}
+                confirmText="Stop All"
+                cancelText="Cancel"
+                placement="left"
+                icon={<AlertTriangle size={16} />}
               >
                 {tagEl}
-              </Popconfirm>
+              </ConfirmDialog>
             );
           }
           return tagEl;
@@ -275,9 +281,18 @@ export function MyTimeTracker({
             />
           )}
           {canDeleteTimeTracking && (
-            <Popconfirm title="Delete this entry?" onConfirm={() => handleDelete(record.id)}>
+            <ConfirmDialog
+              tone="danger"
+              title="Delete this entry?"
+              description="Are you sure you want to delete this time entry? This action cannot be undone."
+              onConfirm={() => handleDelete(record.id)}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              icon={<AlertTriangle size={16} />}
+            >
               <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'RUNNING'} />
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </Space>
       ),
@@ -386,10 +401,15 @@ export function MyTimeTracker({
           
           <div className="mtt-team-filters">
             {canCreateTimeTracking && runningCount > 0 && (
-              <Popconfirm
+              <ConfirmDialog
+                tone="warning"
                 title="Stop all running timers?"
                 description="This will stop every active timer for the day."
-                onConfirm={(e) => handleStopAll(e as any)}
+                onConfirm={handleStopAll}
+                confirmText="Stop All"
+                cancelText="Cancel"
+                placement="bottomRight"
+                icon={<AlertTriangle size={16} />}
               >
                 <Button
                   size="small"
@@ -399,7 +419,7 @@ export function MyTimeTracker({
                 >
                   Stop All
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             )}
 
             <RangePicker

@@ -54,7 +54,6 @@ import {
     Col,
     Select,
     App,
-    Popconfirm,
     Switch,
     ColorPicker,
     Drawer,
@@ -93,6 +92,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text, Title } = Typography;
 
@@ -1193,9 +1193,14 @@ export default function LeadSettingsPage() {
                         </Tooltip>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Delete this status?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Delete Status?"
                             description="Leads using this status may need reassignment."
+                            confirmText="Delete"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deleteStatus(record.id);
@@ -1204,14 +1209,13 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to delete status");
                                 }
                             }}
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
@@ -1285,8 +1289,14 @@ export default function LeadSettingsPage() {
                         </Tooltip>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Remove this action?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Remove Action?"
+                            description="Are you sure you want to remove this action?"
+                            confirmText="Remove"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deleteAction(record.id);
@@ -1295,14 +1305,13 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to remove action");
                                 }
                             }}
-                            okText="Remove"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
@@ -1403,9 +1412,14 @@ export default function LeadSettingsPage() {
                         </button>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Delete platform?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Delete Platform?"
                             description="This cannot be undone."
+                            confirmText="Delete"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deletePlatform(record.id);
@@ -1414,13 +1428,13 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to delete platform");
                                 }
                             }}
-                            okText="Delete"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-btn-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-btn-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
@@ -1683,9 +1697,14 @@ export default function LeadSettingsPage() {
                                                                             key: 'delete',
                                                                             danger: true,
                                                                             label: (
-                                                                                <Popconfirm
-                                                                                    title="Delete this status?"
+                                                                                <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Delete Status?"
                                                                                     description="Leads using this status may need reassignment."
+                                                                                    confirmText="Delete"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
                                                                                     onConfirm={async () => {
                                                                                         try {
                                                                                             await deleteStatus(item.id);
@@ -1694,9 +1713,6 @@ export default function LeadSettingsPage() {
                                                                                             message.error("Failed to delete status");
                                                                                         }
                                                                                     }}
-                                                                                    okText="Delete"
-                                                                                    cancelText="Cancel"
-                                                                                    okButtonProps={{ danger: true }}
                                                                                 >
                                                                                     <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
                                                                                         <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
@@ -1705,7 +1721,7 @@ export default function LeadSettingsPage() {
                                                                                             <span className="pp-menu-desc">Remove this stage</span>
                                                                                         </span>
                                                                                     </div>
-                                                                                </Popconfirm>
+                                                                                </ConfirmDialog>
                                                                             )
                                                                         }
                                                                     ]
@@ -1831,28 +1847,31 @@ export default function LeadSettingsPage() {
                                                                         key: 'delete',
                                                                         danger: true,
                                                                         label: (
-                                                                            <Popconfirm
-                                                                                title="Remove this action?"
-                                                                                onConfirm={async () => {
-                                                                                    try {
-                                                                                        await deleteAction(item.id);
-                                                                                        message.success("Action removed successfully");
-                                                                                    } catch (error) {
-                                                                                        message.error("Failed to remove action");
-                                                                                    }
-                                                                                }}
-                                                                                okText="Remove"
-                                                                                cancelText="Cancel"
-                                                                                okButtonProps={{ danger: true }}
-                                                                            >
-                                                                                <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
-                                                                                    <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
-                                                                                    <span className="pp-menu-text">
-                                                                                        <span className="pp-menu-title" style={{ color: '#ef4444' }}>Remove action</span>
-                                                                                        <span className="pp-menu-desc">Delete from workflow</span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            </Popconfirm>
+                                                                            <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Remove Action?"
+                                                                                    description="Are you sure you want to remove this action?"
+                                                                                    confirmText="Remove"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
+                                                                                    onConfirm={async () => {
+                                                                                        try {
+                                                                                            await deleteAction(item.id);
+                                                                                            message.success("Action removed successfully");
+                                                                                        } catch (error) {
+                                                                                            message.error("Failed to remove action");
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Remove action</span>
+                                                                                            <span className="pp-menu-desc">Delete from workflow</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </ConfirmDialog>
                                                                         )
                                                                     }
                                                                 ]
@@ -1930,9 +1949,14 @@ export default function LeadSettingsPage() {
                                                                             key: 'delete',
                                                                             danger: true,
                                                                             label: (
-                                                                                <Popconfirm
-                                                                                    title="Delete platform?"
+                                                                                <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Delete Platform?"
                                                                                     description="This cannot be undone."
+                                                                                    confirmText="Delete"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
                                                                                     onConfirm={async () => {
                                                                                         try {
                                                                                             await deletePlatform(item.id);
@@ -1941,9 +1965,6 @@ export default function LeadSettingsPage() {
                                                                                             message.error("Failed to delete platform");
                                                                                         }
                                                                                     }}
-                                                                                    okText="Delete"
-                                                                                    cancelText="Cancel"
-                                                                                    okButtonProps={{ danger: true }}
                                                                                 >
                                                                                     <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
                                                                                         <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
@@ -1952,7 +1973,7 @@ export default function LeadSettingsPage() {
                                                                                             <span className="pp-menu-desc">Remove source permanently</span>
                                                                                         </span>
                                                                                     </div>
-                                                                                </Popconfirm>
+                                                                                </ConfirmDialog>
                                                                             )
                                                                         }
                                                                     ]

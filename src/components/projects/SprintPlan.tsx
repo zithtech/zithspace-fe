@@ -73,6 +73,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -1810,11 +1811,20 @@ export default function SprintPlanComponent() {
                                 </Tooltip>
                               )}
                               {canDeleteTicketPlan && (
-                                <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                <ConfirmDialog
+                                  tone="danger"
+                                  icon={<DeleteOutlined />}
+                                  title="Delete this sprint?"
+                                  description={`"${record.name}" will no longer be available.`}
+                                  confirmText="Delete"
+                                  cancelText="Cancel"
+                                  placement="bottomRight"
+                                  onConfirm={() => handleDelete(record.id)}
+                                >
                                   <Tooltip title="Delete">
                                     <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" />
                                   </Tooltip>
-                                </Popconfirm>
+                                </ConfirmDialog>
                               )}
                             </div>
                           </footer>
@@ -2004,9 +2014,19 @@ export default function SprintPlanComponent() {
                                   <Tooltip key="edit" title="Edit"><Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" /></Tooltip>
                                 ),
                                 canDeleteTicketPlan && (
-                                  <Popconfirm key="delete" title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                  <ConfirmDialog
+                                    key="delete"
+                                    tone="danger"
+                                    icon={<DeleteOutlined />}
+                                    title="Delete this sprint?"
+                                    description={`"${record.name}" will no longer be available.`}
+                                    confirmText="Delete"
+                                    cancelText="Cancel"
+                                    placement="bottomRight"
+                                    onConfirm={() => handleDelete(record.id)}
+                                  >
                                     <Tooltip title="Delete"><Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" /></Tooltip>
-                                  </Popconfirm>
+                                  </ConfirmDialog>
                                 ),
                               ].filter(Boolean)}
                             </span>

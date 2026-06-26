@@ -15,7 +15,6 @@ import {
   Button,
   Typography,
   Tooltip,
-  Popconfirm,
   Input,
   Avatar,
   Empty,
@@ -56,6 +55,7 @@ import { usePositions } from "@/hooks/usePositions";
 import { MembersService, Member } from "@/services/membersService";
 import type { ColumnsType } from "antd/es/table";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface TrashedMember extends Member {
   deletedAt: string;
@@ -501,17 +501,18 @@ export default function MemberTrashManagementPage() {
               loading={restoreMutation.isPending}
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
+            icon={<ExclamationCircleOutlined />}
             title="Permanently delete member?"
             description="This action cannot be undone. All associated data will be lost."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
             onConfirm={async () => {
               await deleteMutation.mutateAsync(record.id);
               setSelectedRowKeys(prev => prev.filter(k => k !== record.id));
             }}
-            okText="Yes, delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
-            icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
           >
             <Tooltip title="Permanent Delete">
               <Button
@@ -520,7 +521,7 @@ export default function MemberTrashManagementPage() {
                 loading={deleteMutation.isPending}
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       ),
     },
@@ -551,17 +552,18 @@ export default function MemberTrashManagementPage() {
           </div>
         </div>
 
-        <Popconfirm
-          title="Empty member trash?"
+        <ConfirmDialog
+          tone="danger"
+          icon={<DeleteOutlined />}
+          title="Empty Member Trash?"
           description="This will permanently delete all members currently in the trash. This action cannot be undone."
+          confirmText="Empty All"
+          cancelText="Cancel"
+          placement="bottomLeft"
           onConfirm={async () => {
             await emptyMutation.mutateAsync();
             setSelectedRowKeys([]);
           }}
-          okText="Yes, empty all"
-          cancelText="Cancel"
-          okButtonProps={{ danger: true, loading: emptyMutation.isPending }}
-          icon={<DeleteOutlined style={{ color: "red" }} />}
           disabled={filteredMembers.length === 0 || isLoading}
         >
           <Button
@@ -574,7 +576,7 @@ export default function MemberTrashManagementPage() {
           >
             Empty Trash
           </Button>
-        </Popconfirm>
+        </ConfirmDialog>
 
         <div className="pp-side-scroll">
           <div className="pp-side-section-label">Filters</div>
@@ -765,17 +767,19 @@ export default function MemberTrashManagementPage() {
               >
                 Restore
               </Button>
-              <Popconfirm
+              <ConfirmDialog
+                tone="danger"
+                icon={<DeleteOutlined />}
                 title={`Purge ${selectedRowKeys.length} members?`}
                 description="This will permanently delete the selected members. This action cannot be undone."
+                confirmText="Purge Selected"
+                cancelText="Cancel"
+                placement="topRight"
                 onConfirm={async () => {
                   const ids = selectedRowKeys.map(k => String(k));
                   await bulkDeleteMutation.mutateAsync(ids);
                   setSelectedRowKeys([]);
                 }}
-                okText="Purge Selected"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true, loading: bulkDeleteMutation.isPending }}
               >
                 <Button
                   type="text"
@@ -786,7 +790,7 @@ export default function MemberTrashManagementPage() {
                 >
                   Purge
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
               <Button
                 type="text"
                 size="small"
@@ -920,8 +924,8 @@ export default function MemberTrashManagementPage() {
                             {item.deletedBy && (
                               <>
                                 <span className="pc-foot-div" style={{ backgroundColor: 'rgba(248, 113, 113, 0.2)', height: '10px', margin: '0 6px' }} />
-                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
-                                  By {item.deletedBy}
+                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-slate-500)' }}>
+                                  Deleted by <span style={{ color: '#f87171' }}>{item.deletedBy}</span>
                                 </span>
                               </>
                             )}
@@ -941,16 +945,18 @@ export default function MemberTrashManagementPage() {
                                 loading={restoreMutation.isPending}
                               />
                             </Tooltip>
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="danger"
+                              icon={<DeleteOutlined />}
                               title="Permanently delete member?"
                               description="This action cannot be undone."
+                              confirmText="Purge"
+                              cancelText="Cancel"
+                              placement="left"
                               onConfirm={async () => {
                                 await deleteMutation.mutateAsync(item.id);
                                 setSelectedRowKeys(prev => prev.filter(k => k !== item.id));
                               }}
-                              okText="Yes, purge"
-                              cancelText="Cancel"
-                              okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
                             >
                               <Button
                                 type="text"
@@ -960,7 +966,7 @@ export default function MemberTrashManagementPage() {
                                 style={{ color: "#ff4d4f", padding: 0 }}
                                 loading={deleteMutation.isPending}
                               />
-                            </Popconfirm>
+                            </ConfirmDialog>
                           </div>
                         </div>
                       </div>
@@ -1077,7 +1083,21 @@ export default function MemberTrashManagementPage() {
           color: #ff4d4f !important;
         }
         .pp-create-btn:hover { background: #ffccc7 !important; border-color: #ffa39e !important; color: #ff4d4f !important; }
-        .pp-create-btn .anticon { font-size: 12px !important; color: #ff4d4f !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; color: inherit !important; }
+        [data-theme='dark'] .pp-create-btn {
+          background: transparent !important;
+          border: 1px solid #ff4d4f !important;
+          color: #ff4d4f !important;
+        }
+        [data-theme='dark'] .pp-create-btn:hover {
+          background: transparent !important;
+          color: #ff4d4f !important;
+        }
+        [data-theme='dark'] .pp-create-btn:disabled {
+          background: #1f1f1f !important;
+          color: #434343 !important;
+          border-color: #434343 !important;
+        }
         .pp-side-scroll {
           flex: 1;
           overflow-y: auto;
@@ -1107,9 +1127,9 @@ export default function MemberTrashManagementPage() {
         .pp-clear-filters {
           display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
           background: none; border: none; cursor: pointer; padding: 3px;
-          font-size: 12px; font-weight: 600; color: #64748b;
+          font-size: 12px; font-weight: 600; color: #ef4444;
         }
-        .pp-clear-filters:hover { color: #3b82f6; }
+        .pp-clear-filters:hover { color: #dc2626; }
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }

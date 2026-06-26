@@ -17,7 +17,8 @@ import {
   Select,
   Popconfirm,
   App,
-  Dropdown
+  Dropdown,
+  Upload
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,7 +45,9 @@ import {
   EllipsisOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
-  FilterOutlined
+  FilterOutlined,
+  PaperClipOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
@@ -61,6 +64,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 dayjs.extend(relativeTime);
 
@@ -157,6 +161,9 @@ export default function EscalationListPage() {
 
   // Edit drawer
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+
+  // File Preview Drawer
+  const [previewFile, setPreviewFile] = useState<any>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const searchRef = useRef<any>(null);
@@ -505,25 +512,92 @@ export default function EscalationListPage() {
     items: record.isDeleted || record.is_deleted ? [
       { key: 'restore', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}><HistoryOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Restore</span><span className="es-menu-desc">Restore from trash</span></span></div> },
       { type: 'divider' as const },
-      { key: 'permanent_delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete Forever</span><span className="es-menu-desc">Irreversible</span></span></div> },
+      {
+        key: 'permanent_delete',
+        danger: true,
+        disabled: !canDeleteEscalation,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Forever"
+            description="Are you sure you want to permanently delete this escalation? This action cannot be undone."
+            confirmText="Delete Forever"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handlePermanentDelete(record.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Delete Forever</span>
+                  <span className="es-menu-desc">Irreversible</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ] : [
       { key: 'view', label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><AlertOutlined /></span><span className="es-menu-text"><span className="es-menu-title">View details</span><span className="es-menu-desc">Open escalation</span></span></div> },
       { key: 'edit', disabled: !canUpdateEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Edit</span><span className="es-menu-desc">Modify escalation</span></span></div> },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteEscalation, label: <div className="es-menu-item"><span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span><span className="es-menu-text"><span className="es-menu-title">Delete</span><span className="es-menu-desc">Move to trash</span></span></div> },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteEscalation,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Escalation"
+            description="Are you sure you want to move this escalation to the trash?"
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => {
+              handleDelete(record.id);
+              setTrashEscalations(prev => [record, ...prev]);
+            }}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Delete</span>
+                  <span className="es-menu-desc">Move to trash</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'restore') {
         handleRestore(record.id);
-      } else if (key === 'permanent_delete') {
-        modal.confirm({
-          title: 'Delete Forever',
-          content: 'Are you sure you want to permanently delete this escalation? This action cannot be undone.',
-          okText: 'Delete Forever',
-          okType: 'danger',
-          onOk: () => handlePermanentDelete(record.id),
-        });
       } else if (key === 'view') {
         setSelectedEscalation(record);
         setTempStatus(record.statusId || record.status);
@@ -532,17 +606,6 @@ export default function EscalationListPage() {
       } else if (key === 'edit') {
         setEditingRecord(record);
         setEditDrawerOpen(true);
-      } else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Escalation',
-          content: 'Are you sure you want to move this escalation to the trash?',
-          okText: 'Delete',
-          okType: 'danger',
-          onOk: () => {
-            handleDelete(record.id);
-            setTrashEscalations(prev => [record, ...prev]);
-          },
-        });
       }
     },
   });
@@ -1188,6 +1251,67 @@ export default function EscalationListPage() {
                 </div>
               </div>
 
+              {selectedEscalation.document_url && (() => {
+                let parsedUrls: string[] = [];
+                try {
+                  parsedUrls = JSON.parse(selectedEscalation.document_url);
+                  if (!Array.isArray(parsedUrls)) parsedUrls = [selectedEscalation.document_url];
+                } catch {
+                  parsedUrls = [selectedEscalation.document_url];
+                }
+
+                if (parsedUrls.length === 0) return null;
+
+                const fileList = parsedUrls.map((url, idx) => {
+                  let fileName = url.split('/').pop() || `Attachment ${idx + 1}`;
+                  const match = fileName.match(/^[\w-]{12}_(.+)$/);
+                  if (match) {
+                    fileName = match[1];
+                  }
+
+                  let fileUrl = url;
+                  if (url.startsWith('/')) {
+                    fileUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}${url}`;
+                  } else if (url.includes("r2.cloudflarestorage.com")) {
+                    fileUrl = url.replace(
+                      /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                      "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+                    );
+                  }
+                  
+                  if (fileUrl.includes(".r2.dev") && !fileUrl.includes(".r2.dev/")) {
+                    fileUrl = fileUrl.replace(".r2.dev", ".r2.dev/");
+                  }
+
+                  return {
+                    uid: `existing-${idx}`,
+                    name: fileName,
+                    status: 'done' as const,
+                    url: fileUrl,
+                  };
+                });
+
+                return (
+                  <div>
+                    <Space align="center" style={{ marginBottom: 8 }}>
+                      <PaperClipOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
+                      <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
+                        Attachments
+                      </Text>
+                    </Space>
+                    <Upload
+                      fileList={fileList}
+                      showUploadList={{
+                        showRemoveIcon: false,
+                        showDownloadIcon: true,
+                      }}
+                      onPreview={(file) => setPreviewFile(file)}
+                      onDownload={(file) => window.open(file.url, '_blank')}
+                    />
+                  </div>
+                );
+              })()}
+
               {selectedEscalation.tickets?.length > 0 && (
                 <div>
                   <Space align="center" style={{ marginBottom: 10 }}>
@@ -1805,6 +1929,59 @@ export default function EscalationListPage() {
           .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
         }
       `}</style>
+
+      {/* File Preview Drawer */}
+      <Drawer
+        placement="left"
+        width={700}
+        closable={false}
+        title={null}
+        footer={null}
+        mask={false}
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
+        styles={{
+          body: { padding: 0, height: '100%' }
+        }}
+      >
+        {previewFile && (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography.Text strong>{previewFile.name}</Typography.Text>
+              <Space>
+                <Button type="text" icon={<DownloadOutlined />} onClick={() => window.open(previewFile.url || previewFile.preview, '_blank')} />
+                <Button type="text" icon={<CloseOutlined />} onClick={() => setPreviewFile(null)} />
+              </Space>
+            </div>
+            <div style={{ flex: 1, padding: 24, background: 'var(--bg-slate-50)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
+              {(() => {
+                const displayUrl = previewFile.url || previewFile.preview || '';
+                const isImage = /\.(jpeg|jpg|gif|png|webp|svg|bmp|ico)/i.test(displayUrl);
+                const isPdf = /\.pdf/i.test(displayUrl);
+
+                if (isImage) {
+                  return <img src={displayUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Preview" />;
+                }
+                if (isPdf) {
+                  const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(displayUrl)}&embedded=true`;
+                  return <iframe src={googleDocsUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />;
+                }
+
+                return (
+                  <div style={{ textAlign: 'center' }}>
+                    <FileTextOutlined style={{ fontSize: 48, color: 'var(--text-slate-400)', marginBottom: 16 }} />
+                    <Typography.Text type="secondary" style={{ display: 'block' }}>Preview not available for this file type</Typography.Text>
+                    <Button type="primary" style={{ marginTop: 16 }} onClick={() => window.open(displayUrl, '_blank')}>
+                      Download File
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+      </Drawer>
     </MainLayout>
   );
 }

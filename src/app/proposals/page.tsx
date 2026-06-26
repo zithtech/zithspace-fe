@@ -55,6 +55,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { MailService } from '@/services/mailService';
 import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ProposalActivityDrawer from '@/components/proposals/ProposalActivityDrawer';
 import ProposalPreviewDrawer from '@/components/proposals/ProposalPreviewDrawer';
 import { useRouter } from 'next/navigation';
@@ -592,7 +593,37 @@ export default function ProposalsListPage() {
       { key: 'pdf', label: menuLabel('Export PDF', 'Download as .pdf', <FilePdfOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
       { key: 'word', label: menuLabel('Export Word', 'Download as .docx', <FileWordOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteProposal, label: menuLabel('Delete', 'Remove this proposal', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)') },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteProposal,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Proposal"
+            description="Are you sure you want to delete this proposal? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handleDelete(p.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {menuLabel('Delete', 'Remove this proposal', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
@@ -601,16 +632,6 @@ export default function ProposalsListPage() {
       else if (key === 'template') openSaveAsTemplate(p);
       else if (key === 'pdf') handleExport(p.id, 'pdf');
       else if (key === 'word') handleExport(p.id, 'word');
-      else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Proposal',
-          content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
-          okText: 'Delete',
-          okType: 'danger',
-          cancelText: 'Cancel',
-          onOk: () => handleDelete(p.id),
-        });
-      }
     },
   });
 

@@ -21,7 +21,6 @@ import {
   Spin,
   Drawer,
   Tooltip,
-  Popconfirm,
   Switch,
   Select,
   Card,
@@ -46,6 +45,7 @@ import {
 } from '@ant-design/icons';
 import { Sparkles, Check, AlertCircle, LayoutGrid, List } from 'lucide-react';
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -251,13 +251,14 @@ export default function AccountsSettingsPage() {
             </Tooltip>
           )}
           {canDeleteAccountConfig && (
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
               title="Delete Category"
               description="Are you sure you want to delete this category?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
+              confirmText="Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="left"
+              onConfirm={() => handleDelete(record.id)}
             >
               <Tooltip title="Delete">
                 <Button
@@ -268,7 +269,7 @@ export default function AccountsSettingsPage() {
                   aria-label="Delete category"
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </Space>
       ),
@@ -487,13 +488,36 @@ export default function AccountsSettingsPage() {
                           key: "delete",
                           danger: true,
                           disabled: !canDeleteAccountConfig,
-                          label: menuLabel('Delete category', 'Permanently remove category', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)'),
+                          label: (
+                            <ConfirmDialog
+                              tone="danger"
+                              title="Delete Category"
+                              description="Are you sure you want to delete this category?"
+                              confirmText="Delete"
+                              cancelText="Cancel"
+                              placement="left"
+                              onConfirm={() => handleDelete(category.id)}
+                            >
+                              <div
+                                style={{
+                                  margin: '-5px -12px',
+                                  padding: '5px 12px',
+                                  width: 'calc(100% + 24px)',
+                                  height: '100%'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              >
+                                {menuLabel('Delete category', 'Permanently remove category', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                              </div>
+                            </ConfirmDialog>
+                          )
                         },
                       ],
                       onClick: ({ key, domEvent }: any) => {
                         domEvent.stopPropagation();
                         if (key === 'edit') handleEdit(category);
-                        else if (key === 'delete') handleDelete(category.id);
                       }
                     };
 
@@ -1062,10 +1086,12 @@ export default function AccountsSettingsPage() {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item {
           padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
           transition: background .12s ease;
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
         .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }

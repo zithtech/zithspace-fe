@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -82,6 +83,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+
 import dayjs from "dayjs";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
@@ -1995,42 +1997,71 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               </Tooltip>
 
               <Dropdown
+                overlayClassName="tl-action-pop"
                 menu={{
                   items: [
                     {
                       key: 'share',
-                      label: 'Copy Public Link',
-                      icon: <ShareAltOutlined />,
+                      label: (
+                        <div className="tl-menu-item">
+                          <span className="tl-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}>
+                            <ShareAltOutlined />
+                          </span>
+                          <span className="tl-menu-text">
+                            <span className="tl-menu-title">Copy Public Link</span>
+                            <span className="tl-menu-desc">Share with anyone</span>
+                          </span>
+                        </div>
+                      ),
                       onClick: handleShare
                     },
                     canDeleteTicket && {
                       key: 'delete',
-                      label: 'Delete Ticket',
-                      icon: <DeleteOutlined />,
                       danger: true,
-                      onClick: (info: any) => {
-                        if (info.domEvent) info.domEvent.stopPropagation();
-                        modal.confirm({
-                          title: 'Confirm Deletion',
-                          content: (
+                      label: (
+                        <ConfirmDialog
+                          tone="danger"
+                          icon={<DeleteOutlined />}
+                          title="Delete Ticket"
+                          description={
                             <div style={{ marginTop: 8 }}>
-                              <Text>Are you sure you want to move <b>{record.ticketNumber}</b> to trash?</Text>
+                              <Text style={{ color: 'var(--text-slate-900)' }}>
+                                Are you sure you want to move <b>{record.ticketNumber}</b> to trash?
+                              </Text>
                               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
                                 You can restore it for up to 7 days from the Trash Repository.
                               </Text>
                             </div>
-                          ),
-                          okText: 'Move to Trash',
-                          okType: 'danger',
-                          centered: true,
-                          okButtonProps: { style: { fontWeight: 700 } },
-                          onOk: () => handleDeleteTicket(record.id)
-                        });
-                      }
+                          }
+                          confirmText="Delete"
+                          cancelText="Cancel"
+                          placement="left"
+                          onConfirm={() => handleDeleteTicket(record.id)}
+                        >
+                          <div 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px', 
+                              margin: '-5px -12px', 
+                              padding: '5px 12px',
+                              width: 'calc(100% + 24px)',
+                              height: '100%' 
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <DeleteOutlined style={{ fontSize: '14px' }} />
+                            <span>Delete Ticket</span>
+                          </div>
+                        </ConfirmDialog>
+                      )
                     }
                   ].filter(Boolean) as any
                 }}
                 trigger={['click']}
+                placement="bottomRight"
               >
                 <Button
                   type="text"
@@ -3039,27 +3070,27 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           line-height: 1;
         }
         .tl-sprint-tag-delayed {
-          background: rgba(239, 68, 68, 0.18);
-          color: #fca5a5;
+          background: transparent;
+          color: #ef4444;
           border-color: rgba(239, 68, 68, 0.32);
         }
         .tl-sprint-tag-overdue {
-          background: rgba(245, 158, 11, 0.15);
+          background: transparent;
           color: #fbbf24;
           border-color: rgba(245, 158, 11, 0.32);
         }
         .tl-sprint-tag-today {
-          background: rgba(245, 158, 11, 0.15);
+          background: transparent;
           color: #fbbf24;
           border-color: rgba(245, 158, 11, 0.32);
         }
         .tl-sprint-tag-active {
-          background: rgba(16, 185, 129, 0.15);
+          background: transparent;
           color: #34d399;
           border-color: rgba(16, 185, 129, 0.32);
         }
         [data-theme='dark'] .tl-sprint-tag-delayed {
-          background: rgba(239, 68, 68, 0.22);
+          background: transparent;
           color: #fca5a5;
         }
         .tl-sprint-actions {
@@ -4363,11 +4394,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           alignItems: 'center',
                           gap: 8,
                           padding: '8px 12px',
-                          background: theme === 'dark' ? 'linear-gradient(135deg, #1e293b, #0f172a)' : 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
-                          borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #bfdbfe',
+                          background: 'var(--bg-pure-white)',
+                          borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
                           flexWrap: 'wrap',
                         }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: theme === 'dark' ? '#60a5fa' : '#1d4ed8', minWidth: 80 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: theme === 'dark' ? '#94a3b8' : '#475569', minWidth: 80 }}>
                             {activeSelectedRowKeys.length} selected
                           </span>
 
@@ -4419,8 +4450,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                   fontWeight: 700,
                                   borderRadius: 6,
                                   borderColor: theme === 'dark' ? '#1e3a8a' : '#bfdbfe',
-                                  color: theme === 'dark' ? '#60a5fa' : '#1d4ed8',
-                                  background: theme === 'dark' ? '#172554' : '#eff6ff'
+                                  color: theme === 'dark' ? '#94a3b8' : '#475569',
+                                  background: 'transparent'
                                 }}
                               >
                                 {activeSelectedRowKeys.length === 1 &&
@@ -4443,7 +4474,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 borderRadius: 6,
                                 borderColor: theme === 'dark' ? '#064e3b' : '#bbf7d0',
                                 color: theme === 'dark' ? '#34d399' : '#15803d',
-                                background: theme === 'dark' ? '#062f21' : '#f0fdf4'
+                                background: 'transparent'
                               }}
                               onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
                             >
@@ -4461,7 +4492,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 import('@/services/bucketService').then(mod => {
                                   mod.default.getBuckets(projectId).then(data => {
                                     setBuckets(data);
-                                  }).catch(() => {}).finally(() => setBucketsLoading(false));
+                                  }).catch(() => { }).finally(() => setBucketsLoading(false));
                                 });
                               }
                             }}
@@ -4573,9 +4604,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 fontSize: 11,
                                 fontWeight: 700,
                                 borderRadius: 6,
-                                borderColor: theme === 'dark' ? '#4c1d95' : '#ddd6fe',
-                                color: theme === 'dark' ? '#a78bfa' : '#7c3aed',
-                                background: theme === 'dark' ? '#2e1065' : '#f5f3ff'
+                                borderColor: '#8b5cf6',
+                                color: '#8b5cf6',
+                                background: 'transparent'
                               }}
                             >
                               Move to Bucket
@@ -4591,7 +4622,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 setSprintsLoading(true);
                                 ReleasePlanService.getReleasePlans({ type: 'sprint_plan', projectId, limit: 100 }).then(res => {
                                   setAllSprints(res.data || []);
-                                }).catch(() => {}).finally(() => setSprintsLoading(false));
+                                }).catch(() => { }).finally(() => setSprintsLoading(false));
                               }
                             }}
                             trigger={['click']}
@@ -4648,12 +4679,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               icon={<PlayCircleOutlined style={{ fontSize: 11 }} />}
                               style={{
                                 height: 28,
+                                width: 110,
                                 fontSize: 11,
                                 fontWeight: 700,
                                 borderRadius: 6,
-                                borderColor: theme === 'dark' ? '#7c2d12' : '#fed7aa',
-                                color: theme === 'dark' ? '#fb923c' : '#c2410c',
-                                background: theme === 'dark' ? '#431407' : '#fff7ed'
+                                borderColor: '#3b82f6',
+                                color: '#3b82f6',
+                                background: 'transparent'
                               }}
                             >
                               Move to Sprint
@@ -4662,24 +4694,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
                           {/* Delete */}
                           {canDeleteTicket && (
-                            <Button
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                              loading={bulkDeleteMutation.isPending}
-                              style={{ height: 28, fontSize: 11, fontWeight: 700, borderRadius: 6 }}
-                              onClick={() => {
-                                modal.confirm({
-                                  title: 'Move to Trash',
-                                  content: `Move ${activeSelectedRowKeys.length} selected ticket(s) to trash?`,
-                                  okText: 'Move to Trash',
-                                  okType: 'danger',
-                                  onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                                });
-                              }}
+                            <ConfirmDialog
+                              tone="danger"
+                              title="Move to Trash"
+                              description={`Move ${activeSelectedRowKeys.length} selected ticket(s) to trash?`}
+                              confirmText="Move to Trash"
+                              onConfirm={() => bulkDeleteMutation.mutateAsync(activeSelectedRowKeys as string[])}
+                              placement="bottom"
                             >
-                              Delete
-                            </Button>
+                              <Button
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                                loading={bulkDeleteMutation.isPending}
+                                style={{ height: 28, width: 110, fontSize: 11, fontWeight: 700, borderRadius: 6, background: 'transparent' }}
+                              >
+                                Delete
+                              </Button>
+                            </ConfirmDialog>
                           )}
 
                           {/* Clear selection */}
@@ -4723,6 +4755,43 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         activeSelectedRowKeys.length,
                         (page) => setActivePagination((prev) => ({ ...prev, current: page })),
                         (size) => setActivePagination((prev) => ({ ...prev, current: 1, pageSize: size }))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State for Sprint Section */}
+                {!activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
+                  <div className="tl-section" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: 460 }}>
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{
+                          width: 80, height: 80, margin: '0 auto', borderRadius: 40,
+                          background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <AppstoreOutlined style={{ fontSize: 32, color: '#3b82f6' }} />
+                        </div>
+                      </div>
+                      <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginBottom: 12, letterSpacing: '-0.02em' }}>
+                        No Active Sprint
+                      </h2>
+                      <p style={{ fontSize: 15, color: 'var(--text-slate-500)', margin: '0 auto 32px auto', lineHeight: 1.5 }}>
+                        It looks like this project doesn't have an active sprint right now. Start planning your next cycle of work to get the team moving!
+                      </p>
+                      {canManageTickets ? (
+                        <Button
+                          type="primary"
+                          size="large"
+                          icon={<PlusOutlined />}
+                          onClick={() => setCreateSprintModalOpen(true)}
+                          style={{ borderRadius: 8, height: 44, fontWeight: 600, padding: '0 24px' }}
+                        >
+                          Create Sprint
+                        </Button>
+                      ) : (
+                        <p style={{ fontSize: 14, color: 'var(--text-slate-400)', background: 'var(--bg-slate-50)', padding: '12px 16px', borderRadius: 8, display: 'inline-block' }}>
+                          Contact a project manager to create a sprint.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -4797,29 +4866,31 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               </Button>
                             )}
                             {canDeleteTicket && (
-                              <Button
-                                danger
-                                size="small"
-                                icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                                onClick={() => {
-                                  modal.confirm({
-                                    title: 'Move to Trash',
-                                    content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
-                                    okText: 'Move to Trash',
-                                    okType: 'danger',
-                                    onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
-                                  });
-                                }}
-                                style={{
-                                  fontWeight: 800,
-                                  height: 24,
-                                  fontSize: 10,
-                                  borderRadius: 4,
-                                  textTransform: 'uppercase'
-                                }}
+                              <ConfirmDialog
+                                tone="danger"
+                                icon={<DeleteOutlined />}
+                                title="Move to Trash?"
+                                description={`Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`}
+                                confirmText="Delete"
+                                cancelText="Cancel"
+                                placement="bottomRight"
+                                onConfirm={() => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])}
                               >
-                                Delete
-                              </Button>
+                                <Button
+                                  danger
+                                  size="small"
+                                  icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                                  style={{
+                                    fontWeight: 800,
+                                    height: 24,
+                                    fontSize: 10,
+                                    borderRadius: 4,
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Delete
+                                </Button>
+                              </ConfirmDialog>
                             )}
                           </Space>
                         )}
@@ -4881,6 +4952,344 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </button>
                         </div>
                       )}
+                      {/* ── Backlog Actions Bar — visible when rows are selected ── */}
+                      {backlogSelectedRowKeys.length > 0 && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '8px 12px',
+                          background: 'var(--bg-pure-white)',
+                          borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                          flexWrap: 'wrap',
+                        }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: theme === 'dark' ? '#94a3b8' : '#475569', minWidth: 80 }}>
+                            {backlogSelectedRowKeys.length} selected
+                          </span>
+
+                          {/* Assignee / Reassign */}
+                          {canAssignTicket && (
+                            <Dropdown
+                              open={assigneeDropdownOpen}
+                              onOpenChange={setAssigneeDropdownOpen}
+                              trigger={['click']}
+                              menu={{ items: [] }}
+                              dropdownRender={() => (
+                                <div style={{
+                                  background: theme === 'dark' ? '#1e293b' : '#fff',
+                                  borderRadius: 10,
+                                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                  padding: '6px 4px',
+                                  minWidth: 200,
+                                  maxHeight: 280,
+                                  overflowY: 'auto',
+                                }}>
+                                  <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Assign to</div>
+                                  {members.map(m => (
+                                    <div
+                                      key={m.value}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        backlogSelectedRowKeys.forEach(ticketId => {
+                                          updateTicketMutation.mutate({ id: ticketId as string, data: { assignee: m.value }, optimisticData: {} });
+                                        });
+                                        setAssigneeDropdownOpen(false);
+                                        message.success(`Assigned ${backlogSelectedRowKeys.length} ticket(s) to ${m.label}`);
+                                      }}
+                                    >
+                                      <Avatar src={(m as any).avatarUrl} size={24} style={{ background: '#3b82f6', fontSize: 10 }}>{m.label?.[0]?.toUpperCase()}</Avatar>
+                                      <span style={{ fontWeight: 500, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{m.label}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            >
+                              <Button
+                                size="small"
+                                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                                style={{
+                                  height: 28,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  borderColor: theme === 'dark' ? '#1e3a8a' : '#bfdbfe',
+                                  color: theme === 'dark' ? '#94a3b8' : '#475569',
+                                  background: 'transparent'
+                                }}
+                              >
+                                {backlogSelectedRowKeys.length === 1 &&
+                                  backlogTickets.find(t => t.id === backlogSelectedRowKeys[0])?.assignee
+                                  ? 'Reassign' : 'Assignee'}
+                              </Button>
+                            </Dropdown>
+                          )}
+
+                          {/* Move to Archive */}
+                          {canManageTickets && (
+                            <Button
+                              size="small"
+                              icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                              loading={bulkArchiveMutation.isPending}
+                              style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: theme === 'dark' ? '#064e3b' : '#bbf7d0',
+                                color: theme === 'dark' ? '#34d399' : '#15803d',
+                                background: 'transparent'
+                              }}
+                              onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                            >
+                              Move to Archive
+                            </Button>
+                          )}
+
+                          {/* Move to Bucket */}
+                          <Dropdown
+                            open={bucketDropdownOpen}
+                            onOpenChange={(open) => {
+                              setBucketDropdownOpen(open);
+                              if (open && buckets.length === 0 && !bucketsLoading) {
+                                setBucketsLoading(true);
+                                import('@/services/bucketService').then(mod => {
+                                  mod.default.getBuckets(projectId).then(data => {
+                                    setBuckets(data);
+                                  }).catch(() => { }).finally(() => setBucketsLoading(false));
+                                });
+                              }
+                            }}
+                            trigger={['click']}
+                            menu={{ items: [] }}
+                            dropdownRender={() => (
+                              <div style={{
+                                background: theme === 'dark' ? '#1e293b' : '#fff',
+                                borderRadius: 10,
+                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                padding: '6px 4px',
+                                minWidth: 220,
+                                maxHeight: 320,
+                                overflowY: 'auto',
+                              }}>
+                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
+                                {bucketsLoading ? (
+                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
+                                ) : buckets.length === 0 ? (
+                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
+                                ) : (
+                                  buckets.map((b: any) => (
+                                    <div
+                                      key={b.id}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        import('@/services/bucketService').then(mod => {
+                                          mod.default.assignTicketsToBucket(b.id, backlogSelectedRowKeys as string[]).then(() => {
+                                            message.success(`Moved ${backlogSelectedRowKeys.length} ticket(s) to "${b.name}"`);
+                                            setBacklogSelectedRowKeys([]);
+                                            setBacklogSelectedRowKeys([]);
+                                            refetchActive();
+                                            refetchBacklog();
+                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                            setBucketDropdownOpen(false);
+                                          }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
+                                        });
+                                      }}
+                                    >
+                                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
+                                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                                    </div>
+                                  ))
+                                )}
+                                <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
+                                  <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
+                                  <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
+                                    <input
+                                      placeholder="Bucket name..."
+                                      value={newBucketName}
+                                      onChange={e => setNewBucketName(e.target.value)}
+                                      onKeyDown={e => e.stopPropagation()}
+                                      style={{
+                                        flex: 1,
+                                        height: 28,
+                                        borderRadius: 6,
+                                        border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
+                                        padding: '0 8px',
+                                        fontSize: 12,
+                                        outline: 'none',
+                                        background: theme === 'dark' ? '#0f172a' : '#fff',
+                                        color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
+                                      }}
+                                    />
+                                    <button
+                                      disabled={!newBucketName.trim() || creatingBucket}
+                                      style={{
+                                        height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
+                                        background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
+                                        color: newBucketName.trim() ? '#fff' : '#94a3b8',
+                                        cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
+                                        fontSize: 12, fontWeight: 700,
+                                      }}
+                                      onClick={() => {
+                                        if (!newBucketName.trim()) return;
+                                        setCreatingBucket(true);
+                                        import('@/services/bucketService').then(mod => {
+                                          mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
+                                            setBuckets(prev => [newB, ...prev]);
+                                            return mod.default.assignTicketsToBucket(newB.id, backlogSelectedRowKeys as string[]);
+                                          }).then(() => {
+                                            message.success(`Created bucket "${newBucketName.trim()}" and moved ${backlogSelectedRowKeys.length} ticket(s)`);
+                                            setBacklogSelectedRowKeys([]);
+                                            setBacklogSelectedRowKeys([]);
+                                            refetchActive();
+                                            refetchBacklog();
+                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                            setNewBucketName('');
+                                            setBucketDropdownOpen(false);
+                                          }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
+                                        });
+                                      }}
+                                    >
+                                      {creatingBucket ? '...' : 'Create'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          >
+                            <Button
+                              size="small"
+                              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                              style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: '#8b5cf6',
+                                color: '#8b5cf6',
+                                background: 'transparent'
+                              }}
+                            >
+                              Move to Bucket
+                            </Button>
+                          </Dropdown>
+
+                          {/* Move to Sprint */}
+                          <Dropdown
+                            open={sprintDropdownOpen}
+                            onOpenChange={(open) => {
+                              setSprintDropdownOpen(open);
+                              if (open && allSprints.length === 0 && !sprintsLoading) {
+                                setSprintsLoading(true);
+                                ReleasePlanService.getReleasePlans({ type: 'sprint_plan', projectId, limit: 100 }).then(res => {
+                                  setAllSprints(res.data || []);
+                                }).catch(() => { }).finally(() => setSprintsLoading(false));
+                              }
+                            }}
+                            trigger={['click']}
+                            menu={{ items: [] }}
+                            dropdownRender={() => (
+                              <div style={{
+                                background: theme === 'dark' ? '#1e293b' : '#fff',
+                                borderRadius: 10,
+                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                padding: '6px 4px',
+                                minWidth: 220,
+                                maxHeight: 300,
+                                overflowY: 'auto',
+                              }}>
+                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Sprint</div>
+                                {sprintsLoading ? (
+                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading sprints...</div>
+                                ) : allSprints.length === 0 ? (
+                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No sprints found</div>
+                                ) : (
+                                  allSprints.map((s: any) => (
+                                    <div
+                                      key={s.id}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                      className="tl-action-item"
+                                      onClick={() => {
+                                        backlogSelectedRowKeys.forEach(ticketId => {
+                                          updateTicketMutation.mutate({ id: ticketId as string, data: { releasePlan: s.id }, optimisticData: { releasePlan: s.id } });
+                                        });
+                                        setBacklogSelectedRowKeys([]);
+                                        setBacklogSelectedRowKeys([]);
+                                        refetchActive();
+                                        refetchBacklog();
+                                        queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                        message.success(`Moved ${backlogSelectedRowKeys.length} ticket(s) to ${s.version || s.name}`);
+                                        setSprintDropdownOpen(false);
+                                      }}
+                                    >
+                                      <PlayCircleOutlined style={{ color: s.status === 'active' ? '#10b981' : '#94a3b8', fontSize: 12 }} />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 12, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{s.version || s.name}</div>
+                                        {s.status && <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'capitalize' }}>{s.status}</div>}
+                                      </div>
+                                      {s.status === 'active' && <span style={{ fontSize: 9, fontWeight: 700, color: '#10b981', background: '#d1fae5', borderRadius: 4, padding: '2px 5px' }}>ACTIVE</span>}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          >
+                            <Button
+                              size="small"
+                              icon={<PlayCircleOutlined style={{ fontSize: 11 }} />}
+                              style={{
+                                height: 28,
+                                width: 118,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                borderColor: '#3b82f6',
+                                color: '#3b82f6',
+                                background: 'transparent'
+                              }}
+                            >
+                              Move to Sprint
+                            </Button>
+                          </Dropdown>
+
+                          {/* Delete */}
+                          {canDeleteTicket && (
+                            <ConfirmDialog
+                              tone="danger"
+                              title="Move to Trash"
+                              description={`Move ${backlogSelectedRowKeys.length} selected ticket(s) to trash?`}
+                              confirmText="Move to Trash"
+                              onConfirm={() => bulkDeleteMutation.mutateAsync(backlogSelectedRowKeys as string[])}
+                              placement="bottom"
+                            >
+                              <Button
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                                loading={bulkDeleteMutation.isPending}
+                                style={{ height: 28, width: 118, fontSize: 11, fontWeight: 700, borderRadius: 6, background: 'transparent' }}
+                              >
+                                Delete
+                              </Button>
+                            </ConfirmDialog>
+                          )}
+
+                          {/* Clear selection */}
+                          <button
+                            type="button"
+                            onClick={() => setBacklogSelectedRowKeys([])}
+                            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: theme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <CloseOutlined style={{ fontSize: 10 }} /> Clear
+                          </button>
+                        </div>
+                      )}
+
                       <div className="pp-table-wrap">
                         <Table
                           rowSelection={backlogRowSelection}
@@ -5038,13 +5447,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     } : undefined}
                     onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
                     onBulkDelete={(ids) => {
-                      modal.confirm({
-                        title: 'Move to Trash',
-                        content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
-                        okText: 'Move to Trash',
-                        okType: 'danger',
-                        onOk: () => bulkDeleteMutation.mutate(ids),
-                      });
+                      bulkDeleteMutation.mutate(ids);
                     }}
                   />
                 ) : (
@@ -5714,6 +6117,32 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           .tcal-ribbon { font-size: 9px; padding: 0 5px; height: 18px; }
           .tcal-ribbon-title { display: none; }
         }
+        /* Premium action dropdown */
+        .tl-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .tl-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .tl-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .tl-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .tl-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .tl-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500); font-size: 13px;
+        }
+        .tl-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .tl-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .tl-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .tl-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .tl-action-pop .ant-dropdown-menu-item-danger .tl-menu-title { color: #ef4444; }
+        .tl-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .tl-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
       `}</style>
     </div>
   );

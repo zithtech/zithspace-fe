@@ -389,7 +389,7 @@ export default function GeneratedReportsPanel() {
         <div className="gr-bar-actions">
           <Input
             allowClear
-            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
             placeholder="Search by member name or position"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -466,7 +466,7 @@ export default function GeneratedReportsPanel() {
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <Text style={{ fontSize: 12.5, color: '#64748b' }}>
+                <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
                   {allReports.length === 0
                     ? 'No generated reports yet. Use “Generate this month” or save one from a member’s report.'
                     : 'No reports match these filters.'}
@@ -611,7 +611,7 @@ export default function GeneratedReportsPanel() {
                 {wizResolved.map((c) => (
                   <label key={c.id} className="wz-row">
                     <Checkbox checked={!excluded.has(c.id)} onChange={() => toggleExclude(c.id)} />
-                    <Avatar size={28} src={c.avatarUrl || undefined} style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                    <Avatar size={28} src={c.avatarUrl || undefined} style={{ background: 'var(--bg-blue-50)', color: 'var(--text-blue-700)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                       {c.name?.charAt(0)?.toUpperCase()}
                     </Avatar>
                     <span className="wz-row-name">{c.name}</span>
@@ -629,10 +629,10 @@ export default function GeneratedReportsPanel() {
       {/* Progress while batch-generating */}
       <Modal open={generating} closable={false} maskClosable={false} footer={null} title="Generating reports for this month" centered>
         <Progress percent={progress.total ? Math.round((progress.done / progress.total) * 100) : 0} status="active" />
-        <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--text-slate-500)', marginTop: 8 }}>
           {progress.total ? `${progress.done} of ${progress.total}${progress.name ? ` · ${progress.name}` : ''}` : 'Loading members…'}
         </div>
-        <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Please keep this tab open — each member’s PDF is rendered and saved.</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-slate-400)', marginTop: 6 }}>Please keep this tab open — each member’s PDF is rendered and saved.</div>
       </Modal>
 
       {/* Off-screen printable for the current member being generated */}
@@ -649,79 +649,79 @@ export default function GeneratedReportsPanel() {
         .gr-wrap .ant-avatar { border-radius: 50% !important; }
         .gr-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
         .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; }
-        .gr-title { margin: 0; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; white-space: nowrap; }
+        .gr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; white-space: nowrap; }
         .gr-hdivider { height: 20px; border-color: #cbd5e1; margin: 0; }
-        .gr-sub { font-size: 13px; color: #64748b; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gr-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-        .gr-bar-info { font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+        .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
         .gr-bar-actions { display: flex; align-items: center; gap: 10px; }
         .gr-search { width: 320px; border-radius: 10px; }
-        .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; margin-bottom: 16px; }
+        .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); margin-bottom: 16px; }
         .gr-filters-label {
           display: inline-flex; align-items: center; gap: 7px;
-          font-size: 13px; font-weight: 700; color: #475569; padding-right: 4px; white-space: nowrap;
+          font-size: 13px; font-weight: 700; color: var(--text-slate-700); padding-right: 4px; white-space: nowrap;
         }
-        .gr-filters-label .anticon { color: #94a3b8; }
+        .gr-filters-label .anticon { color: var(--text-slate-400); }
         /* Match the month picker to the 30px compact dropdown height. */
         .gr-filters .gr-month { height: 30px; border-radius: 8px; }
         .gr-filters .gr-month .ant-picker-input > input { font-size: 13px; }
         .gr-body { flex: 1; min-height: 0; }
         .gr-center { display: flex; align-items: center; justify-content: center; padding: 56px 0; min-height: 280px; }
         .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-        .gr-card { border: 1px solid #e9eef5; border-radius: 16px; background: #fff; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
-        .gr-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.07); border-color: #dbe4f0; }
+        .gr-card { border: 1px solid var(--border-slate-200); border-radius: 16px; background: var(--bg-secondary); padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
+        .gr-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.07); border-color: var(--border-slate-200); }
         .gr-card-top { display: flex; align-items: center; gap: 11px; }
-        .gr-name { font-size: 14.5px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-pos { font-size: 11.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-period { font-size: 11px; font-weight: 700; color: #64748b; background: #f1f5f9; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .gr-name { font-size: 14.5px; font-weight: 800; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-pos { font-size: 11.5px; color: var(--text-slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-period { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: var(--bg-slate-100); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
         .gr-score-row { display: flex; align-items: baseline; gap: 6px; }
         .gr-score { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
-        .gr-score-max { font-size: 12px; font-weight: 700; color: #94a3b8; }
+        .gr-score-max { font-size: 12px; font-weight: 700; color: var(--text-slate-400); }
         .gr-band { margin-left: auto; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; align-self: center; }
         .gr-modules { display: flex; gap: 6px; }
-        .gr-mod { flex: 1; text-align: center; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 8px; padding: 6px 2px; }
+        .gr-mod { flex: 1; text-align: center; background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); border-radius: 8px; padding: 6px 2px; }
         .gr-mod-val { font-size: 14px; font-weight: 800; }
-        .gr-mod-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #94a3b8; margin-top: 1px; }
-        .gr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid #f1f5f9; }
-        .gr-gen { font-size: 11px; color: #94a3b8; }
+        .gr-mod-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-slate-400); margin-top: 1px; }
+        .gr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border-slate-100); }
+        .gr-gen { font-size: 11px; color: var(--text-slate-400); }
         .gr-actions { display: flex; align-items: center; gap: 6px; }
         .gr-footer {
           position: sticky; bottom: 0; z-index: 5;
           display: flex; align-items: center; justify-content: flex-end; gap: 12px;
           padding: 14px 2px; margin: 8px 0 0;
-          border-top: 1px solid #eef2f7; flex-shrink: 0;
-          background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+          border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
+          background: var(--bg-secondary);
           box-shadow: 0 -6px 18px rgba(15,23,42,0.05);
         }
-        .gr-footer-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
+        .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
 
         /* Generate wizard */
         .wz-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .wz-month {
           position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-          padding: 16px 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; cursor: pointer; text-align: left;
+          padding: 16px 14px; border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; text-align: left;
           transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
         }
         .wz-month:hover { border-color: #bfdbfe; box-shadow: 0 6px 18px rgba(30,64,175,0.10); transform: translateY(-2px); }
-        .wz-month-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 800; color: #1d4ed8; background: #eff6ff; border-radius: 999px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.04em; }
-        .wz-month-name { font-size: 15px; font-weight: 800; color: #0f172a; }
-        .wz-month-year { font-size: 12px; color: #94a3b8; font-weight: 700; }
-        .wz-month-count { font-size: 10.5px; color: #64748b; margin-top: 6px; }
+        .wz-month-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 800; color: var(--text-blue-700); background: var(--bg-blue-50); border-radius: 999px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .wz-month-name { font-size: 15px; font-weight: 800; color: var(--text-slate-900); }
+        .wz-month-year { font-size: 12px; color: var(--text-slate-400); font-weight: 700; }
+        .wz-month-count { font-size: 10.5px; color: var(--text-slate-500); margin-top: 6px; }
 
         .wz-scope { display: flex; flex-direction: column; }
         .wz-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .wz-list-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #64748b; margin-bottom: 6px; }
+        .wz-list-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 6px; }
         .wz-list-actions { display: flex; gap: 12px; }
         .wz-list-actions a { color: #3b82f6; cursor: pointer; font-weight: 600; }
         .wz-center { display: flex; align-items: center; justify-content: center; padding: 40px 0; }
-        .wz-list { max-height: 320px; overflow-y: auto; border: 1px solid #eef2f7; border-radius: 10px; }
-        .wz-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #f5f7fa; cursor: pointer; }
+        .wz-list { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-slate-100); border-radius: 10px; }
+        .wz-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border-slate-100); cursor: pointer; }
         .wz-row:last-child { border-bottom: none; }
-        .wz-row:hover { background: #f8fafc; }
-        .wz-row-name { font-size: 13px; font-weight: 600; color: #0f172a; }
-        .wz-row-pos { font-size: 11.5px; color: #94a3b8; margin-left: 2px; }
+        .wz-row:hover { background: var(--bg-slate-50); }
+        .wz-row-name { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
+        .wz-row-pos { font-size: 11.5px; color: var(--text-slate-400); margin-left: 2px; }
         .wz-row-done { margin-left: auto; font-size: 10px; font-weight: 700; color: #16a34a; background: #ecfdf5; border-radius: 999px; padding: 2px 8px; }
-        .wz-note { font-size: 11.5px; color: #94a3b8; margin-top: 10px; line-height: 1.5; }
+        .wz-note { font-size: 11.5px; color: var(--text-slate-400); margin-top: 10px; line-height: 1.5; }
       `}</style>
     </div>
   );

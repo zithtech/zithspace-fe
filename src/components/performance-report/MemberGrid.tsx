@@ -103,7 +103,7 @@ export default function MemberGrid({
         <Input
           allowClear
           size="large"
-          prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
           placeholder="Search members by name or email"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -184,13 +184,19 @@ export default function MemberGrid({
 
       <style jsx global>{`
         .mg-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        /* Box-shaped: square every corner (avatars stay round). */
+        .mg-wrap *, .mg-wrap *::before, .mg-wrap *::after { border-radius: 0 !important; }
+        .mg-wrap .ant-avatar, .mg-wrap .mg-avatar-ring { border-radius: 50% !important; }
+        /* Match the project dropdown height to the search bar. */
+        .mg-filters .mg-search { height: 42px; }
+        .mg-filters .sd-trigger { height: 42px !important; }
         .mg-head { margin-bottom: 14px; }
-        .mg-title { margin: 0; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
-        .mg-sub { margin: 4px 0 0; font-size: 13px; color: #64748b; max-width: 620px; line-height: 1.5; }
+        .mg-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
+        .mg-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }
 
         .mg-filters {
           display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-          padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff;
+          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary);
           margin-bottom: 16px;
         }
         .mg-search { flex: 1; min-width: 240px; max-width: 460px; border-radius: 10px; }
@@ -207,8 +213,8 @@ export default function MemberGrid({
         .mg-card {
           position: relative;
           display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;
-          padding: 22px 16px 18px; border: 1px solid #e9eef5; border-radius: 18px;
-          background: #fff; cursor: pointer; overflow: hidden;
+          padding: 22px 16px 18px; border: 1px solid var(--border-slate-200); border-radius: 18px;
+          background: var(--bg-secondary); cursor: pointer; overflow: hidden;
           transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
         }
         .mg-card:hover {
@@ -227,19 +233,19 @@ export default function MemberGrid({
 
         .mg-avatar-ring {
           position: relative; z-index: 1; padding: 4px; border-radius: 50%;
-          background: #fff;
+          background: var(--bg-secondary);
           box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08), 0 8px 18px rgba(15, 23, 42, 0.08);
           transition: box-shadow .16s ease;
         }
         .mg-card:hover .mg-avatar-ring {
           box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.14), 0 10px 22px rgba(30, 64, 175, 0.16);
         }
-        .mg-card-name { font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 12px; letter-spacing: -0.015em; }
+        .mg-card-name { font-size: 15px; font-weight: 800; color: var(--text-slate-900); margin-top: 12px; letter-spacing: -0.015em; }
         .mg-card-pos {
           display: inline-flex; align-items: center; gap: 6px;
-          font-size: 12.5px; color: #64748b; font-weight: 500;
+          font-size: 12.5px; color: var(--text-slate-500); font-weight: 500;
         }
-        .mg-card-pos svg { color: #94a3b8; flex-shrink: 0; }
+        .mg-card-pos svg { color: var(--text-slate-400); flex-shrink: 0; }
         .mg-card-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
         .mg-tag {
           display: inline-flex; align-items: center; gap: 5px;
@@ -247,8 +253,8 @@ export default function MemberGrid({
           white-space: nowrap;
         }
         .mg-tag svg { flex-shrink: 0; }
-        .mg-tag--dept { color: #1d4ed8; background: #eff6ff; }
-        .mg-tag--grade { color: #475569; background: #f1f5f9; }
+        .mg-tag--dept { color: var(--text-blue-700); background: var(--bg-blue-50); }
+        .mg-tag--grade { color: var(--text-slate-700); background: var(--bg-slate-100); }
 
         .mg-card-cta {
           display: inline-flex; align-items: center; gap: 5px;
@@ -261,13 +267,12 @@ export default function MemberGrid({
         .mg-footer {
           position: sticky; bottom: 0; z-index: 5;
           display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 14px 16px; margin: 8px -4px 0;
-          border-top: 1px solid #eef2f7; flex-shrink: 0;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(8px);
+          padding: 14px 16px; margin: 8px 0 0;
+          border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
+          background: var(--bg-secondary);
           box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);
         }
-        .mg-footer-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
+        .mg-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
       `}</style>
     </div>
   );

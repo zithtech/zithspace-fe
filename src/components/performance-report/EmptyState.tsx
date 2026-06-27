@@ -37,7 +37,7 @@ export default function EmptyState({
           justify-content: center;
           text-align: center;
           padding: 56px 24px;
-          border: 1px solid #eef2f7;
+          border: 1px solid var(--border-slate-100);
           background:
             radial-gradient(
               130% 90% at 50% 0%,
@@ -73,8 +73,8 @@ export default function EmptyState({
           height: 64px;
           left: 50%;
           top: 50%;
-          background: #ffffff;
-          border: 1px solid #e9eef5;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-slate-200);
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
         }
         .pes-card--l {
@@ -124,13 +124,13 @@ export default function EmptyState({
         .pes-title {
           font-size: 15px;
           font-weight: 800;
-          color: #0f172a;
+          color: var(--text-slate-900);
           letter-spacing: -0.01em;
           z-index: 1;
         }
         .pes-sub {
           font-size: 12.5px;
-          color: #64748b;
+          color: var(--text-slate-500);
           margin-top: 5px;
           max-width: 380px;
           line-height: 1.55;

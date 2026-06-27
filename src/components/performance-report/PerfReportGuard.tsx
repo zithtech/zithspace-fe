@@ -22,7 +22,7 @@ export default function PerfReportGuard({
 
   if (!allowed) {
     return (
-      <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8' }}>
+      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-slate-400)' }}>
         You don’t have permission to view this page.
       </div>
     );

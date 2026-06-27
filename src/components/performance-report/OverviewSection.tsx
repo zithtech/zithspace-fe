@@ -276,22 +276,22 @@ export default function OverviewSection({
         .ov-wrap { display: flex; flex-direction: column; gap: 16px; }
         .ov-hero {
           display: flex; align-items: center; gap: 22px;
-          padding: 22px 24px; border: 1px solid #e2e8f0; background: linear-gradient(180deg, #f8fafc, #fff);
+          padding: 22px 24px; border: 1px solid var(--border-slate-200); background: linear-gradient(180deg, var(--bg-slate-50), var(--bg-secondary));
         }
         .ov-hero-score { display: flex; align-items: baseline; gap: 6px; }
         .ov-hero-num { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
-        .ov-hero-max { font-size: 16px; font-weight: 700; color: #94a3b8; }
+        .ov-hero-max { font-size: 16px; font-weight: 700; color: var(--text-slate-400); }
         .ov-hero-band { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
-        .ov-hero-label { font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px; }
-        .ov-hero-sub { font-size: 12.5px; color: #64748b; margin-top: 3px; max-width: 520px; line-height: 1.5; }
+        .ov-hero-label { font-size: 13px; font-weight: 700; color: var(--text-slate-900); margin-top: 2px; }
+        .ov-hero-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 3px; max-width: 520px; line-height: 1.5; }
 
         .ov-section-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: #94a3b8; margin-top: 2px;
+          color: var(--text-slate-400); margin-top: 2px;
         }
         .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
         .ov-card {
-          border: 1px solid #e9eef5; background: #fff; padding: 14px 16px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-secondary); padding: 14px 16px;
           display: flex; flex-direction: column; gap: 10px;
         }
         .ov-card.is-off { opacity: 0.55; }
@@ -300,15 +300,15 @@ export default function OverviewSection({
           width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
           color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, #fff);
         }
-        .ov-card-name { font-size: 13.5px; font-weight: 700; color: #0f172a; flex: 1; }
-        .ov-card-weight { font-size: 11px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; }
+        .ov-card-name { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); flex: 1; }
+        .ov-card-weight { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: var(--bg-slate-100); padding: 2px 8px; }
         .ov-card-score { display: flex; align-items: baseline; gap: 6px; }
         .ov-card-score > span:first-child { font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
-        .ov-card-score-max { font-size: 12px; font-weight: 700; color: #94a3b8; }
+        .ov-card-score-max { font-size: 12px; font-weight: 700; color: var(--text-slate-400); }
         .ov-card-band { margin-left: auto; font-size: 11px; font-weight: 800; padding: 2px 9px; align-self: center; }
-        .ov-bar { height: 6px; background: #f1f5f9; overflow: hidden; }
+        .ov-bar { height: 6px; background: var(--bg-slate-100); overflow: hidden; }
         .ov-bar-fill { height: 100%; transition: width .25s ease; }
-        .ov-card-desc { font-size: 12px; color: #64748b; line-height: 1.45; }
+        .ov-card-desc { font-size: 12px; color: var(--text-slate-500); line-height: 1.45; }
       `}</style>
     </div>
   );

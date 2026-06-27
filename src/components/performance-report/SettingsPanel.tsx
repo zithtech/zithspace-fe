@@ -384,7 +384,7 @@ export default function SettingsPanel() {
           <Scale size={16} />
           <span className="prs-section-title">Scoring modules</span>
           <Tooltip title="Enabled modules are blended into one score using these weights. Disabled modules are excluded entirely.">
-            <Info size={13} style={{ color: '#94a3b8' }} />
+            <Info size={13} style={{ color: 'var(--text-slate-400)' }} />
           </Tooltip>
         </div>
 
@@ -580,38 +580,38 @@ export default function SettingsPanel() {
       <style jsx global>{`
         .prs-wrap { display: flex; flex-direction: column; gap: 18px; padding-bottom: 32px; max-width: 1080px; }
         .prs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-        .prs-title { margin: 0; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
-        .prs-sub { margin: 4px 0 0; font-size: 13px; color: #64748b; max-width: 560px; line-height: 1.5; }
+        .prs-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
+        .prs-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 560px; line-height: 1.5; }
         .prs-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
-        .prs-card { border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+        .prs-card { border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); }
         .prs-auto { padding: 16px 18px; }
         .prs-auto-row { display: flex; align-items: flex-start; gap: 14px; }
         .prs-auto-icon {
           width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          background: #eff6ff; color: #3B82F6;
+          background: var(--bg-blue-50); color: #3B82F6;
         }
         .prs-auto-text { flex: 1; min-width: 0; }
-        .prs-auto-title { font-size: 14.5px; font-weight: 700; color: #0f172a; }
-        .prs-auto-desc { font-size: 12.5px; color: #64748b; margin-top: 2px; line-height: 1.5; }
+        .prs-auto-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); }
+        .prs-auto-desc { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; line-height: 1.5; }
         .prs-auto-schedule {
-          margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0;
+          margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-slate-200);
           transition: opacity .15s ease;
         }
         .prs-auto-schedule[data-off='true'] { opacity: .45; }
-        .prs-schedule-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #475569; font-weight: 500; }
-        .prs-schedule-item svg { color: #94a3b8; }
+        .prs-schedule-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-slate-700); font-weight: 500; }
+        .prs-schedule-item svg { color: var(--text-slate-400); }
 
         .prs-section-head { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
         .prs-section-left { display: flex; align-items: center; gap: 8px; }
-        .prs-section-left svg { color: #475569; }
-        .prs-section-title { font-size: 14px; font-weight: 800; color: #0f172a; }
+        .prs-section-left svg { color: var(--text-slate-700); }
+        .prs-section-title { font-size: 14px; font-weight: 800; color: var(--text-slate-900); }
         .prs-weight-summary { display: flex; align-items: center; gap: 8px; }
 
         .prs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
         .prs-mod {
-          border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; padding: 14px 16px;
+          border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); padding: 14px 16px;
           display: flex; flex-direction: column; gap: 12px; transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
         }
         .prs-mod.is-on { border-color: color-mix(in srgb, var(--accent) 35%, #e2e8f0); }
@@ -625,17 +625,17 @@ export default function SettingsPanel() {
           color: var(--accent);
         }
         .prs-mod-headtext { flex: 1; min-width: 0; }
-        .prs-mod-name { font-size: 14px; font-weight: 700; color: #0f172a; }
-        .prs-mod-desc { font-size: 12px; color: #64748b; margin-top: 2px; line-height: 1.45; }
+        .prs-mod-name { font-size: 14px; font-weight: 700; color: var(--text-slate-900); }
+        .prs-mod-desc { font-size: 12px; color: var(--text-slate-500); margin-top: 2px; line-height: 1.45; }
         .prs-mod-subs {
           display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-          padding: 8px 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #f1f5f9;
+          padding: 8px 10px; border-radius: 10px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
         }
-        .prs-mod-subs-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+        .prs-mod-subs-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-400); }
         .prs-mod-subs-chips { display: flex; gap: 6px; }
         .prs-sub-chip {
           margin-inline-end: 0; padding: 1px 12px; font-size: 12px; font-weight: 600;
-          border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #475569;
+          border-radius: 999px; border: 1px solid var(--border-slate-200); background: var(--bg-secondary); color: var(--text-slate-700);
           transition: all .12s ease;
         }
         .prs-sub-chip.ant-tag-checkable-checked {
@@ -644,26 +644,26 @@ export default function SettingsPanel() {
           color: var(--accent) !important;
         }
         .prs-mod-subs-warn { font-size: 11.5px; font-weight: 600; color: #dc2626; }
-        .prs-mod-subs-hint { font-size: 11.5px; font-weight: 600; color: #94a3b8; }
+        .prs-mod-subs-hint { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); }
 
         /* Status-marks drawer */
-        .prs-sm-intro { font-size: 12.5px; color: #475569; line-height: 1.6; margin: 0 0 16px; }
-        .prs-sm-empty { font-size: 13px; color: #94a3b8; padding: 24px 0; text-align: center; }
+        .prs-sm-intro { font-size: 12.5px; color: var(--text-slate-700); line-height: 1.6; margin: 0 0 16px; }
+        .prs-sm-empty { font-size: 13px; color: var(--text-slate-400); padding: 24px 0; text-align: center; }
         .prs-sm-list { display: flex; flex-direction: column; }
         .prs-sm-row {
           display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 10px 2px; border-bottom: 1px solid #f1f5f9;
+          padding: 10px 2px; border-bottom: 1px solid var(--border-slate-100);
         }
         .prs-sm-status { display: flex; align-items: center; gap: 9px; min-width: 0; }
         .prs-sm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .prs-sm-name { font-size: 13px; font-weight: 600; color: #0f172a; }
+        .prs-sm-name { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
         .prs-sm-count {
-          font-size: 10.5px; font-weight: 700; color: #64748b;
-          background: #f1f5f9; border-radius: 999px; padding: 0 7px;
+          font-size: 10.5px; font-weight: 700; color: var(--text-slate-500);
+          background: var(--bg-slate-100); border-radius: 999px; padding: 0 7px;
         }
         .prs-mod-foot { display: flex; align-items: center; gap: 10px; }
-        .prs-mod-weight-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
-        .prs-mod-bar { flex: 1; height: 6px; border-radius: 4px; background: #f1f5f9; overflow: hidden; }
+        .prs-mod-weight-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-400); }
+        .prs-mod-bar { flex: 1; height: 6px; border-radius: 4px; background: var(--bg-slate-100); overflow: hidden; }
         .prs-mod-bar-fill { height: 100%; border-radius: 4px; transition: width .2s ease, background .2s ease; }
 
         .prs-warn {

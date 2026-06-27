@@ -24,15 +24,15 @@ export default function PlaceholderPanel({
           {title}
           <Tag color="gold" style={{ marginLeft: 8, verticalAlign: 'middle' }}>Coming soon</Tag>
         </h2>
-        <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#64748b' }}>{subtitle}</p>
+        <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-slate-500)' }}>{subtitle}</p>
       </div>
 
       <div
         style={{
-          border: '1px dashed #e2e8f0',
+          border: '1px dashed var(--border-slate-200)',
           borderRadius: 12,
           padding: '40px 28px',
-          background: '#fafbfc',
+          background: 'var(--bg-slate-50)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -45,7 +45,7 @@ export default function PlaceholderPanel({
             width: 56,
             height: 56,
             borderRadius: 14,
-            background: '#eff6ff',
+            background: 'var(--bg-blue-50)',
             color: '#3B82F6',
             display: 'flex',
             alignItems: 'center',
@@ -55,10 +55,10 @@ export default function PlaceholderPanel({
         >
           {icon ?? '📊'}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-slate-900)' }}>
           {title} is being built
         </div>
-        <div style={{ fontSize: 13, color: '#64748b', maxWidth: 460 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-slate-500)', maxWidth: 460 }}>
           Configure what feeds the monthly report on the <strong>Settings</strong> page
           first — this view consumes those settings and drops in next.
         </div>
@@ -67,7 +67,7 @@ export default function PlaceholderPanel({
             style={{
               textAlign: 'left',
               margin: '4px auto 0',
-              color: '#475569',
+              color: 'var(--text-slate-700)',
               fontSize: 12.5,
               lineHeight: 1.9,
               listStyle: 'none',

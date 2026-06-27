@@ -184,7 +184,7 @@ export default function DailyUpdatesSection({
           <div className="prr-stat-label">
             Avg points
             <Tooltip title="Posted ÷ present working days (excludes weekends, government holidays and leave).">
-              <InfoCircleOutlined style={{ marginLeft: 6, color: '#94a3b8', fontSize: 11 }} />
+              <InfoCircleOutlined style={{ marginLeft: 6, color: 'var(--text-slate-400)', fontSize: 11 }} />
             </Tooltip>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function DailyUpdatesSection({
           <div className="prr-stat-label">Missed</div>
         </div>
         <div className="prr-statbar-caption">
-          <CalendarOutlined style={{ color: '#94a3b8' }} />
+          <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
           {rangeLabel}
         </div>
       </div>

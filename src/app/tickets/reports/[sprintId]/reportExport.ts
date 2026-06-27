@@ -38,6 +38,12 @@ export async function downloadReportPdf(el: HTMLElement, filename: string): Prom
   await (html2pdf() as any).set(baseOptions(el, filename)).from(el).save();
 }
 
+/** Same render as downloadReportPdf, but returns the PDF as a Blob (no download). */
+export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
+  const html2pdf = (await import("html2pdf.js")).default;
+  return (await (html2pdf() as any).set(baseOptions(el, filename)).from(el).outputPdf("blob")) as Blob;
+}
+
 export async function downloadReportDocx(el: HTMLElement, filename: string): Promise<void> {
   const html2pdf = (await import("html2pdf.js")).default;
   // Render once to a single tall canvas, then paginate it into A4-sized slices.

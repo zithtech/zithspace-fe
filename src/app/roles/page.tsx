@@ -160,6 +160,30 @@ const LEAVE_PAGE_ORDER = [
   'Recycle Bin',
 ];
 
+/**
+ * Performance — map each permission to the page it gates, so the Roles UI lists
+ * the 4 Performance Report pages by name (Reports, Settings, Generated Reports,
+ * My Reports). Legacy performance review perms group under "Performance Review".
+ */
+const PERFORMANCE_PAGE_BY_PERM: Record<string, string> = {
+  'performance.report.read': 'Reports',
+  'performance.report.setting.read': 'Settings',
+  'performance.report.setting.update': 'Settings',
+  'performance.report.generated.read': 'Generated Reports',
+  'performance.report.my.read': 'My Reports',
+  'performance.read': 'Performance Review',
+  'performance.manage': 'Performance Review',
+};
+
+/** Display order for the performance page sub-groups. */
+const PERFORMANCE_PAGE_ORDER = [
+  'Reports',
+  'Settings',
+  'Generated Reports',
+  'My Reports',
+  'Performance Review',
+];
+
 /** Access Control drawer — premium SaaS tab groups */
 interface AccessGroup {
   key: string;
@@ -1694,6 +1718,14 @@ export default function RolesPage() {
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
+                        } else if (resource === 'performance') {
+                          // List the 4 Performance Report pages by name
+                          // (see PERFORMANCE_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = PERFORMANCE_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
                         } else
                         perms.forEach((p) => {
                           const parts = p.name.split('.');
@@ -1742,6 +1774,8 @@ export default function RolesPage() {
                             <div className="rp-acc-card__body">
                               {(resource === 'leave'
                                 ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                : resource === 'performance'
+                                ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : Object.entries(subGroups)
                               ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">

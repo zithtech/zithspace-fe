@@ -341,6 +341,13 @@ export const Permissions = {
   PERFORMANCE_READ:   'performance.read',
   PERFORMANCE_MANAGE: 'performance.manage', // review cycle management, goal settings, and appraisal forms
 
+  // Performance Report
+  PERFORMANCE_REPORT_READ:           'performance.report.read',
+  PERFORMANCE_REPORT_SETTING_READ:   'performance.report.setting.read',
+  PERFORMANCE_REPORT_SETTING_UPDATE: 'performance.report.setting.update',
+  PERFORMANCE_REPORT_GENERATED_READ: 'performance.report.generated.read',
+  PERFORMANCE_REPORT_MY_READ: 'performance.report.my.read',
+
   // Job Openings
   OPENING_CREATE: 'opening.create',
   OPENING_READ:   'opening.read',

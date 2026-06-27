@@ -188,7 +188,7 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
       title: 'Hours',
       key: 'hours',
       width: 90,
-      render: (_, r) => <strong style={{ color: '#334155' }}>{fmtHM(workMins(r) * 60)}</strong>,
+      render: (_, r) => <strong style={{ color: 'var(--text-slate-700)' }}>{fmtHM(workMins(r) * 60)}</strong>,
     },
     {
       title: 'Late by',
@@ -244,7 +244,7 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
           <div className="prr-stat-label">
             Avg points
             <Tooltip title={`Clocked-in expected working days × hours vs ${TARGET_HOURS}h target. Excludes weekends, holidays and leave.`}>
-              <InfoCircleOutlined style={{ marginLeft: 6, color: '#94a3b8', fontSize: 11 }} />
+              <InfoCircleOutlined style={{ marginLeft: 6, color: 'var(--text-slate-400)', fontSize: 11 }} />
             </Tooltip>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
           <div className="prr-stat-label">Avg hours / day</div>
         </div>
         <div className="prr-statbar-caption">
-          <CalendarOutlined style={{ color: '#94a3b8' }} />
+          <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
           {rangeLabel}
         </div>
       </div>

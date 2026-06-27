@@ -460,7 +460,7 @@ export default function ReportsPanel() {
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <Text style={{ fontSize: 12.5, color: '#64748b' }}>
+                <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
                   Choose your filters and hit <strong>View Report</strong> to see tickets
                   worked in the selected window.
                 </Text>
@@ -616,7 +616,7 @@ export default function ReportsPanel() {
                 <div className="prr-stat-label">Not tracked</div>
               </div>
               <div className="prr-statbar-caption">
-                <CalendarOutlined style={{ color: '#94a3b8' }} />
+                <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
                 {rangeLabel}
               </div>
             </div>
@@ -730,12 +730,12 @@ export default function ReportsPanel() {
         .prr-wrap *::after { border-radius: 0 !important; }
         .prr-wrap .ant-avatar { border-radius: 50% !important; }
 
-        .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
-        .prr-sub { margin: 4px 0 0; font-size: 13px; color: #64748b; max-width: 620px; line-height: 1.5; }
+        .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
+        .prr-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }
         .prr-member-head { display: flex; align-items: center; gap: 14px; }
         .prr-back {
           width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
-          border: 1px solid #e2e8f0; background: #fff; color: #475569; cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: var(--bg-secondary); color: var(--text-slate-700); cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
           transition: all .14s ease;
         }
@@ -743,11 +743,11 @@ export default function ReportsPanel() {
 
         .prr-filters {
           display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
-          padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff;
+          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary);
         }
         .prr-field { display: flex; flex-direction: column; gap: 6px; }
         .prr-field-label {
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-400);
         }
         .prr-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
         .prr-actions .ant-btn { height: 38px; font-weight: 600; }
@@ -760,7 +760,7 @@ export default function ReportsPanel() {
           padding: 5px;
           margin-bottom: 16px;
           align-self: flex-start;
-          background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+          background: linear-gradient(180deg, var(--bg-slate-50) 0%, var(--bg-slate-100) 100%);
           border: 1px solid #eaeef4;
           border-radius: 14px;
           box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -779,12 +779,12 @@ export default function ReportsPanel() {
           cursor: pointer;
           font-size: 13px;
           font-weight: 600;
-          color: #64748b;
+          color: var(--text-slate-500);
           white-space: nowrap;
           transition: color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease,
             border-color 0.16s ease, transform 0.16s ease;
         }
-        .prr-tab:hover { color: #0f172a; }
+        .prr-tab:hover { color: var(--text-slate-900); }
         .prr-tab:active { transform: translateY(0.5px); }
         .prr-tab-ic {
           width: 28px;
@@ -793,15 +793,15 @@ export default function ReportsPanel() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #94a3b8;
+          color: var(--text-slate-400);
           background: rgba(148, 163, 184, 0.12);
           transition: color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
         }
-        .prr-tab:hover .prr-tab-ic { color: #475569; }
+        .prr-tab:hover .prr-tab-ic { color: var(--text-slate-700); }
         .prr-tab.is-active {
-          color: #0f172a;
-          background: #ffffff;
-          border-color: #eef2f7;
+          color: var(--text-slate-900);
+          background: var(--bg-secondary);
+          border-color: var(--border-slate-100);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px rgba(15, 23, 42, 0.07);
         }
         .prr-tab.is-active .prr-tab-ic {
@@ -812,55 +812,55 @@ export default function ReportsPanel() {
         .prr-tt { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .prr-center {
           flex: 1; display: flex; align-items: center; justify-content: center;
-          border: 1px dashed #e2e8f0; border-radius: 14px; background: #fafbfc; padding: 56px 24px; min-height: 320px;
+          border: 1px dashed var(--border-slate-200); border-radius: 14px; background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
         }
         .prr-statbar {
           display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
         }
         .prr-stat {
           flex: 1; min-width: 150px;
-          border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 12px 14px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px;
           display: flex; flex-direction: column; gap: 4px;
         }
         .prr-stat--points { border-color: #c7d2fe; background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 60%); }
-        .prr-pts-max { font-size: 13px; font-weight: 700; color: #94a3b8; }
+        .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }
         .prr-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-        .prr-stat-num { font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.02em; }
+        .prr-stat-num { font-size: 24px; font-weight: 800; color: var(--text-slate-900); line-height: 1; letter-spacing: -0.02em; }
         .prr-pct {
           font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
         }
-        .prr-pct--slate { color: #475569; background: #f1f5f9; }
+        .prr-pct--slate { color: var(--text-slate-700); background: var(--bg-slate-100); }
         .prr-pct--green { color: #059669; background: rgba(16,185,129,0.12); }
         .prr-pct--red { color: #dc2626; background: rgba(239,68,68,0.12); }
         .prr-pct--amber { color: #b45309; background: rgba(245,158,11,0.14); }
         .prr-stat-label {
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-400);
         }
         .prr-statbar-caption {
           display: flex; align-items: center; gap: 7px; align-self: center;
-          font-size: 12.5px; font-weight: 600; color: #64748b; padding: 0 4px; white-space: nowrap;
+          font-size: 12.5px; font-weight: 600; color: var(--text-slate-500); padding: 0 4px; white-space: nowrap;
         }
 
         /* How-points-work drawer */
-        .prr-help-intro { font-size: 13px; color: #475569; line-height: 1.6; margin: 0 0 16px; }
+        .prr-help-intro { font-size: 13px; color: var(--text-slate-700); line-height: 1.6; margin: 0 0 16px; }
         .prr-help-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
         .prr-help-table th {
           text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.05em; color: #94a3b8; padding: 8px 10px; border-bottom: 1px solid #e2e8f0;
+          letter-spacing: 0.05em; color: var(--text-slate-400); padding: 8px 10px; border-bottom: 1px solid var(--border-slate-200);
         }
         .prr-help-table th:last-child { text-align: right; }
         .prr-help-table td {
-          font-size: 13px; color: #334155; padding: 9px 10px; border-bottom: 1px solid #f1f5f9;
+          font-size: 13px; color: var(--text-slate-700); padding: 9px 10px; border-bottom: 1px solid var(--border-slate-100);
         }
         .prr-help-table td:last-child { text-align: right; }
         .prr-help-table tr:first-child td { font-weight: 600; }
         .prr-help-pts { font-weight: 800; font-variant-numeric: tabular-nums; }
         .prr-help-note {
-          font-size: 12.5px; color: #475569; line-height: 1.55;
-          background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 12px 14px;
+          font-size: 12.5px; color: var(--text-slate-700); line-height: 1.55;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); border-radius: 10px; padding: 12px 14px;
           margin-bottom: 10px;
         }
-        .prr-help-note--muted { color: #64748b; background: #fff; }
+        .prr-help-note--muted { color: var(--text-slate-500); background: var(--bg-secondary); }
       `}</style>
     </div>
   );

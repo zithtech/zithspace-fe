@@ -229,7 +229,7 @@ export default function LeavesSection({ userId, range }: Props) {
           <div className="prr-stat-label">Pending</div>
         </div>
         <div className="prr-statbar-caption">
-          <CalendarOutlined style={{ color: '#94a3b8' }} />
+          <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
           {rangeLabel}
         </div>
       </div>

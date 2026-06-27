@@ -120,9 +120,24 @@ const processLogsToSessions = (logs: TimeTrackingEntry["logs"], startTime: strin
 
 interface PerformanceTrackerProps {
   refreshKey?: number;
+  /**
+   * Embedded mode (e.g. inside the Performance Report). Hides the page header,
+   * filter bar and member info cards, leaving only the Performance Summary and
+   * Detailed Tracking cards. Filters are then driven by `controlled`.
+   */
+  embedded?: boolean;
+  /** External filters when embedded — overrides the internal filter bar. */
+  controlled?: {
+    projectId?: string;
+    userIds?: string[];
+    range: [dayjs.Dayjs, dayjs.Dayjs] | null;
+  };
+  /** Reports the average tracked seconds/day (and tracked-day count) — used by
+   *  the embedding report to score Time Tracking. Pass a stable callback. */
+  onAverageChange?: (avgSecondsPerDay: number, trackedDays: number) => void;
 }
 
-export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshKey }) => {
+export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshKey, embedded, controlled, onAverageChange }) => {
   const { open: openTicketDrawer } = useTicketDrawer();
   const [rows, setRows] = useState<PerformanceRow[]>([]);
   const [legend, setLegend] = useState<PerformanceLegend | null>(null);
@@ -218,6 +233,26 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     filters.dateRange?.[0]?.valueOf(),
     filters.dateRange?.[1]?.valueOf(),
     refreshKey,
+  ]);
+
+  // Embedded mode: drive the internal filters from the report's controlled
+  // filters. Setting filters.dateRange re-triggers the fetch effect above.
+  useEffect(() => {
+    if (!embedded || !controlled) return;
+    hasInteractedRef.current = true;
+    setMonthRange(null);
+    setFilters({
+      userIds: controlled.userIds ?? [],
+      projectId: controlled.projectId,
+      dateRange: controlled.range,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    embedded,
+    controlled?.projectId,
+    (controlled?.userIds ?? []).join(","),
+    controlled?.range?.[0]?.valueOf(),
+    controlled?.range?.[1]?.valueOf(),
   ]);
 
   // Live ticker for running sessions in the expanded timeline.
@@ -635,6 +670,12 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const totalTrackedSeconds = rows.reduce((sum, r) => sum + (r.totalSeconds || 0), 0);
   const avgSecondsPerDay = total > 0 ? Math.round(totalTrackedSeconds / total) : 0;
   const avgPerDayLabel = formatTime(avgSecondsPerDay);
+
+  // Surface the average to an embedding report (for the Time Tracking score).
+  useEffect(() => {
+    if (embedded) onAverageChange?.(avgSecondsPerDay, total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, avgSecondsPerDay, total]);
   // Verbose form for the insight banner, e.g. "6 hours 23 mins".
   const avgPerDayVerbose = (() => {
     const h = Math.floor(avgSecondsPerDay / 3600);
@@ -715,6 +756,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       {/* ── Page header ── */}
+      {!embedded && (
       <div className="perf-page-head">
         <div className="perf-page-head__icon">
           <DashboardOutlined />
@@ -726,8 +768,10 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Filters (top, box-shaped bar) ── */}
+      {!embedded && (
       <div className="perf-filterbar">
           <div className="mtt-team-filters">
             <span className="perf-filterbar__label">
@@ -790,9 +834,10 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
             </Tooltip>
           </div>
       </div>
+      )}
 
       {/* ── Selected member info cards ── */}
-      {selectedMembers.length > 0 && (
+      {!embedded && selectedMembers.length > 0 && (
         <div className="perf-selected-members">
           {selectedMembers.map((m) => (
             <div key={m.id} className="perf-selected-card">
@@ -816,7 +861,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
       )}
 
       {/* ── Selected project member info cards ── */}
-      {filters.projectId && projectMembers.length > 0 && (
+      {!embedded && filters.projectId && projectMembers.length > 0 && (
         <div className="perf-member-group">
           <div className="perf-member-group__label">
             <TeamOutlined /> Project members <span className="perf-member-group__count">{projectMembers.length}</span>

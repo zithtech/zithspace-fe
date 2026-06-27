@@ -357,6 +357,13 @@ export const usePermission = () => {
     canReadPerformance:   hasPermission(Permissions.PERFORMANCE_READ),
     canManagePerformance: hasPermission(Permissions.PERFORMANCE_MANAGE),
 
+    // ─── Performance Report ─────────────────────────────────────────
+    canReadPerformanceReport:         hasPermission(Permissions.PERFORMANCE_REPORT_READ),
+    canReadPerformanceReportSetting:   hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_READ),
+    canUpdatePerformanceReportSetting: hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_UPDATE),
+    canReadGeneratedPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_GENERATED_READ),
+    canReadMyPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_MY_READ),
+
     // ─── Job Openings ───────────────────────────────────────────────
     canCreateOpening: hasPermission(Permissions.OPENING_CREATE),
     canReadOpening:   hasPermission(Permissions.OPENING_READ),

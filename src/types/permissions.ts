@@ -337,10 +337,6 @@ export const Permissions = {
   SQUAD_DELETE: 'squad.delete',
   SQUAD_MANAGE: 'squad.manage', // dissolving squads, changing squad leads, and cross-team settings
 
-  // Performance
-  PERFORMANCE_READ:   'performance.read',
-  PERFORMANCE_MANAGE: 'performance.manage', // review cycle management, goal settings, and appraisal forms
-
   // Performance Report
   PERFORMANCE_REPORT_READ:           'performance.report.read',
   PERFORMANCE_REPORT_SETTING_READ:   'performance.report.setting.read',

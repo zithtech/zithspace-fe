@@ -171,8 +171,6 @@ const PERFORMANCE_PAGE_BY_PERM: Record<string, string> = {
   'performance.report.setting.update': 'Settings',
   'performance.report.generated.read': 'Generated Reports',
   'performance.report.my.read': 'My Reports',
-  'performance.read': 'Performance Review',
-  'performance.manage': 'Performance Review',
 };
 
 /** Display order for the performance page sub-groups. */

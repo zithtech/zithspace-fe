@@ -135,6 +135,30 @@ export class ClientV2Service {
   }
 
   /**
+   * Get the per-client portal page-visibility settings (the catalog of
+   * toggleable portal pages with each one's effective enabled state).
+   */
+  static async getPortalModules(clientId: string): Promise<PortalModuleSetting[]> {
+    return api.get<PortalModuleSetting[]>(
+      `/api/clients-v2/${clientId}/portal-modules`,
+    );
+  }
+
+  /**
+   * Update which portal pages a client can see. Accepts a partial map of
+   * moduleKey -> enabled; returns the full refreshed catalog.
+   */
+  static async updatePortalModules(
+    clientId: string,
+    modules: Record<string, boolean>,
+  ): Promise<PortalModuleSetting[]> {
+    return api.put<PortalModuleSetting[]>(
+      `/api/clients-v2/${clientId}/portal-modules`,
+      { modules },
+    );
+  }
+
+  /**
    * List existing projects in the tenant that are NOT yet linked to this
    * client. Used by the "Import projects" picker on the Projects tab.
    */
@@ -159,6 +183,12 @@ export class ClientV2Service {
       projectIds,
     });
   }
+}
+
+export interface PortalModuleSetting {
+  key: string;
+  label: string;
+  enabled: boolean;
 }
 
 export interface ImportableProject {

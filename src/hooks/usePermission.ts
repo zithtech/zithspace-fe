@@ -353,10 +353,6 @@ export const usePermission = () => {
     canReadExitConfig: hasPermission(Permissions.EXIT_CONFIG_READ),
     canUpdateExitConfig: hasPermission(Permissions.EXIT_CONFIG_UPDATE),
 
-    // ─── Performance ────────────────────────────────────────────────
-    canReadPerformance:   hasPermission(Permissions.PERFORMANCE_READ),
-    canManagePerformance: hasPermission(Permissions.PERFORMANCE_MANAGE),
-
     // ─── Performance Report ─────────────────────────────────────────
     canReadPerformanceReport:         hasPermission(Permissions.PERFORMANCE_REPORT_READ),
     canReadPerformanceReportSetting:   hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_READ),

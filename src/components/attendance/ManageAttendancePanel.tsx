@@ -16,6 +16,8 @@ import {
   Col,
   Space,
   Avatar,
+  Modal,
+  Input,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -33,6 +35,8 @@ import {
   ClockCircleOutlined,
   TeamOutlined,
   UserOutlined,
+  MinusCircleOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
@@ -42,8 +46,8 @@ import { AttendanceService, Attendance } from '@/services/attendanceService';
 import { MembersService, Member } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
 import { useSocket } from '@/providers/SocketProvider';
-import { breakLabel } from '@/components/attendance/breakTypes';
-import { CoffeeOutlined } from '@ant-design/icons';
+import { breakLabel, BREAK_TYPES } from '@/components/attendance/breakTypes';
+import { CoffeeOutlined, EnvironmentOutlined } from '@ant-design/icons';
 
 interface LiveStatus {
   state?: string;
@@ -81,6 +85,14 @@ const STATUS_META: Record<string, { label: string; color: string; tint: string; 
   late: { label: 'Late', color: PALETTE.amber, tint: TINT.amber, icon: <ExclamationCircleOutlined /> },
   absent: { label: 'Absent', color: PALETTE.red, tint: TINT.red, icon: <CloseCircleOutlined /> },
 };
+
+// Interval-type options for the timeline editor: Work + the shared break catalog.
+const INTERVAL_TYPE_OPTIONS = [
+  { value: 'work', label: 'Work' },
+  ...BREAK_TYPES.map((b) => ({ value: b.value, label: b.label })),
+];
+// Break types that invite an optional free-text reason.
+const REASON_TYPES = new Set(BREAK_TYPES.filter((b) => b.reasonHint).map((b) => b.value));
 
 const formatDuration = (minutes?: number) => {
   if (!minutes) return '-';
@@ -244,6 +256,12 @@ export default function ManageAttendancePanel() {
   const [editing, setEditing] = useState<ExtendedAttendance | null>(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+  const statusValue = Form.useWatch('status', form);
+
+  // reopen-day modal
+  const [reopenTarget, setReopenTarget] = useState<ExtendedAttendance | null>(null);
+  const [reopenTime, setReopenTime] = useState<dayjs.Dayjs | null>(null);
+  const [reopenSaving, setReopenSaving] = useState(false);
 
   // Reference data (members + projects) loaded once.
   useEffect(() => {
@@ -354,19 +372,57 @@ export default function ManageAttendancePanel() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), status: 'present' });
+    form.setFieldsValue({
+      date: dayjs(),
+      status: 'present',
+      timeline: [{ type: 'work', start: null, end: null, reason: '' }],
+    });
     setDrawerOpen(true);
   };
 
   const openEdit = (record: ExtendedAttendance) => {
     setEditing(record);
+
+    // Rebuild the editable timeline from the day's work sessions: each session is
+    // a work row; a session that owns a break adds a break row bridging to the
+    // next session. Legacy records fall back to a single work row.
+    const sessions = record.sessions || [];
+    const timeline: any[] = [];
+    if (sessions.length) {
+      sessions.forEach((s, idx) => {
+        timeline.push({
+          type: 'work',
+          start: s.clockIn ? dayjs(s.clockIn) : null,
+          end: s.clockOut ? dayjs(s.clockOut) : null,
+          reason: '',
+        });
+        const next = sessions[idx + 1];
+        if (s.breakType && next) {
+          timeline.push({
+            type: s.breakType,
+            start: s.clockOut ? dayjs(s.clockOut) : null,
+            end: next.clockIn ? dayjs(next.clockIn) : null,
+            reason: s.breakReason || '',
+          });
+        }
+      });
+    } else if (record.clockIn || record.clockOut) {
+      timeline.push({
+        type: 'work',
+        start: record.clockIn ? dayjs(record.clockIn) : null,
+        end: record.clockOut ? dayjs(record.clockOut) : null,
+        reason: '',
+      });
+    } else {
+      timeline.push({ type: 'work', start: null, end: null, reason: '' });
+    }
+
     form.setFieldsValue({
       member: record.member?.id,
       date: record.date ? dayjs(record.date) : dayjs(),
       status: record.status,
-      clockIn: record.clockIn ? dayjs(record.clockIn) : null,
-      clockOut: record.clockOut ? dayjs(record.clockOut) : null,
       notes: record.notes,
+      timeline,
     });
     setDrawerOpen(true);
   };
@@ -381,27 +437,42 @@ export default function ManageAttendancePanel() {
     setSaving(true);
     try {
       const selectedDate = dayjs(values.date);
-      const clockIn = values.clockIn
-        ? selectedDate.hour(values.clockIn.hour()).minute(values.clockIn.minute()).second(0).toISOString()
-        : undefined;
-      const clockOut = values.clockOut
-        ? selectedDate.hour(values.clockOut.hour()).minute(values.clockOut.minute()).second(0).toISOString()
-        : undefined;
+      const atDate = (t: dayjs.Dayjs) =>
+        selectedDate.hour(t.hour()).minute(t.minute()).second(0).millisecond(0);
 
-      const payload = {
+      // Fold the timeline into normalized work sessions. Each work row becomes a
+      // session; a break row attaches its type/reason to the preceding work
+      // session (the gap to the next session IS the break duration).
+      const rows = (values.timeline || [])
+        .filter((r: any) => r && r.start && r.end)
+        .map((r: any) => ({ ...r, s: atDate(r.start), e: atDate(r.end) }))
+        .sort((a: any, b: any) => a.s.valueOf() - b.s.valueOf());
+
+      const sessions: { clockIn: string; clockOut: string; breakType: string | null; breakReason: string | null }[] = [];
+      for (const r of rows) {
+        if (r.type === 'work') {
+          sessions.push({ clockIn: r.s.toISOString(), clockOut: r.e.toISOString(), breakType: null, breakReason: null });
+        } else if (sessions.length) {
+          sessions[sessions.length - 1].breakType = r.type;
+          sessions[sessions.length - 1].breakReason = r.reason || null;
+        }
+      }
+
+      const useSessions = values.status !== 'absent' && sessions.length > 0;
+
+      const payload: any = {
         userId: values.member,
         date: selectedDate.toISOString(),
         status: values.status,
-        clockIn,
-        clockOut,
         notes: values.notes,
       };
+      if (useSessions) payload.sessions = sessions;
 
       if (editing) {
-        await AttendanceService.updateAttendance(editing.id, payload as any);
+        await AttendanceService.updateAttendance(editing.id, payload);
         message.success('Attendance record updated');
       } else {
-        await AttendanceService.createAttendance(payload as any);
+        await AttendanceService.createAttendance(payload);
         message.success('Attendance record created');
       }
       setDrawerOpen(false);
@@ -410,6 +481,40 @@ export default function ManageAttendancePanel() {
       message.error(err?.message || 'Failed to save attendance record');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Reopen-day handlers ──────────────────────────────────────────────────────
+  const openReopen = (record: ExtendedAttendance) => {
+    setReopenTarget(record);
+    setReopenTime(record.clockOut ? dayjs(record.clockOut) : dayjs());
+  };
+
+  const submitReopen = async () => {
+    if (!reopenTarget || !reopenTime) return;
+    setReopenSaving(true);
+    try {
+      // Anchor the picked time on the completed day itself (clock-out > date), so
+      // the calendar day and timezone match what the picker shows.
+      const base = reopenTarget.clockOut
+        ? dayjs(reopenTarget.clockOut)
+        : reopenTarget.date
+          ? dayjs(reopenTarget.date)
+          : dayjs();
+      const resumeAt = base
+        .hour(reopenTime.hour())
+        .minute(reopenTime.minute())
+        .second(0)
+        .millisecond(0);
+      await AttendanceService.reopenDay(reopenTarget.id, resumeAt.toISOString());
+      message.success('Day reopened');
+      setReopenTarget(null);
+      setReopenTime(null);
+      await load();
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to reopen day');
+    } finally {
+      setReopenSaving(false);
     }
   };
 
@@ -494,6 +599,17 @@ export default function ManageAttendancePanel() {
       align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+          {canUpdateAttendance && r.clockOut && (
+            <Tooltip title="Reopen day">
+              <Button
+                type="text"
+                size="small"
+                icon={<PlayCircleOutlined />}
+                style={{ color: PALETTE.green }}
+                onClick={() => openReopen(r)}
+              />
+            </Tooltip>
+          )}
           {canUpdateAttendance && (
             <Tooltip title="Edit"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
           )}
@@ -536,6 +652,29 @@ export default function ManageAttendancePanel() {
                 </span>
                 <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--text-slate-700)' }}>{formatDuration(s.workMinutes)}</span>
               </div>
+              {s.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${s.location.latitude},${s.location.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View clock-in location on Google Maps"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 90, maxWidth: 520,
+                    fontSize: 11.5, fontWeight: 500, color: PALETTE.blue, textDecoration: 'none',
+                  }}
+                >
+                  <EnvironmentOutlined />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.location.address ||
+                      `${s.location.latitude.toFixed(5)}, ${s.location.longitude.toFixed(5)}`}
+                  </span>
+                  {s.location.accuracy != null && (
+                    <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, flexShrink: 0 }}>
+                      ±{Math.round(s.location.accuracy)}m
+                    </span>
+                  )}
+                </a>
+              )}
               {gap > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 90, fontSize: 11.5, fontWeight: 600, color: PALETTE.amber }}>
                   <CoffeeOutlined /> {breakLabel(s.breakType)} · {formatDuration(gap)}
@@ -711,7 +850,7 @@ export default function ManageAttendancePanel() {
         title={null}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={480}
+        width={640}
         closable={false}
         destroyOnClose
         styles={{
@@ -833,28 +972,199 @@ export default function ManageAttendancePanel() {
                 </Row>
               </SectionCard>
 
-              {/* STEP 2 — Time Logs */}
-              <SectionCard
-                icon={<ClockCircleOutlined />}
-                tint={TINT.green}
-                color={PALETTE.green}
-                title="Time Logs"
-                subtitle="Optional clock-in and clock-out times"
-                step="STEP 2"
-              >
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 0 }} name="clockIn" label={fieldLabel('Clock In')}>
-                      <TimePicker format="HH:mm" size="large" style={{ width: '100%' }} placeholder="09:00" popupClassName="att-tp-popup" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 0 }} name="clockOut" label={fieldLabel('Clock Out')}>
-                      <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="18:00" popupClassName="att-tp-popup" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </SectionCard>
+              {/* STEP 2 — Work & Breaks timeline */}
+              {statusValue !== 'absent' && (
+                <SectionCard
+                  icon={<ClockCircleOutlined />}
+                  tint={TINT.green}
+                  color={PALETTE.green}
+                  title="Work & Breaks"
+                  subtitle="Build the day's intervals — work periods split by typed breaks"
+                  step="STEP 2"
+                >
+                  <Form.List name="timeline">
+                    {(fields, { add, remove }) => {
+                      const addRow = (type: string) => {
+                        const tl = form.getFieldValue('timeline') || [];
+                        const last = tl[tl.length - 1];
+                        add({ type, start: last?.end || null, end: null, reason: '' });
+                      };
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {fields.map((field, idx) => (
+                            <Form.Item key={field.key} noStyle shouldUpdate>
+                              {() => {
+                                const type = form.getFieldValue(['timeline', field.name, 'type']) || 'work';
+                                const isWork = type === 'work';
+                                const bt = BREAK_TYPES.find((b) => b.value === type);
+                                const accent = isWork ? PALETTE.blue : bt?.color || PALETTE.grey;
+                                const start = form.getFieldValue(['timeline', field.name, 'start']);
+                                const end = form.getFieldValue(['timeline', field.name, 'end']);
+                                const dur =
+                                  start && end && dayjs(end).isAfter(dayjs(start))
+                                    ? dayjs(end).diff(dayjs(start), 'minute')
+                                    : 0;
+                                const needReason = REASON_TYPES.has(type);
+                                return (
+                                  <div
+                                    style={{
+                                      border: '1px solid var(--border-color)',
+                                      borderLeft: `3px solid ${accent}`,
+                                      borderRadius: 8,
+                                      padding: '10px 12px 12px',
+                                      background: 'var(--bg-pure-white)',
+                                    }}
+                                  >
+                                    {/* Row header: index + label + duration + remove */}
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        marginBottom: 8,
+                                      }}
+                                    >
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                        <span
+                                          style={{
+                                            width: 20,
+                                            height: 20,
+                                            borderRadius: 999,
+                                            background: `${accent}1A`,
+                                            color: accent,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 10.5,
+                                            fontWeight: 800,
+                                          }}
+                                        >
+                                          {idx + 1}
+                                        </span>
+                                        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent, letterSpacing: '-0.01em' }}>
+                                          {isWork ? 'Work interval' : bt?.label || 'Break'}
+                                        </span>
+                                      </span>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                        {dur > 0 && (
+                                          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-slate-500)', fontVariantNumeric: 'tabular-nums' }}>
+                                            {formatDuration(dur)}
+                                          </span>
+                                        )}
+                                        {fields.length > 1 && (
+                                          <Tooltip title="Remove">
+                                            <Button
+                                              type="text"
+                                              size="small"
+                                              danger
+                                              icon={<MinusCircleOutlined />}
+                                              onClick={() => remove(field.name)}
+                                            />
+                                          </Tooltip>
+                                        )}
+                                      </span>
+                                    </div>
+
+                                    <Row gutter={10} align="top">
+                                      <Col span={10}>
+                                        <Form.Item
+                                          {...field}
+                                          key="type"
+                                          name={[field.name, 'type']}
+                                          style={{ marginBottom: 0 }}
+                                          rules={[{ required: true, message: 'Type' }]}
+                                        >
+                                          <Select size="large" options={INTERVAL_TYPE_OPTIONS} placeholder="Type" />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={7}>
+                                        <Form.Item
+                                          {...field}
+                                          key="start"
+                                          name={[field.name, 'start']}
+                                          style={{ marginBottom: 0 }}
+                                          rules={[{ required: true, message: 'Start' }]}
+                                        >
+                                          <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={7}>
+                                        <Form.Item
+                                          {...field}
+                                          key="end"
+                                          name={[field.name, 'end']}
+                                          style={{ marginBottom: 0 }}
+                                          rules={[
+                                            { required: true, message: 'End' },
+                                            ({ getFieldValue }) => ({
+                                              validator(_, value) {
+                                                const s = getFieldValue(['timeline', field.name, 'start']);
+                                                if (!value || !s || value.isAfter(s)) return Promise.resolve();
+                                                return Promise.reject(new Error('After start'));
+                                              },
+                                            }),
+                                          ]}
+                                        >
+                                          <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
+                                        </Form.Item>
+                                      </Col>
+                                    </Row>
+
+                                    {needReason && (
+                                      <Form.Item
+                                        {...field}
+                                        key="reason"
+                                        name={[field.name, 'reason']}
+                                        style={{ marginBottom: 0, marginTop: 10 }}
+                                      >
+                                        <Input size="large" placeholder="Reason (optional)" />
+                                      </Form.Item>
+                                    )}
+                                  </div>
+                                );
+                              }}
+                            </Form.Item>
+                          ))}
+
+                          <Row gutter={10}>
+                            <Col span={12}>
+                              <Button block type="dashed" onClick={() => addRow('work')} icon={<PlusOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                                Add work interval
+                              </Button>
+                            </Col>
+                            <Col span={12}>
+                              <Button block type="dashed" onClick={() => addRow('lunch')} icon={<CoffeeOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                                Add break
+                              </Button>
+                            </Col>
+                          </Row>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              background: TINT.blue,
+                              fontSize: 11.5,
+                              color: 'var(--text-slate-600)',
+                              fontWeight: 500,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            <InfoCircleOutlined style={{ color: PALETTE.blue, marginTop: 2, flexShrink: 0 }} />
+                            <span>
+                              The last work interval's end time becomes the clock-out (day complete). Gaps
+                              between work intervals are counted as breaks.
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </Form.List>
+                </SectionCard>
+              )}
             </Form>
           </div>
 
@@ -891,6 +1201,184 @@ export default function ManageAttendancePanel() {
           </div>
         </div>
       </Drawer>
+
+      {/* ── Reopen-day modal ──────────────────────────────────────────────────── */}
+      <Modal
+        open={!!reopenTarget}
+        title={null}
+        footer={null}
+        closable={false}
+        width={440}
+        centered
+        destroyOnClose
+        onCancel={() => {
+          setReopenTarget(null);
+          setReopenTime(null);
+        }}
+        styles={{
+          content: { padding: 0, overflow: 'hidden', borderRadius: 12 },
+          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '18px 20px',
+            borderBottom: '1px solid var(--border-color)',
+          }}
+        >
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 10,
+              background: TINT.green,
+              color: PALETTE.green,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+              flexShrink: 0,
+            }}
+          >
+            <PlayCircleOutlined />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+              Reopen day
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+              Continue a day that was completed by mistake
+            </div>
+          </div>
+          <Button
+            type="text"
+            shape="circle"
+            icon={<CloseOutlined />}
+            onClick={() => {
+              setReopenTarget(null);
+              setReopenTime(null);
+            }}
+            style={{ color: 'var(--text-slate-500)' }}
+          />
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 20 }}>
+          {/* Member + date summary */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'var(--bg-secondary, #f8fafc)',
+              border: '1px solid var(--border-color)',
+              marginBottom: 16,
+            }}
+          >
+            <Avatar
+              size={36}
+              src={reopenTarget?.member?.avatarUrl}
+              style={{ background: PALETTE.blue, flexShrink: 0 }}
+              icon={<UserOutlined />}
+            >
+              {reopenTarget?.member?.name?.[0]?.toUpperCase()}
+            </Avatar>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {reopenTarget?.member?.name || 'This member'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+                {reopenTarget?.date ? dayjs(reopenTarget.date).format('dddd, MMM DD, YYYY') : 'this day'}
+              </div>
+            </div>
+            {reopenTarget?.clockOut && (
+              <div style={{ marginLeft: 'auto', textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Completed
+                </div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: PALETTE.red, fontVariantNumeric: 'tabular-nums' }}>
+                  {dayjs(reopenTarget.clockOut).format('HH:mm')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Resume time */}
+          <div style={{ marginBottom: 14 }}>
+            {fieldLabel('Resume work from')}
+            <TimePicker
+              format="HH:mm"
+              size="large"
+              value={reopenTime}
+              onChange={(t) => setReopenTime(t)}
+              needConfirm={false}
+              allowClear={false}
+              style={{ width: '100%', marginTop: 6 }}
+              popupClassName="att-tp-popup"
+            />
+          </div>
+
+          {/* Explanation */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: TINT.green,
+              fontSize: 11.5,
+              color: 'var(--text-slate-600)',
+              fontWeight: 500,
+              lineHeight: 1.5,
+            }}
+          >
+            <InfoCircleOutlined style={{ color: PALETTE.green, marginTop: 2, flexShrink: 0 }} />
+            <span>
+              This clears the clock-out and opens a new work session at the time above, so the day
+              flips back to <strong>working</strong>. The user can continue and complete it again.
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 10,
+            padding: '14px 20px',
+            borderTop: '1px solid var(--border-color)',
+            background: 'var(--bg-pure-white)',
+          }}
+        >
+          <Button
+            onClick={() => {
+              setReopenTarget(null);
+              setReopenTime(null);
+            }}
+            style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            onClick={submitReopen}
+            loading={reopenSaving}
+            disabled={!reopenTime}
+            icon={<PlayCircleOutlined />}
+            style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px', background: PALETTE.green, borderColor: PALETTE.green }}
+          >
+            Reopen day
+          </Button>
+        </div>
+      </Modal>
 
       <style jsx global>{`
         .att-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }

@@ -33,6 +33,7 @@ import {
   AttendanceState,
 } from '@/services/attendanceService';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
+import { getDeviceLocation } from '@/lib/geolocation';
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
 const PALETTE = {
@@ -174,11 +175,16 @@ export default function ClockInOutPanel() {
   const syncTimer = useTimeTrackerStore((s) => s.syncTimer);
   const pausedTimerCount = activeEntries.filter((e) => e.status === 'PAUSED').length;
 
-  const clockIn = () => runAction(() => AttendanceService.clockIn(), 'Clocked in');
+  const clockIn = () =>
+    runAction(async () => {
+      const loc = await getDeviceLocation(); // best-effort; null if denied/unavailable
+      await AttendanceService.clockIn(loc ?? undefined);
+    }, 'Clocked in');
   const pause = (breakType?: string, reason?: string) =>
     runAction(() => AttendanceService.pause({ breakType, reason }), 'Paused — enjoy your break');
   const resume = (resumeTimers = true) =>
     runAction(async () => {
+      const loc = await getDeviceLocation(); // capture where work resumed (best-effort)
       if (resumeTimers) {
         // Optimistically flip paused timers to RUNNING so the header widget ticks
         // the instant the user confirms; the socket + refetch reconcile right after.
@@ -193,7 +199,7 @@ export default function ClockInOutPanel() {
             }),
           );
       }
-      await AttendanceService.resume({ resumeTimers });
+      await AttendanceService.resume({ resumeTimers, ...(loc ?? {}) });
       await fetchActiveTimer(); // reconcile the widget with server truth
     }, resumeTimers ? 'Welcome back — time tracking resumed' : 'Welcome back — time tracking stays paused');
   const complete = () => runAction(() => AttendanceService.complete(), 'Day completed');

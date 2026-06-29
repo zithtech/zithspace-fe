@@ -21,6 +21,12 @@ export interface PortalUser {
   designation?: string | null;
   mustChangePassword: boolean;
   lastLoginAt: string | null;
+  /**
+   * Portal page slugs this client is allowed to see (opt-out model: a page
+   * not listed here has been disabled by staff). Pages always visible (e.g.
+   * Home) are not included. Undefined on older sessions — treat as "all".
+   */
+  enabledModules?: string[];
   client?: {
     id: string;
     companyName: string;

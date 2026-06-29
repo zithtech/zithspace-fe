@@ -695,7 +695,7 @@ export default function MeetingsTab({
               columns={columns}
               rowKey="id"
               loading={loading}
-              pagination={{ pageSize: 10, hideOnSinglePage: true }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
               scroll={{ x: "max-content" }}
               onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
             />

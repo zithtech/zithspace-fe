@@ -757,7 +757,7 @@ export default function SkillsPage() {
               loading={loading}
               columns={(activeTab === "1" ? skillColumns : expColumns) as any}
               dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
-              pagination={{ pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
               scroll={{ x: "max-content" }}
               size="middle"
               className="skl-table"

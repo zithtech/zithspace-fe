@@ -487,8 +487,7 @@ export default function ClientImportModal({
                 columns={columns}
                 dataSource={filteredClients}
                 rowKey="id"
-                pagination={{
-                  pageSize: 8,
+                pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 8,
                   showSizeChanger: false,
                   style: { padding: "12px 20px" },
                   showTotal: (total, range) =>

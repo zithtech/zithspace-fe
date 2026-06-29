@@ -38,8 +38,7 @@ export interface CompanyFilters {
 
 export interface PaginatedCompanyResponse {
   data: Company[];
-  pagination: {
-    current: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], current: number;
     pageSize: number;
     total: number;
     totalPages: number;

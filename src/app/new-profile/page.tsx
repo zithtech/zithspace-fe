@@ -3,20 +3,30 @@
 import React, { useEffect, useRef } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
-import { Segmented, Card, Tabs, message } from "antd";
+import { Tabs } from "antd";
+import {
+  User,
+  Briefcase,
+  CreditCard,
+  History,
+  Laptop,
+  Camera,
+  Clock,
+  Calendar,
+  UserCheck,
+  MapPin,
+} from "lucide-react";
 import PersonalDetails from "@/components/new-profile/personaldetailes";
 import BankAndPayroll from "@/components/new-profile/bankAndPayroll";
 import EmployeeHistory from "@/components/new-profile/employeeHistory";
-import { ProfileService } from "@/services/newProfile";
+import EmploymentDetails from "@/components/new-profile/employmentDetails";
+import Assets from "@/components/new-profile/assets";
 import { useAuth } from "@/context/AuthContext";
 import { AuthService } from "@/services/authService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
-import EditOutlined from "@ant-design/icons/lib/icons/EditOutlined";
-import { EmployeeService } from "@/services/employeeServices";
 import { PositionService } from "@/services/positionService 3";
 
 const NewProfilePage = () => {
-  //const [name, setName] = useState("");
   const defaultImage = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,7 +43,7 @@ const NewProfilePage = () => {
   const [image, setImage] = useState<string>(defaultImage);
   const [positions, setPositions] = useState<any>(null);
 
-  useEffect(() => { }, [user]);
+  useEffect(() => {}, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -97,105 +107,6 @@ const NewProfilePage = () => {
   const personal = profile?.personal;
   const employment = profile?.employment;
 
-  const color = {
-    primary: "var(--premium-blue)",
-    primaryLight: "var(--bg-blue-50)",
-    primaryHover: "#0958d9",
-    border: "var(--border-slate-200)",
-    borderLight: "var(--border-slate-100)",
-    bg: "var(--bg-secondary)",
-    bgCard: "var(--bg-pure-white)",
-    text: "var(--text-slate-900)",
-    textSecondary: "var(--text-slate-500)",
-    textMuted: "var(--text-slate-400)",
-    textLight: "var(--text-slate-300)",
-    danger: "#ff4d4f",
-    green: "#52c41a",
-    purple: "#722ed1",
-    purpleLight: "#f9f0ff",
-  };
-
-  const radius = { sm: "6px", md: "8px", lg: "12px", full: "9999px" };
-
-  const shadow = {
-    card: "none",
-    float: "none",
-    input: "0 0 0 2px rgba(22,119,255,0.1)",
-  };
-
-  interface InfoCardProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-  }
-
-  const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value }) => {
-    const [hover, setHover] = useState(false);
-
-    return (
-      <div
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 14px", // 👈 Reduced padding
-          borderRadius: "8px", // 👈 Smaller radius
-          background: "var(--bg-pure-white)",
-          border: `1px solid ${color.borderLight}`,
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          boxShadow: "none",
-          transform: "none",
-        }}
-      >
-        {/* Left */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "24px", // 👈 Reduced
-              height: "24px", // 👈 Reduced
-              borderRadius: "6px",
-              background: "var(--bg-blue-50)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "13px", // 👈 Smaller icon
-              color: "var(--premium-blue)",
-            }}
-          >
-            {icon}
-          </div>
-
-          <span
-            style={{
-              fontSize: "13px", // 👈 Reduced
-              fontWeight: 500,
-              color: "#595959",
-            }}
-          >
-            {label}
-          </span>
-        </div>
-
-        {/* Right */}
-        <span
-          style={{
-            fontSize: "12px", // 👈 Reduced
-            background: "var(--bg-slate-50)",
-            padding: "2px 6px", // 👈 Reduced
-            borderRadius: "4px",
-            fontWeight: 600,
-            color: "var(--text-slate-900)",
-          }}
-        >
-          {value}
-        </span>
-      </div>
-    );
-  };
-
   const getBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -205,27 +116,12 @@ const NewProfilePage = () => {
     });
   };
 
-  // const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-
-  //   try {
-  //     const base64 = await getBase64(file);
-
-  //     console.log("Base64 Image:", base64);
-  //     setImage(base64);
-  //   } catch (error) {
-  //     console.error("Error converting image:", error);
-  //   }
-  // };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       // 1️⃣ Convert to base64
-
       const base64 = await getBase64(file);
 
       // 2️⃣ Preview update
@@ -267,336 +163,456 @@ const NewProfilePage = () => {
     return `${years} Years ${months} Months`;
   };
 
+  const fullName =
+    `${personal?.firstName || ""} ${personal?.lastName || ""}`.trim() || "—";
+  const empCode = personal?.employee_code || currentUser?.employee_code || "—";
+  const positionTitle =
+    currentUser?.position?.title || employment?.designation || "—";
+  const department = employment?.department || positions?.subDepartment?.name;
+  const team = employment?.team;
+  const joiningDate =
+    employment?.employeeJoiningDate || employment?.joiningDate;
+
+  const statCards = [
+    {
+      icon: <Clock size={16} />,
+      label: "Experience",
+      value: calculateExperience(joiningDate),
+    },
+    {
+      icon: <Calendar size={16} />,
+      label: "Date of Joining",
+      value: joiningDate
+        ? new Date(joiningDate).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "—",
+    },
+    {
+      icon: <UserCheck size={16} />,
+      label: "Reports To",
+      value: employment?.reportingManager || "—",
+    },
+    {
+      icon: <MapPin size={16} />,
+      label: "Work Location",
+      value: employment?.workLocation || "—",
+    },
+  ];
+
+  // While the employee record loads.
+  if (loading) {
+    return (
+      <MainLayout>
+        <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-slate-400)" }}>
+          Loading your profile…
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // No employee record linked to this account (or it couldn't be loaded).
+  if (!profile) {
+    return (
+      <MainLayout>
+        <div
+          style={{
+            minHeight: "70vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            gap: 14,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: 18,
+              background: "var(--bg-slate-50)",
+              border: "1px solid var(--border-slate-100)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-slate-300)",
+            }}
+          >
+            <User size={32} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-700)" }}>
+            No information found
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-slate-400)", maxWidth: 380, lineHeight: 1.6 }}>
+            There’s no employee profile linked to your account yet. If you believe this is a
+            mistake, please contact your HR or admin.
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      {" "}
       <div
         style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: "12px",
-          position: "relative",
-          height: "100vh",
           width: "calc(100% + 48px)",
           margin: "0 -24px",
-          background: "var(--bg-secondary)",
-          overflow: "hidden",
+          background: "var(--bg-slate-50)",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "flex-start",
         }}
       >
-        {/* left Side Div */}
-        <div
+        {/* ── LEFT SIDEBAR ── */}
+        <aside
           style={{
+            width: 320,
+            flexShrink: 0,
+            alignSelf: "stretch",
+            background: "var(--bg-pure-white)",
+            borderRight: "1px solid var(--border-slate-100)",
+            padding: 20,
             display: "flex",
             flexDirection: "column",
-            width: "300px", // 👈 Fixed width for sidebar feel but within flow
-            flexShrink: 0,
-            height: "100vh",
-            background: "var(--bg-pure-white)",
-            borderRight: `1px solid ${color.borderLight}`,
-            gap: "10px",
-            alignItems: "center",
+            gap: 16,
+            position: "sticky",
+            top: 0,
+            minHeight: "100vh",
           }}
         >
-          <div style={{ textAlign: "center", marginBottom: "18px" }}>
-            <h2
-              style={{
-                paddingTop: "20px",
-                margin: "0 0 4px",
-                fontSize: "17px", // 👈 Slightly reduced
-                fontWeight: 600,
-                color: color.text,
-              }}
-            >
-              Employee Profile
-            </h2>
-            <p style={{ margin: 0, fontSize: "14px", color: color.textMuted }}>
-              Employee personal information
-            </p>
-          </div>
-
-          {/* Profile Card */}
+          {/* Profile card */}
           <div
             style={{
-              background: color.bgCard,
-              borderRadius: radius.md,
-              border: `1px solid ${color.borderLight}`,
-              boxShadow: "none",
-              display: "flex",
-              flexDirection: "column",
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-100)",
+              borderRadius: 16,
               overflow: "hidden",
-              width: "80%",
-              height: "300px",
+              boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
             }}
           >
-            {/* 🔥 IMAGE SECTION - 65% */}
-
+            {/* Gradient band */}
             <div
               style={{
-                height: "60%",
-                width: "100%",
-                overflow: "hidden",
-                cursor: "pointer",
+                height: 72,
+                background:
+                  "linear-gradient(120deg, #3B82F6 0%, #6366F1 55%, #8B5CF6 100%)",
               }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <img
-                src={image}
-                alt="Employee"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </div>
-
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              onChange={handleFileChange}
             />
-
-            {/* 🔥 DETAILS SECTION - 35% */}
-            <div
-              style={{
-                flex: "0 0 35%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                textAlign: "center",
-              }}
-            >
-              <div>
-                <h1
-                  style={{
-                    margin: "6px 0 2px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: color.text,
-                  }}
-                >
-                  {personal?.firstName} {personal?.lastName}
-                </h1>
-
-                <p
-                  style={{
-                    margin: "0 0 6px",
-                    fontSize: "10px",
-                    color: color.textMuted,
-                    fontWeight: 500,
-                  }}
-                >
-                  {personal?.employee_code || currentUser?.employee_code}
-                </p>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "4px",
-                    flexWrap: "wrap",
-                    flexDirection: "row",
-                  }}
-                >
-                  <span
-                    style={{
-                      padding: "2px 4px",
-                      borderRadius: "4px",
-                      fontSize: "9px",
-                      fontWeight: 500,
-                      background: color.primaryLight,
-                      color: color.primary,
-                    }}
-                  >
-                    {currentUser?.position?.title}{" "}
-                    {positions?.subDepartment?.name}
-                  </span>
-                </div>
-              </div>
-
-              {/* Department / Location */}
+            <div style={{ padding: "0 16px 18px", textAlign: "center", marginTop: -44 }}>
+              {/* Avatar */}
               <div
+                onMouseEnter={() => setIsHover(true)}
+                onMouseLeave={() => setIsHover(false)}
+                onClick={() => fileInputRef.current?.click()}
                 style={{
-                  borderTop: `1px solid ${color.borderLight}`,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  padding: "6px 0",
-                  textAlign: "center",
+                  position: "relative",
+                  width: 88,
+                  height: 88,
+                  margin: "0 auto",
+                  borderRadius: "50%",
+                  background: "var(--bg-pure-white)",
+                  padding: 4,
+                  boxShadow:
+                    "0 4px 14px rgba(15,23,42,0.15), 0 0 0 4px var(--bg-pure-white)",
+                  cursor: "pointer",
                 }}
               >
-                <p
+                <img
+                  src={image}
+                  alt="Employee"
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                />
+                <div
                   style={{
-                    margin: "0 0 2px",
-                    fontSize: "9px",
-                    textTransform: "uppercase",
-                    color: color.textLight,
-                    fontWeight: 600,
+                    position: "absolute",
+                    inset: 4,
+                    borderRadius: "50%",
+                    background: "rgba(15,23,42,0.45)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    opacity: isHover ? 1 : 0,
+                    transition: "opacity 0.2s ease",
                   }}
                 >
-                  Location
-                </p>
-                <p
+                  <Camera size={20} />
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+              </div>
+
+              <h1 style={{ margin: "12px 0 2px", fontSize: 17, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
+                {fullName}
+              </h1>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-400)" }}>{empCode}</div>
+
+              {/* Badges */}
+              <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                {[positionTitle, department, team]
+                  .filter((b) => b && b !== "—")
+                  .map((b, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 8,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        background: "var(--bg-blue-50)",
+                        color: "var(--premium-blue)",
+                      }}
+                    >
+                      {b}
+                    </span>
+                  ))}
+              </div>
+
+              {/* Active pill */}
+              <div style={{ marginTop: 12 }}>
+                <span
                   style={{
-                    margin: 0,
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    color: color.textSecondary,
+                    padding: "3px 12px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    background: "rgba(16,185,129,0.12)",
+                    color: "#10B981",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  {employment?.workLocation || "-"}
-                </p>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
+                  ACTIVE
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Info Cards */}
-          <div
-            style={{
-              display: "flex",
-              paddingTop: "24px",
-              gap: "12px",
-              flexDirection: "column",
-              width: "85%",
-            }}
-          >
-            <InfoCard
-              icon="🏢"
-              label="Reports To"
-              value={profile?.employment?.reportingManager || "-"}
-            />
-
-            <InfoCard
-              icon="⏳"
-              label="Experience"
-              value={calculateExperience(employment?.employeeJoiningDate)}
-            />
-
-            <InfoCard
-              icon="📅"
-              label="Date of Joining"
-              value={
-                employment?.employeeJoiningDate
-                  ? new Date(employment.employeeJoiningDate).toLocaleDateString(
-                    "en-IN", // Indian format DD/MM/YYYY
-                    { day: "2-digit", month: "short", year: "numeric" },
-                  )
-                  : "-"
-              }
-            />
+          {/* Info cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {statCards.map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 14px",
+                  background: "var(--bg-pure-white)",
+                  border: "1px solid var(--border-slate-100)",
+                  borderRadius: 12,
+                  boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
+                    background: "var(--bg-blue-50)",
+                    color: "var(--premium-blue)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.icon}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: "var(--text-slate-400)",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "var(--text-slate-900)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {s.value}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        </aside>
 
-        {/* right Side div */}
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            background: "var(--bg-pure-white)",
-            flex: 1, // 👈 Take remaining space
-            height: "100vh",
-            padding: "20px",
-            gap: "12px",
-            overflow: "hidden",
-          }}
-        >
-          {/* 🔹 Header */}
-          <div>
-            <h1
-              style={{
-                margin: "0 0 4px",
-                fontSize: "18px",
-                fontWeight: 700,
-                color: color.text,
-              }}
-            >
+        {/* ── RIGHT CONTENT ── */}
+        <main style={{ flex: 1, minWidth: 0, padding: "24px 28px 40px" }}>
+          <div style={{ marginBottom: 16 }}>
+            <h1 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 800, color: "var(--text-slate-900)", letterSpacing: "-0.02em" }}>
               Employee Details
             </h1>
-            <p style={{ margin: 0, fontSize: "12px", color: color.textMuted }}>
-              View employee information...!
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-slate-400)" }}>
+              Your personal, employment, payroll, history &amp; assets
             </p>
           </div>
 
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              minHeight: 0,
-              overflow: "auto",
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-100)",
+              borderRadius: 16,
+              padding: "16px 22px",
+              boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
             }}
           >
-            <Tabs
-              activeKey={selectedTab}
-              onChange={(key) => setSelectedTab(key)}
-              className="themed-profile-tabs"
-              items={[
-                {
-                  key: "personal",
-                  label: (
-                    <span style={{ fontWeight: 600 }}>Personal Details</span>
-                  ),
-                  children: (
-                    <div
-                      style={{
-                        height: "100%",
-                        overflowY: "hidden", // ❌ No scroll
-                      }}
-                    >
-                      <PersonalDetails
-                        profile={profile}
-                        personal={personal}
-                        employment={employment}
-                        currentUser={currentUser}
-                      />
-                    </div>
-                  ),
-                },
-                {
-                  key: "bank",
-                  label: (
-                    <span style={{ fontWeight: 600 }}>Bank & Payroll</span>
-                  ),
-                  children: (
-                    <div
-                      style={{
-                        height: "100%",
-                        overflowY: "hidden", // ❌ No scroll
-                      }}
-                    >
-                      <BankAndPayroll
-                        profile={profile}
-                        employment={employment}
-                      />
-                    </div>
-                  ),
-                },
-                {
-                  key: "history",
-                  label: <span style={{ fontWeight: 600 }}>History</span>,
-                  children: (
-                    <div
-                      style={{
-                        height: "100%",
-                        overflowY: "auto",
-                        paddingRight: "6px",
-                      }}
-                    >
-                      <EmployeeHistory profile={profile} />
-                    </div>
-                  ),
-                },
-              ]}
-              style={{ flex: 1 }}
-            />
+          <Tabs
+            activeKey={selectedTab}
+            onChange={(key) => setSelectedTab(key)}
+            className="themed-profile-tabs"
+            items={[
+              {
+                key: "personal",
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <User size={15} />
+                    Personal Details
+                  </span>
+                ),
+                children: (
+                  <div style={{ paddingTop: 4 }}>
+                    <PersonalDetails
+                      profile={profile}
+                      personal={personal}
+                      employment={employment}
+                      currentUser={currentUser}
+                    />
+                  </div>
+                ),
+              },
+              {
+                key: "employment",
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Briefcase size={15} />
+                    Employment
+                  </span>
+                ),
+                children: (
+                  <div style={{ paddingTop: 4 }}>
+                    <EmploymentDetails
+                      employment={employment}
+                      currentUser={currentUser}
+                      positions={positions}
+                    />
+                  </div>
+                ),
+              },
+              {
+                key: "bank",
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <CreditCard size={15} />
+                    Bank & Payroll
+                  </span>
+                ),
+                children: (
+                  <div style={{ paddingTop: 4 }}>
+                    <BankAndPayroll profile={profile} employment={employment} />
+                  </div>
+                ),
+              },
+              {
+                key: "history",
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <History size={15} />
+                    History
+                  </span>
+                ),
+                children: (
+                  <div style={{ paddingTop: 4 }}>
+                    <EmployeeHistory profile={profile} />
+                  </div>
+                ),
+              },
+              {
+                key: "assets",
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Laptop size={15} />
+                    Assets
+                  </span>
+                ),
+                children: (
+                  <div style={{ paddingTop: 4 }}>
+                    <Assets assets={profile?.assets} />
+                  </div>
+                ),
+              },
+            ]}
+          />
           </div>
-        </div>
+        </main>
+
         <style jsx global>{`
           .themed-profile-tabs .ant-tabs-nav::before {
             border-bottom: 1px solid var(--border-slate-100) !important;
+          }
+          .themed-profile-tabs .ant-tabs-tab {
+            padding: 10px 0 !important;
+            margin: 0 28px 0 0 !important;
           }
           .themed-profile-tabs .ant-tabs-tab-btn {
             color: var(--text-slate-500) !important;
@@ -606,11 +622,14 @@ const NewProfilePage = () => {
             color: var(--premium-blue) !important;
           }
           .themed-profile-tabs .ant-tabs-ink-bar {
+            height: 2.5px !important;
             background: var(--premium-blue) !important;
+            border-radius: 2px 2px 0 0;
           }
         `}</style>
-      </div>{" "}
+      </div>
     </MainLayout>
   );
 };
+
 export default NewProfilePage;

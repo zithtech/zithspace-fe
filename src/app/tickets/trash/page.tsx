@@ -13,6 +13,7 @@ import {
   Input,
   Popconfirm,
   Progress,
+  Select,
   Spin,
   Table,
   Tag,
@@ -23,6 +24,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   ClearOutlined,
   CloseOutlined,
@@ -79,7 +81,7 @@ export default function TrashPage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const { data: trashData, isLoading, refetch, isFetching } = useTrashTickets({
@@ -98,6 +100,10 @@ export default function TrashPage() {
   const total = trashData?.summary?.total || 0;
   const expiringSoon = trashData?.summary?.expiringSoon || 0;
 
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
   // Per-project trash counts: derived from the projectCounts returned by the backend
   const projectFilterOptions = useMemo<ProjectFilterOption[]>(() => {
     if (!projects) return [];
@@ -115,10 +121,7 @@ export default function TrashPage() {
     }));
   }, [projects, trashData?.summary?.projectCounts]);
 
-  const totalAcrossProjects = useMemo(
-    () => projectFilterOptions.reduce((acc, p) => acc + p.count, 0),
-    [projectFilterOptions]
-  );
+  const totalAcrossProjects = trashData?.summary?.totalAllTrash ?? 0;
 
   const handleRestore = async (ids?: string[]) => {
     const ticketIds = ids || (selectedRowKeys as string[]);
@@ -285,13 +288,15 @@ export default function TrashPage() {
             </Popconfirm>
           )}
           {canDeleteTicketTrash && (
-            <Popconfirm
-              title="Delete Permanently"
-              description="This action cannot be undone."
-              onConfirm={() => handlePermanentlyDelete([record.id])}
-              okText="Delete Forever"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined />}
+              title="Delete Forever?"
+              description={`Permanently delete ${record.ticketNumber}? This action cannot be undone.`}
+              confirmText="Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="bottomRight"
+              onConfirm={() => handlePermanentlyDelete([record.id])}
             >
               <Tooltip title="Delete forever">
                 <Button
@@ -302,7 +307,7 @@ export default function TrashPage() {
                   icon={<DeleteOutlined />}
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -349,13 +354,15 @@ export default function TrashPage() {
               />
             </Tooltip>
             {canDeleteTicketTrash && total > 0 && (
-              <Popconfirm
-                title="Empty Trash"
-                description="Permanently delete ALL tickets in trash? This cannot be undone."
-                onConfirm={handleEmptyTrash}
-                okText="Empty Trash"
+              <ConfirmDialog
+                tone="danger"
+                icon={<ClearOutlined />}
+                title="Empty Trash?"
+                description="Permanently delete ALL tickets in trash? This action cannot be undone."
+                confirmText="Empty Trash"
                 cancelText="Cancel"
-                okButtonProps={{ danger: true }}
+                placement="bottomRight"
+                onConfirm={handleEmptyTrash}
               >
                 <Button
                   danger
@@ -365,7 +372,7 @@ export default function TrashPage() {
                 >
                   Empty Trash
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             )}
           </>
         }
@@ -405,18 +412,20 @@ export default function TrashPage() {
                   </Button>
                 )}
                 {canDeleteTicketTrash && (
-                  <Popconfirm
-                    title="Delete Permanently"
-                    description={`Permanently delete ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}? This cannot be undone.`}
-                    onConfirm={() => handlePermanentlyDelete()}
-                    okText="Delete Forever"
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<DeleteOutlined />}
+                    title="Delete Forever?"
+                    description={`Permanently delete ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}? This action cannot be undone.`}
+                    confirmText="Delete"
                     cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
+                    placement="bottomRight"
+                    onConfirm={() => handlePermanentlyDelete()}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} loading={isPurging}>
                       Delete Forever
                     </Button>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 )}
                 <Button
                   type="text"
@@ -466,37 +475,70 @@ export default function TrashPage() {
               </div>
             ),
           }}
-          pagination={
-            tickets.length > 0
-              ? {
-                  current: page,
-                  pageSize,
-                  total: pagination?.total || 0,
-                  showSizeChanger: true,
-                  pageSizeOptions: ["15", "25", "50"],
-                  showTotal: (t, range) => (
-                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-                      Showing {range[0]}–{range[1]} of {t}
-                    </Text>
-                  ),
-                  onChange: (newPage, newPageSize) => {
-                    setPage(newPage);
-                    setPageSize(newPageSize);
-                  },
-                }
-              : false
-          }
+          pagination={false}
           scroll={{ x: 1100 }}
         />
+
+        {/* ── Sticky pagination footer ── */}
+        {tickets.length > 0 && (
+          <div className="trs2-footer">
+            <div className="trs2-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+              {selectedRowKeys.length > 0 && (
+                <span className="trs2-footer-sel"> · {selectedRowKeys.length} selected</span>
+              )}
+            </div>
+            <div className="trs2-pager">
+              <button
+                type="button"
+                className="trs2-pager-btn"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ‹
+              </button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1)
+                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                .map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`trs2-pager-num ${p === page ? "is-active" : ""}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+              <button
+                type="button"
+                className="trs2-pager-btn"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              >
+                ›
+              </button>
+              <Select
+                className="trs2-pagesize"
+                value={pageSize}
+                onChange={(v) => { setPageSize(v); setPage(1); }}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
+          </div>
+        )}
 
         <style jsx global>{`
           .trs2-table {
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-200);
-            border-radius: 12px;
+            border-radius: 0;
             overflow: hidden;
           }
-          [data-theme='dark'] .trs2-table { background: #0f1419; border-color: #1f2937; }
+          [data-theme='dark'] .trs2-table {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
           .trs2-table .ant-table-thead > tr > th {
             background: var(--bg-slate-50) !important;
             color: var(--text-slate-500) !important;
@@ -508,9 +550,9 @@ export default function TrashPage() {
             border-bottom: 1px solid var(--border-slate-200) !important;
           }
           [data-theme='dark'] .trs2-table .ant-table-thead > tr > th {
-            background: #0f1419 !important;
+            background: #0B0F1A !important;
             color: #94a3b8 !important;
-            border-bottom-color: #1f2937 !important;
+            border-bottom-color: #1F2937 !important;
           }
           .trs2-table .ant-table-thead > tr > th::before { display: none; }
           .trs2-table .ant-table-tbody > tr > td {
@@ -519,16 +561,74 @@ export default function TrashPage() {
             font-size: 12.5px;
           }
           [data-theme='dark'] .trs2-table .ant-table-tbody > tr > td {
-            background: #0f1419 !important;
-            border-bottom-color: #1f2937 !important;
+            background: #0B0F1A !important;
+            border-bottom-color: #1F2937 !important;
           }
           .trs2-table .ant-table-tbody > tr:hover > td {
             background: var(--bg-slate-50) !important;
           }
           [data-theme='dark'] .trs2-table .ant-table-tbody > tr:hover > td {
-            background: #111720 !important;
+            background: #161B22 !important;
           }
-          .trs2-table .ant-pagination { margin: 12px 0 !important; padding: 0 14px; }
+          .trs2-table .ant-pagination { display: none; }
+
+          /* ── Sticky footer pagination ── */
+          .trs2-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 16px;
+            height: 52px;
+            box-sizing: border-box;
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            background: var(--bg-pure-white);
+            border-top: 1px solid var(--border-slate-200);
+            box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
+            margin: auto -16px 0;
+            flex-shrink: 0;
+          }
+          [data-theme='dark'] .trs2-footer {
+            background: #0B0F1A;
+            border-top-color: #1F2937;
+            box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4);
+          }
+          .trs2-footer-info {
+            font-size: 12px;
+            color: var(--text-slate-500);
+          }
+          .trs2-footer-info strong {
+            color: var(--text-slate-700);
+            font-weight: 700;
+          }
+          [data-theme='dark'] .trs2-footer-info strong { color: #cbd5e1; }
+          .trs2-footer-sel { color: #3b82f6; font-weight: 600; }
+          .trs2-pager { display: flex; align-items: center; gap: 3px; }
+          .trs2-pager-btn, .trs2-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px;
+            border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600);
+            cursor: pointer; font-size: 12.5px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.12s ease;
+          }
+          .trs2-pager-btn:hover:not(:disabled), .trs2-pager-num:hover:not(.is-active) {
+            background: var(--bg-slate-50); border-color: var(--border-slate-300);
+          }
+          [data-theme='dark'] .trs2-pager-btn, [data-theme='dark'] .trs2-pager-num {
+            background: #161b22; border-color: #1f2937; color: #94a3b8;
+          }
+          [data-theme='dark'] .trs2-pager-btn:hover:not(:disabled),
+          [data-theme='dark'] .trs2-pager-num:hover:not(.is-active) {
+            background: #1f2937; border-color: #374151;
+          }
+          .trs2-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .trs2-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+          .trs2-pagesize { margin-left: 5px; }
+          .trs2-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
           .trs2-ticket-id {
             display: inline-block;

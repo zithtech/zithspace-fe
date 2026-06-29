@@ -694,7 +694,7 @@ export default function positionConfiguration() {
                   : item.leaveType?.toLowerCase().includes(searchText.toLowerCase()))
             )}
             size="small"
-            pagination={{ pageSize: 10 }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
             loading={loading}
           />
         ) : (
@@ -779,7 +779,7 @@ export default function positionConfiguration() {
               </List.Item>
             )}
             style={{ marginTop: 24 }}
-            pagination={{ pageSize: 9 }}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 9 }}
           />
         )}
 

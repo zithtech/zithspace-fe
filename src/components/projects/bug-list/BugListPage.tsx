@@ -148,7 +148,7 @@ export default function BugListPage() {
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { theme } = useTheme();
   const router = useRouter();
@@ -183,7 +183,7 @@ export default function BugListPage() {
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
-  const [filtersVisible, setFiltersVisible] = useState(true);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
@@ -1454,7 +1454,7 @@ export default function BugListPage() {
                   setLimit(v);
                   setPage(1);
                 }}
-                options={[10, 15, 25, 50, 100].map((n) => ({
+                options={[10, 20, 25, 50, 100].map((n) => ({
                   value: n,
                   label: `${n} / page`,
                 }))}

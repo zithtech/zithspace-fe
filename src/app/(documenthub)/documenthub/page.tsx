@@ -55,6 +55,7 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Button,
   Col,
@@ -580,7 +581,7 @@ const HubCard: React.FC<{
   onOpen: (id: string) => void;
   onToggleStar: (e: React.MouseEvent, hub: DocumentHub) => void;
   onShare: (e: React.MouseEvent, hub: DocumentHub) => void;
-  onDelete: (e: React.MouseEvent, id: string, name: string) => void;
+  onDelete: (id: string) => void;
   variant?: 'rail' | 'grid';
 }> = ({ hub, starred, onOpen, onToggleStar, onShare, onDelete, variant = 'rail' }) => {
   const { canDeleteDocument } = usePermission();
@@ -694,16 +695,28 @@ const HubCard: React.FC<{
               </button>
             </Tooltip>
             {canDeleteDocument && (
-              <Tooltip title="Move to trash">
-                <button
-                  type="button"
-                  onClick={(e) => onDelete(e, hub.id, hub.name)}
-                  className="dh-card-action-btn dh-card-action-danger"
-                  aria-label="Delete"
-                >
-                  <DeleteOutlined style={{ fontSize: 11 }} />
-                </button>
-              </Tooltip>
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={15} />}
+                title="Delete Document Hub"
+                description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                placement="topRight"
+                onConfirm={() => onDelete(hub.id)}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Tooltip title="Move to trash">
+                    <button
+                      type="button"
+                      className="dh-card-action-btn dh-card-action-danger"
+                      aria-label="Delete"
+                    >
+                      <DeleteOutlined style={{ fontSize: 11 }} />
+                    </button>
+                  </Tooltip>
+                </div>
+              </ConfirmDialog>
             )}
           </div>
         </div>
@@ -775,7 +788,7 @@ const DocumentHubPage = () => {
     { key: 'updatedAt', dir: 'descend' },
   );
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
   const [railVisibility, setRailVisibility] = useState<RailVisibility>(DEFAULT_RAILS);
   // Used by the "NEW" badge to re-render every minute so the pulse fades on schedule.
   const [, setTickNow] = useState(0);
@@ -965,24 +978,15 @@ const DocumentHubPage = () => {
     }
   };
 
-  const handleDeleteHub = (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation();
-    modal.confirm({
-      title: "Delete Document Hub",
-      content: `Are you sure you want to delete "${name}"? This will move it to trash.`,
-      okText: "Delete",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          await DocumentHubService.deleteDocumentHub(id);
-          messageApi.success("Document Hub moved to trash");
-          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
-        } catch (error) {
-          console.error(error);
-          messageApi.error("Failed to delete Document Hub");
-        }
-      },
-    });
+  const executeDeleteHub = async (id: string) => {
+    try {
+      await DocumentHubService.deleteDocumentHub(id);
+      messageApi.success("Document Hub moved to trash");
+      queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Failed to delete Document Hub");
+    }
   };
 
   const handleShareHub = (e: React.MouseEvent, hub: any) => {
@@ -1554,16 +1558,28 @@ const DocumentHubPage = () => {
             </button>
           </Tooltip>
           {canDeleteDocument && (
-            <Tooltip title="Move to trash">
-              <button
-                type="button"
-                onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-                className="dh-row-action-btn dh-row-action-danger"
-                aria-label="Delete"
-              >
-                <DeleteOutlined style={{ fontSize: 13 }} />
-              </button>
-            </Tooltip>
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={15} />}
+              title="Delete Document Hub"
+              description={`Are you sure you want to delete "${record.name}"? This will move it to trash.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => executeDeleteHub(record.id)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Move to trash">
+                  <button
+                    type="button"
+                    className="dh-row-action-btn dh-row-action-danger"
+                    aria-label="Delete"
+                  >
+                    <DeleteOutlined style={{ fontSize: 13 }} />
+                  </button>
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -1711,7 +1727,7 @@ const DocumentHubPage = () => {
                 onOpen={openHub}
                 onToggleStar={handleToggleStar}
                 onShare={handleShareHub}
-                onDelete={handleDeleteHub}
+                onDelete={executeDeleteHub}
                 variant="rail"
               />
             ))}
@@ -1732,7 +1748,7 @@ const DocumentHubPage = () => {
                 onOpen={openHub}
                 onToggleStar={handleToggleStar}
                 onShare={handleShareHub}
-                onDelete={handleDeleteHub}
+                onDelete={executeDeleteHub}
                 variant="rail"
               />
             ))}
@@ -2031,8 +2047,33 @@ const DocumentHubPage = () => {
                             { type: 'divider' as const },
                             {
                               key: 'delete',
-                              label: renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true),
-                              onClick: ({ domEvent }: any) => handleDeleteHub(domEvent, hub.id, hub.name)
+                              danger: true,
+                              label: (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  icon={<Trash2 size={15} />}
+                                  title="Delete Document Hub"
+                                  description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
+                                  confirmText="Delete"
+                                  cancelText="Cancel"
+                                  placement="left"
+                                  onConfirm={() => executeDeleteHub(hub.id)}
+                                >
+                                  <div
+                                    style={{
+                                      margin: '-5px -12px',
+                                      padding: '5px 12px',
+                                      width: 'calc(100% + 24px)',
+                                      height: '100%'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    {renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true)}
+                                  </div>
+                                </ConfirmDialog>
+                              )
                             }
                           ] : [])
                         ]
@@ -2293,7 +2334,7 @@ const DocumentHubPage = () => {
                 />
                 <RangePicker
                   className="premium-range-picker"
-                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
+                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 32 }}
                   value={dateRange}
                   onChange={(dates) => setDateRange(dates as any)}
                 />
@@ -2535,7 +2576,7 @@ const DocumentHubPage = () => {
                   pageSize={tablePageSize}
                   total={total}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                   onChange={(p, size) => { setTablePage(p); setTablePageSize(size); }}
                 />
               </div>
@@ -3171,10 +3212,9 @@ const DocumentHubPage = () => {
           -ms-overflow-style: none;     /* IE/Edge legacy */
         }
         .dh-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
-        /* Compact filters */
         .dh-side-filters .sd-trigger {
-          height: 35px !important;
-          min-height: 35px !important;
+          height: 32px !important;
+          min-height: 32px !important;
           font-size: 13px;
         }
         .premium-range-picker {
@@ -3549,13 +3589,59 @@ const DocumentHubPage = () => {
 
         /* Dark-mode surfaces */
         [data-theme="dark"] .dh-shell,
-        [data-theme="dark"] .dh-main { background: var(--bg-pure-white); }
-        [data-theme="dark"] .dh-side-view.active { background: var(--bg-slate-100); }
+        [data-theme="dark"] .dh-main { background: #0B0F1A !important; }
+        [data-theme="dark"] .dh-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #374151 !important;
+        }
+        [data-theme="dark"] .dh-sidebar-brand {
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .dh-side-trash {
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .dh-side-trash:hover {
+          color: #ef4444 !important;
+          border-color: #ef4444 !important;
+        }
+        [data-theme="dark"] .dh-side-view {
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .dh-side-view:hover {
+          background: rgba(255, 255, 255, 0.05) !important;
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .dh-side-view.active {
+          background: rgba(255, 255, 255, 0.05) !important;
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .dh-side-hub-name {
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .dh-side-hub:hover {
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme="dark"] .dh-main-topbar {
+          background: #0B0F1A !important;
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .dh-main-footer {
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
+          box-shadow: none !important;
+        }
+        [data-theme="dark"] .dh-footer-strong {
+          color: #F1F5F9 !important;
+        }
+        [data-theme="dark"] .dh-footer-summary {
+          color: #94a3b8 !important;
+        }
         [data-theme="dark"] .dh-recent-item:hover { background: rgba(255, 255, 255, 0.05); }
         [data-theme="dark"] .dh-recent-icon { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
         [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
         [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
-        [data-theme="dark"] .dh-side-hub:hover { background: rgba(255, 255, 255, 0.05); }
         /* removed dh-mobile-menu-btn dark override */
 
         .premium-table .ant-table-thead > tr > th {
@@ -3565,9 +3651,9 @@ const DocumentHubPage = () => {
             white-space: nowrap !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #161b22 !important;
-          color: #94a3b8 !important;
-          border-bottom-color: #1f2937 !important;
+          background: #161B22 !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #374151 !important;
         }
         .premium-table .ant-table-tbody > tr > td {
           border-bottom: 1px solid #f1f5f9;
@@ -3575,8 +3661,9 @@ const DocumentHubPage = () => {
           background: var(--bg-pure-white) !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
-          border-bottom-color: #1f2937 !important;
-          background: #161b22 !important;
+          border-bottom-color: #1F2937 !important;
+          background: #0B0F1A !important;
+          color: #F1F5F9 !important;
         }
         .premium-table .ant-table-row:hover > td,
         .premium-table .dh-row-focused > td {
@@ -3584,7 +3671,7 @@ const DocumentHubPage = () => {
         }
         [data-theme='dark'] .premium-table .ant-table-row:hover > td,
         [data-theme='dark'] .premium-table .dh-row-focused > td {
-          background: #1f2937 !important;
+          background: #161B22 !important;
         }
         .visibility-select .ant-select-selection-item {
           display: flex;
@@ -3651,7 +3738,7 @@ const DocumentHubPage = () => {
         }
         .dh-toolbar-wrapper { border-bottom: none !important; }
         [data-theme='dark'] .dh-hero, [data-theme='dark'] .dh-toolbar-wrapper, [data-theme='dark'] .dh-sticky-gap {
-          background: #0f172a !important;
+          background: #0B0F1A !important;
         }
 
         /* Filter bar */
@@ -3751,7 +3838,7 @@ const DocumentHubPage = () => {
         }
 
         [data-theme='dark'] .premium-table .ant-table-container {
-          border-color: rgba(255, 255, 255, 0.08) !important;
+          border-color: #374151 !important;
         }
 
         .premium-table .ant-table-thead > tr > th {
@@ -3784,9 +3871,9 @@ const DocumentHubPage = () => {
         }
 
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #0f172a !important;
-          border-top-color: rgba(255, 255, 255, 0.08) !important;
-          border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+          background: #161B22 !important;
+          border-top-color: #374151 !important;
+          border-bottom-color: #374151 !important;
         }
         
         .premium-table .ant-table-thead > tr > th:first-child {
@@ -3800,8 +3887,8 @@ const DocumentHubPage = () => {
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:first-child,
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:last-child {
-          border-left-color: rgba(255, 255, 255, 0.08) !important;
-          border-right-color: rgba(255, 255, 255, 0.08) !important;
+          border-left-color: #374151 !important;
+          border-right-color: #374151 !important;
         }
 
         /* Side borders for body rows */
@@ -3813,8 +3900,8 @@ const DocumentHubPage = () => {
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child,
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:last-child {
-          border-left-color: rgba(255, 255, 255, 0.08) !important;
-          border-right-color: rgba(255, 255, 255, 0.08) !important;
+          border-left-color: #1F2937 !important;
+          border-right-color: #1F2937 !important;
         }
 
         /* Bottom border and corners for the last row */
@@ -3828,7 +3915,7 @@ const DocumentHubPage = () => {
           border-bottom-right-radius: 0px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr:last-child > td {
-          border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+          border-bottom-color: transparent !important;
         }
 
         .dh-hero {
@@ -4260,8 +4347,8 @@ const DocumentHubPage = () => {
           padding: 10px 16px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-footer {
-          background: #0f172a !important;
-          border-top-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
         }
 
         /* Table settings popover (#C) */
@@ -4358,9 +4445,9 @@ const DocumentHubPage = () => {
           pointer-events: auto;
         }
         [data-theme='dark'] .dh-bulk-bar {
-          background: #0f172a;
-          border-color: #1f2937;
-          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45) !important;
         }
         .dh-bulk-btn {
           height: 30px !important;

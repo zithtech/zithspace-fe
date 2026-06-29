@@ -543,7 +543,7 @@ export default function ViewVendorPage() {
                     columns={clientColumns}
                     rowKey="id"
                     loading={fetchingRelations}
-                    pagination={{ pageSize: 5 }}
+                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
                     locale={{ emptyText: "No clients linked yet." }}
                   />
                 </div>
@@ -570,7 +570,7 @@ export default function ViewVendorPage() {
                     columns={partnerColumns}
                     rowKey="id"
                     loading={fetchingRelations}
-                    pagination={{ pageSize: 5 }}
+                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
                     locale={{ emptyText: "No implementation partners linked yet." }}
                   />
                 </div>

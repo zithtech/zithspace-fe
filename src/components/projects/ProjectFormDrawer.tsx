@@ -663,7 +663,11 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Required" }]}
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
+                      <DatePicker 
+                        size="large" 
+                        style={{ width: "100%", borderRadius: 6 }} 
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -676,7 +680,11 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                         </span>
                       }
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
+                      <DatePicker 
+                        size="large" 
+                        style={{ width: "100%", borderRadius: 6 }} 
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={24}>

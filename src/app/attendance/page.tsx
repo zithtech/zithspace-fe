@@ -2,22 +2,18 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
+import { ATTENDANCE_NAV_ITEMS, canAccessAttendanceItem } from '@/components/attendance/navItems';
 
-/**
- * Attendance Page
- * 
- * This page now serves as a redirector to the Attendance Dashboard.
- * The attendance module has been refactored into nested routes:
- * - /attendance/dashboard
- * - /attendance/clock-in-out
- * - /attendance/manage
- */
-export default function AttendancePage() {
+// /attendance index → redirect to the first page the user can access.
+export default function AttendanceIndex() {
   const router = useRouter();
+  const perms = usePermission() as unknown as Record<string, any>;
 
   useEffect(() => {
-    router.replace('/attendance/dashboard');
-  }, [router]);
+    const first = ATTENDANCE_NAV_ITEMS.find((i) => canAccessAttendanceItem(perms, i));
+    router.replace(first ? first.href : '/dashboard');
+  }, [perms, router]);
 
   return null;
 }

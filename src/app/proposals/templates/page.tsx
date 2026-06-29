@@ -2,14 +2,13 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-  Button, Input, Modal, Dropdown, message, Empty, Tooltip, Select,
+  Button, Dropdown, message, Select, Tooltip,
 } from 'antd';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import type { MenuProps } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EllipsisOutlined, EditOutlined, CopyOutlined,
   InboxOutlined, DeleteOutlined, RollbackOutlined, EyeOutlined, ArrowRightOutlined,
-  ArrowUpOutlined, ArrowDownOutlined, CloseOutlined, AppstoreOutlined, UnorderedListOutlined,
+  AppstoreOutlined, UnorderedListOutlined,
   BlockOutlined, FolderOpenOutlined, FileDoneOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 import { LayoutTemplate } from 'lucide-react';
@@ -17,18 +16,26 @@ import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
-import { CATEGORY_META, typeMeta } from '@/components/proposals/library/sectionMeta';
-import { THEME_PRESETS, resolveTheme } from '@/components/proposals/themePresets';
+import { resolveTheme } from '@/components/proposals/themePresets';
 import { nanoid } from 'nanoid';
 import {
   useProposalLibraryStore, LibraryTemplate, LibrarySection, blockTypeForSectionType,
 } from '@/store/proposalLibraryStore';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import TemplatePreviewModal from '@/components/proposals/TemplatePreviewModal';
 import '../library.css';
 
 type SavedView = 'all' | 'archived';
-const PAGE_SIZE_OPTIONS = [12, 24, 48];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+
+const BLOCK_TYPE_LABEL: Record<string, string> = {
+  cover: 'Cover', text: 'Text', section: 'Section', pricing: 'Pricing',
+  scope: 'Scope', timeline: 'Timeline', signature: 'Signature', component: 'Component',
+};
+const blockLabel = (b: any): string =>
+  (b?.data?.heading || b?.data?.title || BLOCK_TYPE_LABEL[b?.type] || 'Block');
 
 const trendFor = (seed: number): number[] =>
   Array.from({ length: 8 }, (_, i) => 3 + ((seed * 7 + i * i * 5) % 11));
@@ -74,9 +81,8 @@ function TemplatesContent() {
   const templates = useProposalLibraryStore((s) => s.templates);
   const sections = useProposalLibraryStore((s) => s.sections);
   const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
-  useEffect(() => { fetchSections(); }, [fetchSections]);
-  const createTemplate = useProposalLibraryStore((s) => s.createTemplate);
-  const updateTemplate = useProposalLibraryStore((s) => s.updateTemplate);
+  const fetchTemplates = useProposalLibraryStore((s) => s.fetchTemplates);
+  useEffect(() => { fetchSections(); fetchTemplates(true); }, [fetchSections, fetchTemplates]);
   const duplicateTemplate = useProposalLibraryStore((s) => s.duplicateTemplate);
   const archiveTemplate = useProposalLibraryStore((s) => s.archiveTemplate);
   const deleteTemplate = useProposalLibraryStore((s) => s.deleteTemplate);
@@ -87,27 +93,35 @@ function TemplatesContent() {
     return m;
   }, [sections]);
 
+  // A template's content count = composed blocks (legacy templates fall back to section refs).
+  const blockCount = (t: LibraryTemplate): number => (t.blocks?.length ?? t.sectionIds?.length ?? 0);
+  const chipLabels = (t: LibraryTemplate): string[] =>
+    (t.blocks?.length
+      ? t.blocks.map(blockLabel)
+      : (t.sectionIds || []).map((id) => sectionById.get(id)?.name).filter(Boolean) as string[]);
+
   const [searchText, setSearchText] = useState('');
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(12);
-
-  // ── Builder modal state ──────────────────────────────────────────────
-  const [builderOpen, setBuilderOpen] = useState(false);
-  const [editing, setEditing] = useState<LibraryTemplate | null>(null);
-  const [tplName, setTplName] = useState('');
-  const [tplDesc, setTplDesc] = useState('');
-  const [tplTheme, setTplTheme] = useState('azure');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [pickerSearch, setPickerSearch] = useState('');
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
 
+  const handleDeleteTemplate = async (t: LibraryTemplate) => {
+    try {
+      await deleteTemplate(t.id);
+      messageApi.success('Template deleted');
+    } catch (e: any) {
+      messageApi.error(e?.message || 'Failed to delete template');
+      throw e; // keep the confirm popover open on failure
+    }
+  };
+
   const activeCount = templates.filter((t) => !t.archived).length;
   const archivedCount = templates.filter((t) => t.archived).length;
-  const avgSections = activeCount
-    ? Math.round(templates.filter((t) => !t.archived).reduce((a, t) => a + t.sectionIds.length, 0) / activeCount)
+  const avgBlocks = activeCount
+    ? Math.round(templates.filter((t) => !t.archived).reduce((a, t) => a + blockCount(t), 0) / activeCount)
     : 0;
   const sectionCount = sections.filter((s) => !s.archived).length;
 
@@ -133,50 +147,20 @@ function TemplatesContent() {
     { key: 'archived', label: 'Archived', icon: <InboxOutlined />, color: '#64748b', count: archivedCount },
   ];
 
-  const openCreate = () => {
-    setEditing(null);
-    setTplName(''); setTplDesc(''); setTplTheme('azure'); setSelectedIds([]); setPickerSearch('');
-    setBuilderOpen(true);
-  };
-  const openEdit = (t: LibraryTemplate) => {
-    setEditing(t);
-    setTplName(t.name); setTplDesc(t.description || ''); setTplTheme(t.themeId);
-    setSelectedIds([...t.sectionIds]); setPickerSearch('');
-    setBuilderOpen(true);
-  };
-
-  const addSection = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  const removeSel = (id: string) => setSelectedIds((prev) => prev.filter((x) => x !== id));
-  const move = (idx: number, dir: -1 | 1) => {
-    setSelectedIds((prev) => {
-      const next = [...prev];
-      const j = idx + dir;
-      if (j < 0 || j >= next.length) return prev;
-      [next[idx], next[j]] = [next[j], next[idx]];
-      return next;
-    });
-  };
-
-  const saveTemplate = () => {
-    if (!tplName.trim()) { messageApi.warning('Give the template a name'); return; }
-    if (selectedIds.length === 0) { messageApi.warning('Add at least one section'); return; }
-    if (editing) {
-      updateTemplate(editing.id, { name: tplName.trim(), description: tplDesc, themeId: tplTheme, sectionIds: selectedIds });
-      messageApi.success('Template updated');
-    } else {
-      createTemplate({ name: tplName.trim(), description: tplDesc, themeId: tplTheme, sectionIds: selectedIds });
-      messageApi.success('Template created');
-    }
-    setBuilderOpen(false);
-  };
+  // "New Template" / "Edit" now open the full proposal builder in template mode,
+  // where the user composes with sections AND components, then saves.
+  const openCreate = () => router.push('/proposals/builder?template=1');
+  const openEdit = (t: LibraryTemplate) => router.push(`/proposals/builder?templateId=${t.id}`);
 
   const useTemplate = (t: LibraryTemplate) => {
-    const blocks = t.sectionIds
-      .map((id) => sectionById.get(id))
-      .filter(Boolean)
-      .map((sec) => ({ id: nanoid(), type: blockTypeForSectionType(sec!.type), data: { ...(sec!.data || {}) } }));
+    const blocks = (t.blocks && t.blocks.length)
+      ? t.blocks.map((b) => ({ ...b, id: nanoid() }))
+      : (t.sectionIds || [])
+          .map((id) => sectionById.get(id))
+          .filter(Boolean)
+          .map((sec) => ({ id: nanoid(), type: blockTypeForSectionType(sec!.type), data: { ...(sec!.data || {}) } }));
     if (blocks.length === 0) {
-      messageApi.warning('This template has no available sections');
+      messageApi.warning('This template is empty');
       return;
     }
     sessionStorage.setItem('pending_template_blocks', JSON.stringify({ blocks, themeId: t.themeId, fontId: t.fontId, name: t.name }));
@@ -185,42 +169,35 @@ function TemplatesContent() {
 
   const cardMenu = (t: LibraryTemplate): MenuProps => ({
     items: [
-      { key: 'preview', label: <MenuItem icon={<EyeOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Preview" desc="See the section order" /> },
+      { key: 'preview', label: <MenuItem icon={<EyeOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Preview" desc="See the block layout" /> },
       canCreateProposal ? { key: 'use', label: <MenuItem icon={<ArrowRightOutlined />} tint="rgba(5,150,105,0.10)" color="#059669" title="Use Template" desc="Start a proposal from this" /> } : null,
-      canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(37,99,235,0.10)" color="#2563eb" title="Edit" desc="Rename, reorder, retheme" /> } : null,
+      canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(37,99,235,0.10)" color="#2563eb" title="Edit" desc="Open in the builder" /> } : null,
       canCreateProposal ? { key: 'duplicate', label: <MenuItem icon={<CopyOutlined />} tint="rgba(100,116,139,0.10)" color="#475569" title="Duplicate" desc="Create an editable copy" /> } : null,
       canUpdateProposal ? {
         key: 'archive',
         label: <MenuItem icon={t.archived ? <RollbackOutlined /> : <InboxOutlined />} tint="rgba(100,116,139,0.10)" color="#64748b" title={t.archived ? 'Restore' : 'Archive'} desc={t.archived ? 'Bring back to the library' : 'Hide from the list'} />,
       } : null,
-      (canDeleteProposal && !t.system) ? { type: 'divider' } : null,
-      (canDeleteProposal && !t.system) ? { key: 'delete', danger: true, label: <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" /> } : null,
     ].filter(Boolean) as MenuProps['items'],
     onClick: ({ key, domEvent }) => {
       domEvent.stopPropagation();
       if (key === 'preview') setPreviewTpl(t);
       else if (key === 'use') useTemplate(t);
       else if (key === 'edit') openEdit(t);
-      else if (key === 'duplicate') { duplicateTemplate(t.id); messageApi.success('Template duplicated'); }
-      else if (key === 'archive') { archiveTemplate(t.id, !t.archived); messageApi.success(t.archived ? 'Template restored' : 'Template archived'); }
-      else if (key === 'delete') {
-        Modal.confirm({
-          title: 'Delete template?', content: `"${t.name}" will be permanently removed.`,
-          okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
-          onOk: () => { deleteTemplate(t.id); messageApi.success('Template deleted'); },
-        });
+      else if (key === 'duplicate') {
+        duplicateTemplate(t.id)
+          .then(() => messageApi.success('Template duplicated'))
+          .catch((e: any) => messageApi.error(e?.message || 'Failed to duplicate template'));
+      } else if (key === 'archive') {
+        archiveTemplate(t.id, !t.archived)
+          .then(() => messageApi.success(t.archived ? 'Template restored' : 'Template archived'))
+          .catch((e: any) => messageApi.error(e?.message || 'Failed to update template'));
       }
     },
   });
 
-  const pickerSections = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase();
-    return sections.filter((s) => !s.archived && (!q || `${s.name} ${s.category}`.toLowerCase().includes(q)));
-  }, [sections, pickerSearch]);
-
   const statCells = [
     { key: 'active', title: 'Active Templates', value: activeCount, icon: <AppstoreOutlined />, color: '#3B82F6', tint: 'var(--bg-blue-50)' },
-    { key: 'avg', title: 'Avg. Sections', value: avgSections, icon: <BlockOutlined />, color: '#2563eb', tint: 'rgba(37,99,235,0.10)' },
+    { key: 'avg', title: 'Avg. Blocks', value: avgBlocks, icon: <BlockOutlined />, color: '#2563eb', tint: 'rgba(37,99,235,0.10)' },
     { key: 'lib', title: 'Section Library', value: sectionCount, icon: <FolderOpenOutlined />, color: '#059669', tint: 'rgba(5,150,105,0.10)' },
     { key: 'arch', title: 'Archived', value: archivedCount, icon: <InboxOutlined />, color: '#475569', tint: 'rgba(71,85,105,0.10)' },
   ];
@@ -229,9 +206,9 @@ function TemplatesContent() {
     <div className="pp-empty">
       <div className="pp-empty-orb"><LayoutTemplate size={26} /></div>
       <div className="pp-empty-title">{savedView === 'archived' ? 'No archived templates' : 'No templates yet'}</div>
-      <div className="pp-empty-sub">{savedView === 'archived' ? 'Archived templates appear here.' : 'Compose a template from your section library.'}</div>
+      <div className="pp-empty-sub">{savedView === 'archived' ? 'Archived templates appear here.' : 'Build one in the proposal builder, then save it as a template.'}</div>
       {canCreateProposal && savedView !== 'archived' && (
-        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={openCreate} style={{ marginTop: 14 }}>Create Template</Button>
+        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={openCreate} style={{ marginTop: 14 }}>New Template</Button>
       )}
     </div>
   );
@@ -252,7 +229,7 @@ function TemplatesContent() {
 
           {canCreateProposal && (
             <Button type="primary" icon={<PlusOutlined />} className="pp-create-btn" onClick={openCreate} block>
-              Create Template
+              New Template
             </Button>
           )}
 
@@ -300,7 +277,7 @@ function TemplatesContent() {
             <div className="pp-topbar-meta">
               <span className="pp-meta-item"><span className="pp-pulse" /><strong>{activeCount}</strong> templates</span>
               <span className="pp-meta-dot">·</span>
-              <span className="pp-meta-item"><strong>{avgSections}</strong> avg sections</span>
+              <span className="pp-meta-item"><strong>{avgBlocks}</strong> avg blocks</span>
             </div>
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
@@ -338,7 +315,7 @@ function TemplatesContent() {
                 <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
               ) : paged.map((t) => {
                 const theme = resolveTheme(t.themeId);
-                const secs = t.sectionIds.map((id) => sectionById.get(id)).filter(Boolean) as LibrarySection[];
+                const chips = chipLabels(t);
                 return (
                   <div key={t.id} className="pc-card" onClick={() => setPreviewTpl(t)}>
                     <div className="pc-top">
@@ -348,13 +325,28 @@ function TemplatesContent() {
                       <div className="pc-identity-body">
                         <div className="pc-title">{t.name}</div>
                         <div className="pc-client-line">
-                          <span className="pc-client-key">Sections:</span>
-                          <span className="pc-client-val">{t.sectionIds.length}</span>
+                          <span className="pc-client-key">Blocks:</span>
+                          <span className="pc-client-val">{blockCount(t)}</span>
                         </div>
                       </div>
-                      <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
-                        <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}><EllipsisOutlined /></button>
-                      </Dropdown>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                        {canDeleteProposal && !t.system && (
+                          <ConfirmDialog
+                            tone="danger"
+                            icon={<DeleteOutlined />}
+                            title="Delete template?"
+                            description={`"${t.name}" will be permanently removed. Proposals already created from it are not affected.`}
+                            confirmText="Delete"
+                            placement="bottomRight"
+                            onConfirm={() => handleDeleteTemplate(t)}
+                          >
+                            <button type="button" className="pc-actions" title="Delete" style={{ color: '#ef4444' }}><DeleteOutlined /></button>
+                          </ConfirmDialog>
+                        )}
+                        <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+                          <button type="button" className="pc-actions"><EllipsisOutlined /></button>
+                        </Dropdown>
+                      </div>
                     </div>
                     <div className="pc-foot">
                       <div className="pc-foot-row">
@@ -370,8 +362,8 @@ function TemplatesContent() {
                         </span>
                       </div>
                       <div className="pc-foot-row">
-                        {secs.slice(0, 3).map((s) => <span key={s.id} className="lib-tpl__seq-chip">{s.name}</span>)}
-                        {secs.length > 3 && <span className="lib-tpl__seq-chip">+{secs.length - 3}</span>}
+                        {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
+                        {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
                       </div>
                       <div className="pc-foot-row">
                         <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); setPreviewTpl(t); }}>
@@ -409,126 +401,16 @@ function TemplatesContent() {
         </main>
       </div>
 
-      {/* ── Template Builder ─────────────────────────────────────────────── */}
-      <Modal
-        title={editing ? 'Edit Template' : 'Create Template'}
-        open={builderOpen}
-        onCancel={() => setBuilderOpen(false)}
-        onOk={saveTemplate}
-        okText={editing ? 'Save Template' : 'Create Template'}
-        width={860}
-        destroyOnClose
-      >
-        <div style={{ display: 'flex', gap: 12, marginBottom: 14, marginTop: 6 }}>
-          <Input placeholder="Template name" value={tplName} onChange={(e) => setTplName(e.target.value)} style={{ flex: 2 }} />
-          <SearchableDropdown
-            triggerLabel="Theme"
-            value={tplTheme}
-            onChange={(v) => v && setTplTheme(v)}
-            allowClear={false}
-            searchPlaceholder="Search themes"
-            itemNoun="themes"
-            width={200}
-            style={{ flex: 1 }}
-            options={THEME_PRESETS.map((p) => ({
-              value: p.id,
-              label: p.label,
-              badge: <span style={{ width: 16, height: 16, borderRadius: 4, display: 'block', background: `linear-gradient(135deg, ${p.from}, ${p.to})` }} />,
-            }))}
-          />
-        </div>
-        <Input.TextArea placeholder="Short description" value={tplDesc} onChange={(e) => setTplDesc(e.target.value)} autoSize={{ minRows: 1, maxRows: 2 }} style={{ marginBottom: 14 }} />
-
-        <div className="tpl-build">
-          <div className="tpl-build__col">
-            <div className="tpl-build__col-head">
-              <span>Available Sections</span>
-              <Input size="small" allowClear prefix={<SearchOutlined style={{ color: '#94a3b8' }} />} placeholder="Filter" value={pickerSearch} onChange={(e) => setPickerSearch(e.target.value)} style={{ width: 130 }} />
-            </div>
-            <div className="tpl-build__list">
-              {pickerSections.length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No sections" style={{ marginTop: 40 }} />
-              ) : pickerSections.map((s) => {
-                const meta = typeMeta(s.type);
-                const isSel = selectedIds.includes(s.id);
-                return (
-                  <div key={s.id} className={`tpl-pick ${isSel ? 'is-selected' : ''}`} onClick={() => (isSel ? removeSel(s.id) : addSection(s.id))}>
-                    <div className="tpl-pick__ic" style={{ background: meta.bg, color: meta.color }}>{meta.icon}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="tpl-pick__name">{s.name}</div>
-                      <div className="tpl-pick__cat">{CATEGORY_META[s.category].label} · {meta.label}</div>
-                    </div>
-                    {isSel ? <CloseOutlined style={{ color: '#94a3b8' }} /> : <PlusOutlined style={{ color: '#2563eb' }} />}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="tpl-build__col">
-            <div className="tpl-build__col-head">
-              <span>Selected Sections</span>
-              <span style={{ color: '#94a3b8', fontWeight: 600 }}>{selectedIds.length}</span>
-            </div>
-            <div className="tpl-build__list">
-              {selectedIds.length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Pick sections from the left" style={{ marginTop: 40 }} />
-              ) : selectedIds.map((id, idx) => {
-                const s = sectionById.get(id);
-                if (!s) return null;
-                const meta = typeMeta(s.type);
-                return (
-                  <div key={id} className="tpl-pick is-selected">
-                    <span className="tpl-pick__idx">{idx + 1}</span>
-                    <div className="tpl-pick__ic" style={{ background: meta.bg, color: meta.color }}>{meta.icon}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="tpl-pick__name">{s.name}</div>
-                      <div className="tpl-pick__cat">{CATEGORY_META[s.category].label}</div>
-                    </div>
-                    <Button type="text" size="small" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => move(idx, -1)} />
-                    <Button type="text" size="small" icon={<ArrowDownOutlined />} disabled={idx === selectedIds.length - 1} onClick={() => move(idx, 1)} />
-                    <Button type="text" size="small" danger icon={<CloseOutlined />} onClick={() => removeSel(id)} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ── Preview ──────────────────────────────────────────────────────── */}
-      <Modal
-        title={previewTpl ? `Preview · ${previewTpl.name}` : 'Preview'}
+      {/* ── Premium Preview ──────────────────────────────────────────────── */}
+      <TemplatePreviewModal
         open={!!previewTpl}
-        onCancel={() => setPreviewTpl(null)}
-        footer={[
-          <Button key="close" onClick={() => setPreviewTpl(null)}>Close</Button>,
-          canCreateProposal && previewTpl ? (
-            <Button key="use" type="primary" icon={<ArrowRightOutlined />} onClick={() => useTemplate(previewTpl)}>Use Template</Button>
-          ) : null,
-        ]}
-      >
-        {previewTpl && (
-          <div style={{ marginTop: 6 }}>
-            <div style={{ color: '#64748b', fontSize: 13, marginBottom: 14 }}>{previewTpl.description}</div>
-            {previewTpl.sectionIds.map((id, idx) => {
-              const s = sectionById.get(id);
-              if (!s) return null;
-              const meta = typeMeta(s.type);
-              return (
-                <div key={id} className="tpl-pick" style={{ cursor: 'default' }}>
-                  <span className="tpl-pick__idx">{idx + 1}</span>
-                  <div className="tpl-pick__ic" style={{ background: meta.bg, color: meta.color }}>{meta.icon}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="tpl-pick__name">{s.name}</div>
-                    <div className="tpl-pick__cat">{CATEGORY_META[s.category].label} · {meta.label}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Modal>
+        template={previewTpl}
+        canEdit={canUpdateProposal}
+        canUse={canCreateProposal}
+        onClose={() => setPreviewTpl(null)}
+        onEdit={(t) => openEdit(t)}
+        onUse={(t) => useTemplate(t)}
+      />
     </>
   );
 }

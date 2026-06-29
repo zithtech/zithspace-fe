@@ -68,16 +68,16 @@ const PALETTE = {
   emerald: "var(--mail-emerald)",
   amber: "var(--mail-amber)",
   rose: "var(--mail-rose)",
-  slate900: "var(--mail-text-primary)",
-  slate700: "var(--mail-text-secondary)",
-  slate500: "var(--mail-text-muted)",
-  slate400: "var(--mail-text-soft)",
-  slate300: "var(--mail-border-strong)",
-  slate200: "var(--mail-border)",
-  slate100: "var(--mail-surface-2)",
-  slate50: "var(--mail-surface-1)",
-  white: "var(--mail-surface)",
-  border: "var(--mail-border)",
+  slate900: "var(--text-slate-900)",
+  slate700: "var(--text-slate-700)",
+  slate500: "var(--text-slate-500)",
+  slate400: "var(--text-slate-400)",
+  slate300: "var(--border-slate-200)",
+  slate200: "var(--border-slate-200)",
+  slate100: "var(--bg-slate-100)",
+  slate50: "var(--bg-slate-50)",
+  white: "var(--bg-pure-white)",
+  border: "var(--border-slate-200)",
 };
 
 // Avatar style generator based on read status and folder
@@ -113,42 +113,42 @@ const FOLDERS = [
     label: "Inbox",
     icon: Inbox,
     color: "var(--mail-primary)",
-    tint: "var(--mail-tint-blue)",
+    tint: "var(--bg-blue-50)",
   },
   {
     key: "SENT",
     label: "Sent",
     icon: Send,
     color: "var(--mail-emerald)",
-    tint: "var(--mail-tint-emerald)",
+    tint: "var(--bg-green-50)",
   },
   {
     key: "DRAFTS",
     label: "Drafts",
     icon: FileText,
     color: "var(--mail-text-muted)",
-    tint: "var(--mail-surface-2)",
+    tint: "var(--bg-slate-100)",
   },
   {
     key: "SPAM",
     label: "Spam",
     icon: AlertOctagon,
     color: "var(--mail-rose)",
-    tint: "var(--mail-tint-rose)",
+    tint: "var(--bg-red-50)",
   },
   {
     key: "TRASH",
     label: "Trash",
     icon: Trash2,
     color: "var(--mail-text-muted)",
-    tint: "var(--mail-surface-2)",
+    tint: "var(--bg-slate-100)",
   },
   {
     key: "ARCHIVE",
     label: "Archive",
     icon: Archive,
     color: "var(--mail-text-muted)",
-    tint: "var(--mail-surface-2)",
+    tint: "var(--bg-slate-100)",
   },
 ];
 
@@ -607,13 +607,13 @@ function MailPageContent() {
         .mail-shell {
           height: calc(100vh - 64px);
           display: flex;
-          background: var(--mail-shell-bg);
+          background: var(--bg-pure-white);
           overflow: hidden;
         }
         .mail-sidebar {
           width: 224px;
           flex-shrink: 0;
-          background: var(--mail-sidebar-bg);
+          background: var(--bg-pure-white);
           border-right: 1px solid ${PALETTE.slate200};
           display: flex;
           flex-direction: column;
@@ -670,7 +670,7 @@ function MailPageContent() {
           background: ${PALETTE.slate50};
         }
         .mail-folder-item.active {
-          background: var(--mail-tint-blue);
+          background: var(--bg-blue-50);
         }
         .mail-folder-icon {
           font-size: 14px;
@@ -703,7 +703,7 @@ function MailPageContent() {
         .mail-folder-item.active .mail-folder-count {
           color: var(--mail-primary);
           font-weight: 700;
-          background: var(--mail-tint-blue);
+          background: var(--bg-blue-50);
           border-radius: 6px;
           padding: 1px 7px;
           min-width: 0;
@@ -722,7 +722,7 @@ function MailPageContent() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          background: var(--mail-topbar-bg);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid ${PALETTE.slate200};
           flex-shrink: 0;
         }
@@ -730,7 +730,7 @@ function MailPageContent() {
           flex: 1;
           max-width: 420px;
           height: 36px;
-          background: var(--mail-surface-1);
+          background: var(--bg-slate-50);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 6px;
           padding: 0 10px;
@@ -741,7 +741,7 @@ function MailPageContent() {
         }
         .mail-search:focus-within {
           border-color: var(--mail-border-strong);
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
         }
         .mail-search input {
           flex: 1;
@@ -756,7 +756,7 @@ function MailPageContent() {
           font-family: ui-monospace, SFMono-Regular, monospace;
           font-size: 10px;
           color: ${PALETTE.slate500};
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           padding: 1px 5px;
           border-radius: 3px;
           border: 1px solid ${PALETTE.slate200};
@@ -772,7 +772,7 @@ function MailPageContent() {
           transition: background 0.12s ease, border-color 0.12s ease;
         }
         .mail-icon-btn:hover {
-          background: var(--mail-surface-2);
+          background: var(--bg-slate-100);
           border-color: ${PALETTE.slate200};
         }
 
@@ -810,9 +810,9 @@ function MailPageContent() {
           cursor: pointer;
           transition: background 0.12s, color 0.12s;
         }
-        .filter-pill:hover { color: ${PALETTE.slate900}; background: var(--mail-surface-2); }
+        .filter-pill:hover { color: ${PALETTE.slate900}; background: var(--bg-slate-100); }
         .filter-pill.active {
-          background: var(--mail-surface-2);
+          background: var(--bg-slate-100);
           color: ${PALETTE.slate900};
           border-color: ${PALETTE.slate200};
         }
@@ -821,7 +821,7 @@ function MailPageContent() {
           margin-left: auto;
           display: flex; align-items: center; gap: 4px;
           padding: 2px 4px 2px 10px;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 6px;
           height: 28px;
@@ -842,9 +842,9 @@ function MailPageContent() {
           cursor: pointer;
           height: 22px;
         }
-        .bulk-action-btn:hover { background: var(--mail-surface-2); }
+        .bulk-action-btn:hover { background: var(--bg-slate-100); }
         .bulk-action-btn.danger { color: ${PALETTE.rose}; }
-        .bulk-action-btn.danger:hover { background: var(--mail-tint-rose); }
+        .bulk-action-btn.danger:hover { background: var(--bg-red-50); }
 
         .mail-thread-list-wrap {
           flex: 1; overflow-y: auto;
@@ -854,17 +854,17 @@ function MailPageContent() {
         .mail-thread-card {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 20px;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid ${PALETTE.slate100};
           cursor: pointer;
           transition: background 0.1s ease;
           position: relative;
         }
         .mail-thread-card:hover {
-          background: var(--mail-surface-1);
+          background: var(--bg-slate-50);
         }
         .mail-thread-card.selected {
-          background: var(--mail-card-selected-bg);
+          background: var(--bg-blue-50);
         }
         .mail-thread-card.selected::before {
           content: '';
@@ -934,7 +934,7 @@ function MailPageContent() {
         .mail-empty-icon {
           width: 44px; height: 44px;
           border-radius: 10px;
-          background: var(--mail-surface-2);
+          background: var(--bg-slate-50);
           border: 1px solid ${PALETTE.slate200};
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 14px;
@@ -951,7 +951,7 @@ function MailPageContent() {
         }
 
         .skeleton-row {
-          height: 56px; background: var(--mail-surface);
+          height: 56px; background: var(--bg-pure-white);
           border-bottom: 1px solid ${PALETTE.slate100};
           padding: 10px 20px;
           display: flex; gap: 10px;
@@ -973,16 +973,16 @@ function MailPageContent() {
         .mail-compose-drawer .ant-drawer-header {
           padding: 14px 24px;
           border-bottom: 1px solid ${PALETTE.slate200};
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
         }
         .mail-detail-drawer .ant-drawer-body,
         .mail-compose-drawer .ant-drawer-body {
           padding: 0;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
         }
         .mail-detail-drawer .ant-drawer-content,
         .mail-compose-drawer .ant-drawer-content {
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
         }
         .mail-detail-drawer .ant-drawer-close,
         .mail-compose-drawer .ant-drawer-close {
@@ -992,7 +992,7 @@ function MailPageContent() {
         .convo-header {
           padding: 18px 24px 14px;
           border-bottom: 1px solid ${PALETTE.slate200};
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
         }
         .convo-subject {
           font-size: 18px; font-weight: 700;
@@ -1016,7 +1016,7 @@ function MailPageContent() {
           font-size: 9px; font-weight: 700;
           color: white;
           margin-left: -5px;
-          border: 1.5px solid var(--mail-surface);
+          border: 1.5px solid var(--bg-pure-white);
           letter-spacing: 0.02em;
         }
         .convo-meta .pa-avatar:first-child { margin-left: 0; }
@@ -1024,7 +1024,7 @@ function MailPageContent() {
         .msg-row {
           padding: 0 24px;
           border-bottom: 1px solid ${PALETTE.slate100};
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           transition: background 0.12s;
         }
         .msg-row:last-child { border-bottom: none; }
@@ -1035,7 +1035,7 @@ function MailPageContent() {
           padding: 11px 0;
           cursor: pointer;
         }
-        .msg-row.collapsed:hover { background: var(--mail-surface-1); }
+        .msg-row.collapsed:hover { background: var(--bg-slate-50); }
         .msg-row.collapsed .msg-snippet {
           flex: 1; min-width: 0;
           font-size: 12.5px;
@@ -1088,7 +1088,7 @@ function MailPageContent() {
         .attach-card {
           display: flex; align-items: center; gap: 10px;
           padding: 8px 10px;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 8px;
           width: 280px;
@@ -1098,7 +1098,7 @@ function MailPageContent() {
         }
         .attach-card:hover {
           border-color: ${PALETTE.slate300};
-          background: var(--mail-surface-1);
+          background: var(--bg-slate-50);
         }
         .attach-icon {
           width: 32px; height: 32px;
@@ -1110,12 +1110,12 @@ function MailPageContent() {
         }
 
         .quick-reply-wrap {
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border-top: 1px solid ${PALETTE.slate200};
           padding: 14px 24px;
         }
         .quick-reply-box {
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 8px;
           padding: 10px 12px;
@@ -1126,7 +1126,7 @@ function MailPageContent() {
         }
 
         .compose-section {
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid ${PALETTE.slate100};
           padding: 6px 24px;
           display: flex; align-items: center; gap: 10px;
@@ -1150,7 +1150,7 @@ function MailPageContent() {
           padding: 2px 6px;
           border-radius: 4px;
         }
-        .compose-cc-toggle button:hover { background: var(--mail-surface-2); color: ${PALETTE.slate900}; }
+        .compose-cc-toggle button:hover { background: var(--bg-slate-100); color: ${PALETTE.slate900}; }
         .compose-cc-toggle button.active { color: var(--mail-primary); }
 
         .send-gradient-btn {
@@ -1169,7 +1169,7 @@ function MailPageContent() {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 4px 10px;
           height: 26px;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border: 1px solid ${PALETTE.slate200};
           border-radius: 999px;
           font-size: 12px; font-weight: 500;
@@ -1180,7 +1180,7 @@ function MailPageContent() {
         .ai-pill:hover:not(:disabled) {
           border-color: var(--mail-primary);
           color: var(--mail-primary);
-          background: var(--mail-tint-blue);
+          background: var(--bg-blue-50);
         }
         .ai-pill:disabled { opacity: 0.55; cursor: not-allowed; }
         .ai-pill .ai-icon {
@@ -1193,7 +1193,7 @@ function MailPageContent() {
         .ai-toolbar {
           display: flex; align-items: center; gap: 6px;
           padding: 8px 24px;
-          background: var(--mail-surface);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid ${PALETTE.slate100};
           flex-wrap: wrap;
         }
@@ -2213,7 +2213,7 @@ function MailPageContent() {
                 tagRender={(props) => (
                   <span
                     style={{
-                      background: "var(--mail-surface-2)",
+                      background: "var(--bg-slate-100)",
                       color: PALETTE.slate900,
                       padding: "1px 7px",
                       borderRadius: 4,
@@ -2342,7 +2342,7 @@ function MailPageContent() {
             </Tooltip>
           </div>
 
-          <div style={{ background: "var(--mail-surface)", padding: "16px 24px" }}>
+          <div style={{ background: "var(--bg-pure-white)", padding: "16px 24px" }}>
             <Form.Item
               name="body"
               rules={[{ required: true, message: "Message body is required" }]}
@@ -2359,7 +2359,7 @@ function MailPageContent() {
           <div
             style={{
               padding: "12px 24px",
-              background: "var(--mail-surface)",
+              background: "var(--bg-pure-white)",
               borderTop: `1px solid ${PALETTE.slate200}`,
               display: "flex",
               alignItems: "center",

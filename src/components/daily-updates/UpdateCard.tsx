@@ -10,13 +10,16 @@ import {
   Row,
   Col,
   Dropdown,
-  Modal,
   Badge,
   App,
+  Button,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   MoreOutlined,
   ProjectOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import {
   Clock,
@@ -28,7 +31,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Zap,
-  Activity
+  Activity,
+  MoreVertical,
 } from "lucide-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -62,8 +66,6 @@ export default function UpdateCard({
   onDelete,
 }: UpdateCardProps) {
   const { message: messageApi } = App.useApp();
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
   const { canUpdateDailyUpdate, canDeleteDailyUpdate } = usePermission();
   const { user } = useAuth();
@@ -79,19 +81,76 @@ export default function UpdateCard({
   const isEditable = dayjs().diff(dayjs(update.createdAt), "hour") < 24;
 
   const handleConfirmDelete = async () => {
-    if (isDeleting) return;
     try {
-      setIsDeleting(true);
       await DailyUpdateService.deleteUpdate(update.id);
       messageApi.success("Daily update deleted successfully");
       onDelete();
     } catch (err: any) {
       messageApi.error(err.message || "Failed to delete update");
-    } finally {
-      setIsDeleting(false);
-      setIsDeleteModalOpen(false);
+      throw err;
     }
   };
+
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="du-menu-item">
+      <span className="du-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="du-menu-text">
+        <span className="du-menu-title">{title}</span>
+        <span className="du-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  const isOwner = user?.id === update.userId;
+  const editDisabled = !isEditable || !canUpdateDailyUpdate;
+
+  const items: any[] = [];
+
+  if (isOwner) {
+    items.push({
+      key: 'edit',
+      disabled: editDisabled,
+      label: menuLabel('Edit', 'Modify this update', <EditOutlined />, '#64748b', 'rgba(100,116,139,0.12)')
+    });
+  }
+
+  if (canDeleteDailyUpdate) {
+    if (items.length > 0) {
+      items.push({
+        type: 'divider'
+      });
+    }
+    items.push({
+      key: 'delete',
+      danger: true,
+      label: (
+        <ConfirmDialog
+          tone="danger"
+          icon={<Trash2 size={15} />}
+          title="Delete Update?"
+          description="Are you sure you want to delete this status update? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          placement="left"
+          onConfirm={handleConfirmDelete}
+        >
+          <div
+            style={{
+              margin: '-5px -12px',
+              padding: '5px 12px',
+              width: 'calc(100% + 24px)',
+              height: '100%'
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {menuLabel('Delete', 'Remove this update', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+          </div>
+        </ConfirmDialog>
+      )
+    });
+  }
 
   return (
     <>
@@ -136,41 +195,28 @@ export default function UpdateCard({
               </div>
             </div>
 
-
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  ...(user?.id === update.userId ? [{ key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable || !canUpdateDailyUpdate }] : []),
-                  { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true, disabled: !canDeleteDailyUpdate },
-                ],
-                onClick: (info) => {
-                  info.domEvent.stopPropagation();
-                  if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
-                  if (info.key === "delete") setIsDeleteModalOpen(true);
-                },
-              }}
-            >
-              <button
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  flexShrink: 0, width: 26, height: 26, borderRadius: 6, border: "none", cursor: "pointer",
-                  background: "transparent", color: "var(--text-slate-400)", display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.2s",
-                  marginRight: 10
+            {items.length > 0 && (
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  items,
+                  onClick: (info) => {
+                    info.domEvent.stopPropagation();
+                    if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
+                  },
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--bg-slate-100)";
-                  e.currentTarget.style.color = "var(--text-slate-900)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--text-slate-400)";
-                }}
+                placement="bottomRight"
+                overlayClassName="du-action-pop"
               >
-                <MoreOutlined />
-              </button>
-            </Dropdown>
+                <Button
+                  type="text"
+                  className="du-icon-btn"
+                  icon={<MoreVertical size={18} />}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ marginRight: 10 }}
+                />
+              </Dropdown>
+            )}
           </div>
 
           {/* Foot Section (slate-50 background, containing both pills and dates) */}
@@ -224,28 +270,6 @@ export default function UpdateCard({
           </div>
         </Card>
       </Badge.Ribbon>
-
-      <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "var(--bg-leave)", padding: 8, borderRadius: 10, color: "var(--text-leave)" }}>
-              <AlertCircle size={20} />
-            </div>
-            <span>Delete Daily Update</span>
-          </div>
-        }
-        open={isDeleteModalOpen}
-        onOk={handleConfirmDelete}
-        onCancel={() => setIsDeleteModalOpen(false)}
-        okText="Delete Update"
-        okType="danger"
-        cancelText="Keep it"
-        confirmLoading={isDeleting}
-        centered
-        style={{ borderRadius: 16 }}
-      >
-        <p style={{ color: "var(--text-slate-600)" }}>Are you sure you want to delete this status update? This action cannot be undone.</p>
-      </Modal>
     </>
   );
 }

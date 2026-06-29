@@ -80,17 +80,17 @@ export default function CalendarSidebar({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 20,
-                background: 'var(--cal-surface)',
+                background: 'var(--bg-pure-white)',
             }}
         >
             {/* Mini calendar */}
             <div
                 className="mini-calendar"
                 style={{
-                    border: '1px solid var(--cal-border)',
+                    border: '1px solid var(--border-slate-200)',
                     borderRadius: 14,
                     padding: 12,
-                    background: 'var(--cal-surface)',
+                    background: 'var(--bg-pure-white)',
                     boxShadow: 'var(--cal-card-shadow)',
                 }}
             >

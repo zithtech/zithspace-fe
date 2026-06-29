@@ -40,7 +40,7 @@ export default function AccountTrashPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [searchText, setSearchText] = useState("");
 
   const fetchTrash = async () => {
@@ -227,8 +227,7 @@ export default function AccountTrashPage() {
             dataSource={transactions}
             rowKey="id"
             loading={loading}
-            pagination={{
-              current: page,
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
               pageSize: pageSize,
               total: total,
               onChange: (p, s) => {

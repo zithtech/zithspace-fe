@@ -6,10 +6,12 @@ import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
-import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col, Select, DatePicker, Tooltip } from "antd";
+import { Table, Tag, Button, Typography, Space, App, Tabs, Card, Row, Col, Select, DatePicker, Tooltip } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { AlertTriangle } from "lucide-react";
 
 const { RangePicker } = DatePicker;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import { parseDecimal } from "@/services/ticketService";
@@ -223,14 +225,18 @@ export function MyTimeTracker({
 
           if (canCreateTimeTracking) {
             return (
-              <Popconfirm
+              <ConfirmDialog
+                tone="warning"
                 title="Stop All Active Timers"
                 description="Are you sure you want to stop all running timers?"
-                onConfirm={(e) => handleStopAll(e as any)}
-                onCancel={(e) => e?.stopPropagation()}
+                onConfirm={handleStopAll}
+                confirmText="Stop All"
+                cancelText="Cancel"
+                placement="left"
+                icon={<AlertTriangle size={16} />}
               >
                 {tagEl}
-              </Popconfirm>
+              </ConfirmDialog>
             );
           }
           return tagEl;
@@ -275,9 +281,18 @@ export function MyTimeTracker({
             />
           )}
           {canDeleteTimeTracking && (
-            <Popconfirm title="Delete this entry?" onConfirm={() => handleDelete(record.id)}>
+            <ConfirmDialog
+              tone="danger"
+              title="Delete this entry?"
+              description="Are you sure you want to delete this time entry? This action cannot be undone."
+              onConfirm={() => handleDelete(record.id)}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              icon={<AlertTriangle size={16} />}
+            >
               <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'RUNNING'} />
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </Space>
       ),
@@ -386,10 +401,15 @@ export function MyTimeTracker({
           
           <div className="mtt-team-filters">
             {canCreateTimeTracking && runningCount > 0 && (
-              <Popconfirm
+              <ConfirmDialog
+                tone="warning"
                 title="Stop all running timers?"
                 description="This will stop every active timer for the day."
-                onConfirm={(e) => handleStopAll(e as any)}
+                onConfirm={handleStopAll}
+                confirmText="Stop All"
+                cancelText="Cancel"
+                placement="bottomRight"
+                icon={<AlertTriangle size={16} />}
               >
                 <Button
                   size="small"
@@ -399,7 +419,7 @@ export function MyTimeTracker({
                 >
                   Stop All
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             )}
 
             <RangePicker
@@ -615,6 +635,11 @@ export function MyTimeTracker({
           padding: 12px 16px !important;
           white-space: nowrap !important;
         }
+        [data-theme='dark'] .mtt-team-card .ant-table-thead > tr > th {
+          background: #0B0F1A !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #1F2937 !important;
+        }
         .ant-table-tbody > tr > td {
           padding: 8px 16px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
@@ -622,8 +647,16 @@ export function MyTimeTracker({
           font-size: 14px !important;
           color: var(--text-slate-900) !important;
         }
+        [data-theme='dark'] .mtt-team-card .ant-table-tbody > tr > td {
+          background-color: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+          color: #E2E8F0 !important;
+        }
         .ant-table-row:hover > td {
           background-color: var(--bg-table-header) !important;
+        }
+        [data-theme='dark'] .mtt-team-card .ant-table-row:hover > td {
+          background-color: #161B22 !important;
         }
         .running-row {
           background-color: var(--bg-running-row) !important;
@@ -686,9 +719,30 @@ export function MyTimeTracker({
         .mtt-pagesize.ant-select .ant-select-selector {
           height: 28px !important; border-radius: 7px !important; font-size: 12.5px !important; font-weight: 600 !important;
         }
-        [data-theme='dark'] .mtt-footer, [data-theme='dark'] .mtt-footer--fixed { background: var(--bg-secondary); border-color: rgba(255,255,255,0.06); }
-        [data-theme='dark'] .mtt-pager-btn, [data-theme='dark'] .mtt-pager-num { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); color: var(--text-slate-400); }
-        [data-theme='dark'] .mtt-pager-num.is-active { background: #3B82F6; color: white; border-color: #3B82F6; }
+        [data-theme='dark'] .mtt-footer,
+        [data-theme='dark'] .mtt-footer--fixed {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          box-shadow: 0 -4px 14px rgba(0,0,0,0.2);
+        }
+        [data-theme='dark'] .mtt-pager-btn,
+        [data-theme='dark'] .mtt-pager-num {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-pager-num.is-active {
+          background: #3B82F6 !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+        }
+        [data-theme='dark'] .mtt-pagesize.ant-select .ant-select-selector {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .mtt-footer-info { color: #94A3B8; }
+        [data-theme='dark'] .mtt-footer-info strong { color: #CBD5E1; }
       `}</style>
     </div>
   );

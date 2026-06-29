@@ -21,6 +21,9 @@ import type { MenuProps } from 'antd';
 import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SnippetsOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { ProposalTemplateService } from '@/services/proposalTemplateService';
+import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
+import SaveAsTemplateModal from '@/components/proposals/SaveAsTemplateModal';
 import { useTheme } from '@/context/ThemeContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Sparkles, Wand2, Command as CommandIcon } from 'lucide-react';
@@ -40,8 +43,23 @@ function BuilderContent() {
   const router = useRouter();
   const [messageApi, messageHolder] = message.useMessage();
   const proposalId = searchParams.get('id');
+  // ─── Template mode ──────────────────────────────────────────────────────────
+  // ?templateId=<id> → edit an existing template · ?template=1 → author a new one.
+  const templateId = searchParams.get('templateId');
+  const isNewTemplate = searchParams.get('template') === '1';
+  const isTemplateMode = !!templateId || isNewTemplate;
+  const createTemplate = useProposalLibraryStore((s) => s.createTemplate);
+  const updateTemplate = useProposalLibraryStore((s) => s.updateTemplate);
+
   const { blocks, addBlock, reorderBlocks, setBlocks, setSelectedBlockId } = useProposalStore();
   const selectedBlockId = useProposalStore((s) => s.selectedBlockId);
+  const documentTheme = useProposalStore((s) => s.documentTheme);
+
+  // "Save (as) Template" modal
+  const [tplModalOpen, setTplModalOpen] = useState(false);
+  const [tplName, setTplName] = useState('');
+  const [tplDesc, setTplDesc] = useState('');
+  const [tplSaving, setTplSaving] = useState(false);
 
   // These blocks are edited via the right panel; only composed components edit inline.
   const STRUCTURED_TYPES = ['cover', 'pricing', 'scope', 'timeline', 'signature', 'text', 'section'];
@@ -110,6 +128,40 @@ function BuilderContent() {
         'signature': 6,
         'section': 7
       };
+
+      // ─── TEMPLATE MODE ──────────────────────────────────────────────────
+      // Editing an existing template: hydrate the canvas from its blocks.
+      if (templateId) {
+        try {
+          const tpl: any = await ProposalTemplateService.getById(templateId);
+          const tplBlocks = Array.isArray(tpl?.blocks) ? tpl.blocks : [];
+          setTplName(tpl?.name || '');
+          setTplDesc(tpl?.description || '');
+          if (tpl?.themeId) {
+            useProposalStore.getState().setDocumentTheme({ themeId: tpl.themeId, fontId: tpl.fontId || 'inter' });
+          }
+          if (tplBlocks.length) {
+            setBlocks(tplBlocks);
+          } else {
+            setBlocks([]);
+            addBlock('cover');
+          }
+          messageApi.success({ content: `Loaded template "${tpl?.name || ''}"`, key: 'load_data' });
+        } catch (e) {
+          console.error('Failed to load template:', e);
+          messageApi.error({ content: 'Template could not be loaded.', key: 'load_data' });
+          setBlocks([]);
+          addBlock('cover');
+        }
+        return;
+      }
+      // Authoring a brand-new template: start from a Cover, same as a new proposal.
+      if (isNewTemplate) {
+        setBlocks([]);
+        addBlock('cover');
+        setIsPropertiesVisible(true);
+        return;
+      }
 
       if (!proposalId) {
         // 0. CHECK IF WE HAVE A PENDING TEMPLATE (from the Template Library)
@@ -231,7 +283,7 @@ function BuilderContent() {
     };
 
     fetchProposal();
-  }, [proposalId, setBlocks, addBlock, messageApi]);
+  }, [proposalId, templateId, isNewTemplate, setBlocks, addBlock, messageApi]);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -817,6 +869,47 @@ function BuilderContent() {
     }
   };
 
+  // ─── Save (as) Template ───────────────────────────────────────────────────
+  // Opens the name/description modal. In proposal mode this turns the current
+  // proposal into a reusable template; in template mode it saves the template.
+  const openTemplateModal = () => {
+    if (!templateId && !tplName.trim()) {
+      const cover = useProposalStore.getState().blocks.find((b: any) => b.type === 'cover');
+      if (cover?.data?.title?.trim()) setTplName(`${cover.data.title.trim()} Template`);
+    }
+    setTplModalOpen(true);
+  };
+
+  const persistTemplate = async () => {
+    if (!tplName.trim()) {
+      messageApi.warning('Give the template a name');
+      return;
+    }
+    const liveBlocks = useProposalStore.getState().blocks;
+    if (!liveBlocks.length) {
+      messageApi.warning('Add at least one section or component before saving as a template.');
+      return;
+    }
+    const { themeId, fontId } = useProposalStore.getState().documentTheme;
+    setTplSaving(true);
+    try {
+      if (templateId) {
+        await updateTemplate(templateId, { name: tplName.trim(), description: tplDesc, blocks: liveBlocks, themeId, fontId });
+        messageApi.success({ content: 'Template updated', key: 'save_template' });
+      } else {
+        await createTemplate({ name: tplName.trim(), description: tplDesc, blocks: liveBlocks, themeId, fontId });
+        messageApi.success({ content: 'Saved as template', key: 'save_template' });
+      }
+      setTplModalOpen(false);
+      setTimeout(() => router.push('/proposals/templates'), 800);
+    } catch (err: any) {
+      console.error('Save template error:', err);
+      messageApi.error({ content: err?.message || 'Failed to save template', key: 'save_template' });
+    } finally {
+      setTplSaving(false);
+    }
+  };
+
   const handleExport = async (format: 'pdf' | 'word') => {
     const key = 'exporting';
     try {
@@ -872,13 +965,15 @@ function BuilderContent() {
               <SnippetsOutlined style={{ fontSize: 18 }} />
             </div>
             <div className="pb-header__title-wrap">
-              <Title level={4} className="pb-header__title premium-title">Proposal Builder</Title>
-              <Text className="pb-header__sub premium-text-sec">Draft and design your perfect proposal</Text>
+              <Title level={4} className="pb-header__title premium-title">{isTemplateMode ? 'Template Builder' : 'Proposal Builder'}</Title>
+              <Text className="pb-header__sub premium-text-sec">{isTemplateMode ? 'Compose a reusable template' : 'Draft and design your perfect proposal'}</Text>
             </div>
-            <span className="pb-status-pill">
-              <span className="pb-status-pill__dot" />
-              Auto-saved
-            </span>
+            {!isTemplateMode && (
+              <span className="pb-status-pill">
+                <span className="pb-status-pill__dot" />
+                Auto-saved
+              </span>
+            )}
           </div>
         </div>
         <div className="pb-header__actions">
@@ -901,7 +996,7 @@ function BuilderContent() {
               <kbd>K</kbd>
             </span>
           </button>
-          {canUpdateProposal && (
+          {!isTemplateMode && canUpdateProposal && (
           <Button
             className="pb-zai-cta"
             onClick={() => setEndToEndOpen(true)}
@@ -913,22 +1008,46 @@ function BuilderContent() {
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
           </Button>
-          {canUpdateProposal && (
+          {!isTemplateMode && canUpdateProposal && (
             <Dropdown menu={{ items: exportMenu }} placement="bottomRight">
               <Button className="pb-action-btn" icon={<DownloadOutlined />}>
                 Export
               </Button>
             </Dropdown>
           )}
-          {((proposalId && canUpdateProposal) || (!proposalId && canCreateProposal)) && (
-            <Button
-              className="pb-action-btn pb-action-btn--primary"
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={() => handleSave()}
-            >
-              {proposalId ? 'Save Changes' : 'Save'}
-            </Button>
+          {isTemplateMode ? (
+            canCreateProposal && (
+              <Button
+                className="pb-action-btn pb-action-btn--primary"
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={openTemplateModal}
+              >
+                {templateId ? 'Save Template' : 'Create Template'}
+              </Button>
+            )
+          ) : (
+            <>
+              {canCreateProposal && (
+                <Button
+                  className="pb-action-btn"
+                  icon={<SnippetsOutlined />}
+                  onClick={openTemplateModal}
+                >
+                  Save as Template
+                </Button>
+              )}
+              {((proposalId && canUpdateProposal) || (!proposalId && canCreateProposal)) && (
+                <Button
+                  className="pb-action-btn pb-action-btn--primary"
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={() => handleSave()}
+                >
+                  {proposalId ? 'Save Changes' : 'Save'}
+                </Button>
+              )}
+            </>
           )}
           <Button
             type="text"
@@ -1000,6 +1119,21 @@ function BuilderContent() {
       <EndToEndZaiModal
         visible={endToEndOpen}
         onClose={() => setEndToEndOpen(false)}
+      />
+
+      <SaveAsTemplateModal
+        open={tplModalOpen}
+        variant={templateId ? 'edit' : (isNewTemplate ? 'create' : 'save')}
+        blockCount={blocks.length}
+        themeId={documentTheme.themeId}
+        fontId={documentTheme.fontId}
+        name={tplName}
+        onNameChange={setTplName}
+        description={tplDesc}
+        onDescriptionChange={setTplDesc}
+        saving={tplSaving}
+        onCancel={() => setTplModalOpen(false)}
+        onSave={persistTemplate}
       />
 
       <FloatingAIToolbar />

@@ -725,8 +725,7 @@ export default function ReleasePlanComponent() {
           dataSource={releasePlans}
           rowKey="id"
           loading={loading}
-          pagination={{
-            pageSize: 10,
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>

@@ -228,8 +228,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ sprintId }) => {
           dataSource={data.logs}
           rowKey="id"
           loading={isLoading}
-          pagination={{
-            current: page,
+          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
             pageSize: 20,
             total: data.pagination.total,
             showSizeChanger: false,

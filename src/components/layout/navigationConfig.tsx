@@ -49,6 +49,7 @@ import {
   Megaphone,
   Sparkles,
   Settings2,
+  Zap,
   // ADMIN
   Building2,
   Settings,
@@ -172,7 +173,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/squad", "/time-tracking", "/org-structure"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -201,7 +202,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LEAD_READ,
       Permissions.LEAD_SETTING_READ,
       Permissions.LEAD_TRASH_READ,
-      Permissions.ORG_READ,
     ],
     items: [
       {
@@ -526,14 +526,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        // Submodule navigation moved into the in-page left sidebar
-        // (see src/app/org-structure/layout.tsx). Each submodule keeps its
-        // own URL; this single entry opens the module on its Overview page.
-        key: "/org-structure",
-        icon: I(Network),
-        label: "Org-structure",
-        path: "/org-structure/overview",
-        requiredPermission: Permissions.ORG_READ,
+        key: "/bidiq",
+        label: "BidIq",
+        icon: I(Zap),
+        path: "/bidiq",
+        requiredPermission: Permissions.BIDIQ_READ,
       },
     ],
   },
@@ -549,6 +546,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/roles",
       "/members",
       "/members/trash",
+      "/org-structure",
     ],
     defaultPath: "/clients-v2",
     requiredAnyPermission: [
@@ -557,6 +555,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ROLE_READ,
       Permissions.USER_READ,
       Permissions.USER_TRASH_READ,
+      Permissions.ORG_READ,
     ],
     items: [
       {
@@ -647,6 +646,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/roles",
         requiredPermission: Permissions.ROLE_READ,
       },
+      {
+        // Submodule navigation moved into the in-page left sidebar
+        // (see src/app/org-structure/layout.tsx). Each submodule keeps its
+        // own URL; this single entry opens the module on its Overview page.
+        key: "/org-structure",
+        icon: I(Network),
+        label: "Org Structure",
+        path: "/org-structure/overview",
+        requiredPermission: Permissions.ORG_READ,
+      },
     ],
   },
 
@@ -668,10 +677,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leave-policy",
       "/leave-configuration",
       "/leave",
+      "/leaves-v2",
       "/add-goverment-leaves",
       "/onboarding",
       "/employee-exit",
       "/performance",
+      "/performance-report",
       "/perfomance-management",
       "/opening-management",
     ],
@@ -681,6 +692,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ATTENDANCE_READ,
       Permissions.LEAVE_READ,
       Permissions.PERFORMANCE_READ,
+      Permissions.PERFORMANCE_REPORT_READ,
+      Permissions.PERFORMANCE_REPORT_SETTING_READ,
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
@@ -702,9 +715,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.PROFILE_READ,
       },
       {
-        key: "attendance-group",
+        key: "/leaves-v2",
+        label: "Leaves",
+        icon: I(CalendarDays),
+        path: "/leaves-v2",
+        requiredAnyPermission: [
+          Permissions.LEAVE_READ,
+          Permissions.LEAVE_MANAGE,
+        ],
+      },
+      {
+        key: "/attendance",
         label: "Attendance",
         icon: I(CalendarCheck),
+        path: "/attendance",
         requiredAnyPermission: [
           Permissions.ATTENDANCE_READ,
           Permissions.ATTENDANCE_DASHBOARD_READ,
@@ -712,128 +736,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.ATTENDANCE_CREATE,
           Permissions.ATTENDANCE_UPDATE,
           Permissions.ATTENDANCE_DELETE,
-        ],
-        children: [
-          {
-            key: "/attendance/dashboard",
-            label: "Dashboard",
-            icon: I(Gauge),
-            path: "/attendance/dashboard",
-            requiredPermission: Permissions.ATTENDANCE_DASHBOARD_READ,
-          },
-          {
-            key: "/attendance/clock-in-out",
-            label: "Clock In/Out",
-            icon: I(Clock),
-            path: "/attendance/clock-in-out",
-            requiredPermission: Permissions.ATTENDANCE_CLOCK_IN_OUT,
-          },
-          {
-            key: "/attendance/manage",
-            label: "Manage Attendance",
-            icon: I(UserCheck),
-            path: "/attendance/manage",
-            requiredAnyPermission: [
-              Permissions.ATTENDANCE_CREATE,
-              Permissions.ATTENDANCE_UPDATE,
-              Permissions.ATTENDANCE_READ,
-              Permissions.ATTENDANCE_DELETE,
-            ],
-          },
-        ],
-      },
-      {
-        key: "leave-management-group",
-        label: "Leave Management",
-        icon: I(CalendarDays),
-        requiredAnyPermission: [
-          Permissions.LEAVE_READ,
-          Permissions.LEAVE_DASHBOARD_READ,
-          Permissions.LEAVE_HOLIDAY_READ,
-          Permissions.LEAVE_ADJUSTMENT_READ,
-          Permissions.LEAVE_TYPE_READ,
-          Permissions.LEAVE_POLICY_READ,
-          Permissions.LEAVE_APPROVE,
-          Permissions.LEAVE_MANAGE,
-        ],
-        children: [
-          {
-            key: "/leaves-dashboard",
-            label: "Dashboard",
-            icon: I(LayoutDashboard),
-            path: "/leaves-dashboard",
-            requiredAnyPermission: [
-              Permissions.LEAVE_READ,
-              Permissions.LEAVE_DASHBOARD_READ,
-            ],
-          },
-          {
-            key: "/apply-leave",
-            label: "Apply Leave",
-            icon: I(CalendarPlus),
-            path: "/apply-leave",
-            requiredPermission: Permissions.LEAVE_READ,
-          },
-          {
-            key: "/leave-approvals",
-            label: "Approvals",
-            icon: I(BadgeCheck),
-            path: "/leave-approvals",
-            requiredAnyPermission: [
-              Permissions.LEAVE_MANAGE,
-              Permissions.LEAVE_APPROVE,
-            ],
-          },
-          {
-            key: "/government-holidays",
-            label: "Government Holidays",
-            icon: I(Landmark),
-            path: "/government-holidays",
-            requiredAnyPermission: [
-              Permissions.LEAVE_HOLIDAY_READ,
-              Permissions.LEAVE_MANAGE,
-            ],
-          },
-          {
-            key: "/leave-adjustments",
-            label: "Leave Adjustment",
-            icon: I(CalendarCog),
-            path: "/leave-adjustments",
-            requiredAnyPermission: [
-              Permissions.LEAVE_MANAGE,
-              Permissions.LEAVE_ADJUSTMENT_READ,
-            ],
-          },
-          {
-            key: "/leave-type",
-            label: "Leave Type",
-            icon: I(Tag),
-            path: "/leave-type",
-            requiredAnyPermission: [
-              Permissions.LEAVE_MANAGE,
-              Permissions.LEAVE_TYPE_READ,
-            ],
-          },
-          {
-            key: "/leave-policy",
-            label: "Leave Policy",
-            icon: I(BookOpen),
-            path: "/leave-policy",
-            requiredAnyPermission: [
-              Permissions.LEAVE_MANAGE,
-              Permissions.LEAVE_POLICY_READ,
-            ],
-          },
-          {
-            key: "/add-goverment-leaves",
-            label: "Add Govt Leaves",
-            icon: I(CalendarHeart),
-            path: "/add-goverment-leaves",
-            requiredAnyPermission: [
-              Permissions.LEAVE_MANAGE,
-              Permissions.LEAVE_HOLIDAY_READ,
-            ],
-          },
         ],
       },
 
@@ -868,6 +770,47 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             path: "/onboarding/settings",
             requiredPermission: Permissions.ONBOARDING_SETTING_READ,
+          },
+        ],
+      },
+
+      {
+        key: "performance-report",
+        icon: I(TrendingUp),
+        label: "Performance Report",
+        requiredAnyPermission: [
+          Permissions.PERFORMANCE_REPORT_READ,
+          Permissions.PERFORMANCE_REPORT_SETTING_READ,
+          Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
+        ],
+        children: [
+          {
+            key: "/performance-report/reports",
+            icon: I(Gauge),
+            label: "Reports",
+            path: "/performance-report/reports",
+            requiredPermission: Permissions.PERFORMANCE_REPORT_READ,
+          },
+          {
+            key: "/performance-report/settings",
+            icon: I(SlidersHorizontal),
+            label: "Settings",
+            path: "/performance-report/settings",
+            requiredPermission: Permissions.PERFORMANCE_REPORT_SETTING_READ,
+          },
+          {
+            key: "/performance-report/generated",
+            icon: I(Archive),
+            label: "Generated Reports",
+            path: "/performance-report/generated",
+            requiredPermission: Permissions.PERFORMANCE_REPORT_GENERATED_READ,
+          },
+          {
+            key: "/performance-report/my-reports",
+            icon: I(CircleUser),
+            label: "My Reports",
+            path: "/performance-report/my-reports",
+            requiredPermission: Permissions.PERFORMANCE_REPORT_MY_READ,
           },
         ],
       },

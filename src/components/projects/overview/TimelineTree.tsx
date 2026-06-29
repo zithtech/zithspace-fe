@@ -9,6 +9,7 @@ import {
   SyncOutlined,
   ClockCircleOutlined,
   StopOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
@@ -30,11 +31,35 @@ interface TimelineTicket {
   sprintName?: string | null;
   estimateHours?: number;
   trackedSeconds?: number;
+  /**
+   * Optional override for the month-grouping anchor. When set, the ticket is
+   * grouped under THIS date's month instead of its start/due/end date. Used by
+   * the performance report so tickets bucket under the month they were worked.
+   */
+  timelineAnchor?: string | Date | null;
 }
 
 interface TimelineTreeProps {
   tickets: TimelineTicket[];
+  /** Hide the column-header row (Start/End/Est/…). Default: shown. */
+  hideColumnHeader?: boolean;
+  /** Hide the toolbar (title, assignee filter, group-by toggle, collapse-all). */
+  hideToolbar?: boolean;
+  /**
+   * When provided, renders a "Points" column per ticket using this scorer.
+   * Returns 0–100 (or null to show a dash). Used by the performance report.
+   */
+  pointsOf?: (t: TimelineTicket) => number | null;
+  /** When set, renders a "How points work" button in the header that calls this. */
+  onPointsInfo?: () => void;
 }
+
+// Ticket Points (0–100) → percentage text + colour. Palette: green / amber / red.
+const pointMeta = (p: number | null | undefined) => {
+  if (p === null || p === undefined) return { text: "—", color: "var(--text-slate-400)" };
+  const color = p >= 90 ? "#10b981" : p >= 75 ? "#f59e0b" : "#ef4444";
+  return { text: `${p}%`, color };
+};
 
 // Palette: blue / green / red / grey only
 const statusMeta = (status: string) => {
@@ -84,7 +109,7 @@ interface FlatTicket extends TimelineTicket {
   memberLabel: string;
 }
 
-export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
+export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnHeader, hideToolbar, pointsOf, onPointsInfo }) => {
   const { open: openTicket } = useTicketDrawer();
   const [groupBy, setGroupBy] = useState<"month" | "member">("month");
   const [assignee, setAssignee] = useState<string | null>(null);
@@ -113,7 +138,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
 
   const flat = useMemo<FlatTicket[]>(() => {
     return filteredTickets.map((t) => {
-      const anchor = t.startDate || t.dueDate || t.endDate;
+      const anchor = t.timelineAnchor || t.startDate || t.dueDate || t.endDate;
       const m = anchor ? dayjs(anchor as any) : null;
       return {
         ...t,
@@ -203,6 +228,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
   return (
     <div className="tl-card">
       {/* Toolbar */}
+      {!hideToolbar && (
       <div className="tl-toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className="tl-toolbar-ic">
@@ -241,17 +267,28 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Column header */}
-      <div className="tl-colhead">
-        <span className="tl-h-main">{groupBy === "month" ? "Month / Member / Ticket" : "Member / Month / Ticket"}</span>
-        <span className="tl-col">Start</span>
-        <span className="tl-col">End</span>
-        <span className="tl-col">Est</span>
-        <span className="tl-col">Tracked</span>
-        <span className="tl-col">Delay</span>
-        <span className="tl-status-col">Status</span>
-      </div>
+      {!hideColumnHeader && (
+        <div className="tl-colhead">
+          <span className="tl-h-main">
+            {groupBy === "month" ? "Month / Member / Ticket" : "Member / Month / Ticket"}
+            {onPointsInfo && (
+              <button type="button" className="tl-pts-info" onClick={onPointsInfo}>
+                <InfoCircleOutlined /> How points work
+              </button>
+            )}
+          </span>
+          <span className="tl-col">Start</span>
+          <span className="tl-col">End</span>
+          <span className="tl-col">Est</span>
+          <span className="tl-col">Tracked</span>
+          <span className="tl-col">Delay</span>
+          {pointsOf && <span className="tl-col">Points</span>}
+          <span className="tl-status-col">Status</span>
+        </div>
+      )}
 
       {/* Tree */}
       <div className="tl-body">
@@ -364,6 +401,14 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
                                   <span className="tl-col" style={{ color: eff.delayColor, fontWeight: 700 }}>
                                     {eff.delayText}
                                   </span>
+                                  {pointsOf && (() => {
+                                    const pm = pointMeta(pointsOf(t));
+                                    return (
+                                      <span className="tl-col" style={{ color: pm.color, fontWeight: 700 }}>
+                                        {pm.text}
+                                      </span>
+                                    );
+                                  })()}
                                   <span className="tl-status-col">
                                     <span className="tl-status" style={{ color: meta.color, background: `${meta.color}14` }}>
                                       {meta.icon}
@@ -475,12 +520,33 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets }) => {
           min-width: 0;
           display: flex;
           align-items: center;
+          gap: 10px;
           padding: 9px 12px 9px 16px;
           font-size: 10px;
           font-weight: 700;
           letter-spacing: 0.05em;
           text-transform: uppercase;
           color: var(--text-slate-400);
+        }
+        .tl-pts-info {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: #3b82f6;
+          border-radius: 999px;
+          padding: 2px 10px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          text-transform: none;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-pts-info:hover {
+          background: var(--bg-blue-50);
+          border-color: #bfdbfe;
         }
         .tl-col {
           width: 70px;

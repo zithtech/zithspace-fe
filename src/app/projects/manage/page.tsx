@@ -30,6 +30,7 @@ import {
   ConfigProvider,
 } from "antd";
 import { useSearchParams } from "next/navigation";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   PlusOutlined,
   EditOutlined,
@@ -243,7 +244,7 @@ const ProjectsManageContent: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
   });
 
@@ -253,7 +254,7 @@ const ProjectsManageContent: React.FC = () => {
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
     page: 1,
-    limit: 10,
+    limit: 20,
   });
 
   const renderPosition = (position: any) => {
@@ -783,7 +784,32 @@ const ProjectsManageContent: React.FC = () => {
         {
           key: 'delete',
           danger: true,
-          label: menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)'),
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Project?"
+              description={`Are you sure you want to delete "${project.name}"? This action cannot be undone.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              onConfirm={() => handleDelete(project.id)}
+            >
+              <div 
+                style={{ 
+                  margin: '-5px -12px', 
+                  padding: '5px 12px',
+                  width: 'calc(100% + 24px)',
+                  height: '100%' 
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                {menuLabel('Delete', 'Remove this project', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+              </div>
+            </ConfirmDialog>
+          ),
         }
       ] : [])
     ],
@@ -793,15 +819,6 @@ const ProjectsManageContent: React.FC = () => {
         router.push(`/projects/${project.id}/overview`);
       } else if (key === 'edit') {
         handleEdit(project);
-      } else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Project',
-          content: 'Are you sure you want to delete this project? This action cannot be undone.',
-          okText: 'Delete',
-          okType: 'danger',
-          cancelText: 'Cancel',
-          onOk: () => handleDelete(project.id),
-        });
       }
     }
   });
@@ -1294,7 +1311,7 @@ const ProjectsManageContent: React.FC = () => {
                     total={pagination.total}
                     onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
                     showSizeChanger
-                    pageSizeOptions={[10, 15, 25, 50, 100]}
+                    pageSizeOptions={[10, 20, 25, 50, 100]}
                   />
                 </div>
               )}
@@ -1404,15 +1421,15 @@ const ProjectsManageContent: React.FC = () => {
           z-index: 10;
         }
         [data-theme="dark"] .pm2-sidebar {
-          background: #0f1419 !important;
-          border-right-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-right-color: #1F2937 !important;
         }
 
         .pm2-sidebar-top { 
           padding: 14px 14px 12px 14px; 
         }
         [data-theme="dark"] .pm2-sidebar-top {
-          border-bottom-color: #1f2937 !important;
+          border-bottom-color: #1F2937 !important;
         }
         .pm2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .pm2-hero-icon-box {
@@ -1427,6 +1444,7 @@ const ProjectsManageContent: React.FC = () => {
           border-color: rgba(59, 130, 246, 0.28);
         }
         .pm2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
+        [data-theme='dark'] .pm2-sidebar-title { color: #FFFFFF !important; }
         
         .pm2-sidebar-subtitle {
           font-size: 10.5px;
@@ -1435,6 +1453,9 @@ const ProjectsManageContent: React.FC = () => {
           margin-top: 4px;
           text-transform: uppercase;
           letter-spacing: 0.07em;
+        }
+        [data-theme='dark'] .pm2-sidebar-subtitle {
+          color: #94A3B8 !important;
         }
         .pm2-side-create {
           height: 36px !important;
@@ -1454,9 +1475,16 @@ const ProjectsManageContent: React.FC = () => {
           text-transform: uppercase; letter-spacing: 0.08em;
           padding: 0 10px; margin-bottom: 8px;
         }
+        [data-theme='dark'] .pm2-side-label { color: #94A3B8 !important; }
+        
         .pm2-sidebar .ant-select-selector,
         .pm2-sidebar .ant-picker {
           border-radius: 6px !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-picker {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
         }
         .pm2-sidebar .ant-select:hover .ant-select-selector,
         .pm2-sidebar .ant-select-focused .ant-select-selector,
@@ -1471,8 +1499,8 @@ const ProjectsManageContent: React.FC = () => {
         [data-theme='dark'] .pm2-sidebar .ant-select-open .ant-select-selector,
         [data-theme='dark'] .pm2-sidebar .ant-picker:hover,
         [data-theme='dark'] .pm2-sidebar .ant-picker-focused {
-          background-color: #1c232e !important;
-          border-color: #2d3748 !important;
+          background-color: #161B22 !important;
+          border-color: #1F2937 !important;
         }
         .pm2-sidebar .ant-select-selection-item,
         .pm2-sidebar .ant-select-selection-placeholder,
@@ -1482,6 +1510,15 @@ const ProjectsManageContent: React.FC = () => {
           font-weight: 500 !important;
           font-size: 13px !important;
           padding: 6px  !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select-selection-item,
+        [data-theme='dark'] .pm2-sidebar .ant-select-selection-placeholder,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input::placeholder {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select-arrow {
+          color: #94A3B8 !important;
         }
 
         .pm2-side-filter-select .ant-select-selection-item,
@@ -1506,14 +1543,27 @@ const ProjectsManageContent: React.FC = () => {
           border: 1px dashed var(--border-slate-200) !important;
           height: 36px !important;
         }
+        [data-theme='dark'] .pm2-sidebar .premium-range-picker {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
 
         .pm2-sidebar .premium-range-picker:hover{
           border: 1px dashed var(--border-color) !important;    
+        }
+        [data-theme='dark'] .pm2-sidebar .premium-range-picker:hover {
+          border-color: #1F2937 !important;
         }
         .pm2-sidebar .premium-range-picker .ant-picker-input > input {
           font-size: 13px !important;
           padding: 8px !important;
           color: var(--text-slate-600) !important; 
+        }
+        [data-theme='dark'] .pm2-sidebar .premium-range-picker .ant-picker-input > input {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .premium-range-picker .ant-picker-suffix {
+          color: #94A3B8 !important;
         }
 
         .pm2-view-btn {
@@ -1530,6 +1580,10 @@ const ProjectsManageContent: React.FC = () => {
           box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04) !important;
           border: 1px solid var(--border-slate-200) !important;
         }
+        .pm2-action-pop .ant-dropdown-menu::-webkit-scrollbar { display: none !important; }
+        .pm2-action-pop,
+        .pm2-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .pm2-action-pop ::-webkit-scrollbar { display: none !important; }
         .pm2-action-pop .ant-dropdown-menu-item {
           border-radius: 0px !important;
           padding: 0 !important;
@@ -1552,17 +1606,44 @@ const ProjectsManageContent: React.FC = () => {
         .pm2-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .pm2-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
+        /* Dark Theme overrides */
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item:hover,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item:hover {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .pm2-menu-title,
+        [data-theme="dark"] .pm2-action-pop .pm2-menu-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .pm2-menu-desc,
+        [data-theme="dark"] .pm2-action-pop .pm2-menu-desc {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item-divider,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item-divider {
+          background: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-action-pop .ant-dropdown-menu-item-danger:hover,
+        [data-theme="dark"] .pm2-action-pop .ant-dropdown-menu-item-danger:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+        }
+
         .pm2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .pm2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); }
-        [data-theme='dark'] .pm2-view-btn { color: #94a3b8; }
-        [data-theme='dark'] .pm2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .pm2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; }
+        [data-theme='dark'] .pm2-view-btn { color: #94A3B8; }
+        [data-theme='dark'] .pm2-view-btn:hover { background: #161B22 !important; color: #FFFFFF; }
+        [data-theme='dark'] .pm2-view-btn.active { background: rgba(59, 130, 246, 0.15) !important; color: #FFFFFF !important; }
 
         .pm2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
         .pm2-view-btn.active .pm2-view-icon { color: #3b82f6; }
         .pm2-view-btn.active .pm2-view-label { font-weight: 600; }
-        [data-theme='dark'] .pm2-view-icon { color: #64748b; }
-        [data-theme='dark'] .pm2-view-btn.active .pm2-view-icon { color: #60a5fa; }
+        [data-theme='dark'] .pm2-view-icon { color: #94A3B8; }
+        [data-theme='dark'] .pm2-view-btn.active .pm2-view-icon { color: #3B82F6; }
 
         .pm2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
@@ -1571,8 +1652,8 @@ const ProjectsManageContent: React.FC = () => {
         .pm2-view-btn.active .pm2-view-count {
           background: #BFDBFE; color: #1E3A8A; border-radius: 6px;
         }
-        [data-theme='dark'] .pm2-view-count { background: #1c232e; color: #64748b; }
-        [data-theme='dark'] .pm2-view-btn.active .pm2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        [data-theme='dark'] .pm2-view-count { background: #161B22; color: #94A3B8; }
+        [data-theme='dark'] .pm2-view-btn.active .pm2-view-count { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
 
         .pm2-view-label {
           flex: 1;
@@ -1583,7 +1664,7 @@ const ProjectsManageContent: React.FC = () => {
           
         }
         [data-theme="dark"] .pm2-sidebar-item:hover {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .pm2-sidebar-item.active {
           background: rgba(59, 130, 246, 0.08);
@@ -1591,9 +1672,9 @@ const ProjectsManageContent: React.FC = () => {
           color: #1d4ed8;
         }
         [data-theme="dark"] .pm2-sidebar-item.active {
-          background: rgba(59, 130, 246, 0.18) !important;
-          border-color: rgba(59, 130, 246, 0.32) !important;
-          color: #60a5fa !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+          color: #3B82F6 !important;
         }
         .pm2-sidebar-item-icon {
           width: 22px;
@@ -1614,9 +1695,8 @@ const ProjectsManageContent: React.FC = () => {
           color: var(--text-slate-600);
         }
         [data-theme="dark"] .pm2-icon-all {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
         }
         .pm2-sidebar-item-dot {
           width: 8px;
@@ -1647,9 +1727,9 @@ const ProjectsManageContent: React.FC = () => {
           flex-shrink: 0;
         }
         [data-theme="dark"] .pm2-sidebar-item-count {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #cbd5e1 !important;
         }
         .pm2-sidebar-item.active .pm2-sidebar-item-count {
           background: rgba(59, 130, 246, 0.14);
@@ -1657,9 +1737,9 @@ const ProjectsManageContent: React.FC = () => {
           color: #1d4ed8;
         }
         [data-theme="dark"] .pm2-sidebar-item.active .pm2-sidebar-item-count {
-          background: rgba(59, 130, 246, 0.22) !important;
-          border-color: rgba(59, 130, 246, 0.38) !important;
-          color: #60a5fa !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+          color: #3B82F6 !important;
         }
 
         /* Project row with expandable toggle */
@@ -1676,7 +1756,7 @@ const ProjectsManageContent: React.FC = () => {
           background: var(--bg-slate-50);
         }
         [data-theme="dark"] .pm2-sidebar-proj-row:hover {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .pm2-sidebar-proj-row.active {
           background: rgba(59, 130, 246, 0.08);
@@ -1718,13 +1798,13 @@ const ProjectsManageContent: React.FC = () => {
           min-width: 0;
         }
         [data-theme="dark"] .pm2-sidebar-proj-main {
-          
+          color: #94A3B8 !important;
         }
         .pm2-sidebar-proj-row.active .pm2-sidebar-proj-main {
           color: #1d4ed8;
         }
         [data-theme="dark"] .pm2-sidebar-proj-row.active .pm2-sidebar-proj-main {
-          color: #60a5fa !important;
+          color: #3B82F6 !important;
         }
 
         /* Nested buckets under project */
@@ -1737,7 +1817,7 @@ const ProjectsManageContent: React.FC = () => {
           border-left: 1px dashed var(--border-slate-200);
         }
         [data-theme="dark"] .pm2-sidebar-children {
-          border-left-color: #2d3748 !important;
+          border-left-color: #1F2937 !important;
         }
         .pm2-sidebar-bucket {
           display: flex;
@@ -1760,11 +1840,11 @@ const ProjectsManageContent: React.FC = () => {
           color: #1d4ed8;
         }
         [data-theme="dark"] .pm2-sidebar-bucket {
-          
+          color: #94A3B8 !important;
         }
         [data-theme="dark"] .pm2-sidebar-bucket:hover {
-          background: #1c232e !important;
-          color: #60a5fa !important;
+          background: #161B22 !important;
+          color: #3B82F6 !important;
         }
         .pm2-sidebar-bucket-dot {
           width: 6px;
@@ -1804,7 +1884,7 @@ const ProjectsManageContent: React.FC = () => {
           margin: 6px 4px;
         }
         [data-theme="dark"] .pm2-sidebar-divider {
-          background: #1f2937 !important;
+          background: #1F2937 !important;
         }
         .pm2-sidebar-clear {
           display: flex;
@@ -1815,21 +1895,27 @@ const ProjectsManageContent: React.FC = () => {
           margin-top: 6px;
           padding: 8px;
           background: transparent;
-          border: 1px dashed var(--border-slate-200);
+          border: 1px dashed rgba(239, 68, 68, 0.3);
           border-radius: 8px;
-          color: var(--text-slate-500);
+          color: #ef4444;
           font-size: 11px;
           font-weight: 700;
           cursor: pointer;
-          transition: color 0.12s ease, border-color 0.12s ease;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
         .pm2-sidebar-clear:hover {
-          color: #1d4ed8;
-          border-color: rgba(59, 130, 246, 0.4);
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.5);
+          background: rgba(239, 68, 68, 0.05);
         }
         [data-theme="dark"] .pm2-sidebar-clear {
-          border-color: #2d3748 !important;
-          
+          border-color: rgba(239, 68, 68, 0.3) !important;
+          color: #f87171 !important;
+        }
+        [data-theme="dark"] .pm2-sidebar-clear:hover {
+          color: #fca5a5 !important;
+          border-color: rgba(239, 68, 68, 0.5) !important;
+          background: rgba(239, 68, 68, 0.08) !important;
         }
 
         /* ── Main toolbar ───────────────────────────────────────── */
@@ -1847,8 +1933,8 @@ const ProjectsManageContent: React.FC = () => {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .pm2-toolbar {
-          background: #0d1117 !important;
-          border-bottom-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
         }
         .pm2-main-search {
           flex: 1;
@@ -1902,16 +1988,34 @@ const ProjectsManageContent: React.FC = () => {
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        [data-theme='dark'] .pp-segmented {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-segmented button.is-active {
+          background: #161B22 !important;
+          color: #FFFFFF !important;
+        }
         .pp-search-wrap {
           position: relative; flex: 1; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
         .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        [data-theme='dark'] .pp-search-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-search-wrap:focus-within {
+          border-color: rgba(59, 130, 246, 0.4) !important;
+        }
         .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
         .pp-search {
           flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
           font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        }
+        [data-theme='dark'] .pp-search {
+          color: #FFFFFF !important;
         }
         .pp-search::placeholder { color: var(--text-slate-400); }
         .pp-kbd {
@@ -1919,12 +2023,33 @@ const ProjectsManageContent: React.FC = () => {
           background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
           border-radius: 5px; padding: 1px 6px;
         }
+        [data-theme='dark'] .pp-kbd {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #cbd5e1 !important;
+        }
         .pp-ghost-btn {
           width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
           background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
           display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
         .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+        [data-theme='dark'] .pp-ghost-btn {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pp-ghost-btn:hover {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #3B82F6 !important;
+        }
+        [data-theme='dark'] .pm2-main-stats {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-main-stats .font-semibold {
+          color: #cbd5e1 !important;
+        }
         .pm2-vis-badge {
           width: 22px;
           height: 22px;
@@ -1954,8 +2079,8 @@ const ProjectsManageContent: React.FC = () => {
           border-color: var(--border-slate-200) !important;
         }
         [data-theme="dark"] .pm2-range-picker.ant-picker {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
         }
         .pm2-toolbar-icon {
           width: 26px;
@@ -1978,9 +2103,9 @@ const ProjectsManageContent: React.FC = () => {
           letter-spacing: 0.01em;
         }
         [data-theme="dark"] .pm2-toolbar-chip {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #cbd5e1 !important;
         }
         .pm2-search-box {
           display: flex;
@@ -1997,11 +2122,12 @@ const ProjectsManageContent: React.FC = () => {
           border-color: rgba(59, 130, 246, 0.4);
         }
         [data-theme="dark"] .pm2-search-box {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
         }
         [data-theme="dark"] .pm2-search-box.active {
           border-color: rgba(59, 130, 246, 0.5) !important;
+        }
         }
 
         /* ── List cards ─────────────────────────────────────────── */
@@ -2030,6 +2156,10 @@ const ProjectsManageContent: React.FC = () => {
           }
         }
 
+        .pm2-main-content {
+          padding-bottom: 24px;
+        }
+
         /* ── Sticky pagination footer ──────────────────────────── */
         .pm2-pagination {
           display: flex;
@@ -2049,7 +2179,7 @@ const ProjectsManageContent: React.FC = () => {
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme="dark"] .pm2-pagination {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-top-color: #1f2937 !important;
         }
 
@@ -2092,17 +2222,17 @@ const ProjectsManageContent: React.FC = () => {
           transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
         }
         [data-theme="dark"] .pm2-list-card {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
         }
         .pm2-list-card:hover {
           box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
           border-color: #cbd5e1 !important;
         }
         [data-theme="dark"] .pm2-list-card:hover {
-          background: #1c232e !important;
+          background: #0B0F1A !important;
           box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-          border-color: transparent !important;
+          border-color: #cbd5e1 !important;
         }
         .pm2-list-card-skel {
           min-height: 96px;
@@ -2959,6 +3089,20 @@ const ProjectsManageContent: React.FC = () => {
           display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
           box-shadow: 0 1px 2px rgba(15,23,42,0.04);
         }
+        [data-theme='dark'] .pp-stat-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-stat-card:hover {
+          border-color: #1F2937 !important;
+          box-shadow: none !important;
+        }
+        [data-theme='dark'] .pp-stat-label {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pp-stat-value {
+          color: #FFFFFF !important;
+        }
         .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
         .pp-stat-left { display: flex; align-items: center; gap: 8px; }
         .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
@@ -3015,7 +3159,7 @@ const ProjectsManageContent: React.FC = () => {
           }
           [data-theme='dark'] .pm2-sidebar {
             background: #0B0F1A !important;
-            border-right-color: #1f2937 !important;
+            border-right-color: #1F2937 !important;
           }
           .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
             transform: translateX(0);

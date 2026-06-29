@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Table, Avatar, Tag, Space, Typography, Button, Popconfirm, Tooltip, Pagination, Select, Dropdown, Modal } from "antd";
+import { Table, Avatar, Tag, Space, Typography, Button, Tooltip, Pagination, Select, Dropdown } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   MoreHorizontal,
   Clock,
@@ -65,7 +66,7 @@ export default function UpdateTable({
   const router = useRouter();
 
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(10);
+  const [pageSize, setPageSize] = React.useState(20);
 
   const columns: ColumnsType<TableDataType> = [
     {
@@ -356,7 +357,36 @@ export default function UpdateTable({
           items.push({
             key: 'delete',
             danger: true,
-            label: menuLabel('Delete', 'Remove this update', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')
+            label: (
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={15} />}
+                title="Delete Update?"
+                description="Are you sure you want to delete this status update? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                placement="left"
+                onConfirm={async () => {
+                  if (onDeleteUpdate) {
+                    await onDeleteUpdate(update.id);
+                  }
+                }}
+              >
+                <div
+                  style={{
+                    margin: '-5px -12px',
+                    padding: '5px 12px',
+                    width: 'calc(100% + 24px)',
+                    height: '100%'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  {menuLabel('Delete', 'Remove this update', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                </div>
+              </ConfirmDialog>
+            )
           });
         }
 
@@ -370,20 +400,6 @@ export default function UpdateTable({
                   if (key === 'view') onViewDetails(update);
                   else if (key === 'edit') {
                     if (!editDisabled) router.push(`/daily-updates/submit?edit=${update.id}`);
-                  }
-                  else if (key === 'delete') {
-                    Modal.confirm({
-                      title: 'Delete Update',
-                      content: 'Are you sure you want to delete this status update?',
-                      okText: 'Delete',
-                      cancelText: 'Cancel',
-                      okButtonProps: { danger: true },
-                      onOk: async () => {
-                        if (onDeleteUpdate) {
-                          await onDeleteUpdate(update.id);
-                        }
-                      }
-                    });
                   }
                 }
               }} 
@@ -469,7 +485,7 @@ export default function UpdateTable({
               className="du-pagesize"
               value={pageSize}
               onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
-              options={[10, 20, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />
           </div>
@@ -532,6 +548,68 @@ export default function UpdateTable({
         }
         :global(.premium-table .ant-table-tbody > tr:hover > td) { 
           background: var(--bg-slate-50) !important; 
+        }
+
+        /* Dark theme table overrides to match Proposal page */
+        :global([data-theme='dark'] .premium-table .ant-table-thead > tr > th) {
+          background: #161B22 !important;
+          border-bottom: 1px solid #374151 !important;
+          color: #94A3B8 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-thead > tr > th:not(:first-child)::before) {
+          background-color: #374151 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody > tr > td) {
+          background-color: #0B0F1A !important;
+          border-bottom: 1px solid #1F2937 !important;
+          color: #F1F5F9 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody > tr:hover > td) {
+          background: #161B22 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody .ant-typography) {
+          color: #F1F5F9 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody .ant-typography[style*="color: var(--text-slate-400)"]) {
+          color: #94A3B8 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody .ant-typography[style*="color: var(--text-slate-600)"]) {
+          color: #94A3B8 !important;
+        }
+        :global([data-theme='dark'] .premium-table .ant-table-tbody .ant-typography[style*="color: var(--text-slate-700)"]) {
+          color: #F1F5F9 !important;
+        }
+
+        /* Dark theme footer & pagination overrides */
+        :global([data-theme='dark'] .du-footer),
+        :global([data-theme='dark'] .du-footer--sticky) {
+          background: #0B0F1A !important;
+          border-top-color: #374151 !important;
+        }
+        :global([data-theme='dark'] .du-footer-info) {
+          color: #94A3B8 !important;
+        }
+        :global([data-theme='dark'] .du-footer-info strong) {
+          color: #FFFFFF !important;
+        }
+        :global([data-theme='dark'] .du-pager-btn),
+        :global([data-theme='dark'] .du-pager-num) {
+          background: rgba(255,255,255,0.03) !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
+        }
+        :global([data-theme='dark'] .du-pager-num.is-active) {
+          background: #3B82F6 !important;
+          border-color: #3B82F6 !important;
+          color: #ffffff !important;
+        }
+        :global([data-theme='dark'] .du-pagesize .ant-select-selector) {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+          color: #F1F5F9 !important;
+        }
+        :global([data-theme='dark'] .du-pagesize .ant-select-arrow) {
+          color: #94A3B8 !important;
         }
 
         /* Premium action dropdown */

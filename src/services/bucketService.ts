@@ -106,8 +106,7 @@ export interface BucketTicketsResponse {
   success: boolean;
   data: {
     tickets: BucketTicket[];
-    pagination: {
-      page: number;
+    pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
       limit: number;
       total: number;
       pages: number;
@@ -320,8 +319,7 @@ class BucketService {
     limit: number = 20
   ): Promise<{
     tickets: BucketTicket[];
-    pagination: {
-      page: number;
+    pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
       limit: number;
       total: number;
       pages: number;

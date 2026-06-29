@@ -74,70 +74,61 @@ export default function TeamTimePage() {
 
         <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
-            <div className="dh-sidebar-brand">
-              <div className="dh-hero-icon-box">
-                <TeamOutlined style={{ fontSize: 18, color: isDark ? '#ffffff' : '#3b82f6' }} />
+            <div className="pp-side-head">
+              <div className="pp-side-logo">
+                <TeamOutlined />
               </div>
-              <div className="min-w-0">
-                <h1 className="dh-sidebar-title">Team Tracking</h1>
-                <p className="dh-sidebar-subtitle">Track team productivity, sessions, and capacity</p>
+              <div className="pp-side-head-text">
+                <h1 className="pp-side-title">Team Tracking</h1>
+                <p className="pp-side-subtitle">Productivity & sessions</p>
               </div>
             </div>
-
 
             {canManageTimeTrackingTime && (
               <Button
                 type="primary"
                 icon={<EditOutlined />}
                 onClick={() => setIsManageModalOpen(true)}
+                className="pp-create-btn"
                 block
-                className="dh-side-create w-full"
-                style={{
-                  marginTop: 10,
-                  height: 38,
-                  borderRadius: 6,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  boxShadow: 'none',
-                  background: '#3B82F6',
-                  border: 'none',
-                  color: '#fff'
-                }}
+                style={{ marginTop: 10 }}
               >
                 Manage Time
               </Button>
             )}
           </div>
-          <div className="dh-sidebar-scroll" style={{ paddingTop: 20 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
+          <div className="dh-sidebar-scroll" style={{ paddingTop: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
 
               <div style={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                <div className="pp-side-section-label" style={{ margin: "6px 0 6px" }}>
                   Views
                 </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className={`tt-nav-row ${!showPerformance ? 'is-active' : ''}`}
+                <button
+                  type="button"
+                  className={`pp-view-item ${!showPerformance ? 'is-active' : ''}`}
                   onClick={() => setShowPerformance(false)}
                 >
-                  <Users size={15} />
-                  <span>Team Activity</span>
-                </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className={`tt-nav-row ${showPerformance ? 'is-active' : ''}`}
+                  <span className="pp-view-icon" style={{ color: !showPerformance ? '#3B82F6' : 'var(--text-slate-400)' }}>
+                    <Users size={14} />
+                  </span>
+                  <span className="pp-view-label">Team Activity</span>
+                </button>
+                <button
+                  type="button"
+                  className={`pp-view-item ${showPerformance ? 'is-active' : ''}`}
                   onClick={() => setShowPerformance(true)}
                 >
-                  <Gauge size={15} />
-                  <span>Performance Tracker</span>
-                </div>
+                  <span className="pp-view-icon" style={{ color: showPerformance ? '#3B82F6' : 'var(--text-slate-400)' }}>
+                    <Gauge size={14} />
+                  </span>
+                  <span className="pp-view-label">Performance Tracker</span>
+                </button>
               </div>
 
               {canReadActivityLog && (
-                <div style={{ display: 'flex', gap: 4, flexDirection: 'column' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
+                  <div className="pp-side-section-label" style={{ margin: "6px 0 6px" }}>
                     Activity
                   </div>
                   <Button
@@ -146,7 +137,7 @@ export default function TeamTimePage() {
                     block
                     style={{
                       height: 38,
-                      borderRadius: 0,
+                      borderRadius: 6,
                       fontWeight: 500,
                       border: "1px solid var(--border-slate-200)",
                       background: "var(--bg-pure-white)",
@@ -164,7 +155,7 @@ export default function TeamTimePage() {
               )}
             </div>
 
-            <div id="team-sidebar-filters-portal"></div>
+            <div id="team-sidebar-filters-portal" style={{ marginTop: 16 }}></div>
           </div>
         </aside>
 
@@ -391,13 +382,81 @@ export default function TeamTimePage() {
         }
 
         /* Dark-mode surfaces */
-        [data-theme="dark"] .dh-shell,
-        [data-theme="dark"] .dh-main { background: var(--bg-pure-white); }
-        [data-theme="dark"] .dh-mobile-menu-btn {
-          background: var(--bg-slate-50) !important;
-          border-color: var(--border-slate-200) !important;
-          color: var(--text-slate-700) !important;
+        [data-theme="dark"] .dh-shell { background: #0B0F1A; }
+        [data-theme="dark"] .dh-main { background: #0B0F1A; }
+        [data-theme="dark"] .dh-main-topbar {
+          background: #0B0F1A !important;
+          border-bottom-color: #374151 !important;
         }
+        [data-theme="dark"] .dh-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #374151 !important;
+        }
+        [data-theme="dark"] .dh-sidebar-top {
+          border-bottom-color: #374151 !important;
+        }
+        [data-theme="dark"] .dh-sidebar-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .dh-sidebar-subtitle {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .dh-mobile-menu-btn {
+          background: #161B22 !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .dh-sidebar-scroll { background: #0B0F1A; }
+
+        /* --- Proposals sidebar head & items styling --- */
+        .pp-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+          width: 100%;
+        }
+        .pp-side-logo {
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .pp-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; margin: 0; }
+        .pp-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em; margin: 0;
+        }
+        .pp-create-btn {
+          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
+          background: #3B82F6 !important;
+          border: none !important; box-shadow: none !important;
+          margin-bottom: 12px;
+          color: #fff !important;
+          width: 100%;
+        }
+        .pp-create-btn:hover { background: #2563EB !important; }
+        .pp-create-btn .anticon { font-size: 12px !important; }
+        
+        .pp-side-section-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        }
+        .pp-view-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+          cursor: pointer; transition: background .12s ease; text-align: left;
+        }
+        .pp-view-item:hover { background: var(--bg-slate-50); }
+        .pp-view-item.is-active { background: var(--bg-blue-50); }
+        .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .pp-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; align-items: center; }
+        .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        
+        [data-theme='dark'] .pp-side-logo .anticon { color: #fff !important; }
+        [data-theme='dark'] .pp-side-title { color: #fff !important; }
+        [data-theme='dark'] .pp-side-head { border-bottom-color: #1F2937 !important; }
+        [data-theme='dark'] .pp-view-item:hover { background: rgba(255,255,255,0.04) !important; }
+        [data-theme='dark'] .pp-view-item.is-active { background: rgba(59, 130, 246, 0.15) !important; }
+        [data-theme='dark'] .pp-view-item.is-active .pp-view-label { color: #fff !important; }
+        [data-theme='dark'] .pp-view-label { color: #94A3B8 !important; }
       `}
       </style>
     </MainLayout>

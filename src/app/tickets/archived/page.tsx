@@ -19,6 +19,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   FolderOpenOutlined,
   SearchOutlined,
@@ -284,9 +285,14 @@ export default function ArchivedTicketsPage() {
             </Popconfirm>
           )}
           {canDeleteTicket && (
-            <Popconfirm
-              title="Delete Ticket"
-              description="Move this ticket to trash?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined />}
+              title="Delete Ticket?"
+              description={`Move ${record.ticketNumber} to trash?`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={async () => {
                 try {
                   await moveToTrash([record.id]);
@@ -297,9 +303,6 @@ export default function ArchivedTicketsPage() {
                   message.error('Failed to delete ticket');
                 }
               }}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete">
                 <Button
@@ -311,7 +314,7 @@ export default function ArchivedTicketsPage() {
                   loading={isDeleting && selectedRowKeys.includes(record.id)}
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -398,18 +401,20 @@ export default function ArchivedTicketsPage() {
                   </Button>
                 )}
                 {canDeleteTicket && (
-                  <Popconfirm
-                    title="Move to Trash"
-                    description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'} to trash?`}
-                    onConfirm={handleDelete}
-                    okText="Move to Trash"
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<DeleteOutlined />}
+                    title="Move to Trash?"
+                    description={`Move ${selectedRowKeys.length} selected ticket(s) to trash?`}
+                    confirmText="Delete"
                     cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
+                    placement="bottomRight"
+                    onConfirm={handleDelete}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting}>
                       Move to Trash
                     </Button>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 )}
                 <Button
                   type="text"
@@ -508,7 +513,7 @@ export default function ArchivedTicketsPage() {
                   setPageSize(v);
                   setPage(1);
                 }}
-                options={[15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                 popupMatchSelectWidth={120}
               />
             </div>
@@ -524,8 +529,8 @@ export default function ArchivedTicketsPage() {
             overflow: hidden;
           }
           [data-theme='dark'] .ar2-table {
-            background: #0f1419;
-            border-color: #1f2937;
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
           }
           .ar2-table .ant-table-thead > tr > th {
             background: var(--bg-slate-50) !important;
@@ -538,9 +543,9 @@ export default function ArchivedTicketsPage() {
             border-bottom: 1px solid var(--border-slate-200) !important;
           }
           [data-theme='dark'] .ar2-table .ant-table-thead > tr > th {
-            background: #0f1419 !important;
-            color: #94a3b8 !important;
-            border-bottom-color: #1f2937 !important;
+            background: #0B0F1A !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #1F2937 !important;
           }
           .ar2-table .ant-table-thead > tr > th::before { display: none; }
           .ar2-table .ant-table-tbody > tr > td {
@@ -549,14 +554,14 @@ export default function ArchivedTicketsPage() {
             font-size: 12.5px;
           }
           [data-theme='dark'] .ar2-table .ant-table-tbody > tr > td {
-            background: #0f1419 !important;
-            border-bottom-color: #1f2937 !important;
+            background: #0B0F1A !important;
+            border-bottom-color: #1F2937 !important;
           }
           .ar2-table .ant-table-tbody > tr:hover > td {
             background: var(--bg-slate-50) !important;
           }
           [data-theme='dark'] .ar2-table .ant-table-tbody > tr:hover > td {
-            background: #111720 !important;
+            background: #161B22 !important;
           }
           .ar2-table .ant-pagination {
             margin: 12px 0 !important;
@@ -750,9 +755,13 @@ export default function ArchivedTicketsPage() {
             box-sizing: border-box;
           }
           [data-theme='dark'] .pp-footer--sticky {
-            background: #0f1419;
-            border-top: 1px solid #1f2937;
+            background: #0B0F1A !important;
+            border-top: 1px solid #1F2937 !important;
             box-shadow: 0 -4px 14px rgba(0,0,0,0.2);
+          }
+          [data-theme='dark'] .pp-footer {
+            background: #0B0F1A !important;
+            border-top-color: #1F2937 !important;
           }
           .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
           [data-theme='dark'] .pp-footer-info { color: #94a3b8; }
@@ -765,14 +774,14 @@ export default function ArchivedTicketsPage() {
             background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
           }
           [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
-            background: #111720; border-color: #2d3748; color: #cbd5e1;
+            background: #161B22 !important; border-color: #1F2937 !important; color: #94A3B8 !important;
           }
           .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
           .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
           .pp-pagesize { margin-left: 5px; }
           .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
           [data-theme='dark'] .pp-pagesize .ant-select-selector {
-            background: #111720 !important; border-color: #2d3748 !important; color: #cbd5e1 !important;
+            background: #161B22 !important; border-color: #1F2937 !important; color: #94A3B8 !important;
           }
         `}</style>
       </TicketLifecycleShell>

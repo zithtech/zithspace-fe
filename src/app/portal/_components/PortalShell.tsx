@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -44,6 +44,22 @@ const NAV: {
   { href: "/portal/team", label: "Team", icon: Users },
 ];
 
+/**
+ * The portal page slug for a nav href / pathname, e.g. "/portal/mom" -> "mom"
+ * and "/portal/sprints/123" -> "sprints". Returns null for "/portal" (Home),
+ * which is never toggleable. Must match the backend module keys.
+ */
+function moduleKeyForPath(path: string): string | null {
+  if (!path.startsWith("/portal/")) return null;
+  const seg = path.slice("/portal/".length).split("/")[0];
+  return seg || null;
+}
+
+/** All toggleable module keys (everything in NAV except Home). */
+const TOGGLEABLE_KEYS = new Set(
+  NAV.map((n) => moduleKeyForPath(n.href)).filter(Boolean) as string[],
+);
+
 export default function PortalShell({
   children,
 }: {
@@ -53,6 +69,17 @@ export default function PortalShell({
   const router = useRouter();
   const { user, loading, logout } = useClientPortalAuth();
   const [changePwOpen, setChangePwOpen] = useState(false);
+
+  // A page disabled for this client should not be reachable even by typing the
+  // URL directly. Backward-compatible: if enabledModules is missing, allow all.
+  const enabledModules = user?.enabledModules;
+  useEffect(() => {
+    if (loading || !user || !enabledModules) return;
+    const key = moduleKeyForPath(pathname || "");
+    if (key && TOGGLEABLE_KEYS.has(key) && !enabledModules.includes(key)) {
+      router.replace("/portal");
+    }
+  }, [loading, user, enabledModules, pathname, router]);
 
   if (loading) {
     return (
@@ -70,6 +97,14 @@ export default function PortalShell({
     );
   }
   if (!user) return null;
+
+  // Hide any portal pages staff have disabled for this client.
+  const visibleNav = NAV.filter(({ href }) => {
+    const key = moduleKeyForPath(href);
+    if (!key) return true; // Home — always shown
+    if (!enabledModules) return true; // older session: show everything
+    return enabledModules.includes(key);
+  });
 
   const initials = (user.displayName || user.username || "?")
     .split(" ")
@@ -180,7 +215,7 @@ export default function PortalShell({
             gap: 2,
           }}
         >
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {visibleNav.map(({ href, label, icon: Icon }) => {
             const active =
               href === "/portal" ? pathname === "/portal" : pathname?.startsWith(href);
             return (

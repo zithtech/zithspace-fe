@@ -1,5 +1,13 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from "@/lib/axios";
 
+/** Geolocation captured when a session was started (clock-in / resume). */
+export interface SessionLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+  address?: string | null;
+}
+
 /** A single work session within a day (one clock-in → clock-out period). */
 export interface AttendanceSession {
   id: string | null;
@@ -9,12 +17,26 @@ export interface AttendanceSession {
   /** The break that follows this session (set when the user paused). */
   breakType?: string | null;
   breakReason?: string | null;
+  /** Where this session was started, if the device shared its location. */
+  location?: SessionLocation | null;
   isOpen?: boolean;
 }
 
 export interface PausePayload {
   breakType?: string;
   reason?: string;
+}
+
+/**
+ * One WORK interval sent to the API when saving a full day's timeline, optionally
+ * carrying the break that FOLLOWS it. Day clock-in/out are derived from the
+ * first/last interval server-side.
+ */
+export interface AttendanceSessionInput {
+  clockIn: string;
+  clockOut: string;
+  breakType?: string | null;
+  breakReason?: string | null;
 }
 
 export interface Attendance {
@@ -50,6 +72,10 @@ export interface Attendance {
 
 export interface ClockInData {
   notes?: string;
+  /** Device geolocation captured at clock-in (best-effort). */
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
 }
 
 export interface ClockOutData {
@@ -340,6 +366,7 @@ export class AttendanceService {
       clockOut?: string;
       status?: string;
       notes?: string;
+      sessions?: AttendanceSessionInput[];
     },
   ): Promise<Attendance> {
     try {
@@ -362,6 +389,7 @@ export class AttendanceService {
     clockOut?: string;
     status: string;
     notes?: string;
+    sessions?: AttendanceSessionInput[];
   }): Promise<Attendance> {
     try {
       return await api.post<Attendance>("/api/attendance", data);
@@ -370,6 +398,21 @@ export class AttendanceService {
         throw new Error(error.message);
       }
       throw new Error("Failed to create attendance record");
+    }
+  }
+
+  /**
+   * Reopen an accidentally-completed day (manager action). `resumeAt` is the ISO
+   * time work should resume from — the day flips back to "working".
+   */
+  static async reopenDay(id: string, resumeAt: string): Promise<TodayAttendance> {
+    try {
+      return await api.post<TodayAttendance>(`/api/attendance/${id}/reopen`, { resumeAt });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to reopen day");
     }
   }
 

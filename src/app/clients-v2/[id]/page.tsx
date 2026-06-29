@@ -82,6 +82,7 @@ import TeamTab from "./Tabs/TeamTab";
 import SupportTicketsTab from "./Tabs/SupportTicketsTab";
 import MilestonesTab from "./Tabs/MilestonesTab";
 import ReleasesTab from "./Tabs/ReleasesTab";
+import PortalModulesTab from "./Tabs/PortalModulesTab";
 import { teamService } from "@/services/teamService";
 import { momService } from "@/services/momService";
 import { clientPortalService } from "@/services/clientPortalService";
@@ -1671,6 +1672,20 @@ export default function ClientV2DetailsPage() {
                         }))}
                         onRefresh={fetchClientDetails}
                       />
+                    </div>
+                  ),
+                },
+                {
+                  key: "settings",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Settings2 size={15} />
+                      <span>Settings</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <PortalModulesTab clientId={params.id as string} />
                     </div>
                   ),
                 },

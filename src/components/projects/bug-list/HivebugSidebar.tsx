@@ -191,16 +191,6 @@ export default function HivebugSidebar({
                   </div>
                 </>
               )}
-              {onToggleCollapse && (
-                <button
-                  className="hb-icon-btn hb-sidebar-collapse-btn"
-                  onClick={onToggleCollapse}
-                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                  {isCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-                </button>
-              )}
             </div>
             {!isCollapsed && onCreateBug && (
               <button
@@ -364,6 +354,7 @@ export default function HivebugSidebar({
               )}
             </div>
           </div>)}
+
         </aside>
         {!isCollapsed && <div className="hb-resizer" onMouseDown={onResizerMouseDown} />}
       </div>

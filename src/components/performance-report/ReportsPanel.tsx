@@ -108,8 +108,12 @@ export default function ReportsPanel() {
   // <img>, so we inline it (falls back to initials if the fetch is blocked too).
   const resolveAvatar = async (url?: string | null): Promise<string | null> => {
     if (!url) return null;
+    if (url.startsWith('data:')) return url;
     try {
-      const res = await fetch(url, { mode: 'cors' });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error('Proxy failed');
       const blob = await res.blob();
       return await new Promise<string | null>((resolve) => {
         const reader = new FileReader();
@@ -371,7 +375,7 @@ export default function ReportsPanel() {
           <div>
             <h2 className="prr-title">{m.name}</h2>
             <p className="prr-sub">
-              {[m.position, m.department, m.grade].filter(Boolean).join(' · ') || 'Performance report'}
+              {[m.position, m.department].filter(Boolean).join(' · ') || 'Performance report'}
             </p>
           </div>
         </div>

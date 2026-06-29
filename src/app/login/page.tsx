@@ -31,6 +31,49 @@ interface LoginFormData {
   password: string;
 }
 
+// Helper to safely determine subdomain and root host for OAuth flows
+function resolveHostInfo() {
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
+  let subdomain = "";
+  let rootHost = window.location.host;
+
+  // Prefer environment variable if configured
+  const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+  let hasValidEnvRoot = false;
+  if (envAppUrl) {
+    try {
+      rootHost = new URL(envAppUrl).host;
+      hasValidEnvRoot = true;
+    } catch (e) {}
+  }
+
+  if (isLocalhost) {
+    const parts = hostname.split('.');
+    if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
+      if (parts[0] !== "app") subdomain = parts[0];
+      if (!hasValidEnvRoot) rootHost = `localhost:${window.location.port || "3005"}`;
+    }
+  } else {
+    const parts = hostname.split('.');
+    if (parts.length > 2 && parts[0] !== "www") {
+      if (parts[0] !== "app") subdomain = parts[0];
+      if (!hasValidEnvRoot) {
+        const baseDomain = parts.slice(-2).join('.');
+        rootHost = `app.${baseDomain}`;
+      }
+    }
+  }
+
+  // If we are currently ON the rootHost, then we don't need to redirect
+  // This prevents infinite loops if rootHost is misconfigured to point to itself
+  if (window.location.host === rootHost) {
+    subdomain = ""; 
+  }
+
+  return { subdomain, rootHost };
+}
+
 // Separate component that uses useSearchParams
 function LoginFormWithParams() {
   const { login, googleLogin, microsoftLogin, user, checkAuth } = useAuth();
@@ -76,25 +119,7 @@ function LoginFormWithParams() {
       return;
     }
 
-    // Determine if we are on a subdomain (Google OAuth blocks dynamic subdomains for local development)
-    const hostname = window.location.hostname;
-    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
-    let subdomain = "";
-    let rootHost = window.location.host;
-
-    if (isLocalhost) {
-      const parts = hostname.split('.');
-      if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-        if (parts[0] !== "app") subdomain = parts[0];
-        rootHost = `localhost:${window.location.port || "3005"}`;
-      }
-    } else {
-      const parts = hostname.split('.');
-      if (parts.length > 2 && parts[0] !== "www") {
-        if (parts[0] !== "app") subdomain = parts[0];
-        rootHost = parts.slice(-2).join('.');
-      }
-    }
+    const { subdomain, rootHost } = resolveHostInfo();
 
     if (subdomain) {
       // Redirect to root domain to perform login securely under stable OAuth origins
@@ -144,25 +169,7 @@ function LoginFormWithParams() {
   };
 
   const handleMicrosoftLogin = () => {
-    // Determine if we are on a subdomain (Google OAuth blocks dynamic subdomains for local development)
-    const hostname = window.location.hostname;
-    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
-    let subdomain = "";
-    let rootHost = window.location.host;
-
-    if (isLocalhost) {
-      const parts = hostname.split('.');
-      if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-        if (parts[0] !== "app") subdomain = parts[0];
-        rootHost = `localhost:${window.location.port || "3005"}`;
-      }
-    } else {
-      const parts = hostname.split('.');
-      if (parts.length > 2 && parts[0] !== "www") {
-        if (parts[0] !== "app") subdomain = parts[0];
-        rootHost = parts.slice(-2).join('.');
-      }
-    }
+    const { subdomain, rootHost } = resolveHostInfo();
 
     if (subdomain) {
       // Redirect to root domain to perform login securely under stable OAuth origins
@@ -204,24 +211,7 @@ function LoginFormWithParams() {
         cleanup();
         
         try {
-          const hostname = window.location.hostname;
-          const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
-          let subdomain = "";
-          let rootHost = window.location.host;
-
-          if (isLocalhost) {
-            const parts = hostname.split('.');
-            if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-              if (parts[0] !== "app") subdomain = parts[0];
-              rootHost = `localhost:${window.location.port || "3005"}`;
-            }
-          } else {
-            const parts = hostname.split('.');
-            if (parts.length > 2 && parts[0] !== "www") {
-              if (parts[0] !== "app") subdomain = parts[0];
-              rootHost = parts.slice(-2).join('.');
-            }
-          }
+          const { subdomain, rootHost } = resolveHostInfo();
 
           if (subdomain) {
             const protocol = window.location.protocol;
@@ -326,20 +316,7 @@ function LoginFormWithParams() {
       setLoading(true);
       setError("");
 
-      const hostname = window.location.hostname;
-      const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
-      let rootHost = window.location.host;
-      if (isLocalhost) {
-        const parts = hostname.split('.');
-        if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
-          rootHost = `localhost:${window.location.port || "3005"}`;
-        }
-      } else {
-        const parts = hostname.split('.');
-        if (parts.length > 2 && parts[0] !== "www") {
-          rootHost = parts.slice(-2).join('.');
-        }
-      }
+      const { rootHost } = resolveHostInfo();
 
       AuthService.microsoftLogin(token).then(async (response) => {
         const subdomainParam = searchParams.get('subdomain');

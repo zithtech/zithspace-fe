@@ -129,7 +129,8 @@ export const hivebugStyles = `
   overflow: hidden;
 }
 .hb-sidebar-collapsed {
-  width: 52px !important;
+  width: 0px !important;
+  border-right: none !important;
 }
 .hb-sidebar {
   width: 100%;
@@ -159,7 +160,7 @@ export const hivebugStyles = `
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 14px 14px 12px 18px;
+  padding: 0;
   overflow: hidden;
 }
 /* Top row: icon + text + collapse toggle */
@@ -168,9 +169,11 @@ export const hivebugStyles = `
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding-bottom: 14px;
-  margin-bottom: 10px;
+  height: 53px;
+  padding: 0 14px;
+  margin-bottom: 0;
   border-bottom: 1px solid var(--hb-border);
+  box-sizing: border-box;
 }
 /* Push collapse btn to the far right */
 .hb-sidebar-collapse-btn {
@@ -194,9 +197,13 @@ export const hivebugStyles = `
   margin-bottom: 0;
   border-bottom: none;
 }
+.hb-sidebar-collapsed .hb-sidebar-new-bug-btn {
+  justify-content: center;
+}
 /* New Bug button in sidebar — full width, centred */
 .hb-sidebar-new-bug-btn {
-  width: 100%;
+  width: calc(100% - 28px);
+  margin: 14px;
   justify-content: center;
   height: 36px !important;
   font-size: 13px;
@@ -438,7 +445,7 @@ export const hivebugStyles = `
   border-radius: 12px !important;
 }
 
-.hb-section { padding: 6px 8px 4px; }
+.hb-section { padding: 6px 14px 4px; }
 .hb-section-grow { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .hb-section-title {
   display: flex; align-items: center; justify-content: space-between;
@@ -639,7 +646,9 @@ export const hivebugStyles = `
 }
 .hb-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 9.5px 12px;
+  padding: 0 14px;
+  height: 53px;
+  box-sizing: border-box;
   gap: 16px;
   border-bottom: 1px solid var(--hb-border);
   min-width: 0;
@@ -746,8 +755,8 @@ export const hivebugStyles = `
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin: 10px 14px 0 0;
-  padding: 0 0 0 12px;
+  margin: 10px 14px 0 14px;
+  padding: 0;
 }
 /* Proposal-style stat card: flat, horizontal centered layout */
 .hb-stat-card {
@@ -839,7 +848,7 @@ export const hivebugStyles = `
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 4px 14px 2px 12px;
+  margin: 4px 14px 2px 14px;
   padding: 8px 12px 6px 12px;
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
@@ -1202,7 +1211,7 @@ export const hivebugStyles = `
 /* ============ Quick add ============ */
 .hb-quickadd {
   display: flex; align-items: center; gap: 10px;
-  margin: 10px 14px 0 12px;
+  margin: 10px 14px 0 0;
   padding: 10px 14px 10px 22px;
   background: var(--hb-bg-elev);
   border: 1px dashed var(--hb-border);
@@ -1275,9 +1284,12 @@ export const hivebugStyles = `
   overflow: hidden;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 14px 8px 12px;
-  min-width: 0;
-  max-width: 100%;
+  padding: 6px 14px 8px 14px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hb-content::-webkit-scrollbar {
+  display: none;
 }
 .hb-table-wrapper {
   background: var(--hb-bg-elev);
@@ -1289,6 +1301,11 @@ export const hivebugStyles = `
   max-width: 100%;
   min-width: 0;
   position: relative;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hb-table-wrapper::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Sticky right-pinned columns (Ticket + Actions) ── */
@@ -1319,10 +1336,13 @@ thead .hb-col-actions {
   background: var(--hb-bg-elev);
 }
 
-/* ============ Pagination footer ============ */
+.hb-main .pp-footer {
+  margin: 0;
+  padding: 0 14px 0 0;
+}
 .hb-pagination {
   display: flex; align-items: center; justify-content: space-between;
-  margin: 3px 14px 4px 12px;
+  margin: 3px 14px 4px 14px;
   padding: 4px 10px;
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
@@ -5146,10 +5166,12 @@ thead .hb-col-actions {
   position: sticky;
   bottom: 0;
   z-index: 30;
-  margin: 8px 0 0 0;
+  margin: 0;
   background: var(--hb-bg);
-  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.05);
-  height: 35px;
+  box-shadow: none;
+  height: 53px;
+  border-top: 1px solid var(--hb-border);
+  box-sizing: border-box;
 }
 .hb-root .pp-footer-info {
   font-size: 12.5px;

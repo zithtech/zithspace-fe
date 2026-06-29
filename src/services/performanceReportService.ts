@@ -121,6 +121,7 @@ export interface ReportTicket {
   title: string;
   status: string;
   priority: string | null;
+  type: string | null;
   assigneeName: string | null;
   assigneeAvatar: string | null;
   startDate: string | null;

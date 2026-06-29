@@ -34,8 +34,11 @@ function baseOptions(el: HTMLElement, filename: string) {
 }
 
 export async function downloadReportPdf(el: HTMLElement, filename: string): Promise<void> {
-  const html2pdf = (await import("html2pdf.js")).default;
-  await (html2pdf() as any).set(baseOptions(el, filename)).from(el).save();
+  const blob = await reportToPdfBlob(el, filename);
+  // Force the browser to download the file instead of opening it in the built-in PDF viewer
+  // by masking its MIME type as a generic binary stream.
+  const forceDownloadBlob = new Blob([blob], { type: 'application/octet-stream' });
+  saveAs(forceDownloadBlob, filename);
 }
 
 /** Same render as downloadReportPdf, but returns the PDF as a Blob (no download). */

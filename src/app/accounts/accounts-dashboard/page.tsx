@@ -58,6 +58,7 @@ import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -167,7 +168,7 @@ export default function AccountsPage() {
   // Pagination and filtering
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 15,
+    pageSize: 20,
     total: 0,
   });
 
@@ -186,7 +187,7 @@ export default function AccountsPage() {
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit' | 'delete'>('add');
+  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [breakdownDrawerVisible, setBreakdownDrawerVisible] = useState(false);
@@ -389,31 +390,6 @@ export default function AccountsPage() {
     }
   };
 
-  // Handle delete
-  const handleDelete = async () => {
-    if (!selectedTransaction) return;
-
-    try {
-      setFormLoading(true);
-
-      await TransactionsService.deleteTransaction(selectedTransaction.id);
-      messageApi.success('Transaction deleted successfully');
-      setIsModalVisible(false);
-      setSelectedTransaction(null);
-      fetchTransactions();
-      fetchSummary();
-    } catch (error) {
-      console.error('Delete transaction error:', error);
-      if (error instanceof Error) {
-        messageApi.error(error.message);
-      } else {
-        messageApi.error('Delete failed');
-      }
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
   // Modal handlers
   const showAddModal = () => {
     setModalType('add');
@@ -436,12 +412,6 @@ export default function AccountsPage() {
       notes: transaction.notes || '',
       date: dayjs(transaction.date),
     });
-    setIsModalVisible(true);
-  };
-
-  const showDeleteModal = (transaction: Transaction) => {
-    setModalType('delete');
-    setSelectedTransaction(transaction);
     setIsModalVisible(true);
   };
 
@@ -489,7 +459,7 @@ export default function AccountsPage() {
     setPagination(prev => ({
       ...prev,
       current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 15,
+      pageSize: newPagination.pageSize || 20,
     }));
 
     if (sorter && !Array.isArray(sorter) && sorter.field && sorter.order) {
@@ -550,12 +520,54 @@ export default function AccountsPage() {
     items: [
       { key: 'edit', disabled: !canUpdateAccount, label: menuLabel('Edit transaction', 'Modify entry details', <EditOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteAccount, label: menuLabel('Delete transaction', 'Permanently remove entry', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)') },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteAccount,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            title="Delete Transaction"
+            description="Are you sure you want to delete this transaction? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={async () => {
+              try {
+                await TransactionsService.deleteTransaction(record.id);
+                messageApi.success('Transaction deleted successfully');
+                fetchTransactions();
+                fetchSummary();
+              } catch (error) {
+                console.error('Delete transaction error:', error);
+                if (error instanceof Error) {
+                  messageApi.error(error.message);
+                } else {
+                  messageApi.error('Delete failed');
+                }
+              }
+            }}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {menuLabel('Delete transaction', 'Permanently remove entry', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'edit') showEditModal(record);
-      else if (key === 'delete') showDeleteModal(record);
     },
   });
 
@@ -604,7 +616,7 @@ export default function AccountsPage() {
         <span style={{
           fontSize: '13px',
           fontWeight: 700,
-          color: '#0f172a'
+          color: 'var(--text-slate-900)'
         }}>
           {record.type === 'credit' ? '+' : '-'}{formatCurrency(amount)}
         </span>
@@ -1080,7 +1092,7 @@ export default function AccountsPage() {
                             <span className="pc-foot-div" />
                             <span className="pc-foot-item">
                               <span className="pc-foot-key">Amount:</span>
-                              <span style={{ fontWeight: 800, color: '#0f172a' }}>
+                              <span style={{ fontWeight: 800, color: 'var(--text-slate-900)' }}>
                                 {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
                               </span>
                             </span>
@@ -1118,7 +1130,7 @@ export default function AccountsPage() {
                   className="pp-pagesize"
                   value={pagination.pageSize}
                   onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                  options={[10, 15, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -1126,40 +1138,6 @@ export default function AccountsPage() {
           )}
         </main>
       </div>
-
-      {/* Delete confirmation modal */}
-      <Modal
-        title="Delete Transaction"
-        open={isModalVisible && modalType === 'delete'}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setSelectedTransaction(null);
-        }}
-        footer={null}
-        width={400}
-      >
-        <div>
-          <Text>
-            Are you sure you want to delete this transaction?
-            This action cannot be undone.
-          </Text>
-          <div style={{ marginTop: 20, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={() => setIsModalVisible(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                danger
-                loading={formLoading}
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
-            </Space>
-          </div>
-        </div>
-      </Modal>
 
       {/* Transaction Add/Edit Drawer */}
       <Drawer
@@ -1180,7 +1158,7 @@ export default function AccountsPage() {
         }
         placement="right"
         width={420}
-        open={isModalVisible && modalType !== 'delete'}
+        open={isModalVisible}
         onClose={() => {
           setIsModalVisible(false);
           form.resetFields();
@@ -1870,7 +1848,7 @@ export default function AccountsPage() {
         .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
         .pp-btn-primary {
           background: #3B82F6 !important; border: none !important;
-          border-radius: 0 !important; font-weight: 600 !important;
+          border-radius: 8px !important; font-weight: 600 !important;
         }
         .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
@@ -1922,10 +1900,12 @@ export default function AccountsPage() {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item {
           padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
           transition: background .12s ease;
+          overflow: hidden !important;
         }
         .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
         .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
@@ -2429,7 +2409,7 @@ export default function AccountsPage() {
         .accounts-tx-section {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 16px;
+          border-radius: 0 !important;
           padding: 12px 14px 4px;
           box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
@@ -2486,7 +2466,7 @@ export default function AccountsPage() {
         .accounts-tx-form .fp-trigger {
           width: 100% !important;
           height: 38px !important;
-          border-radius: 10px !important;
+          border-radius: 0 !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           padding: 0 14px !important;
@@ -2516,7 +2496,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
-          border-radius: 10px !important;
+          border-radius: 0 !important;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .accounts-tx-form .ant-input-textarea {
@@ -2526,7 +2506,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-lg,
         .accounts-tx-form .ant-picker-large,
         .accounts-tx-form .ant-select-lg .ant-select-selector {
-          border-radius: 10px !important;
+          border-radius: 0 !important;
         }
         .accounts-tx-form .ant-input:hover,
         .accounts-tx-form .ant-input-textarea:hover,

@@ -117,10 +117,10 @@ export function TimeTrackingHeader({
         }
         .bh-header-icon-box {
           width: 36px; height: 36px;
-          background: var(--bg-purple-50, #f3e8ff);
+          background: var(--bg-blue-50, #eff6ff);
           border-radius: 4px;
           display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(139,92,246,0.2);
+          border: 1px solid rgba(59,130,246,0.2);
           flex-shrink: 0;
         }
         .saas-header-custom-icon {
@@ -129,8 +129,8 @@ export function TimeTrackingHeader({
           flex-shrink: 0;
         }
         [data-theme='dark'] .bh-header-icon-box {
-          background: rgba(139,92,246,0.15) !important;
-          border-color: rgba(139,92,246,0.25) !important;
+          background: rgba(59,130,246,0.15) !important;
+          border-color: rgba(59,130,246,0.25) !important;
         }
         .bh-header-divider {
           height: 18px;

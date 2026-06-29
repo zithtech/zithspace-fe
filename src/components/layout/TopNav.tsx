@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   UsersRound,
   Wallet,
+  X,
+  Timer,
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
@@ -58,6 +60,7 @@ import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopove
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
+import { HistoryOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -191,7 +194,8 @@ export default function TopNav({
       },
     },
   };
-  const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
+  const { isPopoverOpen, setPopoverOpen, activeEntry } = useTimeTrackerStore();
+  const timerState = !activeEntry ? "idle" : activeEntry.status === "RUNNING" ? "running" : "paused";
   const screens = useBreakpoint();
   const isCustomBreakpoint = useIsBreakpoint("max", 1290); // true when width <= 1289
 
@@ -899,11 +903,47 @@ export default function TopNav({
             open={isPopoverOpen}
             onCancel={() => setPopoverOpen(false)}
             footer={null}
-            title={<div style={{ textAlign: 'center', paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>Time Tracker</div>}
-            closable={true}
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingBottom: "12px",
+                  borderBottom: "1px solid var(--border-slate-100)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--text-slate-900)"
+                }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <Timer size={14} />
+                  {timerState === "running"
+                    ? "Running timer"
+                    : timerState === "paused"
+                      ? "Paused timer"
+                      : "Start a timer"}
+                </span>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<HistoryOutlined />}
+                  onClick={() => {
+                    setPopoverOpen(false);
+                    router.push("/time-tracking");
+                  }}
+                  style={{ marginRight: 24 }}
+                />
+              </div>
+            }
+            closeIcon={<X size={16} color="var(--text-slate-400)" />}
             width={360}
             centered
-            styles={{ body: { padding: "20px 24px" } }}
+            className="ttp-mobile-modal"
+            styles={{
+              body: { padding: "14px", background: "var(--bg-pure-white)" },
+              header: { background: "transparent", padding: "14px 14px 0", margin: 0 }
+            }}
           >
             <TimeTrackerPopover showContentOnly />
           </Modal>
@@ -1350,6 +1390,18 @@ export default function TopNav({
                 }
                 [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar-track {
                     background: transparent;
+                }
+
+                /* Mobile Timer Modal Polish */
+                .ttp-mobile-modal .ant-modal-content {
+                  padding: 0 !important;
+                  border-radius: 16px !important;
+                  background: var(--bg-pure-white) !important;
+                  border: 1px solid var(--border-slate-100) !important;
+                  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.18), 0 8px 16px -8px rgba(15, 23, 42, 0.12) !important;
+                }
+                [data-theme='dark'] .ttp-mobile-modal .ant-modal-content {
+                  border-color: #27273a !important;
                 }
             `}</style>
     </Header >

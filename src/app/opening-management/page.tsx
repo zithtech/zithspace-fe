@@ -518,7 +518,7 @@ export default function OpeningManagementPage() {
                             columns={columns}
                             dataSource={filteredOpenings}
                             rowKey="id"
-                            pagination={{ pageSize: 10, position: ["bottomRight"] }}
+                            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"] }}
                             className="custom-table"
                             size="middle"
                         />

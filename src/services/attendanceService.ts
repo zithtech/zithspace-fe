@@ -1,5 +1,22 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from "@/lib/axios";
 
+/** A single work session within a day (one clock-in → clock-out period). */
+export interface AttendanceSession {
+  id: string | null;
+  clockIn: string;
+  clockOut?: string | null;
+  workMinutes: number;
+  /** The break that follows this session (set when the user paused). */
+  breakType?: string | null;
+  breakReason?: string | null;
+  isOpen?: boolean;
+}
+
+export interface PausePayload {
+  breakType?: string;
+  reason?: string;
+}
+
 export interface Attendance {
   id: string;
   userId: {
@@ -25,6 +42,7 @@ export interface Attendance {
     startTime: string;
     endTime: string;
   };
+  sessions?: AttendanceSession[];
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -70,6 +88,8 @@ export interface DashboardSummary {
   onTimeToday: number;
 }
 
+export type AttendanceState = "not_started" | "working" | "paused" | "complete";
+
 export interface TodayAttendance {
   id: string | null;
   userId: string;
@@ -83,6 +103,18 @@ export interface TodayAttendance {
   clockOutTime?: string | null;
   totalWorkMinutes?: number;
   isClockIn?: boolean;
+  // Multi-session fields
+  state?: AttendanceState;
+  onBreak?: boolean;
+  breakMinutes?: number;
+  breakType?: string | null;
+  breakReason?: string | null;
+  sessionCount?: number;
+  canPause?: boolean;
+  canResume?: boolean;
+  canComplete?: boolean;
+  sessions?: AttendanceSession[];
+  member?: { id: string; name: string; avatarUrl?: string | null } | null;
 }
 
 export class AttendanceService {
@@ -144,6 +176,51 @@ export class AttendanceService {
         throw new Error(error.message);
       }
       throw new Error("Failed to clock out");
+    }
+  }
+
+  /**
+   * Pause the day — closes the current open work session (a break begins).
+   * Accepts an optional break type + reason.
+   */
+  static async pause(data: PausePayload = {}): Promise<TodayAttendance> {
+    try {
+      return await api.post<TodayAttendance>("/api/attendance/pause", data);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to pause");
+    }
+  }
+
+  /**
+   * Resume the day — opens a new work session after a break
+   */
+  static async resume(
+    data: ClockInData & { resumeTimers?: boolean } = {},
+  ): Promise<TodayAttendance> {
+    try {
+      return await api.post<TodayAttendance>("/api/attendance/resume", data);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to resume");
+    }
+  }
+
+  /**
+   * Complete the day — closes any open session and finalizes totals
+   */
+  static async complete(data: ClockOutData = {}): Promise<TodayAttendance> {
+    try {
+      return await api.post<TodayAttendance>("/api/attendance/complete", data);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to complete the day");
     }
   }
 

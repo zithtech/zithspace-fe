@@ -250,7 +250,7 @@ export default function CandidateManagement() {
               rowKey="id"
               loading={loading}
               scroll={{ x: "max-content", y: "calc(100vh - 290px)" }}
-              pagination={{ pageSize: 10 }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
               onRow={(record) => ({
                 onClick: (e) => {
                   // If the click happened on an action button or dropdown, don't navigate

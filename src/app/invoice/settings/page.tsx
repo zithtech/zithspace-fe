@@ -69,6 +69,7 @@ import {
   useUpdateSettingsProfile,
 } from "@/hooks/useInvoiceSettings";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title } = Typography;
 
@@ -122,6 +123,16 @@ const DEFAULT_DRAFT: Draft = {
     qrCode: null,
   },
 };
+
+const ppMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
 
 export default function InvoiceSettingPage() {
   const router = useRouter();
@@ -181,7 +192,7 @@ export default function InvoiceSettingPage() {
   }, [settingsList, searchText, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   // Reset page when filters change
   useEffect(() => {
@@ -890,14 +901,22 @@ export default function InvoiceSettingPage() {
                               )}
                               {canDeleteInvoiceSetting && (
                                 <Tooltip title="Delete">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDelete(record.id)}
-                                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                    style={{ color: "#dc2626" }}
+                                  <ConfirmDialog
+                                    tone="danger"
+                                    title="Delete Profile"
+                                    description="Are you sure you want to delete this profile? This action cannot be undone."
+                                    confirmText="Delete"
+                                    onConfirm={() => handleDelete(record.id)}
+                                    placement="left"
                                   >
-                                    <Trash2 size={13} />
-                                  </button>
+                                    <button
+                                      type="button"
+                                      className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                      style={{ color: "#dc2626" }}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </ConfirmDialog>
                                 </Tooltip>
                               )}
                             </div>
@@ -914,14 +933,12 @@ export default function InvoiceSettingPage() {
                       const menuItems = [
                         canUpdateInvoiceSetting && {
                           key: "edit",
-                          icon: <Edit size={14} />,
-                          label: "Edit",
+                          label: ppMenuLabel('Edit', 'Modify settings', <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
                           onClick: () => handleEdit(setting.id),
                         },
                         canUpdateInvoiceSetting && {
                           key: "status_toggle",
-                          icon: <Power size={14} />,
-                          label: setting.isActive ? "Deactivate" : "Activate",
+                          label: ppMenuLabel(setting.isActive ? "Deactivate" : "Activate", 'Toggle status', <Power size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
                           onClick: () =>
                             activateMutation.mutate({
                               id: setting.id,
@@ -932,9 +949,22 @@ export default function InvoiceSettingPage() {
                         canDeleteInvoiceSetting && {
                           key: "delete",
                           danger: true,
-                          icon: <Trash2 size={14} />,
-                          label: "Delete",
-                          onClick: () => handleDelete(setting.id),
+                          label: (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete Profile"
+                                description="Are you sure you want to delete this profile? This action cannot be undone."
+                                confirmText="Delete"
+                                onConfirm={() => handleDelete(setting.id)}
+                                placement="left"
+                              >
+                                <div style={{ padding: 0, margin: 0 }}>
+                                  {ppMenuLabel('Delete', 'Remove profile', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                                </div>
+                              </ConfirmDialog>
+                            </div>
+                          ),
                         },
                       ].filter(Boolean);
 
@@ -980,6 +1010,7 @@ export default function InvoiceSettingPage() {
                               </div>
                             </div>
                             <Dropdown
+                              overlayClassName="pp-action-pop"
                               menu={{ items: menuItems as any }}
                               trigger={["click"]}
                             >
@@ -1099,7 +1130,7 @@ export default function InvoiceSettingPage() {
                     setPageSize(v);
                     setCurrentPage(1);
                   }}
-                  options={[5, 10, 15, 25, 50, 100].map((n) => ({
+                  options={[10, 20, 25, 50, 100].map((n) => ({
                     value: n,
                     label: `${n} / page`,
                   }))}
@@ -2024,7 +2055,7 @@ export default function InvoiceSettingPage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); }
+        .pp-shell { display: flex; margin: 0 -24px; height: calc(100vh - 54px); overflow: hidden; background: var(--bg-pure-white); }
         .pp-shell,
         .pp-shell *,
         .ant-table,
@@ -2062,7 +2093,7 @@ export default function InvoiceSettingPage() {
         .pp-view-item.is-active .pp-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
         .pp-side-bottom-actions { margin: auto -14px 0 -38px; padding: 8px 14px 0 38px; border-top: 1px solid var(--border-slate-100); background: var(--bg-pure-white); }
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
+        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .pp-search-wrap { position: relative; flex: 1; max-width: 520px; display: flex; align-items: center; height: 32px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
@@ -2165,6 +2196,34 @@ export default function InvoiceSettingPage() {
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 236px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500); font-size: 13px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }

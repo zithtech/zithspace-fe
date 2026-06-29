@@ -1,10 +1,9 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
-import type { BlockType } from './proposalStore';
+import type { BlockType, ProposalBlock } from './proposalStore';
 import { ProposalSectionService } from '@/services/proposalSectionService';
+import { ProposalTemplateService } from '@/services/proposalTemplateService';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Types
@@ -68,7 +67,9 @@ export interface LibraryTemplate {
   id: string;
   name: string;
   description?: string;
-  /** Ordered list of section ids that compose this template. */
+  /** Full composed builder content — the same ProposalBlock[] a proposal holds. */
+  blocks?: ProposalBlock[];
+  /** Legacy: ordered list of section ids that composed this template. */
   sectionIds: string[];
   /** Theme + font preset ids (see themePresets.ts). */
   themeId: string;
@@ -97,13 +98,7 @@ export const blockTypeForSectionType = (type: SectionType): BlockType => {
 };
 
 // ──────────────────────────────────────────────────────────────────────────
-// Templates (still client-side until a backend lands)
-// ──────────────────────────────────────────────────────────────────────────
-
-const stamp = () => new Date().toISOString();
-
-// ──────────────────────────────────────────────────────────────────────────
-// Store — sections come from the backend (raw-pg API); templates stay local.
+// Store — sections and templates both come from the backend (raw-pg API).
 // ──────────────────────────────────────────────────────────────────────────
 
 interface SectionInput {
@@ -116,12 +111,24 @@ interface SectionInput {
   isGlobal?: boolean;
 }
 
+interface TemplateInput {
+  name: string;
+  description?: string;
+  blocks?: ProposalBlock[];
+  sectionIds?: string[];
+  themeId?: string;
+  fontId?: string;
+}
+
 interface LibraryState {
   sections: LibrarySection[];
   sectionsLoaded: boolean;
   sectionsLoading: boolean;
   sectionsError: string | null;
   templates: LibraryTemplate[];
+  templatesLoaded: boolean;
+  templatesLoading: boolean;
+  templatesError: string | null;
 
   // Section CRUD (backend-backed)
   fetchSections: (force?: boolean) => Promise<void>;
@@ -131,25 +138,28 @@ interface LibraryState {
   archiveSection: (id: string, archived?: boolean) => Promise<void>;
   deleteSection: (id: string) => Promise<void>;
 
-  // Template CRUD (local)
-  createTemplate: (input: Partial<LibraryTemplate> & { name: string }) => LibraryTemplate;
-  updateTemplate: (id: string, patch: Partial<LibraryTemplate>) => void;
-  duplicateTemplate: (id: string) => LibraryTemplate | null;
-  archiveTemplate: (id: string, archived?: boolean) => void;
-  deleteTemplate: (id: string) => void;
+  // Template CRUD (backend-backed)
+  fetchTemplates: (force?: boolean) => Promise<void>;
+  createTemplate: (input: TemplateInput) => Promise<LibraryTemplate | null>;
+  updateTemplate: (id: string, patch: Partial<TemplateInput> & { archived?: boolean }) => Promise<void>;
+  duplicateTemplate: (id: string) => Promise<LibraryTemplate | null>;
+  archiveTemplate: (id: string, archived?: boolean) => Promise<void>;
+  deleteTemplate: (id: string) => Promise<void>;
 
   // Derived helpers
   templatesUsingSection: (sectionId: string) => LibraryTemplate[];
 }
 
 export const useProposalLibraryStore = create<LibraryState>()(
-  persist(
     (set, get) => ({
       sections: [],
       sectionsLoaded: false,
       sectionsLoading: false,
       sectionsError: null,
       templates: [],
+      templatesLoaded: false,
+      templatesLoading: false,
+      templatesError: null,
 
       // ── Sections (backend) ───────────────────────────────────────────
       fetchSections: async (force = false) => {
@@ -191,64 +201,52 @@ export const useProposalLibraryStore = create<LibraryState>()(
         await ProposalSectionService.remove(id);
         set((s) => ({
           sections: s.sections.filter((sec) => sec.id !== id),
-          // keep local templates valid by dropping references
+          // keep templates valid in-memory by dropping references to the deleted section
           templates: s.templates.map((t) => ({ ...t, sectionIds: t.sectionIds.filter((sid) => sid !== id) })),
         }));
       },
 
-      // ── Templates (local) ────────────────────────────────────────────
-      createTemplate: (input) => {
-        const template: LibraryTemplate = {
-          id: nanoid(),
-          name: input.name,
-          description: input.description || '',
-          sectionIds: input.sectionIds ?? [],
-          themeId: input.themeId ?? 'azure',
-          fontId: input.fontId ?? 'inter',
-          archived: false,
-          system: false,
-          createdAt: stamp(),
-          updatedAt: stamp(),
-        };
-        set((s) => ({ templates: [template, ...s.templates] }));
-        return template;
+      // ── Templates (backend) ──────────────────────────────────────────
+      fetchTemplates: async (force = false) => {
+        const { templatesLoading, templatesLoaded } = get();
+        if (templatesLoading) return;
+        if (templatesLoaded && !force) return;
+        set({ templatesLoading: true, templatesError: null });
+        try {
+          const templates = await ProposalTemplateService.list();
+          set({ templates: Array.isArray(templates) ? templates : [], templatesLoaded: true, templatesLoading: false });
+        } catch (err: any) {
+          set({ templatesLoading: false, templatesError: err?.message || 'Failed to load templates' });
+        }
       },
 
-      updateTemplate: (id, patch) =>
-        set((s) => ({
-          templates: s.templates.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: stamp() } : t)),
-        })),
-
-      duplicateTemplate: (id) => {
-        const src = get().templates.find((t) => t.id === id);
-        if (!src) return null;
-        const copy: LibraryTemplate = {
-          ...src,
-          id: nanoid(),
-          name: `${src.name} (Copy)`,
-          system: false,
-          archived: false,
-          createdAt: stamp(),
-          updatedAt: stamp(),
-        };
-        set((s) => ({ templates: [copy, ...s.templates] }));
-        return copy;
+      createTemplate: async (input) => {
+        const created = await ProposalTemplateService.create(input);
+        if (created) set((s) => ({ templates: [created, ...s.templates] }));
+        return created || null;
       },
 
-      archiveTemplate: (id, archived = true) =>
-        set((s) => ({
-          templates: s.templates.map((t) => (t.id === id ? { ...t, archived, updatedAt: stamp() } : t)),
-        })),
+      updateTemplate: async (id, patch) => {
+        const updated = await ProposalTemplateService.update(id, patch);
+        if (updated) set((s) => ({ templates: s.templates.map((t) => (t.id === id ? updated : t)) }));
+      },
 
-      deleteTemplate: (id) => set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
+      duplicateTemplate: async (id) => {
+        const copy = await ProposalTemplateService.duplicate(id);
+        if (copy) set((s) => ({ templates: [copy, ...s.templates] }));
+        return copy || null;
+      },
+
+      archiveTemplate: async (id, archived = true) => {
+        const updated = await ProposalTemplateService.archive(id, archived);
+        if (updated) set((s) => ({ templates: s.templates.map((t) => (t.id === id ? updated : t)) }));
+      },
+
+      deleteTemplate: async (id) => {
+        await ProposalTemplateService.remove(id);
+        set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
+      },
 
       templatesUsingSection: (sectionId) => get().templates.filter((t) => t.sectionIds.includes(sectionId)),
     }),
-    {
-      name: 'zukvo-proposal-library-v2',
-      version: 2,
-      // Only templates are persisted; sections are always fetched fresh from the API.
-      partialize: (state) => ({ templates: state.templates }) as any,
-    },
-  ),
 );

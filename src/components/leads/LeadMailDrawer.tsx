@@ -166,6 +166,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
 
       const mailData = {
         leadId: lead?.id,
+        proposalId: lead?.proposal_id,
         to: values.to,
         subject: values.subject,
         body: values.body,

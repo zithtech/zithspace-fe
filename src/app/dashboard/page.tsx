@@ -15,6 +15,9 @@ import { CalendarService, CalendarProvider } from "@/services/calendarService";
 import { DailyUpdateService } from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
+import BreakPickerModal from "@/components/attendance/BreakPickerModal";
+import { breakLabel } from "@/components/attendance/breakTypes";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
@@ -47,6 +50,9 @@ import {
   VideoCameraOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
+  CaretRightOutlined,
+  CheckSquareOutlined,
+  CoffeeOutlined,
   LoginOutlined,
   LogoutOutlined,
   FormOutlined,
@@ -104,6 +110,7 @@ function DashboardContent() {
     "me",
   );
   const [isClocking, setIsClocking] = useState(false);
+  const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [createdInvoices, setCreatedInvoices] = useState<any[]>([]);
@@ -121,45 +128,36 @@ function DashboardContent() {
   const [workDuration, setWorkDuration] = useState("00:00:00");
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    if (todayAttendance?.clockInTime && !todayAttendance.clockOutTime) {
-      interval = setInterval(() => {
-        const now = dayjs();
-        const clockIn = dayjs(todayAttendance.clockInTime);
-        const duration = now.diff(clockIn);
-        const hours = Math.floor(duration / 3600000)
-          .toString()
-          .padStart(2, "0");
-        const minutes = Math.floor((duration % 3600000) / 60000)
-          .toString()
-          .padStart(2, "0");
-        const seconds = Math.floor((duration % 60000) / 1000)
-          .toString()
-          .padStart(2, "0");
-        setWorkDuration(`${hours}:${minutes}:${seconds}`);
-      }, 1000);
-    } else if (todayAttendance?.clockInTime && todayAttendance.clockOutTime) {
-      const clockIn = dayjs(todayAttendance.clockInTime);
-      const clockOut = dayjs(todayAttendance.clockOutTime);
-      const duration = clockOut.diff(clockIn);
-      const hours = Math.floor(duration / 3600000)
-        .toString()
-        .padStart(2, "0");
-      const minutes = Math.floor((duration % 3600000) / 60000)
-        .toString()
-        .padStart(2, "0");
-      const seconds = Math.floor((duration % 60000) / 1000)
-        .toString()
-        .padStart(2, "0");
-      setWorkDuration(`${hours}:${minutes}:${seconds}`);
-    } else {
-      setWorkDuration("00:00:00");
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
+    // Worked time excludes breaks: sum of closed sessions + the live open one.
+    const compute = () => {
+      const a = todayAttendance;
+      if (!a) {
+        setWorkDuration("00:00:00");
+        return;
       }
+      const sessions: any[] = Array.isArray(a.sessions) ? a.sessions : [];
+      const closedSec = sessions
+        .filter((s) => !s.isOpen)
+        .reduce((acc, s) => acc + (s.workMinutes || 0) * 60, 0);
+      const open = sessions.find((s) => s.isOpen);
+      let totalSec: number;
+      if (open && open.clockIn) {
+        totalSec = closedSec + Math.max(0, Math.floor((Date.now() - new Date(open.clockIn).getTime()) / 1000));
+      } else {
+        totalSec = (a.totalWorkMinutes ?? 0) * 60;
+      }
+      const hours = Math.floor(totalSec / 3600).toString().padStart(2, "0");
+      const minutes = Math.floor((totalSec % 3600) / 60).toString().padStart(2, "0");
+      const seconds = Math.floor(totalSec % 60).toString().padStart(2, "0");
+      setWorkDuration(`${hours}:${minutes}:${seconds}`);
+    };
+
+    compute();
+    const sessions: any[] = Array.isArray(todayAttendance?.sessions) ? todayAttendance.sessions : [];
+    const hasOpen = sessions.some((s) => s.isOpen);
+    const interval = hasOpen ? setInterval(compute, 1000) : undefined;
+    return () => {
+      if (interval) clearInterval(interval);
     };
   }, [todayAttendance]);
 
@@ -448,18 +446,59 @@ function DashboardContent() {
     }
   };
 
-  const handleClockOut = async () => {
+  const handlePause = async (breakType?: string, reason?: string) => {
     setIsClocking(true);
     try {
-      const newAttendance = await AttendanceService.clockOut();
-      setTodayAttendance(newAttendance);
+      const r = await AttendanceService.pause({ breakType, reason });
+      setTodayAttendance(r);
     } catch (error) {
-      console.error("Failed to clock out", error);
-      setError("Failed to clock out. Please try again.");
+      console.error("Failed to pause", error);
+      setError("Failed to start break. Please try again.");
     } finally {
       setIsClocking(false);
     }
   };
+
+  const handleResume = async () => {
+    setIsClocking(true);
+    try {
+      const r = await AttendanceService.resume();
+      setTodayAttendance(r);
+    } catch (error) {
+      console.error("Failed to resume", error);
+      setError("Failed to resume. Please try again.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    setIsClocking(true);
+    try {
+      const r = await AttendanceService.complete();
+      setTodayAttendance(r);
+    } catch (error) {
+      console.error("Failed to complete the day", error);
+      setError("Failed to complete the day. Please try again.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  // Day-state derived from the new multi-session payload (with legacy fallback).
+  const attState: string =
+    todayAttendance?.state ??
+    (todayAttendance?.canClockIn
+      ? "not_started"
+      : todayAttendance?.canClockOut
+        ? "working"
+        : todayAttendance
+          ? "complete"
+          : "not_started");
+  const isWorking = attState === "working";
+  const isPaused = attState === "paused";
+  const isComplete = attState === "complete";
+  const notStarted = attState === "not_started";
 
   // ─── Premium Layout Helpers ───────────────────────────────────────────
   const hour = dayjs().hour();
@@ -468,13 +507,15 @@ function DashboardContent() {
   const firstName =
     user?.name?.split(" ")[0] || user?.name || "there";
 
-  const heroSubtext = todayAttendance?.canClockOut
-    ? `You're clocked in — ${workDuration} elapsed today.`
-    : todayAttendance?.canClockIn
-      ? "Ready when you are. Clock in to start your day."
-      : todayAttendance && !todayAttendance.canClockIn && !todayAttendance.canClockOut
+  const heroSubtext = isWorking
+    ? `You're clocked in — ${workDuration} worked today.`
+    : isPaused
+      ? `On a break${todayAttendance?.breakType ? ` · ${breakLabel(todayAttendance.breakType)}` : ""} — resume when you're ready.`
+      : isComplete
         ? "Shift wrapped — nice work today."
-        : "Here's a quick look at what's on your plate.";
+        : todayAttendance
+          ? "Ready when you are. Clock in to start your day."
+          : "Here's a quick look at what's on your plate.";
 
   const totalTickets = tickets.length;
   const completedTickets = tickets.filter((t) =>
@@ -769,13 +810,13 @@ function DashboardContent() {
                 accent: "#3B82F6",
                 accentLight: "#60A5FA",
               },
-              {
-                value: "freelancer" as const,
-                title: "Freelancer",
-                icon: <SolutionOutlined />,
-                accent: "#10B981",
-                accentLight: "#34D399",
-              },
+              // {
+              //   value: "freelancer" as const,
+              //   title: "Freelancer",
+              //   icon: <SolutionOutlined />,
+              //   accent: "#10B981",
+              //   accentLight: "#34D399",
+              // },
               {
                 value: "organization" as const,
                 title: "Organization",
@@ -1212,9 +1253,11 @@ function DashboardContent() {
                     <Card
                       style={{
                         ...cardBase,
-                        background: todayAttendance?.canClockOut
+                        background: isWorking
                           ? token.colorPrimaryBg
-                          : token.colorBgContainer,
+                          : isPaused
+                            ? "#FFFBEB"
+                            : token.colorBgContainer,
                         overflow: "hidden",
                         position: "relative",
                         height: 300,
@@ -1247,19 +1290,23 @@ function DashboardContent() {
                               padding: "2px 10px",
                               fontWeight: 600,
                               fontSize: 11,
-                              background: todayAttendance.canClockOut
+                              background: isWorking
                                 ? "#ECFDF5"
-                                : todayAttendance.canClockIn
-                                  ? token.colorFillAlter
-                                  : "#EFF6FF",
-                              color: todayAttendance.canClockOut
+                                : isPaused
+                                  ? "#FFFBEB"
+                                  : isComplete
+                                    ? "#EFF6FF"
+                                    : token.colorFillAlter,
+                              color: isWorking
                                 ? "#047857"
-                                : todayAttendance.canClockIn
-                                  ? token.colorTextSecondary
-                                  : "#1D4ED8",
+                                : isPaused
+                                  ? "#B45309"
+                                  : isComplete
+                                    ? "#1D4ED8"
+                                    : token.colorTextSecondary,
                             }}
                           >
-                            {todayAttendance.canClockOut && (
+                            {(isWorking || isPaused) && (
                               <span
                                 className="live-pulse"
                                 style={{
@@ -1267,16 +1314,18 @@ function DashboardContent() {
                                   width: 6,
                                   height: 6,
                                   borderRadius: "50%",
-                                  background: "#10B981",
+                                  background: isPaused ? "#F59E0B" : "#10B981",
                                   marginRight: 6,
                                 }}
                               />
                             )}
-                            {todayAttendance.canClockIn
-                              ? "Not Clocked In"
-                              : todayAttendance.canClockOut
-                                ? "Active Now"
-                                : "Shift Completed"}
+                            {isWorking
+                              ? "Active Now"
+                              : isPaused
+                                ? `On Break${todayAttendance.breakType ? ` · ${breakLabel(todayAttendance.breakType)}` : ""}`
+                                : isComplete
+                                  ? "Shift Completed"
+                                  : "Not Clocked In"}
                           </Tag>
                         )}
                       </div>
@@ -1301,12 +1350,14 @@ function DashboardContent() {
                           const remM = Math.floor((remainingSec % 3600) / 60)
                             .toString()
                             .padStart(2, "0");
-                          const isActive = !!todayAttendance.canClockOut;
-                          const ringColor = isActive
+                          const isActive = isWorking;
+                          const ringColor = isWorking
                             ? token.colorPrimary
-                            : todayAttendance.canClockIn
-                              ? token.colorTextTertiary
-                              : "#10B981";
+                            : isPaused
+                              ? "#F59E0B"
+                              : notStarted
+                                ? token.colorTextTertiary
+                                : "#10B981";
                           return (
                             <div
                               style={{
@@ -1402,11 +1453,13 @@ function DashboardContent() {
                                     fontVariantNumeric: "tabular-nums",
                                   }}
                                 >
-                                  {isActive
+                                  {isWorking
                                     ? `${remH}h ${remM}m to target`
-                                    : todayAttendance.canClockIn
-                                      ? "Session not started"
-                                      : "Daily target reached"}
+                                    : isPaused
+                                      ? `On break${todayAttendance.breakType ? ` · ${breakLabel(todayAttendance.breakType)}` : ""}`
+                                      : notStarted
+                                        ? "Session not started"
+                                        : "Daily target reached"}
                                 </Text>
                               </div>
 
@@ -1497,7 +1550,7 @@ function DashboardContent() {
 
                               {/* Action */}
                               <div>
-                                {todayAttendance.canClockIn ? (
+                                {notStarted ? (
                                   <Button
                                     type="primary"
                                     block
@@ -1516,23 +1569,7 @@ function DashboardContent() {
                                   >
                                     Start Workday
                                   </Button>
-                                ) : todayAttendance.canClockOut ? (
-                                  <Button
-                                    danger
-                                    block
-                                    icon={<PauseCircleOutlined />}
-                                    onClick={handleClockOut}
-                                    loading={isClocking}
-                                    style={{
-                                      borderRadius: 10,
-                                      height: 40,
-                                      fontWeight: 600,
-                                      fontSize: 13,
-                                    }}
-                                  >
-                                    End Shift · Clock Out
-                                  </Button>
-                                ) : (
+                                ) : isComplete ? (
                                   <div
                                     style={{
                                       padding: "10px 14px",
@@ -1551,6 +1588,78 @@ function DashboardContent() {
                                     <CheckCircleFilled />
                                     <span>Shift Complete · Great work!</span>
                                   </div>
+                                ) : (
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "1fr 1fr",
+                                      gap: 8,
+                                    }}
+                                  >
+                                    {isWorking ? (
+                                      <Button
+                                        block
+                                        icon={<PauseCircleOutlined />}
+                                        onClick={() => setBreakModalOpen(true)}
+                                        loading={isClocking}
+                                        style={{
+                                          borderRadius: 10,
+                                          height: 40,
+                                          fontWeight: 600,
+                                          fontSize: 13,
+                                          color: "#B45309",
+                                          borderColor: "#FCD34D",
+                                          background: "#FFFBEB",
+                                        }}
+                                      >
+                                        Pause
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        type="primary"
+                                        block
+                                        icon={<CaretRightOutlined />}
+                                        onClick={handleResume}
+                                        loading={isClocking}
+                                        style={{
+                                          borderRadius: 10,
+                                          height: 40,
+                                          fontWeight: 600,
+                                          fontSize: 13,
+                                          background: token.colorPrimary,
+                                          border: "none",
+                                        }}
+                                      >
+                                        Resume
+                                      </Button>
+                                    )}
+                                    <ConfirmDialog
+                                      tone="warning"
+                                      icon={<CheckSquareOutlined />}
+                                      title="Complete your day?"
+                                      description={`You've worked ${workDuration}. You won't be able to clock in again today.`}
+                                      confirmText="Yes, complete day"
+                                      placement="topRight"
+                                      onConfirm={handleComplete}
+                                    >
+                                      <Button
+                                        block
+                                        icon={<CheckSquareOutlined />}
+                                        loading={isClocking}
+                                        style={{
+                                          borderRadius: 10,
+                                          height: 40,
+                                          fontWeight: 600,
+                                          fontSize: 13,
+                                          color: "#047857",
+                                          borderColor: "#6EE7B7",
+                                          background: "#ECFDF5",
+                                        }}
+                                      >
+                                        Day Complete
+                                      </Button>
+                                    </ConfirmDialog>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -1560,6 +1669,15 @@ function DashboardContent() {
                         <Skeleton active paragraph={{ rows: 3 }} />
                       )}
                     </Card>
+                    <BreakPickerModal
+                      open={breakModalOpen}
+                      loading={isClocking}
+                      onCancel={() => setBreakModalOpen(false)}
+                      onConfirm={async (bt, r) => {
+                        await handlePause(bt, r);
+                        setBreakModalOpen(false);
+                      }}
+                    />
                   </Col>
 
                   {/* Today's Meetings */}

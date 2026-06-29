@@ -18,6 +18,9 @@ import {
   Row,
   Col,
   message,
+  Dropdown,
+  Avatar,
+  Tag,
 } from "antd";
 import {
   Upload as UploadIcon,
@@ -39,8 +42,12 @@ import {
   ExternalLink,
   AlertTriangle,
   Copy,
+  MoreHorizontal,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { api, apiClient, TokenManager } from "@/lib/axios";
+import dayjs from "dayjs";
 import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useSocket } from "@/providers/SocketProvider";
@@ -85,15 +92,83 @@ export default function DocumentsTab({
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [docSource, setDocSource] = useState<"upload" | "url">("upload");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
   const [editForm] = Form.useForm();
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const documentActionMenu = (record: any) => ({
+    items: [
+      {
+        key: "preview",
+        label: (
+          <span className="pp-menu-item" onClick={() => {
+            if (record.fileUrl) {
+              setViewingDocument(record);
+              setViewModalOpen(true);
+            } else {
+              messageApi.info("Preview Notification: Live preview is not supported for this file type.");
+            }
+          }}>
+            <Eye size={14} className="pp-menu-ic" />
+            <span>Preview Content</span>
+          </span>
+        ),
+      },
+      {
+        key: "download",
+        label: (
+          <span className="pp-menu-item" onClick={() => handleDownload(record)}>
+            <Download size={14} className="pp-menu-ic" />
+            <span>Download File</span>
+          </span>
+        ),
+      },
+      ...(canUpdateClient ? [
+        {
+          key: "edit",
+          label: (
+            <span className="pp-menu-item" onClick={() => openEditModal(record)}>
+              <Pencil size={14} className="pp-menu-ic" />
+              <span>Edit Details</span>
+            </span>
+          ),
+        }
+      ] : []),
+      ...(canDeleteClient ? [
+        {
+          type: "divider" as const,
+        },
+        {
+          key: "delete",
+          danger: true,
+          label: (
+            <span className="pp-menu-item" onClick={() => {
+              modal.confirm({
+                title: "Purge Document",
+                content: "Are you sure you want to permanently delete this document archive?",
+                okText: "Purge",
+                okType: "danger",
+                cancelText: "Cancel",
+                centered: true,
+                onOk: () => handleDelete(record.id),
+              });
+            }}>
+              <Trash2 size={14} className="pp-menu-ic" />
+              <span>Purge Document</span>
+            </span>
+          ),
+        }
+      ] : []),
+    ]
+  });
 
   // Real-time: refresh when documents for this client change anywhere.
   const { socket, connected } = useSocket();
@@ -320,12 +395,7 @@ export default function DocumentsTab({
       render: (_: any, record: any) => {
         const name: string | undefined = record.uploadedByName;
         if (!name) return <span style={{ fontSize: 13, color: "var(--text-slate-400)" }}>—</span>;
-        const initials = name
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((p) => p[0]?.toUpperCase())
-          .join("");
+        const initial = name.trim().charAt(0).toUpperCase();
         return (
           <Space size={8} align="center">
             <div
@@ -333,8 +403,7 @@ export default function DocumentsTab({
                 width: 26,
                 height: 26,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
-                color: "#fff",
+                background: "var(--bg-blue-50)", color: "#3b82f6",
                 fontSize: 10.5,
                 fontWeight: 700,
                 display: "inline-flex",
@@ -344,7 +413,7 @@ export default function DocumentsTab({
                 flexShrink: 0,
               }}
             >
-              {initials || "?"}
+              {initial}
             </div>
             <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-slate-700)" }}>
               {name}
@@ -367,6 +436,8 @@ export default function DocumentsTab({
       title: "Actions",
       key: "actions",
       align: "right" as const,
+      width: 150,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
         <Space>
           <Tooltip title="Preview Content">
@@ -480,10 +551,9 @@ export default function DocumentsTab({
         await api.post(`/api/clients-v2/${clientId}/documents`, payload);
 
         messageApi.success(
-          `Document added: ${
-            docSource === "url"
-              ? "External link has been saved successfully."
-              : "Document has been uploaded successfully."
+          `Document added: ${docSource === "url"
+            ? "External link has been saved successfully."
+            : "Document has been uploaded successfully."
           }`
         );
         setUploading(false);
@@ -593,59 +663,102 @@ export default function DocumentsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
+      {modalContextHolder}
+      <div className="cd-tab-sticky-head">
       <div className="documents-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<FolderArchive size={20} color="#f59e0b" />}
-          title="Document Repository"
-          description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
-          extra={
-            canUpdateClient && (
-              <Button
-                type="primary"
-                icon={<FilePlus size={16} />}
-                onClick={() => setIsUploadModalVisible(true)}
-                className="ptab-primary-btn"
-                style={{
-                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                  borderColor: "transparent",
-                  borderRadius: "8px",
-                  height: "32px",
-                  fontWeight: 600,
-                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                  display: "flex",
-                  alignItems: "center",
-                }}
+          <TimeTrackingHeader
+            icon={<FolderArchive size={20} color="#3b82f6" />}
+            title="Document Repository"
+            description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
+            extra={
+              canUpdateClient && (
+                <Button
+                  type="primary"
+                  icon={<FilePlus size={16} />}
+                  onClick={() => setIsUploadModalVisible(true)}
+                  className="ptab-primary-btn"
+                  style={{
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                    borderColor: "transparent",
+                    borderRadius: "8px",
+                    height: "32px",
+                    fontWeight: 600,
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Add Document
+                </Button>
+              )
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+          />
+        </div>
+  
+        <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <Input
+            placeholder="Search by name or classification..."
+            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="documents-search-input"
+            style={{ width: "320px" }}
+            allowClear
+          />
+  
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="ptab-segmented">
+              <button
+                type="button"
+                className={viewMode === "grid" ? "is-active" : ""}
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
               >
-                Add Document
-              </Button>
-            )
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                className={viewMode === "list" ? "is-active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="ptab-divider" />
       </div>
 
-      <div style={{ margin: "20px 0 16px 0", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-        <Input
-          placeholder="Search by name or classification..."
-          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="documents-search-input"
-          style={{ width: "320px" }}
-          allowClear
-        />
-      </div>
-
-      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
-        <Table
-          dataSource={filteredDocuments}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 8, hideOnSinglePage: true }}
-          className="premium-table"
-          scroll={{ x: "max-content" }}
-          locale={{
-            emptyText: (
-              <div className="ptab-empty">
+      {viewMode === "list" ? (
+        <div className="pp-table-wrap">
+          <Table
+            dataSource={filteredDocuments}
+            columns={columns}
+            rowKey="id"
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+            className="pp-table"
+            scroll={{ x: "max-content" }}
+            locale={{
+              emptyText: (
+                <div className="ptab-empty">
+                  <div className="ptab-empty-icon">
+                    <FolderArchive size={26} />
+                  </div>
+                  <div className="ptab-empty-title">No documents yet</div>
+                  <div className="ptab-empty-desc">
+                    Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+                  </div>
+                </div>
+              ),
+            }}
+          />
+        </div>
+      ) : (
+        <div className="pp-grid">
+          {filteredDocuments.length === 0 ? (
+            <div className="ptab-empty-wrapper">
+              <div className="ptab-empty" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", padding: "40px 24px" }}>
                 <div className="ptab-empty-icon">
                   <FolderArchive size={26} />
                 </div>
@@ -654,10 +767,117 @@ export default function DocumentsTab({
                   Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
                 </div>
               </div>
-            ),
-          }}
-        />
-      </Card>
+            </div>
+          ) : (
+            filteredDocuments.map((doc) => {
+              return (
+                <div key={doc.id} className="pc-card">
+                  <div className="pc-top">
+                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff" }}>
+                      <FileText size={16} color="#fff" />
+                    </div>
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span style={{ maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={doc.fileName}>{doc.fileName}</span>
+                        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>
+                          {(doc.documentType || "UNCLASSIFIED").toUpperCase()}
+                        </Tag>
+                      </div>
+                      <div className="pc-client-line">
+                        <span className="pc-client-key">Group:</span>
+                        <span className="pc-client-val">{doc.category || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created</span>
+                        <span className="pc-foot-val">{doc.createdAt ? dayjs(doc.createdAt).format("MMM DD, YYYY") : "—"}</span>
+                      </span>
+                      {doc.fileSize && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Size</span>
+                            <span className="pc-foot-val">{formatBytes(doc.fileSize)}</span>
+                          </span>
+                        </>
+                      )}
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created by</span>
+                        <Avatar size={16} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                          {doc.uploadedByName?.charAt(0).toUpperCase() || "—"}
+                        </Avatar>
+                        <span className="pc-foot-val">{doc.uploadedByName || "—"}</span>
+                      </span>
+                    </div>
+
+                    <div className="pc-foot-row" style={{ gap: "4px" }}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<Eye size={12} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (doc.fileUrl) {
+                            setViewingDocument(doc);
+                            setViewModalOpen(true);
+                          } else {
+                            messageApi.info("Preview Notification: Live preview is not supported for this file type.");
+                          }
+                        }}
+                        style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
+                      >
+                        Preview
+                      </Button>
+
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<Download size={12} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(doc);
+                        }}
+                        style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
+                      >
+                        Download
+                      </Button>
+
+                      {canDeleteClient && (
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<Trash2 size={12} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            modal.confirm({
+                              title: "Purge Document",
+                              content: "Are you sure you want to permanently delete this document archive?",
+                              okText: "Purge",
+                              okType: "danger",
+                              cancelText: "Cancel",
+                              centered: true,
+                              onOk: () => handleDelete(doc.id),
+                            });
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", padding: "2px 6px", height: "auto" }}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* Upload Modal */}
       <Modal
@@ -1167,6 +1387,14 @@ export default function DocumentsTab({
         html body .documents-header-wrap .ptab-primary-btn {
           background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25) !important;
+          border-radius: 8px !important;
+        }
+        html body .pmodal .ant-modal-content {
+          border-radius: 8px !important;
+        }
+        html body .pmodal-btn-primary,
+        html body .pmodal-btn-cancel {
+          border-radius: 8px !important;
         }
         .premium-table .ant-table {
           background: transparent !important;
@@ -1174,24 +1402,18 @@ export default function DocumentsTab({
         }
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
+          color: var(--text-slate-400) !important;
+          font-weight: 700 !important;
+          font-size: 10px !important;
           text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          padding: 16px 24px !important;
-          border-bottom: 1px solid var(--border-slate-100) !important;
+          letter-spacing: 0.04em !important;
+          padding: 6px 10px !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
           white-space: nowrap !important;
         }
         .premium-table .ant-table-thead > tr > th::before { display: none !important; }
-        @media (max-width: 576px) {
-          .premium-table .ant-table-thead > tr > th,
-          .premium-table .ant-table-tbody > tr > td {
-            padding: 12px 16px !important;
-          }
-        }
         .premium-table .ant-table-tbody > tr > td {
-          padding: 16px 24px !important;
+          padding: 6.5px 10px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-table .ant-table-tbody > tr:hover > td {
@@ -1238,8 +1460,8 @@ export default function DocumentsTab({
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -1257,6 +1479,113 @@ export default function DocumentsTab({
             padding-left: 16px !important;
             padding-right: 16px !important;
           }
+        }
+
+        /* Segmented Toggles */
+        .ptab-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .ptab-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ptab-segmented button:hover {
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+        }
+        .ptab-segmented button.is-active {
+          background: var(--bg-blue-50) !important;
+          color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .ptab-segmented {
+          border-color: var(--border-slate-200);
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .ptab-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Proposal Style Table */
+        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table .ant-table-placeholder > td { background: transparent !important; }
+
+        /* Proposal Grid & Cards */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .ptab-empty-wrapper { grid-column: 1 / -1; }
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+        [data-theme="dark"] .pc-card {
+          background: var(--bg-slate-900);
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot {
+          background: var(--bg-secondary);
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row {
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-800);
         }
 
         /* Add Document Modal Header Polish */

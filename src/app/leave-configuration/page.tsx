@@ -670,7 +670,7 @@ export default function leaveConfiguration() {
               loading={loading}
               size="small"
               style={{ marginTop:5 }}
-              pagination={{ pageSize:10}}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize:10}}
             />
          
 

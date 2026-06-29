@@ -13,7 +13,10 @@ import {
   Table,
   Dropdown,
   App,
+  Tag,
+  Avatar,
 } from "antd";
+import dayjs from "dayjs";
 import {
   KeyRound,
   Plus,
@@ -106,6 +109,7 @@ interface Props {
   clientId: string;
   contacts: any[];
   onRefresh?: () => void;
+  onCountChange?: (n: number) => void;
 }
 
 const formatRelative = (iso: string | null) => {
@@ -122,7 +126,7 @@ const formatRelative = (iso: string | null) => {
   return new Date(iso).toLocaleDateString();
 };
 
-export default function PortalAccessTab({ clientId, contacts }: Props) {
+export default function PortalAccessTab({ clientId, contacts, onCountChange }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
@@ -177,6 +181,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     try {
       const data = await clientPortalService.listForClient(clientId);
       setUsers(data || []);
+      onCountChange?.((data || []).length);
     } catch (err: any) {
       messageApi.error(`Failed to load portal users: ${err?.message}`);
     } finally {
@@ -219,7 +224,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           values.displayName ||
           (contact
             ? `${contact.firstName || ""} ${contact.lastName || ""}`.trim() ||
-              undefined
+            undefined
             : undefined),
         username: values.username || undefined,
       };
@@ -303,10 +308,10 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 6,
-                background: c.accentBg,
-                border: `1px solid ${c.accentBorder}`,
-                color: c.accentText,
+                borderRadius: "50%",
+                background: "#3b82f6",
+                border: "none",
+                color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -424,6 +429,34 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       ),
     },
     {
+      title: "Created By",
+      key: "createdBy",
+      render: (_: any, record: ClientPortalUser) => {
+        const creator = record.createdBy;
+        if (!creator?.name) return <span style={{ background: "var(--bg-blue-50)", color: "#3b82f6" }}>—</span>;
+        return (
+          <div className="pp-creator" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Avatar size={20} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 9, fontWeight: 700 }}>
+              {(creator.name?.[0] || "").toUpperCase()}
+            </Avatar>
+            <span className="pp-creator-name" style={{ fontSize: "11.5px", color: "var(--text-slate-700)", whiteSpace: "nowrap" }}>{creator.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) =>
+        date ? (
+          <div className="pp-date" style={{ display: "flex", flexDirection: "column" }}>
+            <span className="pp-date-main" style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-slate-700)" }}>{dayjs(date).format("MMM D, YYYY")}</span>
+            <span className="pp-date-sub" style={{ fontSize: "11px", color: "var(--text-slate-400)" }}>{dayjs(date).format("h:mm A")}</span>
+          </div>
+        ) : <span style={{ color: "var(--text-slate-400)" }}>—</span>,
+    },
+    {
       title: "Actions",
       key: "actions",
       align: "right" as const,
@@ -440,54 +473,34 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         style: { background: c.surfaceMuted },
       }),
       render: (record: ClientPortalUser) => {
-        const menuItems = [
-          {
-            key: "reset",
-            label: "Reset Password",
-            icon: <RefreshCw size={13} />,
-          },
-          {
-            key: record.status === "active" ? "disable" : "enable",
-            label: record.status === "active" ? "Disable Access" : "Enable Access",
-            icon: <Power size={13} />,
-          },
-          { type: "divider" as const },
-          {
-            key: "remove",
-            label: "Remove Access",
-            icon: <Trash2 size={13} />,
-            danger: true,
-          },
-        ];
-
-        const handleMenuClick = ({ key }: { key: string }) => {
-          if (key === "reset") {
-            modal.confirm({
-              title: "Reset password?",
-              content: `A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`,
-              okText: "Reset & email",
-              okButtonProps: { type: "primary" },
-              centered: true,
-              onOk: () => handleReset(record),
-            });
-          } else if (key === "disable" || key === "enable") {
-            handleToggleStatus(record);
-          } else if (key === "remove") {
-            modal.confirm({
-              title: "Remove portal access?",
-              content: "This permanently deletes the login. The client contact will not be removed.",
-              okText: "Remove",
-              okButtonProps: { danger: true },
-              centered: true,
-              onOk: () => handleDelete(record),
-            });
-          }
-        };
-
         return (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Dropdown
-              menu={{ items: menuItems, onClick: handleMenuClick }}
+              menu={getPortalUserActionMenu(
+                record,
+                () => {
+                  modal.confirm({
+                    title: "Reset password?",
+                    content: `A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`,
+                    okText: "Reset & email",
+                    okButtonProps: { type: "primary" },
+                    centered: true,
+                    onOk: () => handleReset(record),
+                  });
+                },
+                () => handleToggleStatus(record),
+                () => {
+                  modal.confirm({
+                    title: "Remove portal access?",
+                    content: "This permanently deletes the login. The client contact will not be removed.",
+                    okText: "Remove",
+                    okButtonProps: { danger: true },
+                    centered: true,
+                    onOk: () => handleDelete(record),
+                  });
+                }
+              )}
+              overlayClassName="pp-action-pop"
               trigger={["click"]}
               placement="bottomRight"
             >
@@ -514,149 +527,112 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     <div style={{ padding: "4px 0 24px", color: c.text }}>
 
       {/* ---------------- Header card ---------------- */}
+      <div className="cd-tab-sticky-head">
       <div className="portal-access-header-wrap" style={{ margin: "0 -32px" }}>
-        <TimeTrackingHeader
-          icon={<KeyRound size={20} color="#3b82f6" />}
-          title="Portal Access"
-          description="Create logins for client contacts to view their portal workspace."
-          extra={
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              onClick={() => setCreateOpen(true)}
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                borderColor: "transparent",
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              Create credential
-            </Button>
-          }
-          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
-        />
-      </div>
-
-      {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
-      {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
-
-      {/* ---------------- Stats strip ---------------- */}
-      {users.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
-            marginTop: 20,
-            marginBottom: 16,
-          }}
-        >
-          <StatPill
-            label="Total"
-            value={stats.total}
-            icon={User}
-            c={c}
-            tone="neutral"
-          />
-          <StatPill
-            label="Active"
-            value={stats.active}
-            icon={ShieldCheck}
-            c={c}
-            tone="success"
-          />
-          <StatPill
-            label="Disabled"
-            value={stats.disabled}
-            icon={ShieldOff}
-            c={c}
-            tone="danger"
-          />
-          <StatPill
-            label="Pending first sign-in"
-            value={stats.pending}
-            icon={Clock}
-            c={c}
-            tone="warning"
+          <TimeTrackingHeader
+            icon={<KeyRound size={20} color="#3b82f6" />}
+            title="Portal Access"
+            description="Create logins for client contacts to view their portal workspace."
+            extra={
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "36px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Create credential
+              </Button>
+            }
+            style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
           />
         </div>
-      )}
-
-      {/* ---------------- Search & View Mode Toggle ---------------- */}
-      {users.length > 0 && (
-        <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-          <Input
-            allowClear
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, username, or email…"
-            prefix={<Search size={14} color={c.textFaint} />}
-            style={{
-              flex: 1,
-              background: c.surfaceElevated,
-              borderColor: c.border,
-              color: c.text,
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              background: c.surfaceMuted,
-              border: `1px solid ${c.border}`,
-              borderRadius: 8,
-              padding: 3,
-            }}
-          >
-            <Tooltip title="List view">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 30,
-                  height: 30,
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  background: viewMode === "list" ? c.accentBg : "transparent",
-                  color: viewMode === "list" ? c.accentText : c.textSubtle,
-                  transition: "all 150ms ease",
-                }}
-              >
-                <LayoutList size={15} />
-              </button>
-            </Tooltip>
-            <Tooltip title="Card view">
-              <button
-                type="button"
-                onClick={() => setViewMode("card")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 30,
-                  height: 30,
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  background: viewMode === "card" ? c.accentBg : "transparent",
-                  color: viewMode === "card" ? c.accentText : c.textSubtle,
-                  transition: "all 150ms ease",
-                }}
-              >
-                <LayoutGrid size={15} />
-              </button>
-            </Tooltip>
+  
+        {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
+        {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
+  
+        {/* ---------------- Stats strip ---------------- */}
+        {users.length > 0 && (
+          <div className="cd-stat-grid" style={{ marginTop: 20 }}>
+            <StatPill
+              label="Total"
+              value={stats.total}
+              icon={User}
+              c={c}
+              tone="neutral"
+            />
+            <StatPill
+              label="Active"
+              value={stats.active}
+              icon={ShieldCheck}
+              c={c}
+              tone="success"
+            />
+            <StatPill
+              label="Disabled"
+              value={stats.disabled}
+              icon={ShieldOff}
+              c={c}
+              tone="danger"
+            />
+            <StatPill
+              label="Pending first sign-in"
+              value={stats.pending}
+              icon={Clock}
+              c={c}
+              tone="warning"
+            />
           </div>
-        </div>
-      )}
+        )}
+  
+        {/* ---------------- Search & View Mode Toggle ---------------- */}
+        {users.length > 0 && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 16 }}>
+              <Input
+                allowClear
+                className="contacts-search-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, username, or email…"
+                prefix={<Search size={14} color={c.textFaint} />}
+                style={{
+                  flex: 1,
+                }}
+              />
+              <div className="ptab-segmented">
+                <Tooltip title="List view">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={viewMode === "list" ? "is-active" : ""}
+                  >
+                    <LayoutList size={15} />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Card view">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("card")}
+                    className={viewMode === "card" ? "is-active" : ""}
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+            <div className="ptab-divider" />
+          </>
+        )}
+      </div>
 
       {/* ---------------- List ---------------- */}
       {loading ? (
@@ -713,13 +689,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           })}
         />
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="pp-grid">
           {filteredUsers.map((u) => (
             <UserCard
               key={u.id}
@@ -768,13 +738,11 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         title="New temporary password"
         intro={
           resetDialog
-            ? `${
-                resetDialog.emailSent
-                  ? `The new password has been emailed to ${resetDialog.user.email}. `
-                  : `Email delivery failed — copy and share the password manually. `
-              }Username and email are unchanged. All active sessions for ${
-                resetDialog.user.displayName || resetDialog.user.username
-              } have been signed out.`
+            ? `${resetDialog.emailSent
+              ? `The new password has been emailed to ${resetDialog.user.email}. `
+              : `Email delivery failed — copy and share the password manually. `
+            }Username and email are unchanged. All active sessions for ${resetDialog.user.displayName || resetDialog.user.username
+            } have been signed out.`
             : ""
         }
         password={resetDialog?.tempPassword}
@@ -784,7 +752,52 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       />
 
       {/* Premium adaptive header styling */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        /* Dropdown Action Popover */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0; min-width: 220px;
+          background: var(--bg-pure-white) !important;
+          border: 1px solid var(--border-slate-100) !important;
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03) !important;
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100) !important; }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .pp-menu-title {
+          color: var(--text-slate-200) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .pp-menu-desc {
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item-divider {
+          background: var(--border-slate-800) !important;
+        }
+
        /* Full bleed header styling flush with vertical sidebar border */
         .portal-access-header-wrap {
           margin-bottom: 0 !important;
@@ -795,8 +808,8 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           margin-right: -32px !important;
           padding-left: 32px !important;
           padding-right: 32px !important;
-          padding-top: 10px !important;
-          padding-bottom: 12px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
           margin-bottom: 0 !important;
         }
         @media (max-width: 900px) {
@@ -823,18 +836,18 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         }
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          font-size: 12px !important;
+          color: var(--text-slate-400) !important;
+          font-weight: 700 !important;
+          font-size: 10px !important;
           text-transform: uppercase !important;
-          letter-spacing: 0.025em !important;
-          padding: 16px 24px !important;
-          border-bottom: 1px solid var(--border-slate-100) !important;
+          letter-spacing: 0.04em !important;
+          padding: 6px 10px !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
           white-space: nowrap !important;
         }
         .premium-table .ant-table-thead > tr > th::before { display: none !important; }
         .premium-table .ant-table-tbody > tr > td {
-          padding: 16px 24px !important;
+          padding: 6.5px 10px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-table .ant-table-tbody > tr:hover > td {
@@ -890,6 +903,62 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         [data-theme="dark"] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
           background: var(--bg-secondary) !important;
         }
+
+        /* Proposal Grid & Cards */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .ptab-empty-wrapper { grid-column: 1 / -1; }
+        @media (max-width: 700px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+        .pc-avatar {
+          width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 12px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+        [data-theme="dark"] .pc-card {
+          background: var(--bg-slate-900);
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot {
+          background: var(--bg-secondary);
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-row {
+          border-color: var(--border-slate-800);
+        }
+        [data-theme="dark"] .pc-foot-div {
+          background: var(--border-slate-800);
+        }
       `}} />
     </div>
   );
@@ -912,64 +981,28 @@ function StatPill({
   tone: "neutral" | "success" | "danger" | "warning";
   c: ReturnType<typeof palette>;
 }) {
-  const map: Record<string, { fg: string; bg: string; border: string }> = {
-    neutral: { fg: c.accentText, bg: c.accentBg, border: c.accentBorder },
-    success: { fg: c.successText, bg: c.successBg, border: c.successBorder },
-    danger: { fg: c.dangerText, bg: c.dangerBg, border: c.dangerBorder },
-    warning: { fg: c.warningText, bg: c.warningBg, border: c.warningBorder },
+  const map: Record<string, string> = {
+    neutral: "#3b82f6",
+    success: "#10b981",
+    danger: "#ef4444",
+    warning: "#f59e0b",
   };
-  const t = map[tone];
+  const accent = map[tone] || "#3b82f6";
   return (
-    <div
-      style={{
-        padding: "14px 16px",
-        background: c.surfaceElevated,
-        border: `1px solid ${c.border}`,
-        borderRadius: 12,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: t.bg,
-          color: t.fg,
-          border: `1px solid ${t.border}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={16} />
+    <div className="cd-stat-card">
+      <div className="cd-stat-top">
+        <div className="cd-stat-left">
+          <div
+            className="cd-stat-icon"
+            style={{ background: `${accent}14`, color: accent }}
+          >
+            <Icon size={13} color={accent} />
+          </div>
+          <span className="cd-stat-label">{label}</span>
+        </div>
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: c.textSubtle,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 600,
-            color: c.text,
-            lineHeight: 1.1,
-            marginTop: 2,
-          }}
-        >
-          {value}
-        </div>
+      <div className="cd-stat-bottom">
+        <div className="cd-stat-value">{value}</div>
       </div>
     </div>
   );
@@ -1022,6 +1055,75 @@ function StatusBadge({
   );
 }
 
+const getPortalUserActionMenu = (
+  user: ClientPortalUser,
+  onResetClick: () => void,
+  onToggleClick: () => void,
+  onDeleteClick: () => void
+) => ({
+  className: "pp-action-pop",
+  items: [
+    {
+      key: "reset",
+      label: (
+        <div className="pp-menu-item">
+          <span className="pp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}><RefreshCw size={13} /></span>
+          <span className="pp-menu-text">
+            <span className="pp-menu-title">Reset Password</span>
+            <span className="pp-menu-desc">Generate new temporary password</span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "toggle",
+      label: (
+        <div className="pp-menu-item">
+          <span
+            className="pp-menu-ic"
+            style={{
+              color: user.status === "active" ? "#f59e0b" : "#10b981",
+              background: user.status === "active" ? "rgba(245, 158, 11, 0.12)" : "rgba(16, 185, 129, 0.12)",
+            }}
+          >
+            <Power size={13} />
+          </span>
+          <span className="pp-menu-text">
+            <span className="pp-menu-title">{user.status === "active" ? "Disable Access" : "Enable Access"}</span>
+            <span className="pp-menu-desc">
+              {user.status === "active" ? "Suspend portal workspace login" : "Restore portal workspace access"}
+            </span>
+          </span>
+        </div>
+      ),
+    },
+    { type: "divider" as const },
+    {
+      key: "remove",
+      danger: true,
+      label: (
+        <div className="pp-menu-item">
+          <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
+          <span className="pp-menu-text">
+            <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove Access</span>
+            <span className="pp-menu-desc">Delete credentials permanently</span>
+          </span>
+        </div>
+      ),
+    },
+  ],
+  onClick: ({ key, domEvent }: any) => {
+    domEvent?.stopPropagation();
+    if (key === "reset") {
+      onResetClick();
+    } else if (key === "toggle") {
+      onToggleClick();
+    } else if (key === "remove") {
+      onDeleteClick();
+    }
+  },
+});
+
 function UserCard({
   user,
   c,
@@ -1035,176 +1137,82 @@ function UserCard({
   onToggle: () => void;
   onDelete: () => void;
 }) {
-  const [hover, setHover] = useState(false);
-  const initials = (user.displayName || user.username || "?")
-    .split(" ")
-    .map((s) => s[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initial = (user.displayName || user.username || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        background: c.surfaceElevated,
-        border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 14,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        boxShadow: hover ? "0 8px 24px rgba(0, 0, 0, 0.04)" : "none",
-        transition: "all 200ms ease",
-      }}
-    >
-      {/* Top status indicator ribbon */}
-      <div
-        style={{
-          height: 3,
-          background: user.status === "active" ? c.success : c.danger,
-          width: "100%",
-        }}
-      />
-
-      {/* Card Content */}
-      <div style={{ padding: "18px 20px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Avatar + Names Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              border: `1px solid ${c.accentBorder}`,
-              color: c.accentText,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >
-            {initials}
+    <div className="pc-card">
+      <div className="pc-top">
+        <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
+          {initial}
+        </div>
+        <div className="pc-identity-body">
+          <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span>{user.displayName || user.username}</span>
+            {user.status === "active" ? (
+              <Tag color="success" style={{ margin: 0, borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>ACTIVE</Tag>
+            ) : (
+              <Tag color="error" style={{ margin: 0, borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>DISABLED</Tag>
+            )}
+            {user.mustChangePassword && (
+              <Tag color="warning" style={{ margin: 0, borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>PENDING</Tag>
+            )}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                color: c.textFaint,
-                lineHeight: 1.2,
-              }}
-            >
-              @{user.username}
-            </div>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: c.text,
-                lineHeight: 1.3,
-                marginTop: 2,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {user.displayName || user.username}
-            </div>
+          <div className="pc-client-line">
+            <span className="pc-client-key">Username:</span>
+            <span className="pc-client-val" style={{ fontFamily: "monospace", fontSize: "11px" }}>@{user.username}</span>
           </div>
         </div>
-
-        {/* Metadata Details (Pills/Tags) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: c.textMuted }}>
-            <AtSign size={13} style={{ color: c.textFaint }} />
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {user.email}
-            </span>
-          </div>
-
-          {user.designation && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: c.textMuted }}>
-              <Building2 size={13} style={{ color: c.textFaint }} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user.designation}
-              </span>
-            </div>
-          )}
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: c.textFaint }}>
-            <Clock size={13} />
-            <span>Last active: {formatRelative(user.lastLoginAt)}</span>
-          </div>
-        </div>
+        <Dropdown
+          menu={getPortalUserActionMenu(user, onReset, onToggle, onDelete)}
+          overlayClassName="pp-action-pop"
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+            <MoreHorizontal size={14} />
+          </button>
+        </Dropdown>
       </div>
 
-      {/* Horizontal Divider */}
-      <div style={{ height: 1, background: c.border, width: "100%" }} />
-
-      {/* Card Footer */}
-      <div
-        style={{
-          padding: "12px 16px",
-          background: c.surfaceSubtle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        {/* Status badges */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
-          {user.status === "active" ? (
-            <StatusBadge variant="success" c={c} icon={ShieldCheck}>
-              Active
-            </StatusBadge>
-          ) : (
-            <StatusBadge variant="danger" c={c} icon={ShieldOff}>
-              Disabled
-            </StatusBadge>
-          )}
-          {user.mustChangePassword && (
-            <Tooltip title="User has not changed the temporary password yet">
-              <span>
-                <StatusBadge variant="warning" c={c} icon={Clock}>
-                  Pending
-                </StatusBadge>
-              </span>
-            </Tooltip>
-          )}
+      <div className="pc-foot">
+        <div className="pc-foot-row">
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Created by</span>
+            <Avatar size={16} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+              {(user.createdBy?.name?.[0] || "—").toUpperCase()}
+            </Avatar>
+            <span className="pc-foot-val">{user.createdBy?.name || "—"}</span>
+          </span>
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Created</span>
+            <span className="pc-foot-val">{user.createdAt ? dayjs(user.createdAt).format("MMM D, YYYY · h:mm A") : "—"}</span>
+          </span>
         </div>
 
-        {/* Action icons */}
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <Popconfirm
-            title="Reset password?"
-            description={`A new temporary password will be emailed to ${user.email}.`}
-            okText="Reset & email"
-            okButtonProps={{ type: "primary" }}
-            onConfirm={onReset}
-          >
-            <Button size="small" icon={<RefreshCw size={12} />}>
-              Reset
-            </Button>
-          </Popconfirm>
-          <Tooltip title={user.status === "active" ? "Disable access" : "Re-enable access"}>
-            <Button size="small" icon={<Power size={12} />} onClick={onToggle} />
-          </Tooltip>
-          <Popconfirm
-            title="Remove portal access?"
-            description="Permanently deletes credentials."
-            okText="Remove"
-            okButtonProps={{ danger: true }}
-            onConfirm={onDelete}
-          >
-            <Button size="small" danger icon={<Trash2 size={12} />} />
-          </Popconfirm>
+        <div className="pc-foot-row">
+          <span className="pc-foot-item" style={{ minWidth: 0 }}>
+            <AtSign size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {user.email}
+            </span>
+          </span>
+          {user.designation && (
+            <>
+              <span className="pc-foot-div" />
+              <span className="pc-foot-item" style={{ minWidth: 0 }}>
+                <Building2 size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.designation}
+                </span>
+              </span>
+            </>
+          )}
+          <span className="pc-foot-div" />
+          <span className="pc-foot-item">
+            <span className="pc-foot-key">Active</span>
+            <span className="pc-foot-val">{formatRelative(user.lastLoginAt)}</span>
+          </span>
         </div>
       </div>
     </div>

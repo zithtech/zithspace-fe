@@ -7,7 +7,6 @@ import {
   Button,
   Typography,
   Tooltip,
-  Popconfirm,
   message,
   Input,
   Avatar,
@@ -20,6 +19,7 @@ import {
   DatePicker,
   Pagination,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   DeleteOutlined,
   UndoOutlined,
@@ -104,7 +104,7 @@ export default function ProjectTrashManagementPage() {
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filters, setFilters] = useState<{
     projectId?: string;
@@ -221,18 +221,25 @@ export default function ProjectTrashManagementPage() {
               loading={restoreProject.isPending}
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
             title="Permanently delete project?"
             description="This action cannot be undone. All associated data will be lost."
-            onConfirm={() => permanentDelete.mutate(record.id, {
-              onSuccess: () => {
-                message.success("Project permanently deleted");
-              }
+            onConfirm={() => new Promise<void>((resolve, reject) => {
+              permanentDelete.mutate(record.id, {
+                onSuccess: () => {
+                  message.success("Project permanently deleted");
+                  resolve();
+                },
+                onError: (err) => {
+                  reject(err);
+                }
+              });
             })}
-            okText="Yes, delete"
+            confirmText="Yes, delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-            icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
+            placement="left"
+            icon={<AlertTriangle size={16} />}
           >
             <Tooltip title="Permanent Delete">
               <Button
@@ -241,7 +248,7 @@ export default function ProjectTrashManagementPage() {
                 loading={permanentDelete.isPending}
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       ),
     },
@@ -264,14 +271,25 @@ export default function ProjectTrashManagementPage() {
                 </div>
               </div>
 
-              <Popconfirm
+              <ConfirmDialog
+                tone="danger"
                 title="Empty trash repository?"
                 description="This will permanently delete all projects currently in the trash. This action cannot be undone."
-                onConfirm={() => emptyTrash.mutate()}
-                okText="Yes, empty all"
+                onConfirm={() => new Promise<void>((resolve, reject) => {
+                  emptyTrash.mutate(undefined, {
+                    onSuccess: () => {
+                      message.success("Trash emptied successfully");
+                      resolve();
+                    },
+                    onError: (err) => {
+                      reject(err);
+                    }
+                  });
+                })}
+                confirmText="Yes, empty all"
                 cancelText="Cancel"
-                okButtonProps={{ danger: true, loading: emptyTrash.isPending }}
-                icon={<DeleteOutlined style={{ color: "red" }} />}
+                placement="bottom"
+                icon={<AlertTriangle size={16} />}
                 disabled={filteredProjects.length === 0 || isLoading}
               >
                 <Button
@@ -298,7 +316,7 @@ export default function ProjectTrashManagementPage() {
                 >
                   Empty Trash
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             </div>
 
             <div className="pm2-sidebar-scroll">
@@ -500,17 +518,25 @@ export default function ProjectTrashManagementPage() {
                     >
                       Restore
                     </Button>
-                    <Popconfirm
+                    <ConfirmDialog
+                      tone="danger"
                       title={`Purge ${selectedRowKeys.length} projects?`}
                       description="This will permanently delete the selected projects. This action cannot be undone."
-                      onConfirm={() => {
+                      onConfirm={() => new Promise<void>((resolve, reject) => {
                         bulkDelete.mutate(selectedRowKeys as string[], {
-                          onSuccess: () => setSelectedRowKeys([])
+                          onSuccess: () => {
+                            setSelectedRowKeys([]);
+                            resolve();
+                          },
+                          onError: (err) => {
+                            reject(err);
+                          }
                         });
-                      }}
-                      okText="Purge Selected"
+                      })}
+                      confirmText="Purge Selected"
                       cancelText="Cancel"
-                      okButtonProps={{ danger: true, loading: bulkDelete.isPending }}
+                      placement="bottomRight"
+                      icon={<AlertTriangle size={16} />}
                     >
                       <Button
                         type="text"
@@ -521,7 +547,7 @@ export default function ProjectTrashManagementPage() {
                       >
                         Purge
                       </Button>
-                    </Popconfirm>
+                    </ConfirmDialog>
                     <Button
                       type="text"
                       size="small"
@@ -628,16 +654,25 @@ export default function ProjectTrashManagementPage() {
                                 <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                                   {pmFullName.split(' ')[0]}
                                 </span>
-                              </span>
-                              <span className="pm2-list-foot-div"></span>
-                              <span className="pm2-list-foot-item" style={{ gap: 8 }}>
-                                <Popconfirm
+                                       <ConfirmDialog
+                                  tone="success"
                                   title="Restore project?"
                                   description="This will restore the project back to active status."
-                                  onConfirm={() => restoreProject.mutate(project.id)}
-                                  okText="Yes, restore"
+                                  onConfirm={() => new Promise<void>((resolve, reject) => {
+                                    restoreProject.mutate(project.id, {
+                                      onSuccess: () => {
+                                        message.success("Project restored successfully");
+                                        resolve();
+                                      },
+                                      onError: (err) => {
+                                        reject(err);
+                                      }
+                                    });
+                                  })}
+                                  confirmText="Yes, restore"
                                   cancelText="Cancel"
-                                  okButtonProps={{ loading: restoreProject.isPending }}
+                                  placement="topRight"
+                                  icon={<UndoOutlined />}
                                 >
                                   <button
                                     type="button"
@@ -648,14 +683,26 @@ export default function ProjectTrashManagementPage() {
                                     <UndoOutlined />
                                     Restore
                                   </button>
-                                </Popconfirm>
-                                <Popconfirm
+                                </ConfirmDialog>
+                                <ConfirmDialog
+                                  tone="danger"
                                   title="Permanently delete project?"
                                   description="This action cannot be undone."
-                                  onConfirm={() => permanentDelete.mutate(project.id)}
-                                  okText="Yes, Delete"
+                                  onConfirm={() => new Promise<void>((resolve, reject) => {
+                                    permanentDelete.mutate(project.id, {
+                                      onSuccess: () => {
+                                        message.success("Project permanently deleted");
+                                        resolve();
+                                      },
+                                      onError: (err) => {
+                                        reject(err);
+                                      }
+                                    });
+                                  })}
+                                  confirmText="Yes, Delete"
                                   cancelText="Cancel"
-                                  okButtonProps={{ danger: true, loading: permanentDelete.isPending }}
+                                  placement="topRight"
+                                  icon={<AlertTriangle size={16} />}
                                 >
                                   <button
                                     type="button"
@@ -666,7 +713,7 @@ export default function ProjectTrashManagementPage() {
                                     <DeleteOutlined />
                                     Purge
                                   </button>
-                                </Popconfirm>
+                                </ConfirmDialog>
                               </span>
                             </div>
                           </div>
@@ -691,7 +738,7 @@ export default function ProjectTrashManagementPage() {
                   total={filteredProjects.length}
                   onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                 />
               </div>
             )}
@@ -757,23 +804,195 @@ export default function ProjectTrashManagementPage() {
           background: #0B0F1A;
         }
 
-        [data-theme='dark'] .ant-table-thead > tr > th {
+        [data-theme='dark'] .pm2-sidebar {
+          background: #0B0F1A !important;
+          border-right-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar-top {
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar-title {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .pm2-sidebar-subtitle {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-side-label {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar-divider {
+          background: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar-clear {
+          color: #ef4444 !important;
+        }
+
+        [data-theme='dark'] .pm2-sidebar .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-picker {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select:hover .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-select-focused .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-select-open .ant-select-selector,
+        [data-theme='dark'] .pm2-sidebar .ant-picker:hover,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-focused {
+          background-color: #161B22 !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select-selection-item,
+        [data-theme='dark'] .pm2-sidebar .ant-select-selection-placeholder,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input,
+        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input::placeholder {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pm2-sidebar .ant-select-arrow {
+          color: #94A3B8 !important;
+        }
+
+        [data-theme='dark'] .premium-range-picker {
+          background-color: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .premium-range-picker:hover {
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .premium-range-picker .ant-picker-input > input {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .premium-range-picker .ant-picker-suffix {
+          color: #94A3B8 !important;
+        }
+
+        [data-theme='dark'] .pm2-toolbar {
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+        }
+
+        [data-theme='dark'] .pp-segmented {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-segmented button.is-active {
           background: #161B22 !important;
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .pp-search-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-search-wrap:focus-within {
+          border-color: rgba(59, 130, 246, 0.4) !important;
+        }
+        [data-theme='dark'] .pp-search {
+          color: #FFFFFF !important;
+        }
+        [data-theme='dark'] .pp-kbd {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pp-ghost-btn {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pp-ghost-btn:hover {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #3B82F6 !important;
+        }
+        [data-theme='dark'] .pm2-main-stats {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-main-stats .font-semibold {
+          color: #cbd5e1 !important;
+        }
+
+        [data-theme='dark'] .pp-stat-card {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pp-stat-card:hover {
+          border-color: #1F2937 !important;
+          box-shadow: none !important;
+        }
+        [data-theme='dark'] .pp-stat-label {
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pp-stat-value {
+          color: #FFFFFF !important;
+        }
+
+        [data-theme='dark'] .ant-table-thead > tr > th {
+          background: #0B0F1A !important;
           color: #94A3B8 !important;
           border-bottom-color: #1F2937 !important;
         }
 
         [data-theme='dark'] .ant-table-tbody > tr > td {
+          background: #0B0F1A !important;
           border-bottom-color: #1F2937 !important;
         }
 
         [data-theme='dark'] .ant-table-tbody > tr:hover > td {
+          background: #161B22 !important;
+        }
+
+        [data-theme='dark'] .pm2-list-card {
+          background: #0B0F1A !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .pm2-list-card:hover {
+          background: #0B0F1A !important;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+          border-color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pm2-list-foot {
+          background: #161B22 !important;
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-list-foot-item b {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pm2-list-foot-div {
           background: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-list-divider {
+          background: #1F2937 !important;
+        }
+
+        [data-theme='dark'] .pm2-pagination {
+          background: #0B0F1A !important;
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme='dark'] .pm2-pagination .ant-pagination-item,
+        [data-theme='dark'] .pm2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme='dark'] .pm2-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid #1F2937 !important;
+          background: transparent !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme='dark'] .pm2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme='dark'] .pm2-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme='dark'] .pm2-pagination .ant-select-selector {
+          border: 1px solid #1F2937 !important;
+          background: #161B22 !important;
+          color: #94A3B8 !important;
         }
 
         [data-theme='dark'] .ant-card {
           background: #161B22 !important;
           border-color: #1F2937 !important;
+        }
+
+        .pm2-main-content {
+          padding-bottom: 24px;
         }
 
         .saas-bulk-actions {

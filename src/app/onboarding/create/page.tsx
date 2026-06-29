@@ -3,8 +3,20 @@ import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import MainLayout from "@/components/layout/MainLayout";
-import { Steps, Button, Form, Spin, message } from "antd";
+import { Button, Spin, message } from "antd";
+import {
+  UserOutlined,
+  IdcardOutlined,
+  BankOutlined,
+  HistoryOutlined,
+  LaptopOutlined,
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  CheckOutlined,
+  SaveOutlined,
+  CheckCircleFilled,
+} from "@ant-design/icons";
+import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
 import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
@@ -13,7 +25,29 @@ import Assets from "@/components/onboarding/Assets";
 import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 
-const { Step } = Steps;
+// ── Module palette (Leaves 2.0 aesthetic) ───────────────────────────────────
+const PALETTE = {
+  blue: "#3B82F6",
+  green: "#10B981",
+  violet: "#8B5CF6",
+  amber: "#F59E0B",
+  grey: "#94A3B8",
+} as const;
+const TINT = {
+  blue: "rgba(59,130,246,0.10)",
+  green: "rgba(16,185,129,0.10)",
+  violet: "rgba(139,92,246,0.10)",
+  amber: "rgba(245,158,11,0.10)",
+  grey: "rgba(148,163,184,0.12)",
+} as const;
+
+const STEPS = [
+  { key: "personal", label: "Personal", icon: <UserOutlined />, color: PALETTE.blue, tint: TINT.blue },
+  { key: "employment", label: "Employment", icon: <IdcardOutlined />, color: PALETTE.green, tint: TINT.green },
+  { key: "bank", label: "Bank & Payroll", icon: <BankOutlined />, color: PALETTE.violet, tint: TINT.violet },
+  { key: "history", label: "History", icon: <HistoryOutlined />, color: PALETTE.amber, tint: TINT.amber },
+  { key: "assets", label: "Assets", icon: <LaptopOutlined />, color: PALETTE.grey, tint: TINT.grey },
+] as const;
 
 const OnboardingContent = () => {
   const { isLoading: authLoading } = useAuth();
@@ -96,15 +130,11 @@ const OnboardingContent = () => {
 
   if (authLoading || dataLoading) {
     return (
-      <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading">
-              <div style={{ padding: 20 }} />
-            </Spin>
-          </div>
-        </div>
-      </MainLayout>
+      <div style={{ padding: 100, textAlign: "center" }}>
+        <Spin size="large" tip="Loading">
+          <div style={{ padding: 20 }} />
+        </Spin>
+      </div>
     );
   }
 
@@ -116,7 +146,10 @@ const OnboardingContent = () => {
   const next = async () => {
     try {
       const currentRef = refs[current];
-      if (currentRef?.current?.validate) {
+      // In edit mode the record already exists — let HR move between steps
+      // freely without re-satisfying every required field. Validation still
+      // applies when creating a new employee.
+      if (!isEdit && currentRef?.current?.validate) {
         const isValid = await currentRef.current.validate();
         if (!isValid) return;
       }
@@ -226,153 +259,353 @@ const OnboardingContent = () => {
     }
   };
 
+  const activeStep = STEPS[current];
+
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "transparent", paddingBottom: "100px" }}>
-      {/* Fixed/Sticky Header Container */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 1000,
-        background: "var(--bg-pure-white)",
-        borderBottom: "1px solid var(--border-slate-100)",
-        backdropFilter: "blur(12px)",
-      }}>
-        <div style={{
-          padding: "16px 40px",
-          borderBottom: "1px solid var(--border-slate-50)",
-        }}>
-          <h1 style={{ fontSize: "24px", fontWeight: "700", margin: 0, color: "var(--text-slate-900)" }}>
-            Employee Onboarding
-          </h1>
+    <div className="onb">
+      {/* ── Slim sticky header: icon chip + title/subtitle + compact step indicator ── */}
+      <div className="onb-header">
+        <div className="onb-header-top">
+          <div className="onb-header-about">
+            <div
+              className="onb-header-icon"
+              style={{ background: activeStep.tint, color: activeStep.color }}
+            >
+              {activeStep.icon}
+            </div>
+            <div className="onb-header-text">
+              <div className="onb-header-title">
+                {isEdit ? "Edit Employee" : "Employee Onboarding"}
+              </div>
+              <div className="onb-header-sub">
+                Step {current + 1} of {STEPS.length} · {activeStep.label}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style={{
-          padding: "20px 40px",
-        }}>
-          <Steps current={current} size="small" style={{ marginBottom: 0 }}>
-            <Step title="Personal Details" />
-            <Step title="Employment" />
-            <Step title="Bank & Payroll" />
-            <Step title="Employee History" />
-            <Step title="Assets" />
-          </Steps>
+        {/* Compact horizontal step indicator — small numbered pills + labels */}
+        <div className="onb-steps">
+          {STEPS.map((s, i) => {
+            const state = i < current ? "done" : i === current ? "active" : "todo";
+            return (
+              <React.Fragment key={s.key}>
+                <button
+                  type="button"
+                  className={`onb-step onb-step--${state}`}
+                  onClick={() => {
+                    // allow jumping back to a previously completed step
+                    if (i < current) setCurrent(i);
+                  }}
+                  style={
+                    state === "active"
+                      ? ({ ["--step-c" as any]: s.color, ["--step-t" as any]: s.tint })
+                      : undefined
+                  }
+                >
+                  <span className="onb-step-pill">
+                    {state === "done" ? <CheckCircleFilled /> : i + 1}
+                  </span>
+                  <span className="onb-step-label">{s.label}</span>
+                </button>
+                {i < STEPS.length - 1 && (
+                  <span className={`onb-step-sep ${i < current ? "is-done" : ""}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
-      <div style={{ padding: "40px 0 0" }}>
-        {/*
-          KEY STRATEGY: All steps are always mounted (display:block/none).
-          This keeps the Ant Design form instances alive in memory,
-          so values are not lost when switching steps.
-          The `data` prop carries the saved allData back into each step
-          so the forms are repopulated when going back/forward.
-        */}
-
-        {/* <div style={{ display: current === 0 ? "block" : "none" }}>
-          <PersonalDetails ref={personalRef} data={allData.personal} />
+      {/* ── Step bodies (always mounted; display:block/none keeps form state) ── */}
+      <div className="onb-body">
+        <div style={{ display: current === 0 ? "block" : "none" }}>
+          <PersonalDetails
+            key={`personal-${resetKey}`}
+            ref={personalRef}
+            data={allData.personal}
+          />
         </div>
 
         <div style={{ display: current === 1 ? "block" : "none" }}>
-          <EmploymentDetails key={`e-${resetKey}`} ref={employmentRef} data={allData.employment} />
+          <EmploymentDetails
+            key={`employment-${resetKey}`}
+            ref={employmentRef}
+            data={allData.employment}
+          />
         </div>
+
         <div style={{ display: current === 2 ? "block" : "none" }}>
-          <BankPayroll key={`b-${resetKey}`} ref={bankRef} data={allData.bank} />
+          <BankPayroll
+            key={`bank-${resetKey}`}
+            ref={bankRef}
+            data={allData.bank}
+          />
         </div>
+
         <div style={{ display: current === 3 ? "block" : "none" }}>
-          <EmployeHistory key={`h-${resetKey}`} ref={historyRef} data={allData.history} />
+          <EmployeHistory
+            key={`history-${resetKey}`}
+            ref={historyRef}
+            data={allData.history}
+          />
         </div>
+
         <div style={{ display: current === 4 ? "block" : "none" }}>
-          <Assets ref={assetsRef} data={allData.assets} />
-        </div> */}
-
-        <div style={{ padding: "0" }}>
-          <div style={{ display: current === 0 ? "block" : "none" }}>
-            <PersonalDetails
-              key={`personal-${resetKey}`}
-              ref={personalRef}
-              data={allData.personal}
-            />
-          </div>
-
-          <div style={{ display: current === 1 ? "block" : "none" }}>
-            <EmploymentDetails
-              key={`employment-${resetKey}`}
-              ref={employmentRef}
-              data={allData.employment}
-            />
-          </div>
-
-          <div style={{ display: current === 2 ? "block" : "none" }}>
-            <BankPayroll
-              key={`bank-${resetKey}`}
-              ref={bankRef}
-              data={allData.bank}
-            />
-          </div>
-
-          <div style={{ display: current === 3 ? "block" : "none" }}>
-            <EmployeHistory
-              key={`history-${resetKey}`}
-              ref={historyRef}
-              data={allData.history}
-            />
-          </div>
-
-          <div style={{ display: current === 4 ? "block" : "none" }}>
-            <Assets
-              key={`assets-${resetKey}`}
-              ref={assetsRef}
-              data={allData.assets}
-            />
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div
-          style={{
-            position: "sticky",
-            bottom: 0,
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "16px 40px",
-            background: "var(--bg-pure-white)",
-            borderTop: "1px solid var(--border-slate-200)",
-            zIndex: 1000,
-            marginTop: "40px",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.05)"
-          }}
-        >
-          <div>{current > 0 && <Button onClick={prev} style={{ borderRadius: '8px' }}>Previous</Button>}</div>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            {current < 4 && (
-              <>
-                <Button onClick={saveAndSkip} style={{ borderRadius: '8px' }}>Save & Next</Button>
-
-                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)", borderRadius: '8px', fontWeight: 600 }}>
-                  Continue
-                </Button>
-              </>
-            )}
-
-            {current === 4 && (
-              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)", borderRadius: '8px', fontWeight: 600 }}>
-                {isEdit ? "Update Profile" : "Submit Process"}
-              </Button>
-            )}
-          </div>
+          <Assets
+            key={`assets-${resetKey}`}
+            ref={assetsRef}
+            data={allData.assets}
+          />
         </div>
       </div>
+
+      {/* ── Slim sticky footer: Back / Save & Next / Continue / Submit ── */}
+      <div className="onb-footer">
+        <div>
+          {current > 0 && (
+            <Button
+              onClick={prev}
+              icon={<ArrowLeftOutlined />}
+              className="onb-btn onb-btn--ghost"
+            >
+              Back
+            </Button>
+          )}
+        </div>
+
+        <div className="onb-footer-actions">
+          {current < 4 && (
+            <>
+              <Button
+                onClick={saveAndSkip}
+                icon={<SaveOutlined />}
+                className="onb-btn onb-btn--ghost"
+              >
+                Save &amp; Next
+              </Button>
+              <Button
+                type="primary"
+                onClick={next}
+                loading={submitting}
+                className="onb-btn onb-btn--primary"
+              >
+                Continue <ArrowRightOutlined />
+              </Button>
+            </>
+          )}
+
+          {current === 4 && (
+            <Button
+              type="primary"
+              onClick={submitAll}
+              loading={submitting}
+              icon={<CheckOutlined />}
+              className="onb-btn onb-btn--primary"
+            >
+              {isEdit ? "Update Profile" : "Submit"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .onb {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+        }
+
+        /* Slim sticky header */
+        .onb-header {
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+          backdrop-filter: blur(12px);
+          padding: 12px 0 0;
+          margin-bottom: 16px;
+        }
+        .onb-header-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 0 4px 12px;
+        }
+        .onb-header-about {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .onb-header-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 15px;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .onb-header-title {
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+        }
+        .onb-header-sub {
+          font-size: 12px;
+          color: var(--text-slate-500);
+          margin-top: 1px;
+          font-weight: 500;
+        }
+
+        /* Compact horizontal step indicator */
+        .onb-steps {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 4px 12px;
+          overflow-x: auto;
+        }
+        .onb-step {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 5px 10px 5px 5px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          background: var(--bg-pure-white);
+          cursor: default;
+          flex-shrink: 0;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .onb-step-pill {
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          background: var(--bg-slate-50, #f1f5f9);
+          color: var(--text-slate-500);
+          flex-shrink: 0;
+        }
+        .onb-step-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+        }
+        .onb-step--active {
+          border-color: var(--step-c);
+          background: var(--step-t);
+          cursor: default;
+        }
+        .onb-step--active .onb-step-pill {
+          background: var(--step-c);
+          color: #fff;
+        }
+        .onb-step--active .onb-step-label {
+          color: var(--text-slate-900);
+        }
+        .onb-step--done {
+          cursor: pointer;
+          border-color: rgba(16, 185, 129, 0.35);
+        }
+        .onb-step--done .onb-step-pill {
+          background: transparent;
+          color: ${PALETTE.green};
+          font-size: 14px;
+        }
+        .onb-step--done .onb-step-label {
+          color: var(--text-slate-700);
+        }
+        .onb-step--done:hover {
+          background: ${TINT.green};
+        }
+        .onb-step-sep {
+          width: 14px;
+          height: 2px;
+          border-radius: 2px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        .onb-step-sep.is-done {
+          background: ${PALETTE.green};
+        }
+
+        /* Body */
+        .onb-body {
+          flex: 1;
+          padding: 0 0 96px;
+        }
+
+        /* Slim sticky footer */
+        .onb-footer {
+          position: sticky;
+          bottom: 0;
+          z-index: 30;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 12px 4px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
+          margin: 0 -4px;
+        }
+        .onb-footer-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .onb-btn {
+          height: 38px !important;
+          border-radius: 8px !important;
+          font-weight: 600 !important;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .onb-btn--ghost {
+          border: 1px solid var(--border-slate-200) !important;
+          color: var(--text-slate-700) !important;
+        }
+        .onb-btn--ghost:hover {
+          border-color: #93c5fd !important;
+          color: ${PALETTE.blue} !important;
+        }
+        .onb-btn--primary {
+          background: ${PALETTE.blue} !important;
+          border-color: ${PALETTE.blue} !important;
+        }
+      `}</style>
     </div>
   );
 };
 
 const Onboarding = () => (
-  <MainLayout>
-    <Suspense fallback={<div style={{ padding: 100, textAlign: 'center' }}><Spin size="large" /></div>}>
+  <OnboardingGuard itemKey="create">
+    <Suspense
+      fallback={
+        <div style={{ padding: 100, textAlign: "center" }}>
+          <Spin size="large" />
+        </div>
+      }
+    >
       <OnboardingContent />
     </Suspense>
-  </MainLayout>
+  </OnboardingGuard>
 );
 
 export default Onboarding;

@@ -205,7 +205,7 @@ export const SprintTable: React.FC<SprintTableProps> = ({
 }) => {
   const [expanded, setExpanded] = useState<React.Key[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   // Keep the table expansion in sync with the selection.
   useEffect(() => {

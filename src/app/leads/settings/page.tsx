@@ -54,14 +54,14 @@ import {
     Col,
     Select,
     App,
-    Popconfirm,
     Switch,
     ColorPicker,
     Drawer,
     Tooltip,
     Upload,
     Tag,
-    Segmented
+    Segmented,
+    Dropdown
 } from "antd";
 import {
     ClockCircleOutlined,
@@ -77,6 +77,13 @@ import {
     TeamOutlined,
     SendOutlined,
     LinkOutlined,
+    RiseOutlined,
+    AppstoreOutlined,
+    UnorderedListOutlined,
+    EllipsisOutlined,
+    ReloadOutlined,
+    SearchOutlined,
+    PlusOutlined,
 } from "@ant-design/icons";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
@@ -85,6 +92,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Text, Title } = Typography;
 
@@ -161,22 +169,22 @@ const WORKFLOW_ACTION_PRESETS: ActionCategoryPreset[] = [
         icon: "phone", color: "#3b82f6",
         types: [
             { name: "Call Attended", icon: "phone", color: "#10b981" },
-            { name: "Call Rejected", icon: "close", color: "#ef4444" },
+            { name: "Call Rejected", icon: "close", color: "#f59e0b" },
             { name: "Call Missed", icon: "close", color: "#f59e0b" },
             { name: "Voicemail Left", icon: "phone", color: "#94a3b8" },
             { name: "SMS Sent", icon: "message", color: "#3b82f6" },
-            { name: "WhatsApp Sent", icon: "message", color: "#25d366" },
+            { name: "WhatsApp Sent", icon: "message", color: "#10b981" },
         ],
     },
     {
         category: "Email",
-        icon: "mail", color: "#8b5cf6",
+        icon: "mail", color: "#3b82f6",
         types: [
             { name: "Initial Outreach", icon: "send", color: "#3b82f6" },
-            { name: "Follow-up Sent", icon: "send", color: "#8b5cf6" },
+            { name: "Follow-up Sent", icon: "send", color: "#f59e0b" },
             { name: "Reply Received", icon: "mail", color: "#10b981" },
             { name: "Email Opened", icon: "mail", color: "#3b82f6" },
-            { name: "Email Bounced", icon: "close", color: "#ef4444" },
+            { name: "Email Bounced", icon: "close", color: "#f59e0b" },
             { name: "Unsubscribed", icon: "close", color: "#94a3b8" },
         ],
     },
@@ -185,55 +193,55 @@ const WORKFLOW_ACTION_PRESETS: ActionCategoryPreset[] = [
         icon: "calendar", color: "#10b981",
         types: [
             { name: "Discovery Call Scheduled", icon: "phone", color: "#3b82f6" },
-            { name: "Demo Scheduled", icon: "calendar", color: "#8b5cf6" },
+            { name: "Demo Scheduled", icon: "calendar", color: "#f59e0b" },
             { name: "Demo Completed", icon: "check", color: "#10b981" },
             { name: "No-show", icon: "close", color: "#f59e0b" },
             { name: "Rescheduled", icon: "clock", color: "#f59e0b" },
-            { name: "Internal Sync", icon: "team", color: "#06b6d4" },
+            { name: "Internal Sync", icon: "team", color: "#3b82f6" },
         ],
     },
     {
         category: "Documentation",
         icon: "file", color: "#f59e0b",
         types: [
-            { name: "Proposal Sent", icon: "send", color: "#6366f1" },
+            { name: "Proposal Sent", icon: "send", color: "#3b82f6" },
             { name: "Contract Sent", icon: "file", color: "#f59e0b" },
             { name: "NDA Signed", icon: "check", color: "#10b981" },
-            { name: "Quote Generated", icon: "file", color: "#06b6d4" },
+            { name: "Quote Generated", icon: "file", color: "#3b82f6" },
             { name: "Invoice Sent", icon: "send", color: "#10b981" },
             { name: "Onboarding Doc Shared", icon: "link", color: "#3b82f6" },
         ],
     },
     {
         category: "Pipeline",
-        icon: "send", color: "#ec4899",
+        icon: "send", color: "#f59e0b",
         types: [
             { name: "Stage Advanced", icon: "send", color: "#10b981" },
             { name: "Stage Reverted", icon: "link", color: "#f59e0b" },
             { name: "Marked as Won", icon: "check", color: "#10b981" },
-            { name: "Marked as Lost", icon: "close", color: "#ef4444" },
+            { name: "Marked as Lost", icon: "close", color: "#f59e0b" },
             { name: "Disqualified", icon: "close", color: "#94a3b8" },
             { name: "Reactivated", icon: "check", color: "#3b82f6" },
         ],
     },
     {
         category: "Research",
-        icon: "user", color: "#06b6d4",
+        icon: "user", color: "#3b82f6",
         types: [
-            { name: "LinkedIn Profile Reviewed", icon: "user", color: "#0a66c2" },
+            { name: "LinkedIn Profile Reviewed", icon: "user", color: "#3b82f6" },
             { name: "Company Website Checked", icon: "link", color: "#3b82f6" },
-            { name: "Competitor Analysis", icon: "user", color: "#8b5cf6" },
-            { name: "Persona Mapped", icon: "team", color: "#06b6d4" },
+            { name: "Competitor Analysis", icon: "user", color: "#f59e0b" },
+            { name: "Persona Mapped", icon: "team", color: "#3b82f6" },
             { name: "BANT Qualification", icon: "check", color: "#10b981" },
         ],
     },
     {
         category: "Notes",
-        icon: "message", color: "#64748b",
+        icon: "message", color: "#94a3b8",
         types: [
-            { name: "Internal Note Added", icon: "message", color: "#64748b" },
+            { name: "Internal Note Added", icon: "message", color: "#94a3b8" },
             { name: "Decision Logged", icon: "check", color: "#10b981" },
-            { name: "Risk Flagged", icon: "close", color: "#ef4444" },
+            { name: "Risk Flagged", icon: "close", color: "#f59e0b" },
             { name: "Follow-up Reminder Set", icon: "clock", color: "#f59e0b" },
         ],
     },
@@ -265,7 +273,7 @@ const renderStatusIcon = (key: string | undefined, size: number, color?: string)
     if (!key) return null;
     const meta = STATUS_ICON_BY_KEY[key];
     if (!meta) return null;
-    return <span style={{ color, display: "inline-flex" }}>{meta.render(size)}</span>;
+    return <span style={{ color: normalizeColor(color), display: "inline-flex" }}>{meta.render(size)}</span>;
 };
 
 // Suggestion catalogue for the "New Status" drawer. Names auto-fill category +
@@ -283,24 +291,24 @@ const PIPELINE_STATUS_PRESETS: PipelineStatusPreset[] = [
     { name: "Qualified", category: "qualifying", color: "#3b82f6", icon: "target" },
     { name: "Disqualified", category: "qualifying", color: "#94a3b8", icon: "target" },
     // Assignment / outreach
-    { name: "Assigned", category: "assignment", color: "#6366f1", icon: "flag" },
-    { name: "Contacted", category: "outreach", color: "#0ea5e9", icon: "megaphone" },
-    { name: "Follow Up", category: "outreach", color: "#ec4899", icon: "megaphone" },
+    { name: "Assigned", category: "assignment", color: "#3b82f6", icon: "flag" },
+    { name: "Contacted", category: "outreach", color: "#3b82f6", icon: "megaphone" },
+    { name: "Follow Up", category: "outreach", color: "#f59e0b", icon: "megaphone" },
     // Meetings
-    { name: "Discovery Call", category: "meetings", color: "#06b6d4", icon: "compass" },
-    { name: "Demo Scheduled", category: "meetings", color: "#8b5cf6", icon: "compass" },
+    { name: "Discovery Call", category: "meetings", color: "#3b82f6", icon: "compass" },
+    { name: "Demo Scheduled", category: "meetings", color: "#f59e0b", icon: "compass" },
     { name: "Demo Completed", category: "meetings", color: "#10b981", icon: "shield-check" },
     // Proposal / negotiation
     { name: "Proposal Draft", category: "proposal", color: "#f59e0b", icon: "sparkles" },
-    { name: "Proposal Sent", category: "proposal", color: "#8b5cf6", icon: "rocket" },
-    { name: "Negotiation", category: "negotiation", color: "#ec4899", icon: "handshake" },
+    { name: "Proposal Sent", category: "proposal", color: "#3b82f6", icon: "rocket" },
+    { name: "Negotiation", category: "negotiation", color: "#f59e0b", icon: "handshake" },
     // Holding states
     { name: "On Hold", category: "paused", color: "#f59e0b", icon: "flag" },
     { name: "Nurturing", category: "paused", color: "#94a3b8", icon: "sparkles" },
     // Terminal
     { name: "Won", category: "closed_won", color: "#10b981", icon: "trophy", isFinal: true },
-    { name: "Lost", category: "closed_lost", color: "#ef4444", icon: "flag", isFinal: true },
-    { name: "Converted Clients", category: "converted", color: "#06b6d4", icon: "award", isFinal: true },
+    { name: "Lost", category: "closed_lost", color: "#f59e0b", icon: "flag", isFinal: true },
+    { name: "Converted Clients", category: "converted", color: "#10b981", icon: "award", isFinal: true },
 ];
 const STATUS_BY_NAME: Record<string, PipelineStatusPreset> = PIPELINE_STATUS_PRESETS.reduce(
     (acc, p) => { acc[p.name.toLowerCase()] = p; return acc; },
@@ -347,14 +355,13 @@ const parseLogoValue = (v?: string): { kind: "icon" | "image" | "none"; iconKey?
     if (v.startsWith("icon:")) return { kind: "icon", iconKey: v.slice(5) };
     return { kind: "image", src: v };
 };
-
-const renderPlatformLogo = (v: string | undefined, size: number, fallbackColor: string = "var(--text-slate-400)") => {
+const renderPlatformLogo = (v: string | undefined, size: number, fallbackColor: string = "var(--text-slate-400)", useBrandColor: boolean = true) => {
     const parsed = parseLogoValue(v);
     if (parsed.kind === "icon") {
         const meta = ICON_BY_KEY[parsed.iconKey!];
         if (meta) {
             return (
-                <span style={{ color: meta.brand, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: useBrandColor ? meta.brand : 'currentColor', display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                     {meta.render(size)}
                 </span>
             );
@@ -366,6 +373,22 @@ const renderPlatformLogo = (v: string | undefined, size: number, fallbackColor: 
     return <span style={{ color: fallbackColor, display: "inline-flex" }}><ImageIcon size={size} /></span>;
 };
 
+const normalizeColor = (color?: any): string => {
+    if (!color) return "#94a3b8"; // default grey
+    const c = String(color).toLowerCase();
+    if (c === "#3b82f6" || c === "blue" || c.includes("blue") || c === "#0ea5e9" || c === "#06b6d4" || c === "#6366f1" || c === "#096dd9") {
+        return "#3b82f6"; // blue
+    }
+    if (c === "#10b981" || c === "green" || c.includes("green") || c === "#25d366" || c === "#14a800" || c === "#1dbf73") {
+        return "#10b981"; // green
+    }
+    if (c === "#f59e0b" || c === "orange" || c.includes("orange") || c === "#ff7a18" || c === "#ff7c00" || c === "#ec4899" || c === "#ef4444" || c === "#8b5cf6") {
+        return "#f59e0b"; // light orange
+    }
+    return "#94a3b8"; // grey
+};
+
+// Suggestion catalogue for the "New Action" drawer. Categories drive the
 // Two-mode logo picker — built-in icon OR custom uploaded image. The pair is
 // mutually exclusive: switching to the other mode just hides the inactive UI.
 // `platformKind` filters the icon grid (own-website sources see a curated set
@@ -467,6 +490,35 @@ const PlatformLogoPicker: React.FC<{
     );
 };
 
+// Smooth area sparkline used inside the stat cards (doc-hub style).
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+    const w = 96;
+    const h = 34;
+    const max = Math.max(...values, 1);
+    const n = values.length;
+    const stepX = n > 1 ? w / (n - 1) : w;
+    const pts = values.map((v, i) => {
+        const x = i * stepX;
+        const y = h - 3 - (v / max) * (h - 8);
+        return [x, y] as const;
+    });
+    const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const area = `${line} L${w},${h} L0,${h} Z`;
+    const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
+    return (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block' }}>
+            <defs>
+                <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+            </defs>
+            <path d={area} fill={`url(#${gid})`} />
+            <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+};
+
 export default function LeadSettingsPage() {
     useActivitySource({ section: "WORK", module: "Leads", page: "LeadSettings" });
     const { user, isLoading } = useAuth();
@@ -491,6 +543,15 @@ export default function LeadSettingsPage() {
     const { message } = App.useApp();
     const [searchText, setSearchText] = useState("");
     const [filterMode, setFilterMode] = useState<"all" | "active" | "hidden">("all");
+    const [view, setView] = useState<"list" | "grid">("grid");
+    const [tablePage, setTablePage] = useState(1);
+    const [tablePageSize, setTablePageSize] = useState(20);
+
+    const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+
+    useEffect(() => {
+        setTablePage(1);
+    }, [activeTab, searchText, filterMode]);
 
     const {
         statuses,
@@ -529,7 +590,7 @@ export default function LeadSettingsPage() {
             statusName: s.name,
             category: s.category,
             appliesTo: s.applies_to?.join(", "),
-            color: s.color,
+            color: normalizeColor(s.color),
             icon: s.icon,
             isDefault: s.is_default,
             isFinal: s.is_final_stage,
@@ -546,7 +607,7 @@ export default function LeadSettingsPage() {
             actionName: a.name,
             type: a.type,
             icon: a.icon,
-            color: a.color,
+            color: normalizeColor(a.color),
             isActive: a.is_active,
             created: new Date(a.createdAt || Date.now()).toLocaleDateString(),
         })));
@@ -565,7 +626,7 @@ export default function LeadSettingsPage() {
             description: p.description,
             isActive: p.is_active,
             // `color` keyed for the "Themed" stat — platforms count as themed when they have a logo.
-            color: p.logo_url ? '#06b6d4' : undefined,
+            color: p.logo_url ? '#3b82f6' : undefined,
         })));
     }, [platforms]);
 
@@ -952,10 +1013,36 @@ export default function LeadSettingsPage() {
         [platformDataSource, searchText, filterMode]
     );
 
+    const filteredItems = useMemo(() => {
+        if (activeTab === "1") return filteredStatuses;
+        if (activeTab === "2") return filteredActions;
+        return filteredPlatforms;
+    }, [activeTab, filteredStatuses, filteredActions, filteredPlatforms]);
+
+    const total = filteredItems.length;
+    const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+    const pageEnd = Math.min(tablePage * tablePageSize, total);
+    const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+
+    const pagedStatuses = useMemo(() => {
+        if (activeTab !== "1") return [];
+        return filteredStatuses.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+    }, [filteredStatuses, tablePage, tablePageSize, activeTab]);
+
+    const pagedActions = useMemo(() => {
+        if (activeTab !== "2") return [];
+        return filteredActions.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+    }, [filteredActions, tablePage, tablePageSize, activeTab]);
+
+    const pagedPlatforms = useMemo(() => {
+        if (activeTab !== "3") return [];
+        return filteredPlatforms.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+    }, [filteredPlatforms, tablePage, tablePageSize, activeTab]);
+
     const categoryMeta = [
-        { key: "1" as const, label: "Pipeline Statuses", icon: <Activity size={16} />, accent: "#6366f1", description: "Stages your leads flow through — color, default and final markers." },
-        { key: "2" as const, label: "Workflow Actions", icon: <Workflow size={16} />, accent: "#ec4899", description: "Operational triggers available across the lead workspace." },
-        { key: "3" as const, label: "Platforms", icon: <Globe size={16} />, accent: "#06b6d4", description: "Sources leads come from — online gig platforms and your own websites." },
+        { key: "1" as const, label: "Pipeline Statuses", icon: <Activity size={16} />, accent: "#3b82f6", description: "Stages your leads flow through — color, default and final markers." },
+        { key: "2" as const, label: "Workflow Actions", icon: <Workflow size={16} />, accent: "#f59e0b", description: "Operational triggers available across the lead workspace." },
+        { key: "3" as const, label: "Platforms", icon: <Globe size={16} />, accent: "#10b981", description: "Sources leads come from — online gig platforms and your own websites." },
     ];
 
     const currentCat = categoryMeta.find(c => c.key === activeTab) || categoryMeta[0];
@@ -1078,7 +1165,7 @@ export default function LeadSettingsPage() {
             ),
         },
         {
-            title: "",
+            title: "Actions",
             key: "actions",
             align: "right" as const,
             width: 160,
@@ -1087,12 +1174,12 @@ export default function LeadSettingsPage() {
                     {canUpdateLeadSetting && (
                         <>
                             <Tooltip title="Move up">
-                                <button className="lset-icon-btn" disabled={index === 0} onClick={() => moveRow(index, "up")} aria-label="Move up">
+                                <button className="lset-icon-btn" disabled={dataSource.findIndex(item => item.id === record.id) === 0} onClick={() => moveRow(dataSource.findIndex(item => item.id === record.id), "up")} aria-label="Move up">
                                     <ArrowUp size={14} />
                                 </button>
                             </Tooltip>
                             <Tooltip title="Move down">
-                                <button className="lset-icon-btn" disabled={index === dataSource.length - 1} onClick={() => moveRow(index, "down")} aria-label="Move down">
+                                <button className="lset-icon-btn" disabled={dataSource.findIndex(item => item.id === record.id) === dataSource.length - 1} onClick={() => moveRow(dataSource.findIndex(item => item.id === record.id), "down")} aria-label="Move down">
                                     <ArrowDown size={14} />
                                 </button>
                             </Tooltip>
@@ -1106,9 +1193,14 @@ export default function LeadSettingsPage() {
                         </Tooltip>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Delete this status?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Delete Status?"
                             description="Leads using this status may need reassignment."
+                            confirmText="Delete"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deleteStatus(record.id);
@@ -1117,14 +1209,13 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to delete status");
                                 }
                             }}
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
@@ -1198,8 +1289,14 @@ export default function LeadSettingsPage() {
                         </Tooltip>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Remove this action?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Remove Action?"
+                            description="Are you sure you want to remove this action?"
+                            confirmText="Remove"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deleteAction(record.id);
@@ -1208,14 +1305,13 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to remove action");
                                 }
                             }}
-                            okText="Remove"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
@@ -1316,9 +1412,14 @@ export default function LeadSettingsPage() {
                         </button>
                     )}
                     {canDeleteLeadSetting && (
-                        <Popconfirm
-                            title="Delete platform?"
+                        <ConfirmDialog
+                            tone="danger"
+                            icon={<Trash2 size={16} />}
+                            title="Delete Platform?"
                             description="This cannot be undone."
+                            confirmText="Delete"
+                            cancelText="Cancel"
+                            placement="topRight"
                             onConfirm={async () => {
                                 try {
                                     await deletePlatform(record.id);
@@ -1327,274 +1428,639 @@ export default function LeadSettingsPage() {
                                     message.error("Failed to delete platform");
                                 }
                             }}
-                            okText="Delete"
-                            okButtonProps={{ danger: true }}
                         >
-                            <button className="lset-icon-btn lset-icon-btn-danger" aria-label="Delete">
-                                <Trash2 size={14} />
-                            </button>
-                        </Popconfirm>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <button className="lset-icon-btn lset-icon-btn-danger" aria-label="Delete">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </ConfirmDialog>
                     )}
                 </div>
             ),
         },
     ];
 
-    const StatTile = ({
-        icon,
-        label,
-        value,
-        accent,
-        sublabel,
-    }: {
-        icon: React.ReactNode;
-        label: string;
-        value: React.ReactNode;
-        accent: string;
-        sublabel?: string;
-    }) => (
-        <div className="lset-stat-tile">
-            <div className="lset-stat-glow" style={{ background: `radial-gradient(120% 100% at 100% 0%, ${accent}10 0%, transparent 55%)` }} />
-            <div className="lset-stat-row">
-                <div className="lset-stat-text">
-                    <span className="lset-stat-label">{label}</span>
-                    <span className="lset-stat-value">{value}</span>
-                    {sublabel && <span className="lset-stat-sub">{sublabel}</span>}
-                </div>
-                <div className="lset-stat-icon" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, boxShadow: `0 6px 14px ${accent}33` }}>
-                    {icon}
-                </div>
-            </div>
+    const statCells = useMemo(() => {
+        const days: Date[] = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() - (6 - i));
+            return d;
+        });
+        const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+        const trendFor = (items: any[], predicate: (item: any) => boolean) => {
+            const buckets = Object.fromEntries(days.map((d) => [dayKey(d), 0])) as Record<string, number>;
+            items.filter(predicate).forEach((p) => {
+                const dateVal = p.createdAt || p.created || Date.now();
+                const k = dayKey(new Date(dateVal));
+                if (k in buckets) buckets[k] += 1;
+            });
+            let runSum = 0;
+            return days.map((d) => {
+                runSum += buckets[dayKey(d)];
+                return runSum;
+            });
+        };
+
+        const currentItems = activeTab === "1" ? statuses : activeTab === "2" ? actions : platforms;
+        const totalTrend = trendFor(currentItems, () => true);
+        const activeTrend = trendFor(currentItems, (i) => i.is_active || i.isActive);
+        const hiddenTrend = trendFor(currentItems, (i) => !(i.is_active || i.isActive));
+        const themedTrend = trendFor(currentItems, (i) => !!(i.color || i.logoUrl || i.logo_url));
+
+        const totalCount = currentItems.length;
+        const activeCount = currentItems.filter((i: any) => i.is_active || i.isActive).length;
+        const hiddenCount = totalCount - activeCount;
+        const themedCount = currentItems.filter((i: any) => !!(i.color || i.logoUrl || i.logo_url)).length;
+
+        return [
+            { key: 'total', title: 'Total Definitions', value: totalCount, suffix: '', icon: activeTab === "1" ? <Activity size={14} /> : activeTab === "2" ? <Workflow size={14} /> : <Globe size={14} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: totalTrend, delta: totalCount > 0 ? 1 : 0 },
+            { key: 'active', title: 'Active Settings', value: activeCount, suffix: '', icon: <CheckCircle2 size={14} />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: activeTrend, delta: activeCount > 0 ? 1 : 0 },
+            { key: 'hidden', title: 'Hidden Settings', value: hiddenCount, suffix: '', icon: <Eye size={14} />, color: '#94a3b8', tint: 'rgba(148,163,184,0.10)', trend: hiddenTrend, delta: hiddenCount > 0 ? 1 : 0 },
+            { key: 'themed', title: 'Themed / Custom', value: themedCount, suffix: '', icon: <Star size={14} />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: themedTrend, delta: themedCount > 0 ? 1 : 0 },
+        ];
+    }, [activeTab, statuses, actions, platforms]);
+
+    const activeLabel = activeTab === "1" ? "Pipeline Statuses" : activeTab === "2" ? "Workflow Actions" : "Platforms";
+    const activeSingular = activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform";
+
+    const emptyState = (
+        <div className="pp-empty">
+            <div className="pp-empty-orb">{activeTab === "1" ? <Activity size={26} /> : activeTab === "2" ? <Workflow size={26} /> : <Globe size={26} />}</div>
+            <div className="pp-empty-title">No {activeLabel.toLowerCase()} found</div>
+            <div className="pp-empty-sub">Create your first {activeSingular.toLowerCase()} to get started.</div>
+            {((activeTab === "1" && canCreateLeadSetting) || (activeTab === "2" && canCreateLeadSetting) || (activeTab === "3" && canCreateLeadSetting)) && (
+                <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={showDrawer} style={{ marginTop: 14 }}>
+                    New {activeSingular}
+                </Button>
+            )}
         </div>
     );
 
     return (
         <ProtectedRoute>
             <MainLayout>
-                <div className="lset-page">
-                    <TimeTrackingHeader
-                        icon={<Settings2 size={20} color="#6366f1" />}
-                        title="Workflow Settings"
-                        description="Configure pipeline statuses and lead actions"
-                        style={{
-                            position: 'sticky',
-                            top: 0,
-                            zIndex: 100,
-                            borderBottom: '1px solid var(--border-slate-200)',
-                            padding: '9.5px 32px',
-                            marginBottom: 0,
-                        }}
-                    />
-
-                    <div className="lset-shell">
-                        {/* LEFT RAIL — category list */}
-                        <aside className="lset-rail">
-                            <div className="lset-rail-title">
-                                <Settings2 size={13} />
-                                <span>Workflow settings</span>
+                <div className="pp-shell">
+                    {/* ============================ SIDEBAR ============================ */}
+                    <aside className="pp-sidebar">
+                        <div className="pp-side-head">
+                            <div className="pp-side-logo"><Settings2 size={24} style={{ color: "var(--text-slate-900)" }} /></div>
+                            <div className="pp-side-head-text">
+                                <div className="pp-side-title">Lead Settings</div>
+                                <div className="pp-side-subtitle">Pipeline · workflow · source</div>
                             </div>
-                            {categoryMeta.map(cat => {
-                                const isActive = activeTab === cat.key;
-                                const count = cat.key === "1" ? statuses.length : actions.length;
-                                return (
-                                    <button
-                                        key={cat.key}
-                                        type="button"
-                                        className={`lset-rail-card${isActive ? " is-active" : ""}`}
-                                        style={isActive ? { borderColor: `${cat.accent}66`, background: `${cat.accent}12` } : {}}
-                                        onClick={() => {
-                                            setActiveTab(cat.key);
-                                            setFilterMode("all");
-                                        }}
-                                    >
-                                        <span
-                                            className="lset-rail-icon"
-                                            style={{
-                                                background: isActive ? `${cat.accent}26` : "var(--bg-slate-50)",
-                                                color: isActive ? cat.accent : "var(--text-slate-500)",
+                        </div>
+
+                        {canCreateLeadSetting && (
+                            <Button
+                                type="primary"
+                                icon={<PlusOutlined />}
+                                className="pp-create-btn"
+                                onClick={showDrawer}
+                                block
+                            >
+                                New Definition
+                            </Button>
+                        )}
+
+                        <div className="pp-side-scroll">
+                            <div className="pp-side-section-label">Categories</div>
+                            <div className="pp-side-list">
+                                {categoryMeta.map((cat) => {
+                                    const active = activeTab === cat.key;
+                                    const count = cat.key === "1" ? statuses.length : cat.key === "2" ? actions.length : platforms.length;
+                                    return (
+                                        <button
+                                            key={cat.key}
+                                            type="button"
+                                            className={`pp-view-item ${active ? 'is-active' : ''}`}
+                                            onClick={() => {
+                                                setActiveTab(cat.key);
+                                                setFilterMode("all");
                                             }}
                                         >
-                                            {cat.icon}
-                                        </span>
-                                        <div className="lset-rail-text">
-                                            <div className="lset-rail-label">{cat.label}</div>
-                                            <div className="lset-rail-sub">{count} Definitions</div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </aside>
-
-                        {/* MAIN PANE */}
-                        <main className="lset-pane">
-                            {/* Hero */}
-                            <header
-                                className="lset-pane-hero"
-                                style={{
-                                    background: `linear-gradient(135deg, ${currentCat.accent}14 0%, ${currentCat.accent}05 60%, transparent 100%)`,
-                                    borderColor: `${currentCat.accent}33`,
-                                }}
-                            >
-                                <div className="lset-pane-hero-left">
-                                    <div
-                                        className="lset-pane-hero-icon"
-                                        style={{
-                                            background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}cc 100%)`,
-                                            boxShadow: `0 10px 24px ${currentCat.accent}40`,
-                                        }}
-                                    >
-                                        {currentCat.icon}
-                                    </div>
-                                    <div className="lset-pane-hero-text">
-                                        <div className="lset-pane-eyebrow">
-                                            <span style={{ color: currentCat.accent }}>●</span>
-                                            CONFIGURATION · {activeTab === "1" ? "STATUS" : activeTab === "2" ? "ACTION" : "PLATFORM"}
-                                        </div>
-                                        <div className="lset-pane-title-row">
-                                            <h3 className="lset-pane-title">{currentCat.label}</h3>
-                                            <span className="lset-pane-desc">{currentCat.description}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="lset-pane-hero-right">
-                                    <div className="lset-stat-chips">
-                                        <div className="lset-stat-chip">
-                                            <span className="lset-stat-chip-icon" style={{ background: `${currentCat.accent}1a`, color: currentCat.accent }}><BarChart3 size={11} /></span>
-                                            <span className="lset-stat-chip-value">{currentItems.length}</span>
-                                            <span className="lset-stat-chip-label">Total</span>
-                                        </div>
-                                        <div className="lset-stat-chip">
-                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(16,185,129,0.14)", color: "#10b981" }}><CheckCircle2 size={11} /></span>
-                                            <span className="lset-stat-chip-value">{currentActive}</span>
-                                            <span className="lset-stat-chip-label">Active</span>
-                                        </div>
-                                        <div className="lset-stat-chip">
-                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(148,163,184,0.18)", color: "#64748b" }}><Eye size={11} /></span>
-                                            <span className="lset-stat-chip-value">{currentHidden}</span>
-                                            <span className="lset-stat-chip-label">Hidden</span>
-                                        </div>
-                                        <div className="lset-stat-chip">
-                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(168,85,247,0.14)", color: "#a855f7" }}><Star size={11} /></span>
-                                            <span className="lset-stat-chip-value">{currentThemed}</span>
-                                            <span className="lset-stat-chip-label">Themed</span>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        type="primary"
-                                        icon={<Plus size={14} />}
-                                        onClick={showDrawer}
-                                        className="lset-cta-btn"
-                                        disabled={!canCreateLeadSetting}
-                                        style={{
-                                            background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}d9 100%)`,
-                                            boxShadow: `0 6px 14px ${currentCat.accent}40`,
-                                            border: "none",
-                                        }}
-                                    >
-                                        New Definition
-                                    </Button>
-                                </div>
-                            </header>
-
-                            {/* Toolbar — search + filter chips */}
-                            <div className="lset-toolbar">
-                                <div className="lset-search-box">
-                                    <Search size={13} className="lset-search-icon" />
-                                    <input
-                                        className="lset-search-input"
-                                        placeholder={`Search ${currentCat.label.toLowerCase()} by label, key, or context…`}
-                                        value={searchText}
-                                        onChange={(e) => setSearchText(e.target.value)}
-                                    />
-                                    {searchText && (
-                                        <button type="button" className="lset-search-clear" onClick={() => setSearchText("")}>Clear</button>
-                                    )}
-                                </div>
-                                <div className="lset-chips">
-                                    <button
-                                        type="button"
-                                        className={`lset-chip${filterMode === "all" ? " is-active" : ""}`}
-                                        onClick={() => setFilterMode("all")}
-                                    >
-                                        All
-                                        <span className="lset-chip-count">{currentItems.length}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`lset-chip${filterMode === "active" ? " is-active" : ""}`}
-                                        onClick={() => setFilterMode("active")}
-                                    >
-                                        <CheckCircle2 size={11} style={{ color: "#10b981" }} />
-                                        Active
-                                        <span className="lset-chip-count">{currentActive}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`lset-chip${filterMode === "hidden" ? " is-active" : ""}`}
-                                        onClick={() => setFilterMode("hidden")}
-                                    >
-                                        <Eye size={11} style={{ color: "#94a3b8" }} />
-                                        Hidden
-                                        <span className="lset-chip-count">{currentHidden}</span>
-                                    </button>
-                                </div>
+                                            <span className="pp-view-icon" style={{ color: active ? cat.accent : 'var(--text-slate-400)' }}>{cat.icon}</span>
+                                            <span className="pp-view-label">{cat.label}</span>
+                                            <span className="pp-view-count">{count}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
-                            {/* Table */}
-                            <div className="lset-table-wrap">
-                                <Table
-                                    loading={loading}
-                                    columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
-                                    dataSource={activeTab === "1" ? filteredStatuses : activeTab === "2" ? filteredActions : filteredPlatforms}
-                                    pagination={false}
-                                    size="small"
-                                    scroll={{ x: "max-content" }}
-                                    className="lset-table"
-                                    rowClassName="lset-row"
-                                    locale={{
-                                        emptyText: (
-                                            <div className="lset-empty">
-                                                <div className="lset-empty-icon">
-                                                    <Inbox size={26} />
-                                                </div>
-                                                <div className="lset-empty-title">
-                                                    {searchText || filterMode !== "all"
-                                                        ? "No matches"
-                                                        : activeTab === "1"
-                                                            ? "No statuses yet"
-                                                            : activeTab === "2"
-                                                                ? "No actions yet"
-                                                                : "No platforms yet"}
-                                                </div>
-                                                <div className="lset-empty-sub">
-                                                    {searchText || filterMode !== "all"
-                                                        ? "Try a different keyword or clear the filter."
-                                                        : activeTab === "1"
-                                                            ? "Create your first pipeline stage to start organizing leads."
-                                                            : activeTab === "2"
-                                                                ? "Add your first workflow action to power lead operations."
-                                                                : "Register an online platform or your own website as a lead source."}
-                                                </div>
-                                                <Button
-                                                    type="primary"
-                                                    icon={<Plus size={13} />}
-                                                    onClick={searchText || filterMode !== "all"
-                                                        ? () => { setSearchText(""); setFilterMode("all"); }
-                                                        : showDrawer}
-                                                    className="lset-empty-cta"
-                                                >
-                                                    {searchText || filterMode !== "all"
-                                                        ? "Clear filters"
-                                                        : `Add ${activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}`}
-                                                </Button>
-                                            </div>
-                                        ),
-                                    }}
+                            <div className="pp-side-section-label">Filters</div>
+                            <div className="pp-side-filters">
+                                <SearchableDropdown
+                                    className="pp-side-sd"
+                                    placeholder="Visibility"
+                                    searchPlaceholder="Search state…"
+                                    itemNoun="states"
+                                    value={filterMode}
+                                    onChange={(v) => setFilterMode((v as any) ?? 'all')}
+                                    options={[
+                                        { value: 'all', label: 'All states' },
+                                        { value: 'active', label: 'Active only' },
+                                        { value: 'hidden', label: 'Hidden / Disabled' },
+                                    ]}
+                                    width={212}
                                 />
                             </div>
-                        </main>
-                    </div>
+                        </div>
+                    </aside>
+
+                    {/* ============================ MAIN ============================ */}
+                    <main className="pp-main">
+                        {/* Search / status / view toggle bar */}
+                        <div className="pp-topbar">
+                            <div className="pp-search-wrap">
+                                <SearchOutlined className="pp-search-icon" />
+                                <input
+                                    className="pp-search"
+                                    placeholder={`Search ${activeLabel.toLowerCase()}…`}
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                />
+                                {searchText && (
+                                    <button type="button" className="lset-search-clear" onClick={() => setSearchText("")} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-slate-400)' }}>Clear</button>
+                                )}
+                            </div>
+
+                            <div className="pp-topbar-meta">
+                                <span className="pp-meta-item"><span className="pp-pulse" /><strong>{currentItems.length}</strong> definitions</span>
+                                <span className="pp-meta-dot">·</span>
+                                <span className="pp-meta-item"><strong>{currentActive}</strong> active</span>
+                            </div>
+
+                            <div className="pp-topbar-actions">
+                                <div className="pp-segmented">
+                                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                                </div>
+                                <Tooltip title="Refresh">
+                                    <button type="button" className="pp-ghost-btn" onClick={() => { fetchStatuses(); fetchActions(); fetchPlatforms(); }}><ReloadOutlined spin={loading} /></button>
+                                </Tooltip>
+                            </div>
+                        </div>
+
+                        <div className="pp-divider" />
+
+                        {/* Stat cards */}
+                        <div className="pp-stats">
+                            {statCells.map((s) => (
+                                <div key={s.key} className="pp-stat-card">
+                                    <div className="pp-stat-top">
+                                        <div className="pp-stat-left">
+                                            <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
+                                            <span className="pp-stat-label">{s.title}</span>
+                                        </div>
+                                    </div>
+                                    <div className="pp-stat-bottom">
+                                        <div className="pp-stat-value-wrap">
+                                            <span className="pp-stat-value">{s.value}{s.suffix}</span>
+                                            <span className="pp-stat-period">cumulative</span>
+                                        </div>
+                                        <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Table / grid */}
+                        <div className="pp-body">
+                            {view === 'list' ? (
+                                <div className="pp-table-wrap">
+                                    <Table
+                                        loading={loading}
+                                        columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
+                                        dataSource={activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms}
+                                        pagination={false}
+                                        size="small"
+                                        scroll={{ x: "max-content" }}
+                                        className="pp-table"
+                                        rowClassName="pp-row"
+                                        locale={{ emptyText: emptyState }}
+                                        onRow={(record) => ({
+                                            onClick: (e) => {
+                                                const t = e.target as HTMLElement;
+                                                if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .ant-switch, .lset-flag, .lset-rank, .lset-icon-btn')) return;
+                                                if (activeTab === "1") handleEditStatus(record);
+                                                else if (activeTab === "2") handleEditAction(record);
+                                                else handleEditPlatform(record);
+                                            }
+                                        })}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="pp-grid">
+                                    {loading ? (
+                                        <div className="pp-grid-loading">Loading…</div>
+                                    ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
+                                        <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                                    ) : (
+                                        activeTab === "1" ? (
+                                            pagedStatuses.map((item, idx) => {
+                                                return (
+                                                    <div key={item.id} className="pc-card" onClick={() => handleEditStatus(item)}>
+                                                        <div className="pc-top">
+                                                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
+                                                                {item.icon && STATUS_ICON_BY_KEY[item.icon] ? STATUS_ICON_BY_KEY[item.icon].render(12) : item.statusName?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="pc-identity-body">
+                                                                <div className="pc-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                                    <span className="lset-pill" style={{ background: `${item.color || '#3b82f6'}14`, color: item.color || '#3b82f6', border: `1px solid ${item.color || '#3b82f6'}33`, fontSize: 11 }}>
+                                                                        {item.statusName?.toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="pc-client-line">
+                                                                    <span className="pc-client-key">Category:</span>
+                                                                    <span className="pc-client-val">{item.category || "uncategorized"}</span>
+                                                                </div>
+                                                            </div>
+                                                            <Dropdown
+                                                                menu={{
+                                                                    items: [
+                                                                        {
+                                                                            key: 'edit',
+                                                                            label: (
+                                                                                <div className="pp-menu-item">
+                                                                                    <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
+                                                                                    <span className="pp-menu-text">
+                                                                                        <span className="pp-menu-title">Edit status</span>
+                                                                                        <span className="pp-menu-desc">Modify status properties</span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            ),
+                                                                            onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditStatus(item); }
+                                                                        },
+                                                                        { type: 'divider' as const },
+                                                                        {
+                                                                            key: 'delete',
+                                                                            danger: true,
+                                                                            label: (
+                                                                                <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Delete Status?"
+                                                                                    description="Leads using this status may need reassignment."
+                                                                                    confirmText="Delete"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
+                                                                                    onConfirm={async () => {
+                                                                                        try {
+                                                                                            await deleteStatus(item.id);
+                                                                                            message.success("Status deleted successfully");
+                                                                                        } catch (error) {
+                                                                                            message.error("Failed to delete status");
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete status</span>
+                                                                                            <span className="pp-menu-desc">Remove this stage</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </ConfirmDialog>
+                                                                            )
+                                                                        }
+                                                                    ]
+                                                                }}
+                                                                overlayClassName="pp-action-pop"
+                                                                trigger={['click']}
+                                                                placement="bottomRight"
+                                                            >
+                                                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                                                    <EllipsisOutlined />
+                                                                </button>
+                                                            </Dropdown>
+                                                        </div>
+                                                        <div className="pc-foot">
+                                                            <div className="pc-foot-row">
+                                                                <span className="pc-foot-item">
+                                                                    <span className="pc-foot-key">Behavior:</span>
+                                                                    <span
+                                                                        className={`lset-flag ${item.isDefault ? "is-on" : ""}`}
+                                                                        style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10 }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleStatusProperty(item.id, "isDefault", !item.isDefault);
+                                                                        }}
+                                                                    >
+                                                                        <Star size={10} fill={item.isDefault ? "#f59e0b" : "transparent"} stroke={item.isDefault ? "#f59e0b" : "#94a3b8"} />
+                                                                        Default
+                                                                    </span>
+                                                                    <span
+                                                                        className={`lset-flag ${item.isFinal ? "is-final" : ""}`}
+                                                                        style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10, marginLeft: 6 }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleStatusProperty(item.id, "isFinal", !item.isFinal);
+                                                                        }}
+                                                                    >
+                                                                        <CheckCircle2 size={10} />
+                                                                        Final
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                            <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                                                <span className="pc-foot-item">
+                                                                    <span className="pc-foot-key">Visibility:</span>
+                                                                    <Switch
+                                                                        size="small"
+                                                                        checked={item.isActive}
+                                                                        onChange={(val) => handleToggleStatusProperty(item.id, "isActive", val)}
+                                                                        loading={loading}
+                                                                        disabled={!canUpdateLeadSetting}
+                                                                        onClick={(checked, e: any) => e.stopPropagation()}
+                                                                    />
+                                                                    <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
+                                                                        {item.isActive ? "Visible" : "Hidden"}
+                                                                    </span>
+                                                                </span>
+                                                                <span className="pc-foot-div" />
+                                                                <span className="pc-foot-item">
+                                                                    <span className="pc-foot-key">Order:</span>
+                                                                    <span className="lset-rank" style={{ fontSize: 10, padding: '1px 6px' }}>#{item.sno}</span>
+                                                                    {canUpdateLeadSetting && (
+                                                                        <div style={{ display: 'inline-flex', gap: 2, marginLeft: 6 }}>
+                                                                            <button
+                                                                                className="lset-icon-btn"
+                                                                                style={{ width: 20, height: 20 }}
+                                                                                disabled={dataSource.findIndex(d => d.id === item.id) === 0}
+                                                                                onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "up"); }}
+                                                                            >
+                                                                                <ArrowUp size={11} />
+                                                                            </button>
+                                                                            <button
+                                                                                className="lset-icon-btn"
+                                                                                style={{ width: 20, height: 20 }}
+                                                                                disabled={dataSource.findIndex(d => d.id === item.id) === dataSource.length - 1}
+                                                                                onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "down"); }}
+                                                                            >
+                                                                                <ArrowDown size={11} />
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : activeTab === "2" ? (
+                                            pagedActions.map((item) => (
+                                                <div key={item.id} className="pc-card" onClick={() => handleEditAction(item)}>
+                                                    <div className="pc-top">
+                                                        <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
+                                                            {renderIcon(item.icon) || item.actionName?.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="pc-identity-body">
+                                                            <div className="pc-title">{item.actionName}</div>
+                                                            <div className="pc-client-line">
+                                                                <span className="pc-client-key">Category:</span>
+                                                                <span className="pc-client-val">
+                                                                    <span className="lset-cat-pill" style={{ padding: '1px 6px', fontSize: 10 }}>
+                                                                        <Workflow size={9} /> {item.type}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <Dropdown
+                                                            menu={{
+                                                                items: [
+                                                                    {
+                                                                        key: 'edit',
+                                                                        label: (
+                                                                            <div className="pp-menu-item">
+                                                                                <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
+                                                                                <span className="pp-menu-text">
+                                                                                    <span className="pp-menu-title">Edit action</span>
+                                                                                    <span className="pp-menu-desc">Modify action properties</span>
+                                                                                </span>
+                                                                            </div>
+                                                                        ),
+                                                                        onClick: (e: any) => { e.domEvent?.stopPropagation(); handleEditAction(item); }
+                                                                    },
+                                                                    { type: 'divider' as const },
+                                                                    {
+                                                                        key: 'delete',
+                                                                        danger: true,
+                                                                        label: (
+                                                                            <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Remove Action?"
+                                                                                    description="Are you sure you want to remove this action?"
+                                                                                    confirmText="Remove"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
+                                                                                    onConfirm={async () => {
+                                                                                        try {
+                                                                                            await deleteAction(item.id);
+                                                                                            message.success("Action removed successfully");
+                                                                                        } catch (error) {
+                                                                                            message.error("Failed to remove action");
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Remove action</span>
+                                                                                            <span className="pp-menu-desc">Delete from workflow</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </ConfirmDialog>
+                                                                        )
+                                                                    }
+                                                                ]
+                                                            }}
+                                                            overlayClassName="pp-action-pop"
+                                                            trigger={['click']}
+                                                            placement="bottomRight"
+                                                        >
+                                                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                                                <EllipsisOutlined />
+                                                            </button>
+                                                        </Dropdown>
+                                                    </div>
+                                                    <div className="pc-foot">
+                                                        <div className="pc-foot-row">
+                                                            <span className="pc-foot-item">
+                                                                <span className="pc-foot-key">Created:</span>
+                                                                <span className="pc-foot-val">{item.created}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                                            <span className="pc-foot-item">
+                                                                <span className="pc-foot-key">Status:</span>
+                                                                <Switch
+                                                                    size="small"
+                                                                    checked={item.isActive}
+                                                                    onChange={(val) => handleToggleActionProperty(item.id, val)}
+                                                                    loading={loading}
+                                                                    disabled={!canUpdateLeadSetting}
+                                                                    onClick={(checked, e: any) => e.stopPropagation()}
+                                                                />
+                                                                <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
+                                                                    {item.isActive ? "Active" : "Disabled"}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            pagedPlatforms.map((item) => {
+                                                const isOnline = item.type === "online";
+                                                const href = item.url ? (/^https?:\/\//i.test(item.url) ? item.url : `https://${item.url}`) : "";
+                                                return (
+                                                    <div key={item.id} className="pc-card" onClick={() => handleEditPlatform(item)}>
+                                                        <div className="pc-top">
+                                                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                                                                {renderPlatformLogo(item.logoUrl, 16, '#ffffff', false)}
+                                                            </div>
+                                                            <div className="pc-identity-body">
+                                                                <div className="pc-title">{item.name}</div>
+                                                                <div className="pc-client-line">
+                                                                    <span className="pc-client-key">Code:</span>
+                                                                    <span className="pc-client-val" style={{ fontFamily: 'monospace' }}>{item.code}</span>
+                                                                </div>
+                                                            </div>
+                                                            <Dropdown
+                                                                menu={{
+                                                                    items: [
+                                                                        {
+                                                                            key: 'edit',
+                                                                            label: (
+                                                                                <div className="pp-menu-item">
+                                                                                    <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
+                                                                                    <span className="pp-menu-text">
+                                                                                        <span className="pp-menu-title">Edit platform</span>
+                                                                                        <span className="pp-menu-desc">Modify source settings</span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            ),
+                                                                            onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditPlatform(item); }
+                                                                        },
+                                                                        { type: 'divider' as const },
+                                                                        {
+                                                                            key: 'delete',
+                                                                            danger: true,
+                                                                            label: (
+                                                                                <ConfirmDialog
+                                                                                    tone="danger"
+                                                                                    icon={<Trash2 size={16} />}
+                                                                                    title="Delete Platform?"
+                                                                                    description="This cannot be undone."
+                                                                                    confirmText="Delete"
+                                                                                    cancelText="Cancel"
+                                                                                    placement="left"
+                                                                                    onConfirm={async () => {
+                                                                                        try {
+                                                                                            await deletePlatform(item.id);
+                                                                                            message.success("Platform deleted");
+                                                                                        } catch {
+                                                                                            message.error("Failed to delete platform");
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete platform</span>
+                                                                                            <span className="pp-menu-desc">Remove source permanently</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </ConfirmDialog>
+                                                                            )
+                                                                        }
+                                                                    ]
+                                                                }}
+                                                                overlayClassName="pp-action-pop"
+                                                                trigger={['click']}
+                                                                placement="bottomRight"
+                                                            >
+                                                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                                                    <EllipsisOutlined />
+                                                                </button>
+                                                            </Dropdown>
+                                                        </div>
+                                                        <div className="pc-foot">
+                                                            <div className="pc-foot-row">
+                                                                <span className="pc-foot-item">
+                                                                    <span className="pc-foot-key">Type:</span>
+                                                                    <Tag color={isOnline ? "blue" : "purple"} style={{ borderRadius: 6, fontWeight: 700, fontSize: 10, margin: 0 }}>
+                                                                        {isOnline ? "Online platform" : "Own website"}
+                                                                    </Tag>
+                                                                </span>
+                                                                {href && (
+                                                                    <>
+                                                                        <span className="pc-foot-div" />
+                                                                        <span className="pc-foot-item">
+                                                                            <span className="pc-foot-key">URL:</span>
+                                                                            <a href={href} target="_blank" rel="noreferrer" className="lset-platform-url" style={{ fontSize: 11 }} onClick={(e) => e.stopPropagation()}>
+                                                                                <Link2 size={10} style={{ marginRight: 2 }} /> Link
+                                                                            </a>
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                                                <span className="pc-foot-item">
+                                                                    <span className="pc-foot-key">Visibility:</span>
+                                                                    <Switch
+                                                                        size="small"
+                                                                        checked={item.isActive}
+                                                                        onChange={async (checked) => {
+                                                                            try {
+                                                                                await updatePlatform(item.id, { is_active: checked });
+                                                                                message.success("Platform updated");
+                                                                            } catch {
+                                                                                message.error("Failed to update platform");
+                                                                            }
+                                                                        }}
+                                                                        disabled={!canUpdateLeadSetting}
+                                                                        onClick={(checked, e: any) => e.stopPropagation()}
+                                                                    />
+                                                                    <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
+                                                                        {item.isActive ? "Visible" : "Hidden"}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {total > 0 && (
+                            <div className="pp-footer pp-footer--sticky">
+                                <div className="pp-footer-info">
+                                    Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+                                </div>
+                                <div className="pp-pager">
+                                    <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+                                    {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                                        <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+                                    ))}
+                                    <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+                                    <Select
+                                        className="pp-pagesize"
+                                        value={tablePageSize}
+                                        onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                                        options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+                                        popupMatchSelectWidth={120}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </main>
                 </div>
 
                 {/* DRAWER */}
@@ -1634,7 +2100,7 @@ export default function LeadSettingsPage() {
                                 <ShieldCheck size={12} /> Changes apply instantly across all leads
                             </span>
                             <div style={{ display: "flex", gap: 10 }}>
-                                <Button onClick={handleCancel} className="lset-btn-cancel">Cancel</Button>
+                                <Button htmlType="button" onClick={() => handleCancel()} className="lset-btn-cancel">Cancel</Button>
                                 {((editingId && canUpdateLeadSetting) || (!editingId && canCreateLeadSetting)) && (
                                     <Button
                                         type="primary"
@@ -1706,9 +2172,15 @@ export default function LeadSettingsPage() {
                                                 name="color"
                                                 label={<span className="lset-form-label">Brand Color</span>}
                                                 rules={[{ required: true, message: "Required" }]}
-                                                getValueFromEvent={(e) => typeof e === "string" ? e : e?.toHexString?.() || e}
                                             >
-                                                <ColorPicker showText style={{ width: "100%" }} />
+                                                <Select
+                                                    options={[
+                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                                    ]}
+                                                />
                                             </Form.Item>
                                         </Col>
                                         <Col span={12}>
@@ -1867,9 +2339,15 @@ export default function LeadSettingsPage() {
                                                 name="color"
                                                 label={<span className="lset-form-label">Color</span>}
                                                 rules={[{ required: true, message: "Required" }]}
-                                                getValueFromEvent={(e) => typeof e === "string" ? e : e?.toHexString?.() || e}
                                             >
-                                                <ColorPicker showText style={{ width: "100%" }} />
+                                                <Select
+                                                    options={[
+                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                                    ]}
+                                                />
                                             </Form.Item>
                                         </Col>
                                     </Row>
@@ -2156,781 +2634,609 @@ export default function LeadSettingsPage() {
 
                 <style dangerouslySetInnerHTML={{
                     __html: `
+          .pp-shell {
+            display: flex;
+            margin: 0 -8px;
+            min-height: calc(100vh - 64px);
+            background: var(--bg-pure-white);
+            font-family: 'Inter', -apple-system, sans-serif;
+          }
+
+          /* ---------------- Sidebar ---------------- */
+          .pp-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white);
+            display: flex;
+            flex-direction: column;
+            padding: 14px 14px 0;
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 54px);
+          }
+          .pp-side-head {
+            display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .pp-side-logo {
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+          }
+          .pp-side-logo svg { color: var(--text-slate-900) !important; }
+          .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+          .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+          .pp-side-subtitle {
+            font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+            text-transform: uppercase; letter-spacing: 0.07em;
+          }
+          .pp-create-btn {
+            height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
+            background: #3B82F6 !important;
+            border: none !important; box-shadow: none !important;
+            margin-bottom: 4px;
+          }
+          .pp-create-btn:hover { background: #2563EB !important; }
+          .pp-create-btn .anticon { font-size: 12px !important; }
+          .pp-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px; }
+          .pp-side-scroll::-webkit-scrollbar { width: 5px; }
+          .pp-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
+          .pp-side-section-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+            color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+          }
+          .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
+          .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
+          .pp-view-item {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+            cursor: pointer; transition: background .12s ease; text-align: left;
+          }
+          .pp-view-item:hover { background: var(--bg-slate-50); }
+          .pp-view-item.is-active { background: var(--bg-blue-50); }
+          .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
+          .pp-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
+          .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+          .pp-view-count {
+            font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+            min-width: 18px; text-align: right;
+          }
+          .pp-view-item.is-active .pp-view-count {
+            color: #3B82F6; font-weight: 700;
+            background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+          }
+          .pp-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
+          .pp-side-sd { border-radius: 8px !important; }
+          .pp-side-select .ant-select-selector,
+          .pp-side-range.ant-picker {
+            border-radius: 8px !important; border-color: var(--border-slate-200) !important;
+            background: var(--bg-pure-white) !important;
+          }
+          .pp-side-select { width: 100%; }
+          .pp-side-select .ant-select-selector { height: 36px !important; padding: 0 11px !important; display: flex; align-items: center; }
+          .pp-side-select .ant-select-selection-placeholder,
+          .pp-side-select .ant-select-selection-item { font-size: 13px; line-height: 34px !important; }
+          .pp-side-range { width: 100%; height: 36px; border-style: dashed !important; }
+          .pp-side-range .ant-picker-input > input { font-size: 12.5px; }
+          .pp-clear-filters {
+            display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+            background: none; border: none; cursor: pointer; padding: 3px;
+            font-size: 12px; font-weight: 600; color: #ef4444;
+          }
+
+          /* ---------------- Main ---------------- */
+          .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+          .pp-body { flex: 1 0 auto; }
+          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .pp-search-wrap {
+            position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+            height: 32px; border-radius: 8px; background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-200); padding: 0 10px;
+          }
+          .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+          .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+          .pp-search {
+            flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+            font-size: 13px; color: var(--text-slate-900);
+          }
+          .pp-search::placeholder { color: var(--text-slate-400); }
+          .pp-kbd {
+            font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+            background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+            border-radius: 5px; padding: 1px 6px;
+          }
+          .pp-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+          .pp-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+          .pp-meta-dot { color: var(--text-slate-300); }
+          .pp-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
+          .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+          .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+          .pp-segmented button {
+            width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+            color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+          }
+          .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+          .pp-ghost-btn {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+            background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
+            display: inline-flex; align-items: center; justify-content: center;
+          }
+          .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+
+          .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+
+          /* Stat cards */
+          .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+          .pp-stat-card {
+            background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+            border-radius: 0; padding: 12px 14px; min-height: 92px;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          }
+          .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+          .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+          .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+          .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+          .pp-stat-delta {
+            display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
+            color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
+          }
+          .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+          .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+          .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+          .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+          .pp-stat-spark { opacity: 0.95; }
+
+          /* Table */
+          .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+          .pp-table .ant-table { background: transparent; font-size: 12px; }
+          .pp-table .ant-table-thead > tr > th {
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
+          }
+          .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
+          .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+          .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+          .pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+          .pp-table .ant-table-selection-column { padding-inline: 6px !important; }
+
+          /* Lead settings table cells alignment and styles */
+          .lset-drag {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; border-radius: 6px;
+            color: var(--text-slate-400); opacity: 0.6;
+            transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+          }
+          .pp-table .ant-table-tbody > tr:hover .lset-drag {
+            opacity: 1; background: var(--bg-pure-white); color: #6366f1;
+          }
+          .lset-rank {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-100);
+            color: var(--text-slate-500);
+            font-size: 11px; font-weight: 700;
+          }
+          .lset-rank svg { color: var(--text-slate-400); }
+
+          .lset-status-cell { display: flex; align-items: center; gap: 14px; }
+          .lset-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+          .lset-status-icon {
+            width: 24px; height: 24px;
+            border-radius: 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .lset-status-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+          .lset-pill {
+            display: inline-flex; align-items: center;
+            padding: 3px 10px; border-radius: 7px;
+            font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+            width: fit-content;
+          }
+          .lset-status-meta {
+            font-size: 11px; color: var(--text-slate-400);
+            font-weight: 600;
+            text-transform: lowercase;
+            letter-spacing: 0.02em;
+          }
+
+          .lset-flag-row { display: flex; gap: 8px; }
+          .lset-flag {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px;
+            border-radius: 7px;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-100);
+            color: var(--text-slate-500);
+            font-size: 10.5px; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+          }
+          .lset-flag:hover { background: var(--bg-pure-white); border-color: var(--border-slate-200); }
+          .lset-flag.is-on {
+            background: rgba(245,158,11,0.08);
+            border-color: rgba(245,158,11,0.28);
+            color: #d97706;
+          }
+          .lset-flag.is-final {
+            background: rgba(16,185,129,0.08);
+            border-color: rgba(16,185,129,0.28);
+            color: #059669;
+          }
+
+          .lset-visibility { display: inline-flex; align-items: center; gap: 8px; }
+          .lset-vis-label { font-size: 11px; font-weight: 700; color: var(--text-slate-400); letter-spacing: 0.02em; }
+          .lset-vis-label.is-on { color: #10b981; }
+
+          .lset-row-actions { display: inline-flex; gap: 4px; align-items: center; justify-content: flex-end; }
+          .lset-icon-btn {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.15s ease;
+          }
+          .lset-icon-btn:hover { background: var(--bg-slate-50); border-color: var(--border-slate-100); color: #6366f1; }
+          .lset-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .lset-icon-btn.lset-icon-danger:hover { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #dc2626; }
+
+          .lset-action-cell { display: flex; align-items: center; gap: 12px; }
+          .lset-action-icon {
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 14px;
+          }
+          .lset-action-text { display: flex; flex-direction: column; gap: 2px; }
+          .lset-action-name { font-size: 13px; font-weight: 700; color: var(--text-slate-900); }
+          .lset-action-meta { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+          .lset-cat-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px;
+            border-radius: 7px;
+            background: rgba(99,102,241,0.08);
+            color: #6366f1;
+            border: 1px solid rgba(99,102,241,0.2);
+            font-size: 11px; font-weight: 700;
+            text-transform: capitalize;
+          }
+          .lset-meta-text { font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
+
+          .lset-platform-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+          .lset-platform-logo {
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-100);
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--text-slate-400);
+            flex-shrink: 0;
+            overflow: hidden;
+          }
+          .lset-platform-logo img {
+            width: 100%; height: 100%;
+            object-fit: contain;
+          }
+          .lset-platform-id { display: flex; flex-direction: column; min-width: 0; }
+          .lset-platform-name {
+            font-weight: 700;
+            font-size: 12.5px;
+            color: var(--text-slate-900);
+            line-height: 1.2;
+          }
+          .lset-platform-code {
+            font-size: 10.5px;
+            font-weight: 600;
+            font-family: var(--font-mono, monospace);
+            letter-spacing: 0.04em;
+            color: var(--text-slate-400);
+            margin-top: 1px;
+          }
+
+          .pp-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+          .pp-star { background: none; border: none; cursor: pointer; padding: 0; color: var(--text-slate-300); line-height: 0; flex-shrink: 0; }
+          .pp-star:hover, .pp-star.is-on { color: #3B82F6; }
+          .pp-star .anticon { font-size: 13px !important; }
+          .pp-name-icon {
+            width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; color: #3B82F6;
+            background: var(--bg-blue-50);
+          }
+          .pp-name-icon .anticon { font-size: 12px !important; }
+          .pp-name-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+          .pp-tag {
+            display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px;
+            border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap;
+          }
+          .pp-tag--blue { background: var(--bg-blue-50); color: #3B82F6; }
+          .pp-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+          .pp-add { font-size: 11.5px; color: var(--text-slate-400); cursor: default; }
+          .pp-muted { color: var(--text-slate-400); }
+
+          .pp-maillink {
+            display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+            font-size: 11.5px; font-weight: 700; color: #3B82F6; padding: 0;
+          }
+          .pp-maillink.is-sent { color: #10b981; }
+
+          .pp-creator { display: flex; align-items: center; gap: 6px; }
+          .pp-creator-name { font-size: 11.5px; color: var(--text-slate-700); white-space: nowrap; }
+          .pp-date { display: flex; flex-direction: column; line-height: 1.25; }
+          .pp-date-main { font-size: 11px; font-weight: 500; color: var(--text-slate-700); }
+          .pp-date-sub { font-size: 9.5px; color: var(--text-slate-400); }
+
+          .pp-vis-pill {
+            display: inline-flex; align-items: center; gap: 5px; height: 23px; padding: 0 8px;
+            border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid transparent; white-space: nowrap;
+          }
+          .pp-vis-dot { width: 6px; height: 6px; border-radius: 50%; }
+          .pp-status-opt { display: inline-flex; align-items: center; gap: 8px; }
+          .pp-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
+          .pp-icon-btn:hover { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
+
+          /* Footer + pager */
+          .pp-footer {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer--sticky {
+            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+            background: var(--bg-pure-white);
+            box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+          .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+          .pp-footer-sel { color: #3B82F6; font-weight: 600; }
+          .pp-pager { display: flex; align-items: center; gap: 3px; }
+          .pp-pager-btn, .pp-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center;
+          }
+          .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+          .pp-pagesize { margin-left: 5px; }
+          .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+          /* Empty + grid */
+          .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+          .pp-empty-orb {
+            width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+            background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
+          }
+          .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+          .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+          .pp-btn-primary {
+            background: #3B82F6 !important; border: none !important;
+            border-radius: 0 !important; font-weight: 600 !important;
+          }
+          .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
+
+          .pc-card {
+            border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+            cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+            transition: box-shadow .15s ease, border-color .15s ease;
+          }
+          .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+          .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; flex: 1; }
+          .pc-avatar {
+            width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 800; font-size: 12px;
+            overflow: hidden;
+          }
+          .pc-avatar img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+          .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+          .pc-actions {
+            flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+            background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+          }
+          .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+          .pc-title {
+            font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          }
+          .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+          .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+          .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+          .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+          .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+          .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+          .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+          .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+          .pc-foot-val { font-size: 11.5px; color: var(--text-slate-700); }
+          .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+
+          /* Premium action dropdown */
+          .pp-action-pop .ant-dropdown-menu {
+            padding: 6px; border-radius: 0; min-width: 236px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          }
+          .pp-action-pop .ant-dropdown-menu-item {
+            padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+            transition: background .12s ease;
+          }
+          .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+          .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+          .pp-menu-ic {
+            width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          }
+          .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+          .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+          .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+          .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+          .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+          .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+          @media (max-width: 700px) {
+            .pp-grid { grid-template-columns: 1fr; }
+          }
+          @media (max-width: 1100px) {
+            .pp-stats { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 820px) {
+            .pp-sidebar { display: none; }
+            .pp-topbar-meta { display: none; }
+          }
+
+          /* Dark Mode Refinements */
+          [data-theme='dark'] .pp-shell {
+            background: #0B0F1A !important;
+          }
+          [data-theme='dark'] .pp-sidebar {
+            background: #0B0F1A !important;
+            border-right-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-side-head {
+            border-bottom-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-side-title {
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pp-view-item:hover {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .pp-view-item.is-active {
+            background: rgba(59, 130, 246, 0.15) !important;
+          }
+          [data-theme='dark'] .pp-view-label {
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-view-item.is-active .pp-view-label {
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pp-search-wrap {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-search {
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pp-ghost-btn {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-divider {
+            background: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-stat-card {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-stat-card:hover {
+            border-color: #1F2937 !important;
+            box-shadow: none !important;
+          }
+          [data-theme='dark'] .pp-stat-label {
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-stat-value {
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pp-table-wrap {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > th {
+            background: #0B0F1A !important;
+            border-bottom-color: #1F2937 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-table .ant-table-tbody > tr > td {
+            background: #0B0F1A !important;
+            border-bottom-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .pp-segmented {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-segmented button.is-active {
+            background: #161B22 !important;
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pc-card {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pc-top {
+            border-bottom-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pc-title {
+            color: #FFFFFF !important;
+          }
+          [data-theme='dark'] .pc-client-val {
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pc-foot {
+            background: #161B22 !important;
+            border-top-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pc-foot-row {
+            border-top-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pc-foot-val {
+            color: #94A3B8 !important;
+          }
+
+          /* Dark theme pagination/footer overrides */
+          [data-theme='dark'] .pp-footer {
+            background: #0B0F1A !important;
+            border-top-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-footer--sticky {
+            background: #0B0F1A !important;
+            border-top-color: #1F2937 !important;
+          }
+          [data-theme='dark'] .pp-footer-info strong { color: #ffffff; }
+          [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+            background: #161B22;
+            border-color: #30363d;
+            color: #8b949e;
+          }
+
+          /* Dark mode overrides for table cell content */
+          [data-theme='dark'] .lset-status-meta { color: #8b949e !important; }
+          [data-theme='dark'] .lset-rank { background: #161b22 !important; border-color: #30363d !important; color: #8b949e !important; }
+          [data-theme='dark'] .lset-flag { background: #161b22 !important; border-color: #30363d !important; color: #8b949e !important; }
+          [data-theme='dark'] .lset-flag:hover { background: #21262d !important; border-color: #8b949e !important; }
+          [data-theme='dark'] .lset-vis-label { color: #8b949e !important; }
+          [data-theme='dark'] .lset-vis-label.is-on { color: #58a6ff !important; }
+          [data-theme='dark'] .lset-action-name { color: #f0f6fc !important; }
+          [data-theme='dark'] .lset-action-meta { color: #8b949e !important; }
+          [data-theme='dark'] .lset-platform-name { color: #f0f6fc !important; }
+          [data-theme='dark'] .lset-platform-code { color: #8b949e !important; }
+
                     /* ============================================== */
-                    /*  New shell: left rail + main pane              */
+                    /*  Drawer & Form custom styles from Leads settings*/
                     /* ============================================== */
-                    .lset-page {
-                        margin: 0 -8px;
-                        background: var(--bg-primary);
-                        min-height: calc(100vh - 64px);
-                        font-family: 'Inter', -apple-system, sans-serif;
-                    }
-                    .lset-shell {
-                        margin: 0;
-                        min-height: calc(100vh - 64px - 56px);
-                        background: var(--bg-primary);
-                        display: grid;
-                        grid-template-columns: 264px minmax(0, 1fr);
-                        gap: 0;
-                    }
-                    @media (max-width: 1100px) {
-                        .lset-shell { grid-template-columns: 232px minmax(0, 1fr); }
-                    }
-                    @media (max-width: 820px) {
-                        .lset-shell { grid-template-columns: 1fr; }
-                    }
-
-                    .lset-rail {
-                        position: sticky;
-                        top: 56px;
-                        align-self: start;
-                        height: calc(100vh - 64px - 56px);
-                        background: var(--bg-secondary);
-                        border-right: 1px solid var(--border-slate-100);
-                        padding: 12px 12px 12px 14px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                        overflow-y: auto;
-                    }
-                    @media (max-width: 820px) {
-                        .lset-rail {
-                            position: static;
-                            height: auto;
-                            border-right: 0;
-                            border-bottom: 1px solid var(--border-slate-100);
-                            flex-direction: row;
-                            flex-wrap: wrap;
-                        }
-                    }
-                    .lset-rail-title {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        padding: 4px 8px 8px 8px;
-                        font-size: 10px;
-                        font-weight: 800;
-                        letter-spacing: 0.08em;
-                        text-transform: uppercase;
-                        color: var(--text-slate-400);
-                    }
-                    .lset-rail-card {
-                        all: unset;
-                        display: flex;
-                        align-items: center;
-                        gap: 9px;
-                        padding: 8px 10px;
-                        border-radius: 8px;
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        cursor: pointer;
-                        transition: border-color .15s ease, background-color .15s ease;
-                    }
-                    .lset-rail-card:hover {
-                        border-color: var(--border-slate-200);
-                    }
-                    .lset-rail-icon {
-                        width: 26px; height: 26px;
-                        border-radius: 7px;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                    }
-                    .lset-rail-icon svg { width: 12px; height: 12px; }
-                    .lset-rail-text { display: flex; flex-direction: column; min-width: 0; }
-                    .lset-rail-label {
-                        font-size: 12.5px;
-                        font-weight: 700;
-                        color: var(--text-slate-900);
-                        letter-spacing: -0.005em;
-                        line-height: 1.2;
-                    }
-                    .lset-rail-sub {
-                        font-size: 10.5px;
-                        font-weight: 500;
-                        color: var(--text-slate-500);
-                        margin-top: 1px;
-                    }
-
-                    .lset-pane {
-                        min-width: 0;
-                        padding: 12px 18px 32px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 10px;
-                    }
-
-                    .lset-pane-hero {
-                        position: relative;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 16px;
-                        padding: 10px 12px;
-                        border-radius: 10px;
-                        border: 1px solid;
-                        overflow: hidden;
-                    }
-                    .lset-pane-hero-left {
-                        display: flex; align-items: center; gap: 10px; min-width: 0;
-                    }
-                    .lset-pane-hero-icon {
-                        width: 32px; height: 32px;
-                        border-radius: 9px;
-                        color: #fff;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        flex-shrink: 0;
-                    }
-                    .lset-pane-hero-icon svg { width: 14px; height: 14px; }
-                    .lset-pane-hero-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-                    .lset-pane-eyebrow {
-                        font-size: 9.5px;
-                        font-weight: 800;
-                        letter-spacing: 0.08em;
-                        text-transform: uppercase;
-                        color: var(--text-slate-500);
-                        display: inline-flex; align-items: center; gap: 5px;
-                    }
-                    .lset-pane-title-row {
-                        display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-                    }
-                    .lset-pane-title {
-                        margin: 0;
-                        font-size: 15px;
-                        font-weight: 800;
-                        color: var(--text-slate-900);
-                        letter-spacing: -0.015em;
-                        line-height: 1.2;
-                    }
-                    .lset-pane-desc {
-                        font-size: 11.5px;
-                        color: var(--text-slate-500);
-                        font-weight: 500;
-                    }
-
-                    .lset-pane-hero-right {
-                        display: flex; align-items: center; gap: 10px;
-                        flex-shrink: 0;
-                    }
-                    .lset-stat-chips {
-                        display: flex; align-items: center; gap: 6px;
-                    }
-                    .lset-stat-chip {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        padding: 3px 8px;
-                        border-radius: 999px;
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        font-size: 11px;
-                        height: 24px;
-                    }
-                    .lset-stat-chip-icon {
-                        width: 14px; height: 14px;
-                        border-radius: 5px;
-                        display: inline-flex; align-items: center; justify-content: center;
-                    }
-                    .lset-stat-chip-value {
-                        font-weight: 800;
-                        font-variant-numeric: tabular-nums;
-                        color: var(--text-slate-900);
-                    }
-                    .lset-stat-chip-label {
-                        font-weight: 600;
-                        color: var(--text-slate-500);
-                    }
-                    .lset-cta-btn.ant-btn {
-                        height: 28px !important;
-                        padding: 0 12px !important;
-                        font-size: 12px !important;
-                        font-weight: 700 !important;
-                        border-radius: 7px !important;
-                    }
-
-                    @media (max-width: 900px) {
-                        .lset-pane-hero {
-                            flex-wrap: wrap;
-                            flex-direction: column;
-                            align-items: flex-start;
-                            gap: 12px;
-                        }
-                        .lset-pane-hero-left {
-                            width: 100%;
-                        }
-                        .lset-pane-hero-right {
-                            width: 100%;
-                            flex-wrap: wrap;
-                            justify-content: flex-start;
-                            margin-top: 4px;
-                        }
-                        .lset-stat-chips {
-                            flex-wrap: wrap;
-                        }
-                    }
-
-                    .lset-toolbar {
-                        display: flex; align-items: center; gap: 8px;
-                        flex-wrap: wrap;
-                    }
-                    .lset-search-box {
-                        flex: 1;
-                        min-width: 220px;
-                        display: flex; align-items: center; gap: 6px;
-                        padding: 0 10px;
-                        height: 30px;
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 8px;
-                    }
-                    .lset-search-box:focus-within {
-                        border-color: #6366f1;
-                        box-shadow: 0 0 0 2px rgba(99,102,241,0.10);
-                    }
-                    .lset-search-icon { color: var(--text-slate-400); flex-shrink: 0; }
-                    .lset-search-input {
-                        flex: 1; border: 0; outline: none; background: transparent;
-                        font-size: 12px; color: var(--text-slate-900);
-                        font-family: inherit;
-                    }
-                    .lset-search-input::placeholder { color: var(--text-slate-400); }
-                    .lset-search-clear {
-                        background: transparent; border: 0;
-                        color: var(--text-slate-500);
-                        font-size: 10.5px; font-weight: 700;
-                        cursor: pointer;
-                    }
-
-                    .lset-chips {
-                        display: flex; align-items: center; gap: 4px;
-                    }
-                    .lset-chip {
-                        display: inline-flex; align-items: center; gap: 5px;
-                        padding: 0 9px; height: 26px;
-                        border-radius: 7px;
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        color: var(--text-slate-600);
-                        font-size: 11.5px; font-weight: 600;
-                        cursor: pointer;
-                        transition: border-color .15s ease, color .15s ease;
-                    }
-                    .lset-chip:hover { border-color: var(--border-slate-200); color: var(--text-slate-900); }
-                    .lset-chip.is-active {
-                        background: rgba(99,102,241,0.10);
-                        border-color: rgba(99,102,241,0.30);
-                        color: #4f46e5;
-                    }
-                    .lset-chip-count {
-                        font-variant-numeric: tabular-nums;
-                        font-size: 10px;
-                        font-weight: 800;
-                        padding: 1px 5px;
-                        border-radius: 999px;
-                        background: var(--bg-slate-50);
-                        color: var(--text-slate-500);
-                    }
-                    .lset-chip.is-active .lset-chip-count {
-                        background: rgba(99,102,241,0.18);
-                        color: #4f46e5;
-                    }
-
-                    .lset-table-wrap {
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 10px;
-                        padding: 2px 2px 6px;
-                        overflow: hidden;
-                    }
-                    .lset-table.ant-table-wrapper .ant-table-thead > tr > th {
-                        font-size: 10.5px !important;
-                        font-weight: 800 !important;
-                        letter-spacing: 0.05em !important;
-                        text-transform: uppercase !important;
-                        color: var(--text-slate-400) !important;
-                        padding: 8px 12px !important;
-                    }
-                    .lset-table.ant-table-wrapper .ant-table-tbody > tr > td {
-                        padding: 6px 12px !important;
-                        font-size: 12.5px !important;
-                    }
-
-                    /* Platform table cell */
-                    .lset-platform-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
-                    .lset-platform-logo {
-                        width: 28px; height: 28px;
-                        border-radius: 7px;
-                        background: var(--bg-slate-50);
-                        border: 1px solid var(--border-slate-100);
-                        display: inline-flex; align-items: center; justify-content: center;
-                        color: var(--text-slate-400);
-                        flex-shrink: 0;
-                        overflow: hidden;
-                    }
-                    .lset-platform-logo img {
-                        width: 100%; height: 100%;
-                        object-fit: contain;
-                    }
-                    .lset-platform-id { display: flex; flex-direction: column; min-width: 0; }
-                    .lset-platform-name {
-                        font-weight: 700;
-                        font-size: 12.5px;
-                        color: var(--text-slate-900);
-                        line-height: 1.2;
-                    }
-                    .lset-platform-code {
-                        font-size: 10.5px;
-                        font-weight: 600;
-                        font-family: var(--font-mono, monospace);
-                        letter-spacing: 0.04em;
-                        color: var(--text-slate-400);
-                        margin-top: 1px;
-                    }
-                    .lset-platform-url {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        font-size: 12px;
-                        color: #4f46e5;
-                        text-decoration: none;
-                        max-width: 260px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    .lset-platform-url:hover { text-decoration: underline; }
-
-                    /* Logo picker — mode toggle + icon grid + image dropzone */
-                    .lset-logo-picker { display: flex; flex-direction: column; gap: 8px; }
-                    .lset-logo-mode .ant-segmented {
-                        background: var(--bg-slate-50) !important;
-                        padding: 2px !important;
-                        border-radius: 8px !important;
-                    }
-                    .lset-icon-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
-                        gap: 6px;
-                        padding: 8px;
-                        background: var(--bg-slate-50);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 8px;
-                    }
-                    .lset-icon-tile {
-                        all: unset;
-                        position: relative;
-                        height: 36px;
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 7px;
-                        background: var(--bg-pure-white);
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        cursor: pointer;
-                        transition: border-color .15s ease, transform .15s ease;
-                    }
-                    .lset-icon-tile:hover { border-color: var(--border-slate-200); transform: translateY(-1px); }
-                    .lset-icon-tile.is-active { border-width: 1.5px; }
-                    .lset-icon-tile-check {
-                        position: absolute;
-                        top: -4px; right: -4px;
-                        width: 14px; height: 14px;
-                        border-radius: 50%;
-                        color: #fff;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        border: 2px solid var(--bg-pure-white);
-                    }
-
-                    /* Logo upload */
-                    .lset-logo-dropzone .ant-upload {
-                        padding: 8px 10px !important;
-                        border-radius: 8px !important;
-                    }
-                    .lset-logo-drop-content {
-                        display: flex; align-items: center; gap: 10px;
-                        color: var(--text-slate-500);
-                    }
-                    .lset-logo-drop-title {
-                        font-size: 11.5px;
-                        font-weight: 700;
-                        color: var(--text-slate-700);
-                    }
-                    .lset-logo-drop-sub {
-                        font-size: 10px;
-                        color: var(--text-slate-400);
-                        margin-top: 1px;
-                    }
-                    .lset-logo-preview {
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        padding: 6px 8px;
-                        border-radius: 8px;
-                        border: 1px solid var(--border-slate-100);
-                        background: var(--bg-pure-white);
-                    }
-                    .lset-logo-preview img {
-                        width: 34px; height: 34px;
-                        border-radius: 6px;
-                        object-fit: contain;
-                        background: var(--bg-slate-50);
-                        border: 1px solid var(--border-slate-100);
-                    }
-                    .lset-logo-preview-actions { display: flex; gap: 6px; margin-left: auto; }
-                    .lset-logo-preview-actions .ant-btn { height: 24px !important; font-size: 11px !important; padding: 0 8px !important; }
-
-                    /* Dark theme refinements */
-                    [data-theme='dark'] .lset-rail,
-                    [data-theme='dark'] .lset-pane-hero,
-                    [data-theme='dark'] .lset-rail-card,
-                    [data-theme='dark'] .lset-stat-chip,
-                    [data-theme='dark'] .lset-search-box,
-                    [data-theme='dark'] .lset-chip,
-                    [data-theme='dark'] .lset-table-wrap {
-                        background: var(--bg-secondary);
-                    }
-
-                    /* ============================================== */
-                    /*  Legacy classes (kept for the drawer/form etc) */
-                    /* ============================================== */
-                    .lset-canvas {
-                        margin: 0 -24px;
-                        padding: 0 0 60px;
-                        min-height: calc(100vh - 64px);
-                        background: var(--bg-pure-white);
-                        font-family: 'Inter', -apple-system, sans-serif;
-                    }
-                    .lset-body-container {
-                        padding: 20px 32px 0;
-                    }
-
-                    /* HERO */
-                    .lset-hero {
-                        position: sticky;
-                        top: 0;
-                        z-index: 100;
-                        background: var(--bg-pure-white);
-                        border-bottom: 1px solid var(--border-slate-200);
-                        padding: 9.5px 32px;
-                        margin-bottom: 0;
-                        overflow: hidden;
-                    }
-                    .lset-hero-bg {
-                        position: absolute; inset: 0; pointer-events: none;
-                        background:
-                          radial-gradient(40% 60% at 100% 0%, rgba(99,102,241,0.06) 0%, transparent 60%),
-                          radial-gradient(40% 60% at 0% 100%, rgba(236,72,153,0.04) 0%, transparent 60%);
-                    }
-                    .lset-hero-row {
-                        position: relative;
-                        display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-                    }
-                    .lset-hero-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
-                    .lset-hero-icon {
-                        width: 38px; height: 38px; border-radius: 11px;
-                        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                        color: #fff; display: inline-flex; align-items: center; justify-content: center;
-                        box-shadow: 0 6px 14px -3px rgba(99,102,241,0.45);
-                        flex-shrink: 0;
-                    }
-                    .lset-hero-title-row {
-                        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-                    }
-                    .lset-hero-title {
-                        margin: 0 !important; font-size: 18px !important; font-weight: 800 !important;
-                        color: var(--text-slate-900) !important; letter-spacing: -0.015em !important;
-                    }
-                    .lset-hero-divider { width: 1px; height: 16px; background: var(--border-slate-200); }
-                    .lset-hero-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
-                    .lset-hero-actions { display: flex; gap: 8px; align-items: center; }
-                    .lset-search {
-                        width: 240px;
-                        border-radius: 10px !important;
-                        border: 1px solid var(--border-slate-100) !important;
-                        background: var(--bg-slate-50) !important;
-                        font-size: 13px;
-                        height: 36px;
-                    }
-                    .lset-search:hover, .lset-search:focus { border-color: rgba(99,102,241,0.3) !important; background: var(--bg-pure-white) !important; }
-                    .lset-cta-btn {
-                        height: 36px !important;
-                        border-radius: 10px !important;
-                        padding: 0 14px !important;
-                        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
-                        color: #fff !important;
-                        border: none !important;
-                        font-weight: 700 !important;
-                        font-size: 13px;
-                        box-shadow: 0 6px 16px -4px rgba(99,102,241,0.45) !important;
-                        display: inline-flex !important; align-items: center; gap: 6px;
-                        transition: transform 0.18s ease, box-shadow 0.18s ease;
-                    }
-                    .lset-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -6px rgba(99,102,241,0.55) !important; }
-
-                    /* STATS */
-                    .lset-stats { margin-bottom: 18px !important; }
-                    .lset-stat-tile {
-                        position: relative;
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 16px;
-                        padding: 14px 16px;
-                        overflow: hidden;
-                        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-                    }
-                    .lset-stat-tile:hover {
-                        transform: translateY(-2px);
-                        border-color: var(--border-slate-200);
-                        box-shadow: 0 8px 20px -10px rgba(15,23,42,0.08);
-                    }
-                    .lset-stat-glow { position: absolute; inset: 0; pointer-events: none; }
-                    .lset-stat-row { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-                    .lset-stat-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-                    .lset-stat-label { font-size: 10px; font-weight: 800; color: var(--text-slate-400); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
-                    .lset-stat-value { font-size: 22px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.05; }
-                    .lset-stat-text-ellipsis { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
-                    .lset-stat-sub { font-size: 11px; color: var(--text-slate-500); font-weight: 600; margin-top: 6px; }
-                    .lset-stat-icon {
-                        width: 36px; height: 36px; border-radius: 11px;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        color: #fff; flex-shrink: 0;
-                    }
-
-                    /* SEGMENT TABS */
-                    .lset-segments {
-                        display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
-                    }
-                    .lset-segment {
-                        display: inline-flex; align-items: center; gap: 6px;
-                        padding: 7px 14px;
-                        border-radius: 999px;
-                        border: 1px solid var(--border-slate-100);
-                        background: var(--bg-pure-white);
-                        color: var(--text-slate-500);
-                        font-size: 12px; font-weight: 700; cursor: pointer;
-                        transition: all 0.15s ease;
-                    }
-                    .lset-segment:hover:not(.is-active) {
-                        background: var(--bg-slate-50);
-                        border-color: var(--border-slate-200);
-                        color: var(--text-slate-900);
-                    }
-                    .lset-segment.is-active { box-shadow: 0 1px 2px 0 rgba(15,23,42,0.04); }
-                    .lset-segment-count {
-                        display: inline-flex; align-items: center; justify-content: center;
-                        min-width: 20px; height: 18px;
-                        padding: 0 6px;
-                        background: var(--bg-slate-50); color: var(--text-slate-500);
-                        border-radius: 999px;
-                        font-size: 10px; font-weight: 800;
-                    }
-
-                    /* TABLE CARD */
-                    .lset-table-card {
-                        background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 18px;
-                        overflow: hidden;
-                        box-shadow: 0 1px 3px 0 rgba(15,23,42,0.02), 0 8px 24px -16px rgba(15,23,42,0.06);
-                    }
-                    /* Hide horizontal scrollbar but keep scroll functionality */
-                    .lset-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
-                    .lset-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
-                        display: none !important;
-                    }
-                    .lset-table.ant-table-wrapper .ant-table-content,
-                    .lset-table.ant-table-wrapper .ant-table-body {
-                        -ms-overflow-style: none !important;
-                        scrollbar-width: none !important;
-                    }
-                    .lset-table-head {
-                        display: flex; align-items: center; justify-content: space-between;
-                        gap: 12px; padding: 16px 22px;
-                        border-bottom: 1px solid var(--border-slate-100);
-                    }
-                    .lset-table-head-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-                    .lset-table-icon {
-                        width: 32px; height: 32px; border-radius: 9px;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        flex-shrink: 0;
-                    }
-                    .lset-table-title { font-size: 14px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.005em; }
-                    .lset-table-sub { font-size: 11.5px; color: var(--text-slate-500); margin-top: 2px; font-weight: 500; line-height: 1.4; }
-                    .lset-filter-chip {
-                        display: inline-flex; align-items: center; gap: 8px;
-                        padding: 4px 4px 4px 10px;
-                        border-radius: 999px;
-                        background: rgba(99,102,241,0.08);
-                        color: #4f46e5;
-                        border: 1px solid rgba(99,102,241,0.18);
-                        font-size: 11px; font-weight: 700;
-                    }
-                    .lset-filter-chip button {
-                        width: 18px; height: 18px;
-                        border-radius: 50%;
-                        background: rgba(99,102,241,0.18);
-                        border: none; color: #4f46e5;
-                        cursor: pointer; padding: 0;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        font-size: 13px; line-height: 1; font-weight: 700;
-                    }
-
-                    /* TABLE CELLS */
-                    .lset-table .ant-table { background: transparent; }
-                    .lset-table .ant-table-thead > tr > th {
-                        background: var(--bg-slate-50) !important;
-                        color: var(--text-slate-400) !important;
-                        font-size: 10px !important;
-                        font-weight: 800 !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 0.06em !important;
-                        border-bottom: 1px solid var(--border-slate-100) !important;
-                        padding: 12px 18px !important;
-                    }
-                    .lset-table .ant-table-tbody > tr > td {
-                        padding: 14px 18px !important;
-                        border-bottom: 1px solid var(--bg-slate-50) !important;
-                        transition: background 0.15s ease;
-                    }
-                    .lset-table .ant-table-tbody > tr:hover > td {
-                        background: var(--bg-slate-50) !important;
-                    }
-                    .lset-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-
-                    .lset-drag {
-                        display: inline-flex; align-items: center; justify-content: center;
-                        width: 22px; height: 22px; border-radius: 6px;
-                        color: var(--text-slate-400); opacity: 0.6;
-                        transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
-                    }
-                    .lset-table .ant-table-tbody > tr:hover .lset-drag {
-                        opacity: 1; background: var(--bg-pure-white); color: #6366f1;
-                    }
-                    .lset-rank {
-                        display: inline-flex; align-items: center; gap: 3px;
-                        padding: 3px 9px;
-                        border-radius: 999px;
-                        background: var(--bg-slate-50);
-                        border: 1px solid var(--border-slate-100);
-                        color: var(--text-slate-500);
-                        font-size: 11px; font-weight: 700;
-                    }
-                    .lset-rank svg { color: var(--text-slate-400); }
-
-                    .lset-status-cell { display: flex; align-items: center; gap: 14px; }
-                    .lset-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-                    .lset-status-icon {
-                        width: 24px; height: 24px;
-                        border-radius: 7px;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                    }
-                    .lset-status-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-                    .lset-pill {
-                        display: inline-flex; align-items: center;
-                        padding: 3px 10px; border-radius: 7px;
-                        font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
-                        width: fit-content;
-                    }
-                    .lset-status-meta {
-                        font-size: 11px; color: var(--text-slate-400);
-                        font-weight: 600;
-                        text-transform: lowercase;
-                        letter-spacing: 0.02em;
-                    }
-
-                    .lset-flag-row { display: flex; gap: 8px; }
-                    .lset-flag {
-                        display: inline-flex; align-items: center; gap: 5px;
-                        padding: 4px 10px;
-                        border-radius: 7px;
-                        background: var(--bg-slate-50);
-                        border: 1px solid var(--border-slate-100);
-                        color: var(--text-slate-500);
-                        font-size: 10.5px; font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.15s ease;
-                        user-select: none;
-                    }
-                    .lset-flag:hover { background: var(--bg-pure-white); border-color: var(--border-slate-200); }
-                    .lset-flag.is-on {
-                        background: rgba(245,158,11,0.08);
-                        border-color: rgba(245,158,11,0.28);
-                        color: #d97706;
-                    }
-                    .lset-flag.is-final {
-                        background: rgba(16,185,129,0.08);
-                        border-color: rgba(16,185,129,0.28);
-                        color: #059669;
-                    }
-
-                    .lset-visibility { display: inline-flex; align-items: center; gap: 8px; }
-                    .lset-vis-label { font-size: 11px; font-weight: 700; color: var(--text-slate-400); letter-spacing: 0.02em; }
-                    .lset-vis-label.is-on { color: #10b981; }
-
-                    .lset-row-actions { display: inline-flex; gap: 4px; align-items: center; justify-content: flex-end; }
-                    .lset-icon-btn {
-                        width: 28px; height: 28px;
-                        border-radius: 8px;
-                        background: transparent;
-                        border: 1px solid transparent;
-                        color: var(--text-slate-500);
-                        cursor: pointer;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        transition: all 0.15s ease;
-                    }
-                    .lset-icon-btn:hover { background: var(--bg-slate-50); border-color: var(--border-slate-100); color: #6366f1; }
-                    .lset-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-                    .lset-icon-btn.lset-icon-danger:hover { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #dc2626; }
-
-                    .lset-action-cell { display: flex; align-items: center; gap: 12px; }
-                    .lset-action-icon {
-                        width: 34px; height: 34px;
-                        border-radius: 10px;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        flex-shrink: 0; font-size: 14px;
-                    }
-                    .lset-action-text { display: flex; flex-direction: column; gap: 2px; }
-                    .lset-action-name { font-size: 13px; font-weight: 700; color: var(--text-slate-900); }
-                    .lset-action-meta { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
-                    .lset-cat-pill {
-                        display: inline-flex; align-items: center; gap: 4px;
-                        padding: 3px 10px;
-                        border-radius: 7px;
-                        background: rgba(99,102,241,0.08);
-                        color: #6366f1;
-                        border: 1px solid rgba(99,102,241,0.2);
-                        font-size: 11px; font-weight: 700;
-                        text-transform: capitalize;
-                    }
-                    .lset-meta-text { font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
-
-                    /* EMPTY */
-                    .lset-empty {
-                        padding: 56px 24px; text-align: center;
-                        display: flex; flex-direction: column; align-items: center;
-                    }
-                    .lset-empty-icon {
-                        width: 64px; height: 64px;
-                        border-radius: 18px;
-                        background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08));
-                        color: #6366f1;
-                        display: inline-flex; align-items: center; justify-content: center;
-                        margin-bottom: 14px;
-                    }
-                    .lset-empty-title { font-size: 14px; font-weight: 800; color: var(--text-slate-900); margin-bottom: 4px; }
-                    .lset-empty-sub { font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 16px; max-width: 320px; }
-                    .lset-empty-cta {
-                        height: 36px !important; border-radius: 10px !important; padding: 0 14px !important;
-                        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; color: #fff !important;
-                        border: none !important; font-weight: 700 !important;
-                        box-shadow: 0 4px 12px -2px rgba(99,102,241,0.4) !important;
-                    }
-
-                    /* DRAWER */
                     .lset-drawer .ant-drawer-header { padding: 0 !important; border-bottom: 1px solid var(--border-slate-100); }
                     .lset-drawer .ant-drawer-header-title { padding: 12px 18px; }
                     .lset-drawer .ant-drawer-body { padding: 14px 18px; background: var(--bg-pure-white); }
@@ -3076,48 +3382,102 @@ export default function LeadSettingsPage() {
                     .lset-drawer-note-icon svg { width: 11px; height: 11px; }
                     .lset-drawer-note-text { font-size: 10.5px; color: var(--text-slate-700); line-height: 1.4; font-weight: 500; }
 
-                    /* DARK */
-                    [data-theme='dark'] .lset-canvas { background: #0d1117 !important; }
-                    [data-theme='dark'] .lset-hero { background: var(--bg-pure-white) !important; border-bottom-color: var(--border-slate-200) !important; }
-                    [data-theme='dark'] .lset-hero-title { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-hero-divider { background: #30363d !important; }
-                    [data-theme='dark'] .lset-hero-sub { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-search { background: #0d1117 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
-                    [data-theme='dark'] .lset-stat-tile { background: #161b22 !important; border-color: #30363d !important; }
-                    [data-theme='dark'] .lset-stat-tile:hover { border-color: #3d444d !important; }
-                    [data-theme='dark'] .lset-stat-value { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-stat-label { color: #6e7681 !important; }
-                    [data-theme='dark'] .lset-stat-sub { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-segment { background: #161b22 !important; border-color: #30363d !important; color: #8b949e !important; }
-                    [data-theme='dark'] .lset-segment:hover:not(.is-active) { background: #1c2128 !important; color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-segment-count { background: #0d1117 !important; color: #8b949e !important; }
-                    [data-theme='dark'] .lset-table-card { background: #161b22 !important; border-color: #30363d !important; }
-                    [data-theme='dark'] .lset-table-head { border-bottom-color: #30363d !important; }
-                    [data-theme='dark'] .lset-table-title { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-table-sub { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-table .ant-table-thead > tr > th { background: #0d1117 !important; color: #6e7681 !important; border-bottom-color: #30363d !important; }
-                    [data-theme='dark'] .lset-table .ant-table-tbody > tr > td { border-bottom-color: #21262d !important; color: #c9d1d9 !important; }
-                    [data-theme='dark'] .lset-table .ant-table-tbody > tr:hover > td { background: #1c2128 !important; }
-                    [data-theme='dark'] .lset-rank { background: #0d1117 !important; border-color: #30363d !important; color: #8b949e !important; }
-                    [data-theme='dark'] .lset-status-meta { color: #6e7681 !important; }
-                    [data-theme='dark'] .lset-flag { background: #0d1117 !important; border-color: #30363d !important; color: #8b949e !important; }
-                    [data-theme='dark'] .lset-icon-btn { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-icon-btn:hover { background: #1c2128 !important; border-color: #30363d !important; color: #818cf8 !important; }
-                    [data-theme='dark'] .lset-action-name { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-action-meta { color: #6e7681 !important; }
-                    [data-theme='dark'] .lset-meta-text { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-empty-title { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-empty-sub { color: #8b949e !important; }
+                    /* Logo picker */
+                    .lset-logo-picker { display: flex; flex-direction: column; gap: 8px; }
+                    .lset-logo-mode .ant-segmented {
+                        background: var(--bg-slate-50) !important;
+                        padding: 2px !important;
+                        border-radius: 8px !important;
+                    }
+                    .lset-icon-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+                        gap: 6px;
+                        padding: 8px;
+                        background: var(--bg-slate-50);
+                        border: 1px solid var(--border-slate-100);
+                        border-radius: 8px;
+                    }
+                    .lset-icon-tile {
+                        all: unset;
+                        position: relative;
+                        height: 36px;
+                        border: 1px solid var(--border-slate-100);
+                        border-radius: 7px;
+                        background: var(--bg-pure-white);
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: border-color .15s ease, transform .15s ease;
+                    }
+                    .lset-icon-tile:hover { border-color: var(--border-slate-200); transform: translateY(-1px); }
+                    .lset-icon-tile.is-active { border-width: 1.5px; }
+                    .lset-icon-tile-check {
+                        position: absolute;
+                        top: -4px; right: -4px;
+                        width: 14px; height: 14px;
+                        border-radius: 50%;
+                        color: #fff;
+                        display: inline-flex; align-items: center; justify-content: center;
+                        border: 2px solid var(--bg-pure-white);
+                    }
+                    .lset-logo-dropzone .ant-upload {
+                        padding: 8px 10px !important;
+                        border-radius: 8px !important;
+                    }
+                    .lset-logo-drop-content {
+                        display: flex; align-items: center; gap: 10px;
+                        color: var(--text-slate-500);
+                    }
+                    .lset-logo-drop-title {
+                        font-size: 11.5px;
+                        font-weight: 700;
+                        color: var(--text-slate-700);
+                    }
+                    .lset-logo-drop-sub {
+                        font-size: 10px;
+                        color: var(--text-slate-400);
+                        margin-top: 1px;
+                    }
+                    .lset-logo-preview {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 6px 8px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border-slate-100);
+                        background: var(--bg-pure-white);
+                    }
+                    .lset-logo-preview img {
+                        width: 34px; height: 34px;
+                        border-radius: 6px;
+                        object-fit: contain;
+                        background: var(--bg-slate-50);
+                        border: 1px solid var(--border-slate-100);
+                    }
+                    .lset-logo-preview-actions { display: flex; gap: 6px; margin-left: auto; }
+                    .lset-logo-preview-actions .ant-btn { height: 24px !important; font-size: 11px !important; padding: 0 8px !important; }
+
+                    .lset-platform-url {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 12px;
+                        color: #3b82f6;
+                        text-decoration: none;
+                        max-width: 260px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    .lset-platform-url:hover { text-decoration: underline; }
+
                     [data-theme='dark'] .lset-drawer .ant-drawer-content { background: #161b22 !important; }
                     [data-theme='dark'] .lset-drawer .ant-drawer-body { background: #161b22 !important; }
                     [data-theme='dark'] .lset-drawer .ant-drawer-header { border-bottom-color: #30363d !important; }
                     [data-theme='dark'] .lset-drawer .ant-drawer-footer { background: #161b22 !important; border-top-color: #30363d !important; }
                     [data-theme='dark'] .lset-drawer-title { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-drawer-sub { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-section-card { background: #0d1117 !important; border-color: #30363d !important; }
-                    [data-theme='dark'] .lset-section-card:hover { border-color: #3d444d !important; }
-                    [data-theme='dark'] .lset-section-title { color: #f0f6fc !important; }
-                    [data-theme='dark'] .lset-section-sub { color: #6e7681 !important; }
                     [data-theme='dark'] .lset-form-label { color: #c9d1d9 !important; }
                     [data-theme='dark'] .lset-drawer-form .ant-input,
                     [data-theme='dark'] .lset-drawer-form .ant-input-affix-wrapper,
@@ -3130,8 +3490,16 @@ export default function LeadSettingsPage() {
                     [data-theme='dark'] .lset-toggle-row { background: #161b22 !important; border-color: #30363d !important; }
                     [data-theme='dark'] .lset-toggle-title { color: #f0f6fc !important; }
                     [data-theme='dark'] .lset-toggle-sub { color: #8b949e !important; }
-                    [data-theme='dark'] .lset-drawer-note { background: rgba(99,102,241,0.08) !important; border-color: rgba(99,102,241,0.25) !important; }
+                    [data-theme='dark'] .lset-drawer-note { background: rgba(99,102,241,0.08) !important; border-color: rgba(99,102,241,0.2) !important; }
+                    [data-theme='dark'] .lset-drawer-note-icon { background: rgba(99,102,241,0.2) !important; color: #818cf8 !important; }
                     [data-theme='dark'] .lset-drawer-note-text { color: #c9d1d9 !important; }
+                    [data-theme='dark'] .lset-logo-preview { background: #161b22 !important; border-color: #30363d !important; }
+                    [data-theme='dark'] .lset-logo-preview img { background: #0d1117 !important; border-color: #30363d !important; }
+                    [data-theme='dark'] .lset-icon-tile { background: #161b22 !important; border-color: #30363d !important; }
+                    [data-theme='dark'] .lset-icon-tile:hover { border-color: #3d444d !important; }
+                    [data-theme='dark'] .lset-icon-tile-check { border-color: #161b22 !important; }
+                    [data-theme='dark'] .lset-icon-grid { background: #0d1117 !important; border-color: #30363d !important; }
+                    [data-theme='dark'] .lset-logo-mode .ant-segmented { background: #0d1117 !important; }
                     [data-theme='dark'] .lset-drawer-footer-hint { color: #6e7681 !important; }
                     [data-theme='dark'] .lset-btn-cancel { background: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
 

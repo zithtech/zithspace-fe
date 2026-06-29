@@ -1441,7 +1441,7 @@ export default function PerformanceManagePage() {
                         ]}
                         dataSource={performanceData?.tickets?.details || []}
                         rowKey="key"
-                        pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, size: "small", hideOnSinglePage: true }}
                         size="small"
                         locale={{
                           emptyText: (
@@ -1579,7 +1579,7 @@ export default function PerformanceManagePage() {
                           ]}
                           dataSource={missedRows}
                           rowKey="key"
-                          pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, size: "small", hideOnSinglePage: true }}
                           size="small"
                           locale={{
                             emptyText: (
@@ -1761,7 +1761,7 @@ export default function PerformanceManagePage() {
                               ]}
                               dataSource={details}
                               rowKey="id"
-                              pagination={{ pageSize: 10, size: "small", hideOnSinglePage: true }}
+                              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, size: "small", hideOnSinglePage: true }}
                               size="small"
                               onRow={(record) => ({
                                 onClick: () => handleRowClick(record),

@@ -17,6 +17,7 @@ import {
   Table,
   Row,
   Col,
+  Divider,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
@@ -52,7 +53,9 @@ import {
   UserOutlined,
   TagOutlined,
   CloseCircleOutlined,
-  RocketOutlined
+  RocketOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import {
   useBuckets,
@@ -188,6 +191,14 @@ export default function BucketManagementPage() {
   const { canCreateTicketBucket, canUpdateTicketBucket, canDeleteTicketBucket } = usePermission();
 
   // ── State ────────────────────────────────────────────────────────
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsSidebarOpen(window.innerWidth >= 1100);
+    }
+  }, []);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingBucket, setEditingBucket] = useState<Bucket | null>(null);
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityKey>("all");
@@ -202,7 +213,7 @@ export default function BucketManagementPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedBucketId, setExpandedBucketId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -437,6 +448,7 @@ export default function BucketManagementPage() {
       dataIndex: "name",
       key: "name",
       width: 280,
+      fixed: "left",
       render: (text, record) => {
         const accent = record.color || PALETTE_FALLBACK;
         const initial = record.name ? record.name[0].toUpperCase() : "B";
@@ -702,7 +714,13 @@ export default function BucketManagementPage() {
   // ── Render ───────────────────────────────────────────────────────
   return (
     <div className="bh2-page">
-      <div className="bh2-shell-wrap">
+      <div className={`bh2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        {/* Mobile backdrop — closes the sidebar drawer when tapped */}
+        <div
+          className="bh2-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
         <div className="bh2-shell">
           {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="bh2-sidebar">
@@ -937,6 +955,24 @@ export default function BucketManagementPage() {
           <main className="bh2-main">
             {/* Toolbar */}
             <div className="bh2-toolbar">
+              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                <button
+                  type="button"
+                  className="bh2-sidebar-show-toggle"
+                  onClick={() => setIsSidebarOpen((v) => !v)}
+                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                  aria-pressed={!isSidebarOpen}
+                >
+                  {isSidebarOpen ? (
+                    <MenuFoldOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                  )}
+                </button>
+              </Tooltip>
+
+              <Divider type="vertical" style={{ height: 24, margin: '0 12px 0 0', opacity: 0.5 }} className="bh2-sidebar-divider" />
+
               <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
                 <SearchOutlined className="pp-search-icon" />
                 <input
@@ -1478,7 +1514,7 @@ export default function BucketManagementPage() {
                     setPageSize(s);
                   }}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                 />
               </div>
             )}
@@ -1507,13 +1543,68 @@ export default function BucketManagementPage() {
 
         .bh2-shell-wrap {
           flex: 1;
+          display: flex;
+          flex-direction: column;
         }
+        .bh2-sidebar-backdrop { display: none; }
+
+        /* ── Sidebar show/hide toggle (always visible in top header) ── */
+        .bh2-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .bh2-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .bh2-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .bh2-sidebar-show-toggle {
+          background: #111720 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .bh2-sidebar-show-toggle:hover {
+          background: #1c232e !important;
+          border-color: #475569 !important;
+          color: #f1f5f9;
+        }
+
+        /* ── Desktop ≥1100px ────────────────────────────────── */
+        @media (min-width: 1100px) {
+          .bh2-shell-wrap.is-sidebar-closed .bh2-shell {
+            grid-template-columns: 0px minmax(0, 1fr);
+          }
+          .bh2-shell-wrap.is-sidebar-closed > .bh2-shell > aside.bh2-sidebar {
+            opacity: 0;
+            padding-left: 0;
+            padding-right: 0;
+            pointer-events: none;
+            border-right-color: transparent;
+          }
+        }
+
         .bh2-shell {
           display: grid;
           grid-template-columns: 240px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
+          transition: grid-template-columns 0.3s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .bh2-main {
           min-width: 0;
@@ -1535,6 +1626,7 @@ export default function BucketManagementPage() {
           flex-direction: column;
           flex-shrink: 0;
           align-self: flex-start;
+          transition: opacity 0.3s ease, border-color 0.3s ease, transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s ease;
           position: sticky;
           top: 0;
           height: calc(100vh - 54px);
@@ -1542,8 +1634,8 @@ export default function BucketManagementPage() {
           z-index: 10;
         }
         [data-theme="dark"] .bh2-sidebar {
-          background: #0f1419 !important;
-          border-right-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-right: 1px solid #1F2937 !important;
         }
 
         .bh2-sidebar-top { 
@@ -1557,7 +1649,7 @@ export default function BucketManagementPage() {
           border-bottom: 1px solid var(--border-slate-100);
         }
         [data-theme="dark"] .bh2-sidebar-brand {
-          border-bottom-color: #1f2937 !important;
+          border-bottom-color: #1F2937 !important;
         }
         .bh2-hero-icon-box {
           width: 36px; height: 36px; border-radius: 10px;
@@ -1613,12 +1705,13 @@ export default function BucketManagementPage() {
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
         .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
-        [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
-        [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        [data-theme='dark'] .bh2-view-btn { color: #94A3B8 !important; }
+        [data-theme='dark'] .bh2-view-btn:hover { background: #161B22 !important; color: #FFFFFF !important; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15) !important; color: #FFFFFF !important; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
         .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
-        [data-theme='dark'] .bh2-view-icon { color: #64748b; }
+        [data-theme='dark'] .bh2-view-icon { color: #94A3B8 !important; }
         [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
 
         .bh2-view-count {
@@ -1628,8 +1721,8 @@ export default function BucketManagementPage() {
         .bh2-view-btn.active .bh2-view-count {
           background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
         }
-        [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700); }
+        [data-theme='dark'] .bh2-view-count { background: #161B22 !important; color: #94A3B8 !important; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.15) !important; color: #60a5fa !important; }
 
         .bh2-view-label {
           flex: 1;
@@ -1637,10 +1730,8 @@ export default function BucketManagementPage() {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-          color: #cbd5e1 !important;
-        }
         [data-theme="dark"] .bh2-sidebar-item:hover {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .bh2-sidebar-item.active {
           background: rgba(59, 130, 246, 0.08);
@@ -1651,57 +1742,18 @@ export default function BucketManagementPage() {
         .bh2-sidebar-item.active .bh2-sidebar-item-icon,
         .bh2-sidebar-item.active .bh2-sidebar-item-dot {
           color: #3b82f6 !important;
-          border-color: #3b82f6 !important;
+          border: none !important;
         }
         [data-theme="dark"] .bh2-sidebar-item.active {
-          background: rgba(59, 130, 246, 0.18) !important;
-          border-color: rgba(59, 130, 246, 0.32) !important;
-          color: #f1f5f9 !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border: none !important;
+          color: #FFFFFF !important;
           font-weight: 600 !important;
         }
         [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-icon,
         [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-dot {
           color: #60a5fa !important;
-          border-color: #60a5fa !important;
-        }
-        .bh2-sidebar-item-icon {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
-          border: 1px solid;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 800;
-          flex-shrink: 0;
-          letter-spacing: -0.01em;
-        }
-        .bh2-icon-all {
-          background: var(--bg-slate-50);
-          border-color: var(--border-slate-200);
-          color: var(--text-slate-600);
-        }
-        [data-theme="dark"] .bh2-icon-all {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
-        }
-        .bh2-sidebar-item-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          flex-shrink: 0;
-          margin: 0 6px 0 7px;
-        }
-        .bh2-sidebar-item-label {
-          flex: 1;
-          font-size: 12.5px;
-          font-weight: 600;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          letter-spacing: -0.005em;
+          border: none !important;
         }
         .bh2-sidebar-item-count {
           font-size: 10.5px;
@@ -1716,9 +1768,9 @@ export default function BucketManagementPage() {
           flex-shrink: 0;
         }
         [data-theme="dark"] .bh2-sidebar-item-count {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
         }
         .bh2-sidebar-item.active .bh2-sidebar-item-count {
           background: rgba(59, 130, 246, 0.14);
@@ -1726,8 +1778,8 @@ export default function BucketManagementPage() {
           color: #1d4ed8;
         }
         [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-count {
-          background: rgba(59, 130, 246, 0.22) !important;
-          border-color: rgba(59, 130, 246, 0.38) !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
           color: #60a5fa !important;
         }
 
@@ -1745,15 +1797,15 @@ export default function BucketManagementPage() {
           background: var(--bg-slate-50);
         }
         [data-theme="dark"] .bh2-sidebar-proj-row:hover {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .bh2-sidebar-proj-row.active {
           background: rgba(59, 130, 246, 0.08);
           border-color: rgba(59, 130, 246, 0.2);
         }
         [data-theme="dark"] .bh2-sidebar-proj-row.active {
-          background: rgba(59, 130, 246, 0.18) !important;
-          border-color: rgba(59, 130, 246, 0.32) !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
         }
         .bh2-sidebar-proj-toggle {
           flex-shrink: 0;
@@ -1797,7 +1849,7 @@ export default function BucketManagementPage() {
           color: #f1f5f9 !important;
           font-weight: 600 !important;
         }
-
+ 
         /* Nested buckets under project */
         .bh2-sidebar-children {
           display: flex;
@@ -1808,7 +1860,7 @@ export default function BucketManagementPage() {
           border-left: 1px dashed var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-children {
-          border-left-color: #2d3748 !important;
+          border-left-color: #1F2937 !important;
         }
         .bh2-sidebar-bucket {
           display: flex;
@@ -1834,7 +1886,7 @@ export default function BucketManagementPage() {
           color: #94a3b8 !important;
         }
         [data-theme="dark"] .bh2-sidebar-bucket:hover {
-          background: #1c232e !important;
+          background: #161B22 !important;
           color: #60a5fa !important;
         }
         .bh2-sidebar-bucket-dot {
@@ -1850,6 +1902,37 @@ export default function BucketManagementPage() {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+        .bh2-sidebar-bucket-count {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-slate-400);
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0;
+        }
+        .bh2-sidebar-proj-more {
+          background: transparent;
+          border: none;
+          padding: 6px 8px;
+          margin: 4px 8px 0;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-blue-600);
+          text-align: left;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.2s;
+        }
+        .bh2-sidebar-proj-more:hover {
+          background: var(--bg-blue-50);
+          color: var(--text-blue-700);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-more {
+          color: var(--text-blue-500);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-more:hover {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: var(--text-blue-400);
         }
         .bh2-sidebar-bucket-count {
           font-size: 10px;
@@ -1928,8 +2011,49 @@ export default function BucketManagementPage() {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-toolbar {
-          background: #0d1117 !important;
-          border-bottom-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-bottom-color: #1F2937 !important;
+        }
+        [data-theme="dark"] .bh2-search-kbd {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+          box-shadow: none !important;
+        }
+        [data-theme="dark"] .pp-search-wrap {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme="dark"] .pp-search {
+          color: #FFFFFF !important;
+        }
+        [data-theme="dark"] .pp-search::placeholder {
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .pp-ghost-btn {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .pp-segmented {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme="dark"] .pp-segmented button {
+          color: #8b949e !important;
+        }
+        [data-theme="dark"] .pp-segmented button.is-active {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+        [data-theme="dark"] .bh2-range-picker.ant-picker {
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
+        }
+        [data-theme="dark"] .bh2-toolbar-chip {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
         }
         .bh2-main-search {
           flex: 1;
@@ -2035,8 +2159,8 @@ export default function BucketManagementPage() {
           border-color: var(--border-slate-200) !important;
         }
         [data-theme="dark"] .bh2-range-picker.ant-picker {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
         }
         .bh2-toolbar-icon {
           width: 26px;
@@ -2065,9 +2189,9 @@ export default function BucketManagementPage() {
           letter-spacing: 0.01em;
         }
         [data-theme="dark"] .bh2-toolbar-chip {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
         }
         .bh2-search-box {
           display: flex;
@@ -2084,8 +2208,8 @@ export default function BucketManagementPage() {
           border-color: rgba(59, 130, 246, 0.4);
         }
         [data-theme="dark"] .bh2-search-box {
-          background: #161b22 !important;
-          border-color: #2d3748 !important;
+          background: #0B0F1A !important;
+          border-color: #1F2937 !important;
         }
         [data-theme="dark"] .bh2-search-box.active {
           border-color: rgba(59, 130, 246, 0.5) !important;
@@ -2123,7 +2247,7 @@ export default function BucketManagementPage() {
           justify-content: space-between;
           gap: 12px;
           padding: 10px 24px;
-          margin: auto -24px -32px -24px;
+          margin: 8px -24px -32px -24px;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
@@ -2135,8 +2259,27 @@ export default function BucketManagementPage() {
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme="dark"] .bh2-pagination {
-          background: #161b22 !important;
-          border-top-color: #1f2937 !important;
+          background: #0B0F1A !important;
+          border-top-color: #1F2937 !important;
+        }
+        [data-theme="dark"] .bh2-pagination .ant-pagination-item,
+        [data-theme="dark"] .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .bh2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .bh2-pagination .ant-pagination-item-active a {
+          color: #ffffff !important;
+        }
+        [data-theme="dark"] .bh2-pagination .ant-select-selector {
+          background: #161B22 !important;
+          border-color: #1F2937 !important;
+          color: #94A3B8 !important;
         }
 
         /* Custom Pagination Styles */
@@ -2686,22 +2829,75 @@ export default function BucketManagementPage() {
           }
         }
 
-        /* Sidebar collapses above content */
+        /* ── Tablet / Mobile <1100px ────────────────────────── */
+        @media (max-width: 1099.98px) {
+          .bh2-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+          }
+          .bh2-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            max-height: none;
+            z-index: 1050;
+            background: var(--bg-pure-white);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 16px 12px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+            border-right: 1px solid var(--border-slate-200);
+            border-top: none;
+            border-bottom: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+          [data-theme='dark'] .bh2-sidebar {
+            background: #0B0F1A !important;
+            border-right-color: #1F2937 !important;
+          }
+          .bh2-shell-wrap.is-sidebar-open .bh2-sidebar {
+            transform: translateX(0);
+          }
+          .bh2-shell-wrap.is-sidebar-closed .bh2-sidebar {
+            transform: translateX(-100%);
+          }
+          .bh2-sidebar-backdrop {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1040;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+          .bh2-shell-wrap.is-sidebar-open .bh2-sidebar-backdrop {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .bh2-main {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .bh2-sidebar-divider {
+            display: none !important;
+          }
+        }
+
+        /* Sidebar collapses above content layout shifts */
         @media (max-width: 900px) {
           .bh2-page {
             margin: 0 -16px;
-          }
-          .bh2-shell {
-            grid-template-columns: 1fr;
-          }
-          .bh2-sidebar {
-            position: relative;
-            top: 0;
-            height: auto;
-            max-height: 320px;
-            padding: 10px 14px 10px;
-            border-right: none;
-            border-bottom: 1px solid var(--border-slate-200);
           }
           .bh2-main {
             padding: 14px 16px 28px;
@@ -2725,8 +2921,6 @@ export default function BucketManagementPage() {
             top: 14px;
             bottom: 14px;
           }
-          /* When sidebar is above the main column, drop the desktop scroll-margin
-             since the user no longer has to clear a fixed left rail. */
           .bh2-list-card {
             scroll-margin-top: 88px;
           }
@@ -2808,11 +3002,6 @@ export default function BucketManagementPage() {
           .bh2-pagination-meta {
             text-align: center;
           }
-          /* Sidebar items more compact */
-          .bh2-sidebar {
-            padding: 8px 14px 10px;
-            max-height: 280px;
-          }
           .bh2-sidebar-section-head {
             padding: 4px 6px 6px;
           }
@@ -2848,10 +3037,43 @@ export default function BucketManagementPage() {
         .premium-table .ant-table-thead > tr > th::before {
           display: none;
         }
+
+        /* Sticky Column Background Fixes */
+        .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+        .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+          z-index: 10 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+        .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: var(--bg-pure-white) !important;
+          z-index: 10 !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+        .premium-table .ant-table-tbody > tr.premium-row:hover > td.ant-table-cell-fix-left,
+        .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right,
+        .premium-table .ant-table-tbody > tr.premium-row:hover > td.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+        }
+
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
           background: #1e293b;
           border-bottom-color: #334155 !important;
           color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: #1e293b !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: #0B0F1A !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr.premium-row:hover > td.ant-table-cell-fix-left,
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right,
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr.premium-row:hover > td.ant-table-cell-fix-right {
+          background: #161B22 !important;
         }
   
         // .premium-table .ant-table-row:hover > td {

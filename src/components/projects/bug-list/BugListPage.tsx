@@ -94,6 +94,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { hivebugStyles } from "./hivebug-styles";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { STATUS_OPTIONS } from "@/utils/ticketUtils";
 
 const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
@@ -108,6 +109,7 @@ interface FilterState {
   module?: string;
   assigneeId?: string;
   createdById?: string;
+  ticketStatus?: string;
   createdRange?: [any, any] | null;
   updatedRange?: [any, any] | null;
 }
@@ -146,7 +148,7 @@ export default function BugListPage() {
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { theme } = useTheme();
   const router = useRouter();
@@ -181,7 +183,7 @@ export default function BugListPage() {
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
-  const [filtersVisible, setFiltersVisible] = useState(true);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
@@ -324,6 +326,7 @@ export default function BugListPage() {
       module: filters.module,
       assigneeId: filters.assigneeId,
       createdById: filters.createdById || undefined,
+      ticketStatus: filters.ticketStatus,
       createdFrom: filters.createdRange?.[0] ? dayjs(filters.createdRange[0]).startOf("day").toISOString() : undefined,
       createdTo: filters.createdRange?.[1] ? dayjs(filters.createdRange[1]).endOf("day").toISOString() : undefined,
       updatedFrom: filters.updatedRange?.[0] ? dayjs(filters.updatedRange[0]).startOf("day").toISOString() : undefined,
@@ -414,6 +417,7 @@ export default function BugListPage() {
     if (filters.module) n++;
     if (filters.assigneeId) n++;
     if (filters.createdById) n++;
+    if (filters.ticketStatus) n++;
     if (filters.createdRange) n++;
     if (filters.updatedRange) n++;
     return n;
@@ -891,20 +895,6 @@ export default function BugListPage() {
 
         {filtersVisible && viewMode === "list" && (
           <>
-            {activeFilterCount > 0 && (
-              <div className="hb-filterbar-above" style={{ justifyContent: 'flex-end', margin: '2px 14px 4px 12px' }}>
-                <div className="hb-filterbar-actions">
-                  <button
-                    className="hb-filter-reset"
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
-                    title="Reset filters"
-                  >
-                    <RotateCcw size={12} />
-                    Reset
-                  </button>
-                </div>
-              </div>
-            )}
 
             <div className="hb-filterbar" style={{ position: 'relative', overflow: 'visible', marginTop: '16px' }}>
               <div className="hb-filterbar-badge">
@@ -913,6 +903,7 @@ export default function BugListPage() {
                   <span className="hb-filter-badge-count-inner">{activeFilterCount}</span>
                 )}
               </div>
+
               <Tooltip title="Hide filters">
                 <button
                   className="hb-icon-btn hb-filterbar-close"
@@ -1053,6 +1044,21 @@ export default function BugListPage() {
                   }))}
                 />
 
+                <SearchableDropdown
+                  triggerLabel="Ticket status"
+                  placeholder="Any ticket status"
+                  itemNoun="statuses"
+                  value={filters.ticketStatus || undefined}
+                  onChange={(v) =>
+                    setFilters((f) => ({ ...f, ticketStatus: v || undefined }))
+                  }
+                  options={STATUS_OPTIONS.map((s) => ({
+                    value: s.value,
+                    label: s.label,
+                    badge: <CircleDot size={14} />,
+                  }))}
+                />
+
                 <div
                   className={`hb-filter-range ${filters.createdRange ? "is-active" : ""}`}
                 >
@@ -1084,6 +1090,17 @@ export default function BugListPage() {
                     }
                   />
                 </div>
+
+                {activeFilterCount > 0 && (
+                  <button
+                    className="hb-filter-reset"
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                    title="Reset filters"
+                  >
+                    <RotateCcw size={12} />
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -1437,7 +1454,7 @@ export default function BugListPage() {
                   setLimit(v);
                   setPage(1);
                 }}
-                options={[10, 15, 25, 50, 100].map((n) => ({
+                options={[10, 20, 25, 50, 100].map((n) => ({
                   value: n,
                   label: `${n} / page`,
                 }))}

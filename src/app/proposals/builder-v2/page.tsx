@@ -58,8 +58,9 @@ function BuilderV2Content() {
   const libraryTemplates = useProposalLibraryStore((s) => s.templates);
   const librarySections = useProposalLibraryStore((s) => s.sections);
   const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
+  const fetchTemplates = useProposalLibraryStore((s) => s.fetchTemplates);
   const sectionsLoaded = useProposalLibraryStore((s) => s.sectionsLoaded);
-  useEffect(() => { fetchSections(); }, [fetchSections]);
+  useEffect(() => { fetchSections(); fetchTemplates(); }, [fetchSections, fetchTemplates]);
 
   const { canCreateProposal, canUpdateProposal } = usePermission();
   const { user, isLoading } = useAuth();

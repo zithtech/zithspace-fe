@@ -66,6 +66,8 @@ export interface SearchableDropdownProps {
   defaultOpen?: boolean;
   /** Notified whenever the overlay opens/closes (e.g. for click-outside cancel). */
   onOpenChange?: (open: boolean) => void;
+  /** Custom trigger element to render instead of the default styled div. */
+  customTrigger?: React.ReactElement;
 }
 
 const initialsFor = (s: string): string => {
@@ -90,6 +92,7 @@ const avatarColorFor = (str: string): string => {
 };
 
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+  mode,
   value,
   onChange,
   options,
@@ -108,6 +111,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   style,
   defaultOpen = false,
   onOpenChange,
+  customTrigger,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -170,7 +174,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         disabled={opt.disabled}
         onClick={() => {
           if (opt.disabled) return;
-          if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+          if (mode === "multiple" || Array.isArray(value) || (typeof value === 'object' && value !== null)) {
             // mode === 'multiple'
             const valArray = Array.isArray(value) ? value : [];
             if (isSelected) {
@@ -304,29 +308,33 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       overlayClassName="sd-overlay-popover"
       destroyOnHidden
     >
-      <div className={triggerClasses} style={style}>
-        <div className="sd-trigger-content">
-          {triggerLabel && (
-            <span className="sd-trigger-label">{triggerLabel}</span>
+      {customTrigger ? (
+        customTrigger
+      ) : (
+        <div className={triggerClasses} style={style}>
+          <div className="sd-trigger-content">
+            {triggerLabel && (
+              <span className="sd-trigger-label">{triggerLabel}</span>
+            )}
+            <span className="sd-trigger-value">{displayLabel}</span>
+          </div>
+          {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
+            <XIcon
+              className="sd-trigger-clear"
+              size={14}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
+              }}
+            />
+          ) : (
+            <ChevronDown
+              className={`sd-trigger-chevron ${open ? "is-open" : ""}`}
+              size={14}
+            />
           )}
-          <span className="sd-trigger-value">{displayLabel}</span>
         </div>
-        {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
-          <XIcon
-            className="sd-trigger-clear"
-            size={14}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
-            }}
-          />
-        ) : (
-          <ChevronDown
-            className={`sd-trigger-chevron ${open ? "is-open" : ""}`}
-            size={14}
-          />
-        )}
-      </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: SEARCHABLE_DROPDOWN_CSS }} />
     </Popover>
@@ -340,9 +348,9 @@ const SEARCHABLE_DROPDOWN_CSS = `
   justify-content: space-between;
   background: var(--bg-pure-white, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
-  padding: 3px 10px;
-  height: 35px;
+  border-radius: 8px !important;
+  padding: 5px 12px;
+  height: 42px;
   min-width: 150px;
   width: 100%;
   cursor: pointer;
@@ -442,14 +450,14 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-overlay-popover.ant-popover { padding-top: 4px; }
 .sd-overlay-popover .ant-popover-content {
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-  border-radius: 12px;
+  border-radius: 8px !important;
   border: 1px solid var(--border-color, #e2e8f0);
   overflow: hidden;
 }
 .sd-overlay-popover .ant-popover-inner {
   padding: 0 !important;
   background: var(--bg-pure-white, #ffffff) !important;
-  border-radius: 12px;
+  border-radius: 8px !important;
 }
 [data-theme='dark'] .sd-overlay-popover .ant-popover-content { border-color: #27273a; }
 [data-theme='dark'] .sd-overlay-popover .ant-popover-inner { background: #181824 !important; }
@@ -458,23 +466,25 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   flex-direction: column;
   max-height: 380px;
+  min-width: 200px;
 }
 .sd-search-box {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
-  gap: 8px;
+  gap: 10px;
 }
 [data-theme='dark'] .sd-search-box { border-bottom-color: #27273a; }
 .sd-search-icon { color: var(--text-slate-400, #94a3b8); flex-shrink: 0; }
 .sd-search-input {
   flex: 1;
+  min-width: 0;
   background: var(--bg-slate-50, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 12px;
+  border-radius: 8px !important;
+  padding: 6px 12px;
+  font-size: 12.5px;
   color: var(--text-slate-800, #1e293b);
   outline: none;
   transition: border-color .15s ease, background .15s ease;
@@ -511,7 +521,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
@@ -528,7 +538,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: var(--bg-slate-100, #f1f5f9);
   color: var(--text-slate-600, #475569);
   display: flex;
@@ -573,6 +583,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   display: flex;
   flex-direction: column;
   line-height: 1.35;
+  padding-right: 8px;
 }
 .sd-option-name {
   font-size: 12.5px;

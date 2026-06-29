@@ -1,6 +1,5 @@
-"use client";
-
 import { Tag, Typography, Tooltip } from "antd";
+import { ArrowRightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { TransactionRow } from "@/services/transactionHistoryService";
 
@@ -171,36 +170,35 @@ export function InlineDiff({ row, field }: { row: TransactionRow; field: string 
 
   if (isEmpty(before) && !isEmpty(after)) {
     return (
-      <>
-        <Text type="secondary">{label}: </Text>
-        <Text strong>{afterStr}</Text>
-      </>
+      <div className="activity-change-row">
+        <span className="activity-change-row__field">{label}</span>
+        <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--to">
+          {afterStr}
+        </Tag>
+      </div>
     );
   }
   if (!isEmpty(before) && isEmpty(after)) {
     return (
-      <>
-        <Text type="secondary">{label}: </Text>
-        <Tooltip title={String(before)}>
-          <Text delete>{beforeStr}</Text>
-        </Tooltip>
-        <Text type="secondary"> (cleared)</Text>
-      </>
+      <div className="activity-change-row">
+        <span className="activity-change-row__field">{label}</span>
+        <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--from">
+          {beforeStr}
+        </Tag>
+      </div>
     );
   }
   return (
-    <>
-      <Text type="secondary">{label}: </Text>
-      <Tooltip title={String(before)}>
-        <Text type="secondary" style={{ textDecoration: "line-through" }}>
-          {beforeStr}
-        </Text>
-      </Tooltip>
-      <Text type="secondary"> → </Text>
-      <Tooltip title={String(after)}>
-        <Text strong>{afterStr}</Text>
-      </Tooltip>
-    </>
+    <div className="activity-change-row">
+      <span className="activity-change-row__field">{label}</span>
+      <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--from">
+        {beforeStr}
+      </Tag>
+      <ArrowRightOutlined style={{ fontSize: 10, color: '#94a3b8' }} />
+      <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--to">
+        {afterStr}
+      </Tag>
+    </div>
   );
 }
 
@@ -211,11 +209,8 @@ interface Props {
 }
 
 /**
- * Renders the field-level diff for an UPDATE row in the form:
+ * Renders the field-level diff for an UPDATE row in the form of tags:
  *   <field>: <old> → <new>
- *
- * Falls back to nothing if the row isn't an update or has no changed fields
- * the caller cares about. Useful for both the drawer and the global activity page.
  */
 export default function ActivityDiff({ row, maxLines = 6 }: Props) {
   const fields = row.changedFields ?? [];
@@ -225,7 +220,7 @@ export default function ActivityDiff({ row, maxLines = 6 }: Props) {
   const overflow = fields.length - visible.length;
 
   return (
-    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
       {visible.map((field) => {
         const before = row.beforeData?.[field];
         const after = row.afterData?.[field];
@@ -235,9 +230,11 @@ export default function ActivityDiff({ row, maxLines = 6 }: Props) {
         // For pure creations (no before snapshot) just show "set to X"
         if (isEmpty(before) && !isEmpty(after)) {
           return (
-            <div key={field} style={{ fontSize: 12, lineHeight: 1.6 }}>
-              <Text type="secondary">{humanizeField(field)}: </Text>
-              <Text>{afterStr}</Text>
+            <div key={field} className="activity-change-row">
+              <span className="activity-change-row__field">{humanizeField(field)}</span>
+              <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--to">
+                {afterStr}
+              </Tag>
             </div>
           );
         }
@@ -245,28 +242,25 @@ export default function ActivityDiff({ row, maxLines = 6 }: Props) {
         // For pure clearings (had a value, now empty)
         if (!isEmpty(before) && isEmpty(after)) {
           return (
-            <div key={field} style={{ fontSize: 12, lineHeight: 1.6 }}>
-              <Text type="secondary">{humanizeField(field)}: </Text>
-              <Tooltip title={String(before)}>
-                <Text delete>{beforeStr}</Text>
-              </Tooltip>
-              <Text type="secondary"> (cleared)</Text>
+            <div key={field} className="activity-change-row">
+              <span className="activity-change-row__field">{humanizeField(field)}</span>
+              <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--from">
+                {beforeStr}
+              </Tag>
             </div>
           );
         }
 
         return (
-          <div key={field} style={{ fontSize: 12, lineHeight: 1.6 }}>
-            <Text type="secondary">{humanizeField(field)}: </Text>
-            <Tooltip title={String(before)}>
-              <Text type="secondary" style={{ textDecoration: "line-through" }}>
-                {beforeStr}
-              </Text>
-            </Tooltip>
-            <Text type="secondary"> → </Text>
-            <Tooltip title={String(after)}>
-              <Text strong>{afterStr}</Text>
-            </Tooltip>
+          <div key={field} className="activity-change-row">
+            <span className="activity-change-row__field">{humanizeField(field)}</span>
+            <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--from">
+              {beforeStr}
+            </Tag>
+            <ArrowRightOutlined style={{ fontSize: 10, color: '#94a3b8' }} />
+            <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--to">
+              {afterStr}
+            </Tag>
           </div>
         );
       })}

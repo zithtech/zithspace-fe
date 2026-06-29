@@ -262,6 +262,61 @@ const EmployeeHistoryView = ({ data }: any) => {
                     <DocumentCard key={`ps-${idx}`} label={`Payslip #${idx + 1}`} fileData={item.file || item} />
                   ))}
                 </div>
+
+                {/* Onboarding documents (per document type) */}
+                {Array.isArray(company.documents) && company.documents.length > 0 ? (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                      <FileText size={16} color="#3b82f6" />
+                      Submitted Documents
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+                      {company.documents.map((doc: any, dIdx: number) => {
+                        const files = Array.isArray(doc?.files) ? doc.files : [];
+                        return (
+                          <div
+                            key={`doc-${dIdx}`}
+                            style={{
+                              padding: 16,
+                              background: "#ffffff",
+                              borderRadius: 12,
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>
+                              {doc?.documentType || "Document"}
+                            </div>
+                            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                              {files.length > 0 ? (
+                                files.map((f: any, fIdx: number) => {
+                                  const url = normalizeFileUrl(f);
+                                  const name = getFileName(f);
+                                  if (!url) return null;
+                                  return (
+                                    <a
+                                      key={`f-${fIdx}`}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#2563eb" }}
+                                    >
+                                      <ExternalLink size={14} />
+                                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {name.length > 32 ? name.substring(0, 32) + "..." : name}
+                                      </span>
+                                    </a>
+                                  );
+                                })
+                              ) : (
+                                <Text type="secondary" style={{ fontSize: 12 }}>No file</Text>
+                              )}
+                            </Space>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </Col>
 

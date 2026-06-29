@@ -11,64 +11,61 @@ interface BankAndPayrollProps {
 const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
   const [showAccount, setShowAccount] = useState(false);
 
-  // 🔹 Hardcoded Data
-  const data = {
-    bankName: "HDFC Bank",
-    accountHolderName: "Alex Morgan",
-    accountNumber: "1234567890123456",
-    ifscCode: "HDFC0001234",
-    branchName: "Main Branch, NY",
-    pfNumber: "MH/BAN/0000000/000",
-    uanNumber: "100000000000",
-    esiNumber: "00-00-000000-000-0000",
-  };
+  const bank = profile?.bank || {};
 
   return (
     <Card
       bordered
       style={{
-        borderRadius: 8,
+        borderRadius: 14,
         background: "var(--bg-pure-white)",
-        padding: "16px 20px",
-        maxWidth: 1000,
-        boxShadow: "none",
+        padding: "20px 24px",
+        maxWidth: 1100,
+        boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
         border: "1px solid var(--border-slate-100)",
       }}
     >
-      {/* 🔹 Title */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+      {/* Title */}
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 22 }}>
         <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
+            width: 34,
+            height: 34,
+            borderRadius: 9,
             background: "var(--bg-blue-50)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginRight: 10,
+            marginRight: 12,
             color: "var(--premium-blue)",
             fontWeight: 600,
+            fontSize: 18,
           }}
         >
           <PiBankLight />
         </div>
 
-        <span style={{ fontSize: 20, fontWeight: 600, color: "var(--text-slate-900)" }}>
+        <span
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: "var(--text-slate-900)",
+          }}
+        >
           Financial Information
         </span>
       </div>
 
-      {/* 🔹 Main Fields */}
-      <Row gutter={[24, 16]}>
+      {/* Main Fields */}
+      <Row gutter={[24, 18]}>
         <Col span={8}>
-          <ViewBox label="Bank Name" value={profile?.bank.bankName || "--"} />
+          <ViewBox label="Bank Name" value={bank.bankName || "—"} />
         </Col>
 
         <Col span={8}>
           <ViewBox
             label="Account Holder Name"
-            value={profile?.bank.accountHolderName || "--"}
+            value={bank.accountHolderName || "—"}
           />
         </Col>
 
@@ -76,9 +73,10 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
           <div>
             <label style={labelStyle}>Account Number</label>
             <Input
-              value={profile?.bank.accountNumber || "--"}
+              value={bank.accountNumber || "—"}
               readOnly
               type={showAccount ? "text" : "password"}
+              style={inputStyle}
               suffix={
                 showAccount ? (
                   <EyeOutlined onClick={() => setShowAccount(false)} />
@@ -91,60 +89,85 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
         </Col>
 
         <Col span={8}>
-          <ViewBox label="IFSC Code" value={profile?.bank.ifscCode || "--"} />
+          <ViewBox label="IFSC Code" value={bank.ifscCode || "—"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox
-            label="Branch Name"
-            value={profile?.bank.branchName || "--"}
-          />
+          <ViewBox label="Branch Name" value={bank.branchName || "—"} />
+        </Col>
+
+        <Col span={8}>
+          <ViewBox label="Account Type" value={bank.accountType || "—"} />
         </Col>
       </Row>
 
-      {/* 🔹 Divider */}
-      <div style={{ borderTop: "1px solid var(--border-slate-100)", margin: "24px 0" }} />
+      {/* Divider */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border-slate-100)",
+          margin: "26px 0",
+        }}
+      />
 
-      {/* 🔹 Statutory Details */}
-      <div style={{ marginBottom: 16, fontWeight: 500, color: "var(--text-slate-900)" }}>Statutory Details</div>
+      {/* Statutory Details */}
+      <div
+        style={{
+          marginBottom: 18,
+          fontWeight: 700,
+          fontSize: 14,
+          color: "var(--text-slate-900)",
+        }}
+      >
+        Statutory & Payroll Details
+      </div>
 
-      <Row gutter={[24, 16]}>
+      <Row gutter={[24, 18]}>
         <Col span={8}>
-          <ViewBox label="PF Number" value={profile?.bank.pfNumber || "--"} />
+          <ViewBox label="UAN Number" value={bank.uanNumber || "—"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="UAN Number" value={profile?.bank.uanNumber || "--"} />
+          <ViewBox label="PF Number" value={bank.pfNumber || "—"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="ESI Number" value={profile?.bank.esiNumber || "--"} />
+          <ViewBox label="ESI Number" value={bank.esiNumber || "—"} />
+        </Col>
+
+        <Col span={8}>
+          <ViewBox label="Tax Regime" value={bank.taxRegime || "—"} />
+        </Col>
+
+        <Col span={8}>
+          <ViewBox label="Payment Type" value={bank.paymentType || "—"} />
         </Col>
       </Row>
     </Card>
   );
 };
 
-const labelStyle = {
+const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: 13,
-  color: "var(--text-slate-500)",
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "var(--text-slate-400)",
   marginBottom: 6,
+};
+
+const inputStyle: React.CSSProperties = {
+  fontWeight: 600,
+  borderRadius: 8,
+  background: "var(--bg-slate-50)",
+  borderColor: "var(--border-slate-100)",
+  color: "var(--text-slate-900)",
 };
 
 const ViewBox = ({ label, value }: { label: string; value: string }) => (
   <div>
     <label style={labelStyle}>{label}</label>
-    <Input 
-       style={{ 
-         fontWeight: 600, 
-         background: 'var(--bg-pure-white)', 
-         borderColor: 'var(--border-slate-100)',
-         color: 'var(--text-slate-900)'
-       }} 
-       value={value} 
-       readOnly 
-    />
+    <Input style={inputStyle} value={value} readOnly />
   </div>
 );
 

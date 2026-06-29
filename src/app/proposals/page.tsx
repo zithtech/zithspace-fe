@@ -47,12 +47,15 @@ import {
 import { Sparkles, Mail } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
+import SaveAsTemplateModal from '@/components/proposals/SaveAsTemplateModal';
 import { userService } from '@/services/userService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { MailService } from '@/services/mailService';
 import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ProposalActivityDrawer from '@/components/proposals/ProposalActivityDrawer';
 import ProposalPreviewDrawer from '@/components/proposals/ProposalPreviewDrawer';
 import { useRouter } from 'next/navigation';
@@ -119,7 +122,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 
 const RECENTS_KEY = 'proposal_recents_v1';
 const STARRED_KEY = 'proposal_starred_v1';
-const PAGE_SIZE_OPTIONS = [15, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 const readLS = <T,>(key: string, fallback: T): T => {
   if (typeof window === 'undefined') return fallback;
@@ -161,7 +164,7 @@ export default function ProposalsListPage() {
   const [recents, setRecents] = useState<any[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(15);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
   const [selectedProposalForMail, setSelectedProposalForMail] = useState<any>(null);
@@ -173,6 +176,65 @@ export default function ProposalsListPage() {
 
   const [messageApi, messageHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
+
+  // ─── Save proposal as template ──────────────────────────────────────────────
+  const createTemplate = useProposalLibraryStore((s) => s.createTemplate);
+  const [tplProposal, setTplProposal] = useState<any | null>(null);
+  const [tplName, setTplName] = useState('');
+  const [tplDesc, setTplDesc] = useState('');
+  const [tplSaving, setTplSaving] = useState(false);
+
+  const openSaveAsTemplate = async (p: any) => {
+    setTplProposal(p);
+    setTplName(`${resolveTitle(p) || 'Proposal'} Template`);
+    setTplDesc('');
+    // The list payload omits blocks_data (kept light) — fetch the full proposal
+    // so we can save its real content as the template.
+    if (p?.blocks_data == null) {
+      try {
+        const resp: any = await ProposalService.getProposalById(p.id);
+        const full = resp?.data || resp;
+        if (full?.blocks_data != null) {
+          setTplProposal((prev: any) => (prev && prev.id === full.id ? { ...prev, blocks_data: full.blocks_data } : prev));
+        }
+      } catch {
+        /* persist will warn if content is still missing */
+      }
+    }
+  };
+
+  const tplBlockCount = useMemo(() => {
+    if (!tplProposal) return 0;
+    try {
+      const b = typeof tplProposal.blocks_data === 'string' ? JSON.parse(tplProposal.blocks_data) : (tplProposal.blocks_data || []);
+      return Array.isArray(b) ? b.length : 0;
+    } catch { return 0; }
+  }, [tplProposal]);
+
+  const persistProposalAsTemplate = async () => {
+    if (!tplProposal) return;
+    if (!tplName.trim()) { messageApi.warning('Give the template a name'); return; }
+    let blocks: any[] = [];
+    try {
+      blocks = typeof tplProposal.blocks_data === 'string'
+        ? JSON.parse(tplProposal.blocks_data)
+        : (tplProposal.blocks_data || []);
+    } catch { blocks = []; }
+    if (!Array.isArray(blocks) || blocks.length === 0) {
+      messageApi.warning('This proposal has no content to save as a template.');
+      return;
+    }
+    setTplSaving(true);
+    try {
+      await createTemplate({ name: tplName.trim(), description: tplDesc, blocks });
+      messageApi.success('Saved as template');
+      setTplProposal(null);
+    } catch (err: any) {
+      messageApi.error(err?.message || 'Failed to save template');
+    } finally {
+      setTplSaving(false);
+    }
+  };
 
   // ─── Persisted local UI state (starred + recents) ───────────────────────────
   useEffect(() => {
@@ -327,8 +389,9 @@ export default function ProposalsListPage() {
           selectedKeys: [s],
           items: (Object.keys(STATUS_META) as Exclude<StatusKey, 'all'>[]).map((k) => ({
             key: k,
+            disabled: k === 'sent',
             label: (
-              <span className="pp-status-opt">
+              <span className="pp-status-opt" title={k === 'sent' ? "Status updates automatically when mail is sent" : undefined}>
                 <span className="pp-vis-dot" style={{ background: STATUS_META[k].color }} />
                 {STATUS_META[k].label}
               </span>
@@ -525,28 +588,50 @@ export default function ProposalsListPage() {
     items: [
       { key: 'view', label: menuLabel('View proposal', 'Open the full view', <EyeOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { key: 'edit', disabled: !canUpdateProposal, label: menuLabel('Edit', 'Open in the builder', <EditOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
+      { key: 'template', disabled: !canCreateProposal, label: menuLabel('Save as Template', 'Reuse this layout', <SnippetsOutlined />, '#059669', 'rgba(5,150,105,0.12)') },
       { type: 'divider' as const },
       { key: 'pdf', label: menuLabel('Export PDF', 'Download as .pdf', <FilePdfOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
       { key: 'word', label: menuLabel('Export Word', 'Download as .docx', <FileWordOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       { type: 'divider' as const },
-      { key: 'delete', danger: true, disabled: !canDeleteProposal, label: menuLabel('Delete', 'Remove this proposal', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)') },
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteProposal,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Proposal"
+            description="Are you sure you want to delete this proposal? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handleDelete(p.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {menuLabel('Delete', 'Remove this proposal', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      },
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
       if (key === 'view') openProposal(p);
       else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
+      else if (key === 'template') openSaveAsTemplate(p);
       else if (key === 'pdf') handleExport(p.id, 'pdf');
       else if (key === 'word') handleExport(p.id, 'word');
-      else if (key === 'delete') {
-        modal.confirm({
-          title: 'Delete Proposal',
-          content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
-          okText: 'Delete',
-          okType: 'danger',
-          cancelText: 'Cancel',
-          onOk: () => handleDelete(p.id),
-        });
-      }
     },
   });
 
@@ -1039,7 +1124,7 @@ export default function ProposalsListPage() {
           visible={isMailDrawerVisible}
           onClose={() => { setIsMailDrawerVisible(false); setSelectedProposalForMail(null); }}
           lead={selectedProposalForMail ? {
-            id: selectedProposalForMail.lead_id || selectedProposalForMail.id,
+            id: selectedProposalForMail.lead_id,
             title: selectedProposalForMail.title,
             client_name: selectedProposalForMail.client_name,
             client_mail: selectedProposalForMail.client_mail || '',
@@ -1062,6 +1147,19 @@ export default function ProposalsListPage() {
           onClose={() => setPreviewProposal(null)}
           canEdit={canUpdateProposal}
           proposal={previewProposal ? { id: previewProposal.id, title: resolveTitle(previewProposal), client_name: previewProposal.client_name } : null}
+        />
+
+        <SaveAsTemplateModal
+          open={!!tplProposal}
+          variant="save"
+          blockCount={tplBlockCount}
+          name={tplName}
+          onNameChange={setTplName}
+          description={tplDesc}
+          onDescriptionChange={setTplDesc}
+          saving={tplSaving}
+          onCancel={() => setTplProposal(null)}
+          onSave={persistProposalAsTemplate}
         />
 
         <style jsx global>{`

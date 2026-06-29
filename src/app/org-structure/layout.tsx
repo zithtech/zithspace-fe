@@ -130,8 +130,9 @@ export default function OrgStructureLayout({ children }: { children: React.React
           .osx-shell {
             display: flex;
             margin: 0 -8px;
-            min-height: calc(100vh - 54px);
+            height: 100%;
             background: var(--bg-pure-white);
+            overflow: hidden;
           }
           /* The submodule pages keep their own .orgx-shell wrapper, which was
              authored with a -24px full-bleed for when it sat directly in the
@@ -139,7 +140,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
              right — neutralise it so content stays within the main column, and
              make it a column so the scaffold fills the height (sticky footer
              reaches the viewport bottom instead of floating mid-page). */
-          .osx-main .orgx-shell { margin: 0; display: flex; flex-direction: column; min-height: calc(100vh - 54px); }
+          .osx-main .orgx-shell { margin: 0; display: flex; flex-direction: column; min-height: 100%; }
           .osx-main .orgx-shell > .omx-main { flex: 1 1 auto; min-height: 0; }
 
           /* ---------------- Sidebar ---------------- */
@@ -151,9 +152,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
             display: flex;
             flex-direction: column;
             padding: 14px 14px 0;
-            position: sticky;
-            top: 0;
-            height: calc(100vh - 54px);
+            height: 100%;
           }
           .osx-side-head {
             display: flex;
@@ -242,8 +241,25 @@ export default function OrgStructureLayout({ children }: { children: React.React
             background: linear-gradient(180deg, #3b82f6 0%, #6366f1 100%);
           }
 
-          /* ---------------- Main content ---------------- */
-          .osx-main { flex: 1; min-width: 0; }
+          .osx-main {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+          }
+          .osx-main .saas-header-container {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 100 !important;
+            background: var(--bg-pure-white) !important;
+            border-bottom: 1px solid var(--border-slate-200) !important;
+          }
+          [data-theme='dark'] .osx-main .saas-header-container {
+            background: var(--bg-pure-white) !important;
+            border-bottom-color: var(--border-slate-100) !important;
+          }
 
           [data-theme="dark"] .osx-nav-item.is-active {
             background: color-mix(in srgb, #3b82f6 22%, transparent);

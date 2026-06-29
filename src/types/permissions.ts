@@ -288,6 +288,11 @@ export const Permissions = {
   LEAD_TRASH_RESTORE:  'lead.trash.restore',
   LEAD_TRASH_DELETE:   'lead.trash.delete',
   LEAD_MANAGE: 'lead.manage', // lead distribution rules, source tracking, and conversion triggers
+
+  // BidIq — AI lead intelligence (read = see the BidIq menu/list, create = run analysis)
+  BIDIQ_READ:   'bidiq.read',
+  BIDIQ_CREATE: 'bidiq.create',
+
   PROPOSAL_CREATE: 'proposal.create',
   PROPOSAL_READ:   'proposal.read',
   PROPOSAL_UPDATE: 'proposal.update',
@@ -335,6 +340,13 @@ export const Permissions = {
   // Performance
   PERFORMANCE_READ:   'performance.read',
   PERFORMANCE_MANAGE: 'performance.manage', // review cycle management, goal settings, and appraisal forms
+
+  // Performance Report
+  PERFORMANCE_REPORT_READ:           'performance.report.read',
+  PERFORMANCE_REPORT_SETTING_READ:   'performance.report.setting.read',
+  PERFORMANCE_REPORT_SETTING_UPDATE: 'performance.report.setting.update',
+  PERFORMANCE_REPORT_GENERATED_READ: 'performance.report.generated.read',
+  PERFORMANCE_REPORT_MY_READ: 'performance.report.my.read',
 
   // Job Openings
   OPENING_CREATE: 'opening.create',

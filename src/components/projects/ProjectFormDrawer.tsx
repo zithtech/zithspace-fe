@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   App,
   Button,
@@ -63,6 +64,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
   const { theme } = useTheme();
   const { notification, message } = App.useApp();
   const [form] = Form.useForm();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
@@ -178,6 +180,10 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
         await ProjectService.createProject(projectData as CreateProjectData);
         message.success(`Project "${values.name}" has been successfully created.`);
       }
+
+      // Invalidate project queries to sync cached lists
+      queryClient.invalidateQueries({ queryKey: ["global", "projects"] });
+      queryClient.invalidateQueries({ queryKey: ["global", "allProjects"] });
 
       onSuccess();
       onClose();
@@ -657,7 +663,11 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       }
                       rules={[{ required: true, message: "Required" }]}
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
+                      <DatePicker 
+                        size="large" 
+                        style={{ width: "100%", borderRadius: 6 }} 
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -670,7 +680,11 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                         </span>
                       }
                     >
-                      <DatePicker size="large" style={{ width: "100%", borderRadius: 6 }} />
+                      <DatePicker 
+                        size="large" 
+                        style={{ width: "100%", borderRadius: 6 }} 
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={24}>

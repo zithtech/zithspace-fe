@@ -73,6 +73,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -397,7 +398,7 @@ export default function SprintPlanComponent() {
         startDate: values?.startDate?.toISOString() || undefined,
         endDate: values?.endDate?.toISOString() || undefined,
         goal: values?.goal || "",
-        status: "planning",
+        status: editingPlan ? editingPlan.status : "planning",
         type: "sprint_plan",
         tickets: values?.tickets || [],
       };
@@ -430,29 +431,38 @@ export default function SprintPlanComponent() {
     }
   };
 
-  const handleEdit = (plan: ReleasePlan) => {
-    setEditingPlan(plan);
-    const projectId = typeof plan?.project === "object" ? plan.project?.id : "";
-    setSelectedProject(projectId || "");
+  const handleEdit = async (plan: ReleasePlan) => {
+    const hideLoading = message.loading("Loading plan details...", 0);
+    try {
+      const fullPlan = await ReleasePlanService.getReleasePlanById(plan.id);
+      setEditingPlan(fullPlan);
+      const projectId = typeof fullPlan?.project === "object" ? fullPlan.project?.id : "";
+      setSelectedProject(projectId || "");
 
-    const ticketIds = plan?.tickets?.map((t) => t?.id) || [];
+      const ticketIds = fullPlan?.tickets?.map((t) => t?.id) || [];
 
-    form.setFieldsValue({
-      name: plan?.name,
-      description: plan?.description,
-      project: projectId,
-      deadline: plan?.deadline ? dayjs(plan.deadline) : null,
-      startDate: plan?.startDate ? dayjs(plan.startDate) : null,
-      endDate: plan?.endDate ? dayjs(plan.endDate) : null,
-      goal: plan?.goal,
-      priority: plan?.priority,
-      tickets: ticketIds,
-    });
+      form.setFieldsValue({
+        name: fullPlan?.name,
+        description: fullPlan?.description,
+        project: projectId,
+        deadline: fullPlan?.deadline ? dayjs(fullPlan.deadline) : null,
+        startDate: fullPlan?.startDate ? dayjs(fullPlan.startDate) : null,
+        endDate: fullPlan?.endDate ? dayjs(fullPlan.endDate) : null,
+        goal: fullPlan?.goal,
+        priority: fullPlan?.priority,
+        tickets: ticketIds,
+      });
 
-    if (projectId) {
-      loadTicketsByProject(projectId);
+      if (projectId) {
+        await loadTicketsByProject(projectId);
+      }
+      setShowCreateModal(true);
+    } catch (error) {
+      console.error("Failed to load plan details for editing:", error);
+      message.error("Failed to load plan details");
+    } finally {
+      hideLoading();
     }
-    setShowCreateModal(true);
   };
 
   const handleDelete = async (planId: string) => {
@@ -616,7 +626,7 @@ export default function SprintPlanComponent() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setCurrentPage(1); }, [tableFilters.search, tableFilters.projectId, tableFilters.status, sortBy]);
 
   // Sorted view of sprintPlans
@@ -832,6 +842,13 @@ export default function SprintPlanComponent() {
                     const count = projectCounts.map.get(proj.value) || 0;
                     const active = tableFilters.projectId === proj.value;
                     const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                    // Initials: first letter of the first two words, or the
+                    // first two letters when the name is a single word.
+                    const words = (proj.label || '').trim().split(/\s+/).filter(Boolean);
+                    const initials = (words.length > 1
+                      ? words[0][0] + words[1][0]
+                      : (words[0] || '?').slice(0, 2)
+                    ).toUpperCase();
                     return (
                       <button
                         key={proj.value}
@@ -839,8 +856,8 @@ export default function SprintPlanComponent() {
                         onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
                         title={proj.label}
                       >
-                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color: `${color}70`, borderColor: `${color}33` }}>
-                          <ProjectOutlined style={{ fontSize: 11 }} />
+                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}1A`, color: color, borderColor: `${color}3D`, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                          {initials}
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
                         <span className="sp-sidebar-item-count">{count}</span>
@@ -1794,11 +1811,20 @@ export default function SprintPlanComponent() {
                                 </Tooltip>
                               )}
                               {canDeleteTicketPlan && (
-                                <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                <ConfirmDialog
+                                  tone="danger"
+                                  icon={<DeleteOutlined />}
+                                  title="Delete this sprint?"
+                                  description={`"${record.name}" will no longer be available.`}
+                                  confirmText="Delete"
+                                  cancelText="Cancel"
+                                  placement="bottomRight"
+                                  onConfirm={() => handleDelete(record.id)}
+                                >
                                   <Tooltip title="Delete">
                                     <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" />
                                   </Tooltip>
-                                </Popconfirm>
+                                </ConfirmDialog>
                               )}
                             </div>
                           </footer>
@@ -1988,9 +2014,19 @@ export default function SprintPlanComponent() {
                                   <Tooltip key="edit" title="Edit"><Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" /></Tooltip>
                                 ),
                                 canDeleteTicketPlan && (
-                                  <Popconfirm key="delete" title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                  <ConfirmDialog
+                                    key="delete"
+                                    tone="danger"
+                                    icon={<DeleteOutlined />}
+                                    title="Delete this sprint?"
+                                    description={`"${record.name}" will no longer be available.`}
+                                    confirmText="Delete"
+                                    cancelText="Cancel"
+                                    placement="bottomRight"
+                                    onConfirm={() => handleDelete(record.id)}
+                                  >
                                     <Tooltip title="Delete"><Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" /></Tooltip>
-                                  </Popconfirm>
+                                  </ConfirmDialog>
                                 ),
                               ].filter(Boolean)}
                             </span>
@@ -2088,7 +2124,7 @@ export default function SprintPlanComponent() {
                   total={sortedSprintPlans.length}
                   onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
                   showSizeChanger
-                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  pageSizeOptions={[10, 20, 25, 50, 100]}
                 />
               </div>
             )}
@@ -2352,13 +2388,14 @@ export default function SprintPlanComponent() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={Math.min(typeof window !== 'undefined' ? window.innerWidth - 60 : 1600, 1600)}
+          rootClassName="sp-detail-drawer"
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 28px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-slate-50)' },
             mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.18)' }
           }}
           extra={
-            <Space size={8}>
+            <Space size={8} wrap>
               {canReadActivityLog && drawerSprintPlan && (
                 <Tooltip title="Activity history">
                   <Button
@@ -3280,7 +3317,7 @@ export default function SprintPlanComponent() {
           font-family: ui-monospace, monospace;
         }
         [data-theme='dark'] .sp-search-kbd {
-          background: #0b0f1a !important;
+          background: #0B0F1A !important;
           border-color: #374151 !important;
         }
         .sp-filter-pill {
@@ -3455,9 +3492,10 @@ export default function SprintPlanComponent() {
           border: 1px solid var(--border-slate-200);
           border-radius: 0;
           overflow: hidden;
+          margin-bottom: 16px;
         }
         [data-theme='dark'] .sp-tbl-wrap {
-          background: #0f1620 !important;
+          background: #0B0F1A !important;
           border-color: #243042 !important;
         }
         .sp-tbl-head,
@@ -3474,7 +3512,7 @@ export default function SprintPlanComponent() {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tbl-head {
-          background: #131c28 !important;
+          background: #0B0F1A !important;
           border-bottom-color: #243042 !important;
         }
         .sp-tbl-th {
@@ -3509,7 +3547,7 @@ export default function SprintPlanComponent() {
         .sp-tbl-row.is-open::before,
         .sp-tbl-row:hover::before { opacity: 1; }
         [data-theme='dark'] .sp-tbl-row:hover,
-        [data-theme='dark'] .sp-tbl-row.is-open { background: #131c28 !important; }
+        [data-theme='dark'] .sp-tbl-row.is-open { background: #161B22 !important; }
         .sp-tbl-td { display: flex; align-items: center; min-width: 0; }
 
         .sp-tbl-col-name { gap: 10px; }
@@ -3592,7 +3630,7 @@ export default function SprintPlanComponent() {
           border-top: 1px solid var(--border-slate-200);
           padding: 14px 16px 16px 48px;
         }
-        [data-theme='dark'] .sp-tbl-children { background: #0c121b !important; border-top-color: #1c2733 !important; }
+        [data-theme='dark'] .sp-tbl-children { background: #0B0F1A !important; border-top-color: #1c2733 !important; }
         .sp-tbl-detail-goal {
           display: flex; align-items: flex-start; gap: 8px;
           font-size: 12.5px; font-weight: 500; color: var(--text-slate-600);
@@ -3768,6 +3806,9 @@ export default function SprintPlanComponent() {
           color: #94a3b8 !important;
           border-color: #161b22 !important;
         }
+        .sp-premium-table {
+          margin-bottom: 16px;
+        }
         .sp-premium-table .ant-table {
           background: transparent !important;
         }
@@ -3801,11 +3842,11 @@ export default function SprintPlanComponent() {
           border-bottom: none;
         }
         [data-theme='dark'] .sp-premium-table .ant-table-tbody > tr > td {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-bottom-color: #1f2937 !important;
         }
         [data-theme='dark'] .sp-premium-table .ant-table-tbody > tr:hover > td {
-          background: #1c232e !important;
+          background: #161B22 !important;
         }
         .sp-premium-table .ant-pagination {
           margin: 0 !important;
@@ -3947,6 +3988,9 @@ export default function SprintPlanComponent() {
           border-color: rgba(59,130,246,0.3) !important;
         }
         /* ── Sprint detail drawer header ───────────────────────── */
+        .sp-detail-drawer .ant-drawer-header {
+          flex-wrap: wrap;
+        }
         .sp-detail-head {
           display: flex;
           align-items: center;
@@ -3955,7 +3999,7 @@ export default function SprintPlanComponent() {
         }
         .sp-detail-head .sp-view-icon-box { width: 44px; height: 44px; }
         .sp-detail-head-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
-        .sp-detail-head-eyebrow { display: flex; align-items: center; gap: 8px; }
+        .sp-detail-head-eyebrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .sp-detail-head-kicker {
           font-size: 10px; font-weight: 800; color: var(--text-slate-400);
           text-transform: uppercase; letter-spacing: 0.08em;
@@ -4989,7 +5033,7 @@ export default function SprintPlanComponent() {
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
         .sp-sidebar {
-          background: var(--bg-secondary);
+          background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200) !important;
           position: sticky;
           top: 0;
@@ -5049,7 +5093,7 @@ export default function SprintPlanComponent() {
           padding: 10px 10px 6px 16px;
         }
         [data-theme='dark'] .sp-sidebar {
-          background: #0f1419 !important;
+          background: #0B0F1A !important;
           border-right-color: #1f2937 !important;
         }
         .sp-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -5352,14 +5396,13 @@ export default function SprintPlanComponent() {
           position: sticky;
           top: 0;
           z-index: 20;
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(12px);
+          background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           margin: -24px -24px 16px -21px;
           border-left: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-main-topbar {
-          background: rgba(15, 20, 25, 0.85);
+          background: #0B0F1A !important;
           border-bottom-color: #1f2937;
         }
         .sp-main-search {
@@ -5432,6 +5475,11 @@ export default function SprintPlanComponent() {
           }
           .sp-metric {
             flex: 1 0 160px;
+          }
+        }
+        @media (max-width: 900px) {
+          .sp-main-stats {
+            display: none !important;
           }
         }
         @media (max-width: 640px) {
@@ -5674,7 +5722,7 @@ export default function SprintPlanComponent() {
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme='dark'] .sp-card-pagination {
-          background: #161b22 !important;
+          background: #0B0F1A !important;
           border-top-color: #1f2937 !important;
         }
 
@@ -5684,7 +5732,7 @@ export default function SprintPlanComponent() {
         .sp-card-pagination .ant-pagination-next .ant-pagination-item-link {
           border: 1px solid var(--border-slate-200) !important;
           border-radius: 6px !important;
-          background: transparent !important;
+          background: var(--bg-pure-white) !important;
           color: var(--text-slate-500) !important;
         }
         .sp-card-pagination .ant-pagination-item-active {
@@ -7499,6 +7547,22 @@ export default function SprintPlanComponent() {
           }
           .sp-plist-seg-name {
             font-size: 14px;
+          }
+          .sp-detail-drawer .ant-drawer-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+            padding: 16px 20px !important;
+          }
+          .sp-detail-drawer .ant-drawer-header-title {
+            width: 100% !important;
+            flex: none !important;
+          }
+          .sp-detail-drawer .ant-drawer-extra {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
           }
         }
       `}</style>

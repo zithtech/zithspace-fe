@@ -353,7 +353,7 @@ export default function NoticePeriodPolicyPage() {
         )}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10, position: ["bottomRight"] }}
+        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"] }}
         size="middle"
         style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
       />

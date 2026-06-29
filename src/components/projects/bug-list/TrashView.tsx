@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Skeleton, Avatar, Popconfirm, Tooltip, Empty, Tag, Segmented } from "antd";
+import { Skeleton, Avatar, Tooltip, Empty, Tag, Segmented } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Trash2,
   RotateCcw,
@@ -312,8 +313,14 @@ export default function TrashView({
               <RotateCcw size={13} />
               Restore Selected
             </button>
-            <Popconfirm
-              title={`Permanently delete ${selectedIds.size} items?`}
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Permanently?"
+              description={`Permanently delete ${selectedIds.size} items? This action cannot be undone.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={() => {
                 const ids = Array.from(selectedIds);
                 if (activeTab === "folders") bulkDeleteFolders.mutate(ids);
@@ -326,7 +333,7 @@ export default function TrashView({
                 <Trash2 size={13} />
                 Delete Permanently
               </button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       )}
@@ -476,12 +483,18 @@ function TrashedFolderCard({ folder, isSelected, onSelect, onView, onRestore, on
             </button>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
-            <Popconfirm
-              title="Delete folder permanently?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Folder Permanently?"
+              description="This folder and all its content sheets and bugs will be permanently deleted."
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={onDelete}
             >
               <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       </div>
@@ -553,12 +566,18 @@ function TrashedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onRe
             </Tooltip>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
-            <Popconfirm
-              title="Delete sheet permanently?"
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Delete Sheet Permanently?"
+              description="This sheet and all its bugs will be permanently deleted."
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="bottomRight"
               onConfirm={onDelete}
             >
               <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         </div>
       </div>
@@ -617,12 +636,18 @@ function TrashedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelete
               <RotateCcw size={12} /> Restore Bug
             </button>
           </Tooltip>
-          <Popconfirm
-            title="Delete bug permanently?"
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={16} />}
+            title="Delete Bug Permanently?"
+            description="This bug will be permanently deleted."
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="bottomRight"
             onConfirm={onDelete}
           >
             <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       </div>
     </div>

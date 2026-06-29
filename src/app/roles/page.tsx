@@ -22,7 +22,6 @@ import {
   Divider,
   Tooltip,
   Badge,
-  Popconfirm,
   Spin,
   Row,
   Col,
@@ -63,6 +62,7 @@ import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/service
 import { MembersService } from "@/services/membersService";
 import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -93,6 +93,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   daily_update: "Daily Updates",
   squad: "Squad Management",
   lead: "Lead Management",
+  bidiq: "BidIq",
   proposal: "Proposals",
   vendor: "Vendors",
   escalation: "Escalations",
@@ -110,6 +111,78 @@ const RESOURCE_LABELS: Record<string, string> = {
   time_tracking: "Time Tracking",
   activity_log: "Activity Log / Transaction History",
 };
+
+/**
+ * Leaves 2.0 — map each leave permission to the page it gates, so the Roles UI
+ * lists permissions under all 9 real pages (instead of collapsing several into a
+ * generic "Leaves Core"). Trash perms have no page → grouped as "Recycle Bin".
+ */
+const LEAVE_PAGE_BY_PERM: Record<string, string> = {
+  'leave.dashboard.read': 'Dashboard',
+  'leave.create': 'Apply Leave',
+  'leave.read': 'Apply Leave',
+  'leave.update': 'Apply Leave',
+  'leave.delete': 'Apply Leave',
+  'leave.approve': 'Approvals',
+  'leave.holiday.read': 'Government Holidays',
+  'leave.holiday.update': 'Government Holidays',
+  'leave.holiday.delete': 'Government Holidays',
+  'leave.adjustment.read': 'Leave Adjustment',
+  'leave.adjustment.create': 'Leave Adjustment',
+  'leave.adjustment.update': 'Leave Adjustment',
+  'leave.adjustment.delete': 'Leave Adjustment',
+  'leave.type.read': 'Leave Type',
+  'leave.type.create': 'Leave Type',
+  'leave.type.update': 'Leave Type',
+  'leave.type.delete': 'Leave Type',
+  'leave.policy.read': 'Leave Policy',
+  'leave.policy.create': 'Leave Policy',
+  'leave.policy.update': 'Leave Policy',
+  'leave.policy.delete': 'Leave Policy',
+  'leave.holiday.create': 'Add Government Holidays',
+  'leave.manage': 'Configuration',
+  'leave.trash.read': 'Recycle Bin',
+  'leave.trash.restore': 'Recycle Bin',
+  'leave.trash.delete': 'Recycle Bin',
+};
+
+/** Display order for the leave page sub-groups (mirrors the left-rail order). */
+const LEAVE_PAGE_ORDER = [
+  'Dashboard',
+  'Apply Leave',
+  'Approvals',
+  'Government Holidays',
+  'Leave Adjustment',
+  'Leave Type',
+  'Leave Policy',
+  'Add Government Holidays',
+  'Configuration',
+  'Recycle Bin',
+];
+
+/**
+ * Performance — map each permission to the page it gates, so the Roles UI lists
+ * the 4 Performance Report pages by name (Reports, Settings, Generated Reports,
+ * My Reports). Legacy performance review perms group under "Performance Review".
+ */
+const PERFORMANCE_PAGE_BY_PERM: Record<string, string> = {
+  'performance.report.read': 'Reports',
+  'performance.report.setting.read': 'Settings',
+  'performance.report.setting.update': 'Settings',
+  'performance.report.generated.read': 'Generated Reports',
+  'performance.report.my.read': 'My Reports',
+  'performance.read': 'Performance Review',
+  'performance.manage': 'Performance Review',
+};
+
+/** Display order for the performance page sub-groups. */
+const PERFORMANCE_PAGE_ORDER = [
+  'Reports',
+  'Settings',
+  'Generated Reports',
+  'My Reports',
+  'Performance Review',
+];
 
 /** Access Control drawer — premium SaaS tab groups */
 interface AccessGroup {
@@ -861,17 +934,19 @@ export default function RolesPage() {
             </Tooltip>
           )}
           {canDeleteRole && !record.isSystem && (
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
               title="Delete this role?"
               description="All members assigned this role will lose its permissions immediately."
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
               onConfirm={() => handleDeleteRole(record.id)}
-              okText="Delete"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete role">
                 <Button type="text" icon={<DeleteOutlined />} size="small" danger />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -1233,17 +1308,19 @@ export default function RolesPage() {
                             </Tooltip>
                           )}
                           {canDeleteRole && !record.isSystem && (
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="danger"
                               title="Delete this role?"
                               description="All members assigned this role will lose its permissions immediately."
+                              confirmText="Delete"
+                              cancelText="Cancel"
+                              placement="left"
                               onConfirm={() => handleDeleteRole(record.id)}
-                              okText="Delete"
-                              okButtonProps={{ danger: true }}
                             >
                               <Tooltip title="Delete role">
                                 <Button type="text" icon={<DeleteOutlined />} size="small" danger />
                               </Tooltip>
-                            </Popconfirm>
+                            </ConfirmDialog>
                           )}
                         </div>
                       </div>
@@ -1633,6 +1710,23 @@ export default function RolesPage() {
 
                         // Sub-grouping logic (preserved)
                         const subGroups: Record<string, RBACPermission[]> = {};
+                        if (resource === 'leave') {
+                          // Group by the page each permission gates, so all 9
+                          // Leaves pages show up by name (see LEAVE_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = LEAVE_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'performance') {
+                          // List the 4 Performance Report pages by name
+                          // (see PERFORMANCE_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = PERFORMANCE_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else
                         perms.forEach((p) => {
                           const parts = p.name.split('.');
                           let subKey = `${label} Core`;
@@ -1678,7 +1772,12 @@ export default function RolesPage() {
                             </div>
 
                             <div className="rp-acc-card__body">
-                              {Object.entries(subGroups).map(([subTitle, subPerms]) => (
+                              {(resource === 'leave'
+                                ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                : resource === 'performance'
+                                ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                : Object.entries(subGroups)
+                              ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">
                                   <div className="rp-acc-subgroup__title">{subTitle}</div>
                                   <Row gutter={[10, 10]}>
@@ -1700,6 +1799,11 @@ export default function RolesPage() {
                                                 {(() => {
                                                   const name = perm.name;
                                                   const action = perm.action;
+                                                  if (name.startsWith('leave.')) {
+                                                    // Page is the sub-group title; show only the verb.
+                                                    const verb = action.split('.').pop() || action;
+                                                    return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                  }
                                                   if (name.startsWith('bug.')) {
                                                     if (action.includes('trash.')) {
                                                       const subAction = action.split('.')[1];
@@ -1948,12 +2052,14 @@ export default function RolesPage() {
                             </div>
                           </div>
                           {canAssignRole && (
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="danger"
                               title="Remove from role?"
                               description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                              confirmText="Remove"
+                              cancelText="Cancel"
+                              placement="left"
                               onConfirm={() => handleRemoveMember(entry.user.id)}
-                              okText="Remove"
-                              okButtonProps={{ danger: true }}
                             >
                               <Tooltip title="Remove from role">
                                 <button
@@ -1964,7 +2070,7 @@ export default function RolesPage() {
                                   <MinusCircleOutlined />
                                 </button>
                               </Tooltip>
-                            </Popconfirm>
+                            </ConfirmDialog>
                           )}
                         </div>
                       ))}

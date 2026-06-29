@@ -202,7 +202,7 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
               <div className="tlc-sidebar-section-head">
                 <AppstoreOutlined style={{ fontSize: 10 }} />
                 <span>Browse</span>
-                <span className="tlc-sidebar-section-count">{projects.length}</span>
+                <span className="tlc-sidebar-section-count">{totalCount}</span>
               </div>
               <div className="tlc-sidebar-list">
                 <button
@@ -214,7 +214,7 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
                     <AppstoreOutlined style={{ fontSize: 11 }} />
                   </span>
                   <span className="tlc-sidebar-label">All projects</span>
-                  <span className="tlc-sidebar-count">{totalCount}</span>
+                  <span className="tlc-sidebar-count">{projects.length}</span>
                 </button>
                 {projects.map((p) => {
                   const active = selectedProjectId === p.value;
@@ -285,7 +285,7 @@ const TICKET_LIFECYCLE_CSS = `
 .tlc-page {
   margin: 0 -24px;
   background: var(--bg-pure-white);
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 54px);
   display: flex;
   flex-direction: column;
 }
@@ -303,8 +303,8 @@ const TICKET_LIFECYCLE_CSS = `
   border-bottom: 1px solid var(--border-slate-200);
 }
 [data-theme='dark'] .tlc-header {
-  background: #0f1419;
-  border-bottom-color: #1f2937;
+  background: #0B0F1A !important;
+  border-bottom-color: #1F2937 !important;
 }
 .tlc-toggle-btn {
   display: none;
@@ -398,12 +398,19 @@ const TICKET_LIFECYCLE_CSS = `
 }
 
 /* ── Shell ───────────────────────────────────────────── */
-.tlc-shell-wrap { flex: 1; }
+.tlc-shell-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .tlc-shell {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
   align-items: stretch;
-  min-height: calc(100vh - 64px - 60px);
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .tlc-sidebar-backdrop { display: none; }
@@ -414,8 +421,8 @@ const TICKET_LIFECYCLE_CSS = `
   border-right: 1px solid var(--border-slate-200);
   padding: 12px 12px 16px 20px;
   position: sticky;
-  top: 60px;
-  height: calc(100vh - 64px - 60px);
+  top: 56px;
+  height: calc(100vh - 54px - 56px);
   overflow-y: auto;
   align-self: start;
   scrollbar-width: none;
@@ -423,8 +430,8 @@ const TICKET_LIFECYCLE_CSS = `
 }
 .tlc-sidebar::-webkit-scrollbar { width: 0; height: 0; display: none; }
 [data-theme='dark'] .tlc-sidebar {
-  background: #0f1419;
-  border-right-color: #1f2937;
+  background: #0B0F1A !important;
+  border-right: 1px solid #1F2937 !important;
 }
 
 .tlc-sidebar-section { padding: 4px 2px; }
@@ -439,7 +446,7 @@ const TICKET_LIFECYCLE_CSS = `
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-[data-theme='dark'] .tlc-sidebar-section-head { color: #94a3b8; }
+[data-theme='dark'] .tlc-sidebar-section-head { color: #94A3B8 !important; }
 .tlc-sidebar-section-count {
   margin-left: auto;
   background: var(--bg-pure-white);
@@ -453,9 +460,9 @@ const TICKET_LIFECYCLE_CSS = `
   text-transform: none;
 }
 [data-theme='dark'] .tlc-sidebar-section-count {
-  background: #111720;
-  border-color: #2d3748;
-  color: #94a3b8;
+  background: #161B22 !important;
+  border-color: #1F2937 !important;
+  color: #94A3B8 !important;
 }
 
 .tlc-sidebar-picker { padding: 4px 2px 8px; }
@@ -479,39 +486,39 @@ const TICKET_LIFECYCLE_CSS = `
   min-width: 0;
 }
 .tlc-sidebar-item:hover { background: var(--bg-pure-white); }
-[data-theme='dark'] .tlc-sidebar-item { color: #cbd5e1; }
-[data-theme='dark'] .tlc-sidebar-item:hover { background: #111720; }
+[data-theme='dark'] .tlc-sidebar-item { color: #94A3B8 !important; }
+[data-theme='dark'] .tlc-sidebar-item:hover { background: #161B22 !important; color: #FFFFFF !important; }
 .tlc-sidebar-item.active {
   background: rgba(59,130,246,0.08);
   border-color: rgba(59,130,246,0.2);
   color: #1d4ed8;
 }
 [data-theme='dark'] .tlc-sidebar-item.active {
-  background: rgba(59,130,246,0.16);
-  border-color: rgba(59,130,246,0.32);
-  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: none !important;
+  color: #FFFFFF !important;
 }
 .tlc-sidebar-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid;
+  width: 16px;
+  height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   flex-shrink: 0;
+  border: none !important;
+  background: transparent !important;
 }
 .tlc-sidebar-icon-all {
-  background: var(--bg-pure-white);
-  border-color: var(--border-slate-200);
+  background: transparent !important;
+  border: none !important;
   color: var(--text-slate-600);
 }
 [data-theme='dark'] .tlc-sidebar-icon-all {
-  background: #111720;
-  border-color: #2d3748;
-  color: #94a3b8;
+  background: transparent !important;
+  border: none !important;
+  color: #94A3B8 !important;
 }
 .tlc-sidebar-label {
   flex: 1 1 auto;
@@ -536,9 +543,9 @@ const TICKET_LIFECYCLE_CSS = `
   border: 1px solid var(--border-slate-200);
 }
 [data-theme='dark'] .tlc-sidebar-count {
-  background: #111720;
-  border-color: #2d3748;
-  color: #94a3b8;
+  background: #161B22 !important;
+  border-color: #1F2937 !important;
+  color: #94A3B8 !important;
 }
 .tlc-sidebar-item.active .tlc-sidebar-count {
   background: rgba(59,130,246,0.12);
@@ -546,16 +553,16 @@ const TICKET_LIFECYCLE_CSS = `
   color: #1d4ed8;
 }
 [data-theme='dark'] .tlc-sidebar-item.active .tlc-sidebar-count {
-  background: rgba(59,130,246,0.22);
-  border-color: rgba(59,130,246,0.4);
-  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #60a5fa !important;
 }
 .tlc-sidebar-divider {
   height: 1px;
   background: var(--border-slate-200);
   margin: 12px -12px 12px -20px;
 }
-[data-theme='dark'] .tlc-sidebar-divider { background: #2d3748; }
+[data-theme='dark'] .tlc-sidebar-divider { background: #1F2937 !important; }
 .tlc-sidebar-empty {
   padding: 8px 4px;
   font-size: 11px;
@@ -588,18 +595,24 @@ const TICKET_LIFECYCLE_CSS = `
   background: rgba(59,130,246,0.06);
   border-style: solid;
 }
+[data-theme='dark'] .tlc-sidebar-clear {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
 
 /* ── Main ───────────────────────────────────────────── */
 .tlc-main {
   min-width: 0;
-  padding: 0 16px 24px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
+  overflow-y: auto;
+  height: calc(100vh - 54px - 56px);
 }
 .tlc-toolbar {
   position: sticky;
-  top: 60px;
+  top: 0;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -607,16 +620,30 @@ const TICKET_LIFECYCLE_CSS = `
   padding: 10px 16px;
   background: var(--bg-pure-white);
   border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
 }
 [data-theme='dark'] .tlc-toolbar {
-  background: #0f1419;
-  border-bottom-color: #1f2937;
+  background: #0B0F1A !important;
+  border-bottom-color: #1F2937 !important;
+}
+[data-theme='dark'] .tlc-toolbar .ant-input-affix-wrapper {
+  background: #0B0F1A !important;
+  border-color: #1F2937 !important;
+}
+[data-theme='dark'] .tlc-toolbar .ant-input {
+  background: transparent !important;
+  color: #FFFFFF !important;
+}
+[data-theme='dark'] .tlc-toolbar .ant-input::placeholder {
+  color: #94A3B8 !important;
 }
 .tlc-body {
-  padding: 0 16px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Desktop ≥ 1100px ────────────────────────────────── */
@@ -636,10 +663,10 @@ const TICKET_LIFECYCLE_CSS = `
   .tlc-shell { grid-template-columns: minmax(0, 1fr); }
   .tlc-shell > aside.tlc-sidebar {
     position: fixed;
-    top: 60px;
+    top: 56px;
     left: 0;
     width: 280px;
-    height: calc(100vh - 64px - 60px);
+    height: calc(100vh - 54px - 56px);
     z-index: 60;
     transform: translateX(-100%);
     transition: transform 0.2s ease;

@@ -8,7 +8,7 @@ export interface ReleasePlanFormData {
   startDate?: string;
   endDate?: string;
   goal?: string;
-  status?: 'planning' | 'active' | 'completed' | 'cancelled';
+  status?: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
   tickets?: string[];
   type?: 'sprint_plan' | 'demo_plan' | 'release_plan';
 }
@@ -71,8 +71,7 @@ export interface ReleasePlan {
 export interface ReleasePlanListResponse {
   success: boolean;
   data: ReleasePlan[];
-  pagination: {
-    page: number;
+  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], page: number;
     limit: number;
     total: number;
     pages: number;

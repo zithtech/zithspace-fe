@@ -207,13 +207,15 @@ const ReportPrintable = React.forwardRef<HTMLDivElement, Props>(function ReportP
           <tbody>
             <tr>
               <td style={{ width: '1%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: 0 }}>
-                <div style={{ padding: '18px 24px', display: 'block' }}>
-                  <span style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: scoreColor(model.overall), lineHeight: 1, verticalAlign: 'baseline' }}>
-                    {model.overall ?? '—'}
-                  </span>
-                  <span style={{ display: 'inline-block', fontSize: 16, fontWeight: 700, color: C.faint, marginLeft: 4, verticalAlign: 'baseline' }}>
-                    / 100
-                  </span>
+                <div style={{ padding: '18px 24px' }}>
+                  <table style={{ borderCollapse: 'collapse', margin: 0, padding: 0 }} cellPadding={0} cellSpacing={0}><tbody><tr>
+                    <td style={{ verticalAlign: 'bottom', fontSize: 36, fontWeight: 800, color: scoreColor(model.overall), lineHeight: '1', padding: 0 }}>
+                      {model.overall ?? '—'}
+                    </td>
+                    <td style={{ verticalAlign: 'bottom', fontSize: 16, fontWeight: 700, color: C.faint, lineHeight: '1', padding: '0 0 1px 4px' }}>
+                      / 100
+                    </td>
+                  </tr></tbody></table>
                 </div>
               </td>
               <td style={{ verticalAlign: 'middle', padding: 0 }}>
@@ -249,8 +251,10 @@ const ReportPrintable = React.forwardRef<HTMLDivElement, Props>(function ReportP
                         <tbody>
                           <tr>
                             <td style={{ whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>
-                              <span style={{ fontSize: 24, fontWeight: 800, color: scoreColor(s.score) }}>{s.score ?? '—'}</span>
-                              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.faint }}> / 100</span>
+                              <table style={{ borderCollapse: 'collapse', margin: 0, padding: 0 }} cellPadding={0} cellSpacing={0}><tbody><tr>
+                                <td style={{ verticalAlign: 'bottom', fontSize: 24, fontWeight: 800, color: scoreColor(s.score), lineHeight: '1', padding: 0 }}>{s.score ?? '—'}</td>
+                                <td style={{ verticalAlign: 'bottom', fontSize: 10.5, fontWeight: 700, color: C.faint, lineHeight: '1', padding: '0 0 1px 2px' }}> / 100</td>
+                              </tr></tbody></table>
                             </td>
                             <td style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 800, color: band.color, verticalAlign: 'bottom' }}>
                               {s.enabled ? band.label : 'Excluded'}

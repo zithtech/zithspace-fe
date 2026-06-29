@@ -4381,29 +4381,21 @@ thead .hb-col-actions {
 
 /* Compact laptops — tighten chrome but keep the desktop layout */
 @media (max-width: 1440px) {
-  .hb-root { padding-left: 8px; gap: 8px; }
-  .hb-sidebar { width: 220px; }
+  .hb-root { padding-left: 0; gap: 0; }
+  .hb-sidebar { width: 230px; }
   .hb-search { width: 240px; }
-  .hb-header { padding: 12px 12px 10px; gap: 12px; }
+  .hb-header { padding: 0 14px; gap: 12px; height: 53px; }
   .hb-header-tools .hb-btn-text { display: none; }  
-  .hb-stats-row,
-  .hb-filterbar,
-  .hb-quickadd,
-  .hb-bulkbar { margin-left: 12px; margin-right: 12px; }
-  .hb-content { padding: 10px 12px 12px; }
+  .hb-content { padding: 6px 14px 8px 14px; }
 }
 
 /* Compact laptops — tighten chrome but keep the desktop layout */
 @media (max-width: 1280px) {
-  .hb-root { padding-left: 8px; gap: 8px; }
-  .hb-sidebar { width: 220px; }
+  .hb-root { padding-left: 0; gap: 0; }
+  .hb-sidebar { width: 230px; }
   .hb-search { width: 240px; }
-  .hb-header { padding: 12px 12px 10px; gap: 12px; }
-  .hb-stats-row,
-  .hb-filterbar,
-  .hb-quickadd,
-  .hb-bulkbar { margin-left: 12px; margin-right: 12px; }
-  .hb-content { padding: 10px 12px 12px; }
+  .hb-header { padding: 0 14px; gap: 12px; height: 53px; }
+  .hb-content { padding: 6px 14px 8px 14px; }
 }
 
 /* Tablet landscape — wrap header tools, narrow sidebar, 2-col stats */

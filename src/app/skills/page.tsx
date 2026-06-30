@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Typography,
   Button,
@@ -40,6 +41,8 @@ import {
   Info,
   Clock,
   Building2,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 
 import { useSkills } from "@/hooks/useSkills";
@@ -115,6 +118,7 @@ export default function SkillsPage() {
   const { canCreateSkills, canUpdateSkills, canDeleteSkills, canManageSkills } = usePermission();
 
   const [activeTab, setActiveTab] = useState<"1" | "2">("1");
+  const [view, setView] = useState<"list" | "grid">("list");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -228,7 +232,8 @@ export default function SkillsPage() {
       (acc: number, e: any) => acc + tenureMonths(e.start_date, e.end_date, e.current_job),
       0
     );
-    const currentRole = (experience || []).find((e: any) => e.current_job);
+    const sortedExp = [...(experience || [])].sort((a: any, b: any) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+    const currentRole = sortedExp.find((e: any) => e.current_job) || sortedExp[0];
     const topCategory =
       Object.entries(
         (skills || []).reduce((acc: Record<string, number>, s: any) => {
@@ -409,18 +414,20 @@ export default function SkillsPage() {
             </Tooltip>
           )}
           {canDeleteSkills && (
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
               title="Delete this skill?"
               description="This action can't be undone."
               onConfirm={() => deleteSkill(record.id)}
-              okText="Delete"
+              confirmText="Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="bottomRight"
             >
               <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
                 <Trash2 size={14} />
               </button>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -543,18 +550,20 @@ export default function SkillsPage() {
             </Tooltip>
           )}
           {canDeleteSkills && (
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
               title="Delete this experience?"
               description="This action can't be undone."
               onConfirm={() => deleteExperience(record.id)}
-              okText="Delete"
+              confirmText="Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="bottomRight"
             >
               <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
                 <Trash2 size={14} />
               </button>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -603,254 +612,342 @@ export default function SkillsPage() {
       <MainLayout>
         {contextHolder}
 
-        <div className="skl-canvas">
-          {/* HEADER */}
-          <div className="skl-header">
-            <div className="skl-header-left">
-              <div className="skl-header-icon">
-                <Zap size={18} />
-              </div>
-              <div className="skl-header-text">
-                <Title level={4} className="skl-header-title">
-                  Skills & Experience
-                </Title>
-                <Text className="skl-header-sub">
-                  Curate your professional portfolio and technical competencies
-                </Text>
+        
+        <div className="pp-shell">
+          {/* ============================ SIDEBAR ============================ */}
+          <aside className="pp-sidebar">
+            <div className="pp-side-head">
+              <div className="pp-side-logo"><Award size={20} /></div>
+              <div className="pp-side-head-text">
+                <div className="pp-side-title">Skills & Experience</div>
+                <div className="pp-side-subtitle">Portfolio · profile</div>
               </div>
             </div>
-            <div className="skl-header-actions">
-              <Input
-                placeholder={`Search ${activeTab === "1" ? "skills" : "experience"}...`}
-                prefix={<Search size={13} style={{ color: "var(--text-slate-400)" }} />}
-                className="skl-search"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              {canCreateSkills && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={14} />}
-                  onClick={showDrawer}
-                  className="skl-cta-btn"
-                >
-                  {activeTab === "1" ? "New Skill" : "New Experience"}
-                  <ArrowUpRight size={13} />
-                </Button>
-              )}
-            </div>
-          </div>
 
-          {/* STATS */}
-          <Row gutter={[16, 16]} className="skl-stats">
-            <Col xs={24} sm={12} xl={6}>
-              <StatTile
-                icon={<Award size={17} />}
-                label="Total Skills"
-                value={stats.skillCount}
-                accent="#6366f1"
-                sublabel={`${stats.expertSkills} expert · ${stats.activeSkills} visible`}
-              />
-            </Col>
-            <Col xs={24} sm={12} xl={6}>
-              <StatTile
-                icon={<Layers size={17} />}
-                label="Top Category"
-                value={<span className="skl-stat-text-ellipsis">{stats.topCategory}</span>}
-                accent="#8b5cf6"
-                sublabel="Most-represented domain"
-              />
-            </Col>
-            <Col xs={24} sm={12} xl={6}>
-              <StatTile
-                icon={<Briefcase size={17} />}
-                label="Career Span"
-                value={
-                  stats.totalYears || stats.totalMonths
-                    ? `${stats.totalYears}y${stats.totalMonths ? ` ${stats.totalMonths}m` : ""}`
-                    : "—"
-                }
-                accent="#10b981"
-                sublabel={`${stats.experienceCount} role${stats.experienceCount === 1 ? "" : "s"} logged`}
-              />
-            </Col>
-            <Col xs={24} sm={12} xl={6}>
-              <StatTile
-                icon={<Activity size={17} />}
-                label="Currently"
-                value={<span className="skl-stat-text-ellipsis">{stats.currentRole}</span>}
-                accent="#ec4899"
-                sublabel={stats.currentCompany || "Set a current role"}
-              />
-            </Col>
-          </Row>
-
-          {/* SEGMENT TABS */}
-          <div className="skl-segments">
-            {(
-              [
-                { key: "1", label: "Skills", icon: <Award size={13} />, count: stats.skillCount, accent: "#6366f1" },
-                { key: "2", label: "Experience", icon: <Briefcase size={13} />, count: stats.experienceCount, accent: "#ec4899" },
-              ] as const
-            ).map((seg) => {
-              const isActive = activeTab === seg.key;
-              return (
+            <div className="pp-side-scroll">
+              <div className="pp-side-section-label">Categories</div>
+              <div className="pp-side-list">
                 <button
-                  key={seg.key}
-                  onClick={() => setActiveTab(seg.key)}
-                  className={`skl-segment ${isActive ? "is-active" : ""}`}
-                  style={
-                    isActive
-                      ? { borderColor: seg.accent, background: `${seg.accent}10`, color: seg.accent }
-                      : {}
-                  }
+                  type="button"
+                  className={`pp-view-item ${activeTab === "1" ? "is-active" : ""}`}
+                  onClick={() => setActiveTab("1")}
                 >
-                  {seg.icon}
-                  {seg.label}
-                  <span
-                    className="skl-segment-count"
-                    style={isActive ? { background: seg.accent, color: "#fff" } : {}}
-                  >
-                    {seg.count}
-                  </span>
+                  <span className={`rh-proj-badge ${activeTab === "1" ? "is-active" : ""}`}>SK</span>
+                  <span className="pp-view-label">Technical Skills</span>
                 </button>
-              );
-            })}
-          </div>
-
-          {/* TABLE CARD */}
-          <div className="skl-table-card">
-            <div className="skl-table-head">
-              <div className="skl-table-head-left">
-                <span
-                  className="skl-table-icon"
-                  style={{
-                    background: activeTab === "1" ? "rgba(99,102,241,0.1)" : "rgba(236,72,153,0.1)",
-                    color: activeTab === "1" ? "#6366f1" : "#ec4899",
-                  }}
+                <button
+                  type="button"
+                  className={`pp-view-item ${activeTab === "2" ? "is-active" : ""}`}
+                  onClick={() => setActiveTab("2")}
                 >
-                  {activeTab === "1" ? <Award size={14} /> : <Briefcase size={14} />}
-                </span>
-                <div>
-                  <div className="skl-table-title">
-                    {activeTab === "1" ? "Technical Skills" : "Professional Experience"}
-                  </div>
-                  <div className="skl-table-sub">
-                    {activeTab === "1"
-                      ? "Showcase your expertise with proficiency levels and certifications"
-                      : "Document your career journey and notable accomplishments"}
-                  </div>
-                </div>
+                  <span className={`rh-proj-badge ${activeTab === "2" ? "is-active" : ""}`} style={activeTab === "2" ? { background: "rgba(236,72,153,0.16)", color: "#ec4899" } : {}}>EX</span>
+                  <span className="pp-view-label">Professional Experience</span>
+                </button>
               </div>
-              {searchText && (
-                <span className="skl-filter-chip">
-                  Filter: "{searchText}"
-                  <button onClick={() => setSearchText("")} aria-label="Clear search">
-                    ×
-                  </button>
-                </span>
+            </div>
+            
+            <div className="pp-trash" style={{ cursor: "default" }}>
+               <Info size={14} /> {stats.skillCount + stats.experienceCount} entries
+            </div>
+          </aside>
+
+          {/* ============================ MAIN ============================ */}
+          <main className="pp-main">
+            {/* ── SINGLE HEADER ROW: title + search + toggle + create ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+
+              {/* Title */}
+              <h1 className="rh-main-title" style={{ margin: 0, flexShrink: 0 }}>
+                {activeTab === "1" ? "Technical Skills" : "Professional Experience"}
+              </h1>
+
+              {/* Search */}
+              <div className="pp-search-wrap" style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 260 }}>
+                <Search className="pp-search-icon" size={14} />
+                <input
+                  className="pp-search"
+                  placeholder={`Search ${activeTab === "1" ? "skills" : "experience"}...`}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+
+              {/* Meta stats */}
+              <div className="pp-topbar-meta" style={{ flexShrink: 0 }}>
+                <span className="pp-meta-item"><strong>{activeTab === "1" ? stats.expertSkills : (stats.totalYears || 0)}</strong> {activeTab === "1" ? "expert" : "years"}</span>
+                <span className="pp-meta-dot">·</span>
+                <span className="pp-meta-item"><strong>{activeTab === "1" ? stats.skillCount : stats.experienceCount}</strong> total</span>
+              </div>
+
+              {/* Spacer */}
+              <div style={{ flex: 1 }} />
+
+              {/* View toggle + Create */}
+              <div className="pp-topbar-actions" style={{ flexShrink: 0 }}>
+                <div className="pp-segmented">
+                  <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><List size={14} /></button>
+                  <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><LayoutGrid size={14} /></button>
+                </div>
+                {canCreateSkills && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={13} />}
+                    onClick={showDrawer}
+                    className="skl-cta-btn"
+                    style={{ marginLeft: 8 }}
+                  >
+                    {activeTab === "1" ? "New Skill" : "New Experience"}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="pp-divider" />
+
+            {/* Stat cards */}
+            <div className="pp-stats">
+              {activeTab === "1" ? (
+                <>
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#6366f11a", color: "#6366f1" }}><Award size={14} /></span>
+                        <span className="pp-stat-label">Total Skills</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value">{stats.skillCount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#f59e0b1a", color: "#f59e0b" }}><Star size={14} /></span>
+                        <span className="pp-stat-label">Expert Level</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value">{stats.expertSkills}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#10b9811a", color: "#10b981" }}><Activity size={14} /></span>
+                        <span className="pp-stat-label">Active Skills</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value">{stats.activeSkills}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#8b5cf61a", color: "#8b5cf6" }}><Layers size={14} /></span>
+                        <span className="pp-stat-label">Top Category</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value" style={{ fontSize: '18px' }}>{stats.topCategory}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#6366f11a", color: "#6366f1" }}><Briefcase size={14} /></span>
+                        <span className="pp-stat-label">Total Roles</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value">{stats.experienceCount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#10b9811a", color: "#10b981" }}><Calendar size={14} /></span>
+                        <span className="pp-stat-label">Career Span</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value">
+                          {stats.totalYears || stats.totalMonths ? `${stats.totalYears}y ${stats.totalMonths ? `${stats.totalMonths}m` : ""}` : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#ec48991a", color: "#ec4899" }}><Activity size={14} /></span>
+                        <span className="pp-stat-label">Current Role</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value" style={{ fontSize: '18px' }}>{stats.currentRole}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pp-stat-card">
+                    <div className="pp-stat-top">
+                      <div className="pp-stat-left">
+                        <span className="pp-stat-icon" style={{ background: "#f59e0b1a", color: "#f59e0b" }}><MapPin size={14} /></span>
+                        <span className="pp-stat-label">Current Company</span>
+                      </div>
+                    </div>
+                    <div className="pp-stat-bottom">
+                      <div className="pp-stat-value-wrap">
+                        <span className="pp-stat-value" style={{ fontSize: '18px' }}>{stats.currentCompany || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
-            <Table
-              rowKey="id"
-              loading={loading}
-              columns={(activeTab === "1" ? skillColumns : expColumns) as any}
-              dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
-              scroll={{ x: "max-content" }}
-              size="middle"
-              className="skl-table"
-              rowClassName="skl-row"
-              onRow={(record) => ({
-                onClick: () => {
-                  handleView(record);
-                },
-                style: { cursor: "pointer" }
-              })}
-              locale={{
-                emptyText: (
-                  <div className="skl-empty">
-                    <div className="skl-empty-icon">
-                      <Inbox size={26} />
+            <div className="pp-body">
+              {view === "list" ? (
+                <div className="pp-table-wrap">
+                  <Table
+                    rowKey="id"
+                    loading={loading}
+                    columns={(activeTab === "1" ? skillColumns : expColumns) as any}
+                    dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
+                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
+                    scroll={{ x: "max-content" }}
+                    size="small"
+                    className="pp-table"
+                    rowClassName="pp-row"
+                    onRow={(record) => ({
+                      onClick: () => handleView(record),
+                      style: { cursor: "pointer" }
+                    })}
+                    locale={{
+                      emptyText: (
+                        <div className="pp-empty">
+                          <div className="pp-empty-orb"><Inbox size={26} /></div>
+                          <div className="pp-empty-title">
+                            {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
+                          </div>
+                          <div className="pp-empty-sub">
+                            {searchText ? "Try a different keyword." : "Add your first entry."}
+                          </div>
+                        </div>
+                      )
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading ? (
+                    <div style={{ padding: 20 }}>Loading...</div>
+                  ) : (activeTab === "1" && filteredSkills.length === 0) || (activeTab === "2" && filteredExperience.length === 0) ? (
+                    <div className="pp-empty" style={{ gridColumn: "1 / -1" }}>
+                      <div className="pp-empty-orb"><Inbox size={26} /></div>
+                      <div className="pp-empty-title">
+                        {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
+                      </div>
+                      <div className="pp-empty-sub">
+                        {searchText ? "Try a different keyword." : "Add your first entry."}
+                      </div>
                     </div>
-                    <div className="skl-empty-title">
-                      {searchText
-                        ? "No matches"
-                        : activeTab === "1"
-                          ? "No skills yet"
-                          : "No experience yet"}
-                    </div>
-                    <div className="skl-empty-sub">
-                      {searchText
-                        ? "Try a different keyword or clear the filter."
-                        : activeTab === "1"
-                          ? "Add your first skill to begin building your portfolio."
-                          : "Capture your first role to start your career timeline."}
-                    </div>
-                    {(searchText || canCreateSkills) && (
-                      <Button
-                        type="primary"
-                        icon={<Plus size={13} />}
-                        onClick={searchText ? () => setSearchText("") : showDrawer}
-                        className="skl-empty-cta"
-                      >
-                        {searchText
-                          ? "Clear search"
-                          : `Add ${activeTab === "1" ? "Skill" : "Experience"}`}
-                      </Button>
-                    )}
-                  </div>
-                ),
-              }}
-            />
-          </div>
+                  ) : activeTab === "1" ? (
+                    filteredSkills.map(skill => (
+                      <div key={skill.id} className="pc-card" onClick={() => handleView(skill)}>
+                        <div className="pc-top">
+                          <div className="pc-head">
+                            <span className="pc-type-badge">
+                              {skill.category || "General"}
+                            </span>
+                          </div>
+                          <h3 className="pc-title">{skill.name}</h3>
+                          <div className="pc-desc" style={{ WebkitLineClamp: 2 }}>{skill.description || "No description provided."}</div>
+                        </div>
+                        <div className="pc-foot">
+                          <div className="pc-foot-meta">
+                            <Award size={13} style={{ color: "var(--text-slate-400)" }} />
+                            <span>{skill.proficiency_level}</span>
+                          </div>
+                          {skill.years_of_experience ? (
+                            <div className="pc-foot-meta">
+                              <Clock size={13} style={{ color: "var(--text-slate-400)" }} />
+                              <span>{skill.years_of_experience}y</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    filteredExperience.map(exp => (
+                      <div key={exp.id} className="pc-card" onClick={() => handleView(exp)}>
+                        <div className="pc-top">
+                          <div className="pc-head">
+                            <span className="pc-type-badge">
+                              {exp.company_name}
+                            </span>
+                          </div>
+                          <h3 className="pc-title">{exp.job_title}</h3>
+                          <div className="pc-desc">{exp.employment_type} {exp.location ? `· ${exp.location}` : ""}</div>
+                        </div>
+                        <div className="pc-foot">
+                          <div className="pc-foot-meta">
+                            <Calendar size={13} style={{ color: "var(--text-slate-400)" }} />
+                            <span>
+                              {new Date(exp.start_date).getFullYear()} - {exp.current_job ? "Present" : exp.end_date ? new Date(exp.end_date).getFullYear() : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </main>
         </div>
 
         {/* DRAWER */}
         <Drawer
           title={
-            <div
-              className="skl-drawer-head"
-              style={{
-                margin: "-16px -24px",
-                padding: "20px 24px",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div className="skl-drawer-bg" aria-hidden />
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
-                <div className="skl-drawer-icon" style={{
-                  background: activeTab === "1" ? "rgba(99,102,241,0.08)" : "rgba(236,72,153,0.08)",
-                  color: activeTab === "1" ? "#6366f1" : "#ec4899",
-                }}>
-                  {activeTab === "1" ? <Award size={20} /> : <Briefcase size={20} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="skl-drawer-title">
-                    {isViewMode
-                      ? `${activeTab === "1" ? "Skill" : "Experience"} Details`
-                      : editingId
-                        ? `Edit ${activeTab === "1" ? "Skill" : "Experience"}`
-                        : `New ${activeTab === "1" ? "Skill" : "Experience"}`}
-                  </div>
-                  <div className="skl-drawer-sub">
-                    {isViewMode
-                      ? `Overview of your logged ${activeTab === "1" ? "skill competency" : "professional role"}`
-                      : activeTab === "1"
-                        ? "Define expertise, level, and certifications"
-                        : "Capture role details and accomplishments"}
-                  </div>
-                </div>
-                <span className="skl-drawer-badge" style={{
-                  background: activeTab === "1" ? "rgba(99,102,241,0.08)" : "rgba(236,72,153,0.08)",
-                  color: activeTab === "1" ? "#6366f1" : "#ec4899",
-                }}>
-                  <Sparkles size={10} />
-                  {activeTab === "1" ? "Skill" : "Role"}
-                </span>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "15px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 28, height: 28, borderRadius: 6,
+                background: activeTab === "1" ? "rgba(99,102,241,0.10)" : "rgba(236,72,153,0.10)",
+                color: activeTab === "1" ? "#6366f1" : "#ec4899",
+                flexShrink: 0,
+              }}>
+                {activeTab === "1" ? <Award size={15} /> : <Briefcase size={15} />}
+              </span>
+              <span>
+                {isViewMode
+                  ? `${activeTab === "1" ? "Skill" : "Experience"} Details`
+                  : editingId
+                    ? `Edit ${activeTab === "1" ? "Skill" : "Experience"}`
+                    : `New ${activeTab === "1" ? "Skill" : "Experience"}`}
+              </span>
             </div>
           }
           width={560}
@@ -1064,101 +1161,134 @@ export default function SkillsPage() {
                   })()}
                 </div>
               ) : (
-                /* EXPERIENCE VIEW */
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  {/* HERO HEADER CARD */}
-                  <div 
-                    className="skl-view-hero-card" 
-                    style={{
-                      borderColor: "rgba(236,72,153,0.15)",
-                      background: "radial-gradient(135deg, rgba(236,72,153,0.06) 0%, rgba(236,72,153,0.02) 100%), var(--bg-slate-50)",
-                    }}
-                  >
-                    <div className="skl-view-hero-logo" style={{
-                      borderColor: "rgba(236,72,153,0.22)",
-                      boxShadow: "0 8px 24px -6px rgba(236,72,153,0.2)",
-                      background: "var(--bg-pure-white)"
+                /* EXPERIENCE VIEW — ENHANCED */
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+                  {/* ── HERO CARD ── */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                    padding: "20px",
+                    background: "var(--bg-pure-white)",
+                    border: "1px solid rgba(236,72,153,0.2)",
+                    borderRadius: 12,
+                    borderLeft: "4px solid #ec4899",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                    marginBottom: 0,
+                  }}>
+                    {/* avatar */}
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                      background: "rgba(236,72,153,0.08)",
+                      border: "1.5px solid rgba(236,72,153,0.18)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      <Briefcase size={26} color="#ec4899" />
+                      <Briefcase size={22} color="#ec4899" />
                     </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <h3 className="skl-view-main-name" style={{ margin: 0 }}>{viewedRecord.job_title}</h3>
-                        <span className="skl-view-status-badge" style={{
-                          background: viewedRecord.current_job ? "rgba(16,185,129,0.08)" : "var(--bg-slate-100)",
-                          color: viewedRecord.current_job ? "#10b981" : "var(--text-slate-400)",
-                          borderColor: viewedRecord.current_job ? "rgba(16,185,129,0.2)" : "var(--border-slate-100)"
-                        }}>
-                          <span className="skl-view-status-dot" style={{
-                            background: viewedRecord.current_job ? "#10b981" : "#cbd5e1"
-                          }} />
-                          {viewedRecord.current_job ? "Current Role" : "Previous Role"}
-                        </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                        <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.3 }}>
+                          {viewedRecord.job_title}
+                        </h2>
+                        {viewedRecord.current_job && (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            fontSize: "10.5px", fontWeight: 600,
+                            background: "rgba(16,185,129,0.08)", color: "#10b981",
+                            border: "1px solid rgba(16,185,129,0.2)", borderRadius: 20, padding: "2px 8px",
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                            Current
+                          </span>
+                        )}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                        <span className="skl-view-category-tag" style={{ background: "rgba(236,72,153,0.06)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.18)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <Building2 size={12} color="var(--text-slate-400)" />
+                        <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-slate-600)" }}>
                           {viewedRecord.company_name}
                         </span>
                         {viewedRecord.employment_type && (
-                          <span className="skl-type-pill" style={{ margin: 0 }}>
-                            <Layers size={10} /> {viewedRecord.employment_type.replace("-", " ")}
-                          </span>
+                          <>
+                            <span style={{ color: "var(--border-slate-200, #e2e8f0)", fontSize: 10 }}>•</span>
+                            <span style={{
+                              fontSize: "11px", fontWeight: 500, color: "#ec4899",
+                              background: "rgba(236,72,153,0.06)",
+                              border: "1px solid rgba(236,72,153,0.15)", borderRadius: 20, padding: "2px 8px",
+                            }}>
+                              {viewedRecord.employment_type.replace("-", " ")}
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* STATS GRID */}
-                  <div className="skl-view-grid">
-                    {/* Timeline Card */}
-                    <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: "#f59e0b" }}>
-                      <div>
-                        <span className="skl-view-card-label">Timeline & Tenure</span>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: "13px", color: "var(--text-slate-800)" }}>
-                            <Calendar size={13} color="#f59e0b" />
-                            {formatDateRange(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job)}
-                          </span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "11px", color: "var(--text-slate-500)", fontWeight: 500 }}>
-                            {viewedRecord.current_job ? <Activity size={10} /> : <Clock size={10} />}{" "}
-                            {formatTenure(tenureMonths(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job))}
-                            {viewedRecord.current_job && " (Active)"}
-                          </span>
-                        </div>
+                  {/* ── STAT STRIP ── */}
+                  <div style={{
+                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+                    background: "var(--bg-pure-white)",
+                    border: "1px solid var(--border-slate-100)",
+                    borderRadius: 12, overflow: "hidden",
+                    marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                  }}>
+                    <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border-slate-100)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <Calendar size={12} color="#f59e0b" />
+                        <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Period</span>
+                      </div>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.3 }}>
+                        {formatDateRange(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job)}
                       </div>
                     </div>
-
-                    {/* Location Card */}
-                    <div className="skl-view-card skl-view-card-premium" style={{ borderLeftColor: "#3b82f6" }}>
-                      <div>
-                        <span className="skl-view-card-label">Location</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-                          <div className="skl-view-card-icon-box" style={{ background: "rgba(59,130,246,0.08)", color: "#3b82f6" }}>
-                            <MapPin size={12} />
-                          </div>
-                          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-800)" }}>
-                            {viewedRecord.location || "Remote / —"}
-                          </span>
-                        </div>
+                    <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border-slate-100)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        {viewedRecord.current_job ? <Activity size={12} color="#10b981" /> : <Clock size={12} color="#6366f1" />}
+                        <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Tenure</span>
+                      </div>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                        {formatTenure(tenureMonths(viewedRecord.start_date, viewedRecord.end_date, viewedRecord.current_job)) || "—"}
+                        {viewedRecord.current_job && <span style={{ marginLeft: 4, fontSize: "10px", color: "#10b981", fontWeight: 600 }}>(active)</span>}
+                      </div>
+                    </div>
+                    <div style={{ padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <MapPin size={12} color="#3b82f6" />
+                        <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Location</span>
+                      </div>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                        {viewedRecord.location || "Remote / —"}
                       </div>
                     </div>
                   </div>
 
+                  {/* ── DESCRIPTION ── */}
                   {viewedRecord.description && (
-                    <div className="skl-view-section-box">
-                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Job Description</h4>
-                      <p className="skl-view-desc-paragraph" style={{ whiteSpace: "pre-line" }}>
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-slate-50, #f8fafc)", border: "1px solid var(--border-slate-100, #f1f5f9)", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                        <div style={{ width: 3, height: 16, borderRadius: 2, background: "#ec4899", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-slate-600, #475569)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Job Description</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "13px", color: "var(--text-slate-600, #475569)", lineHeight: 1.7, whiteSpace: "pre-line" }}>
                         {viewedRecord.description}
                       </p>
                     </div>
                   )}
 
+                  {/* ── RESPONSIBILITIES ── */}
                   {viewedRecord.responsibilities && viewedRecord.responsibilities.length > 0 && (
-                    <div className="skl-view-section-box">
-                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Key Responsibilities</h4>
-                      <ul style={{ paddingLeft: 18, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-slate-50, #f8fafc)", border: "1px solid var(--border-slate-100, #f1f5f9)", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <div style={{ width: 3, height: 16, borderRadius: 2, background: "#ec4899", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-slate-600, #475569)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Key Responsibilities</span>
+                      </div>
+                      <ul style={{ paddingLeft: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8, listStyle: "none" }}>
                         {viewedRecord.responsibilities.map((resp: string, idx: number) => (
-                          <li key={idx} className="skl-view-list-item">
+                          <li key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: "13px", color: "var(--text-slate-700, #334155)", lineHeight: 1.5 }}>
+                            <span style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(236,72,153,0.08)", color: "#ec4899", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                              {idx + 1}
+                            </span>
                             {resp}
                           </li>
                         ))}
@@ -1167,24 +1297,40 @@ export default function SkillsPage() {
                   )}
 
                   {viewedRecord.achievements && viewedRecord.achievements.length > 0 && (
-                    <div className="skl-view-section-box">
-                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#ec4899" }}>Notable Achievements</h4>
-                      <ul style={{ paddingLeft: 18, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-slate-50, #f8fafc)", border: "1px solid var(--border-slate-100, #f1f5f9)", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <div style={{ width: 3, height: 16, borderRadius: 2, background: "#f59e0b", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-slate-600, #475569)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Notable Achievements</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {viewedRecord.achievements.map((ach: string, idx: number) => (
-                          <li key={idx} className="skl-view-list-item">
+                          <div key={idx} style={{
+                            display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px",
+                            background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.12)",
+                            borderRadius: 8, fontSize: "13px", color: "var(--text-slate-700, #334155)", lineHeight: 1.5,
+                          }}>
+                            <Zap size={13} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
                             {ach}
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
                   {viewedRecord.skills_used && viewedRecord.skills_used.length > 0 && (
-                    <div className="skl-view-section-box">
-                      <h4 className="skl-view-section-title" style={{ borderLeftColor: "#6366f1" }}>Skills Used</h4>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-slate-50, #f8fafc)", border: "1px solid var(--border-slate-100, #f1f5f9)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                        <div style={{ width: 3, height: 16, borderRadius: 2, background: "#6366f1", flexShrink: 0 }} />
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-slate-600, #475569)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skills Used</span>
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {viewedRecord.skills_used.map((skill: string, idx: number) => (
-                          <span key={idx} className="skl-type-pill" style={{ background: "rgba(99,102,241,0.06)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.15)", margin: 0, padding: "4px 10px" }}>
+                          <span key={idx} style={{
+                            display: "inline-flex", alignItems: "center", gap: 5, fontSize: "11.5px", fontWeight: 600,
+                            background: "rgba(99,102,241,0.06)", color: "#6366f1",
+                            border: "1px solid rgba(99,102,241,0.15)", borderRadius: 20, padding: "4px 10px",
+                          }}>
+                            <Sparkles size={10} />
                             {skill}
                           </span>
                         ))}
@@ -1546,760 +1692,313 @@ export default function SkillsPage() {
 
         <style dangerouslySetInnerHTML={{
           __html: `
-          .skl-canvas {
-            margin: 0 -24px;
-            padding: 24px 32px 60px;
-            min-height: calc(100vh - 64px);
-            background: var(--bg-secondary);
-            font-family: 'Inter', -apple-system, sans-serif;
-          }
+        /* =========================================================
+           SHELL & SIDEBAR (Matching Proposals/ReportsHub)
+        ========================================================= */
+        .pp-shell {
+          display: flex;
+          margin: 0 -8px;
+          height: 100%;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
 
-          /* HEADER */
-          .skl-header {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 16px; flex-wrap: wrap;
-            padding: 10px 32px;
-            margin: -24px -32px 24px;
-            border-bottom: 1px solid var(--border-slate-100);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-          }
-          .skl-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
-          .skl-header-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: rgba(99,102,241,0.08);
-            color: #6366f1;
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-          }
-          .skl-header-text { display: flex; flex-direction: column; min-width: 0; }
-          .skl-header-title {
-            margin: 0 !important; font-size: 18px !important; font-weight: 800 !important;
-            color: var(--text-slate-900) !important; letter-spacing: -0.015em !important;
-            line-height: 1.2 !important;
-          }
-          .skl-header-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; margin-top: 2px; }
-          .skl-header-actions { display: flex; gap: 8px; align-items: center; }
-          .skl-search {
-            width: 240px;
-            border-radius: 10px !important;
-            border: 1px solid var(--border-slate-100) !important;
-            background: var(--bg-slate-50) !important;
-            font-size: 13px;
-            height: 36px;
-          }
-          .skl-search:hover, .skl-search:focus { border-color: rgba(99,102,241,0.3) !important; background: var(--bg-pure-white) !important; }
-          .skl-cta-btn {
-            height: 36px !important;
-            border-radius: 10px !important;
-            padding: 0 14px !important;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
-            color: #fff !important;
-            border: none !important;
-            font-weight: 700 !important;
-            font-size: 13px;
-            box-shadow: 0 6px 16px -4px rgba(99,102,241,0.45) !important;
-            display: inline-flex !important; align-items: center; gap: 6px;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
-          }
-          .skl-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -6px rgba(99,102,241,0.55) !important; }
+        .pp-sidebar {
+          width: 240px;
+          flex-shrink: 0;
+          border-right: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+          padding: 14px 14px 0;
+          position: relative;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+        .pp-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .pp-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .pp-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
+        .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .pp-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+        }
+        
+        .pp-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px; }
+        .pp-side-scroll::-webkit-scrollbar { width: 5px; }
+        .pp-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
+        .pp-side-section-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        }
+        .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
+        .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
+        .pp-view-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+          cursor: pointer; transition: background .12s ease; text-align: left;
+        }
+        .pp-view-item:hover { background: var(--bg-slate-50); }
+        .pp-view-item.is-active { background: var(--bg-blue-50); }
+        .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
+        .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .rh-proj-badge {
+          width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-100); color: var(--text-slate-600);
+        }
+        .rh-proj-badge.is-active { background: rgba(59,130,246,0.16); color: #3B82F6; }
+        
+        .pp-trash {
+          display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
+          margin: 0 -14px; padding: 0 22px; height: 52px !important;
+          border-top: 1px solid var(--border-slate-200);
+          background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500;
+          box-sizing: border-box;
+        }
 
-          /* STATS */
-          .skl-stats { margin-bottom: 18px !important; }
-          .skl-stat-tile {
-            position: relative;
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 16px;
-            padding: 14px 16px;
-            overflow: hidden;
-            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-          }
-          .skl-stat-tile:hover {
-            transform: translateY(-2px);
-            border-color: var(--border-slate-200);
-            box-shadow: 0 8px 20px -10px rgba(15,23,42,0.08);
-          }
-          .skl-stat-glow { position: absolute; inset: 0; pointer-events: none; }
-          .skl-stat-row { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-          .skl-stat-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-          .skl-stat-label { font-size: 10px; font-weight: 800; color: var(--text-slate-400); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
-          .skl-stat-value { font-size: 22px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.05; }
-          .skl-stat-text-ellipsis { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
-          .skl-stat-sub { font-size: 11px; color: var(--text-slate-500); font-weight: 600; margin-top: 6px; }
-          .skl-stat-icon {
-            width: 36px; height: 36px; border-radius: 11px;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #fff; flex-shrink: 0;
-          }
+        /* ---------------- Main ---------------- */
+        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100%; }
+        .pp-body { flex: 1 0 auto; margin-bottom: 20px; }
+        .rh-main-head { padding: 6px 0 10px; }
+        .rh-main-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .rh-main-title { font-size: 22px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-slate-900); line-height: 1.1; margin: 0; }
+        .rh-main-desc { margin: 6px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 820px; }
 
-          /* SEGMENTS */
-          .skl-segments { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-          .skl-segment {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 7px 14px;
-            border-radius: 999px;
-            border: 1px solid var(--border-slate-100);
-            background: var(--bg-pure-white);
-            color: var(--text-slate-500);
-            font-size: 12px; font-weight: 700; cursor: pointer;
-            transition: all 0.15s ease;
-          }
-          .skl-segment:hover:not(.is-active) {
-            background: var(--bg-slate-50);
-            border-color: var(--border-slate-200);
-            color: var(--text-slate-900);
-          }
-          .skl-segment.is-active { box-shadow: 0 1px 2px 0 rgba(15,23,42,0.04); }
-          .skl-segment-count {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 20px; height: 18px;
-            padding: 0 6px;
-            background: var(--bg-slate-50); color: var(--text-slate-500);
-            border-radius: 999px;
-            font-size: 10px; font-weight: 800;
-          }
+        .pp-topbar { display: flex; align-items: center; gap: 16px; margin-top: 14px; padding-bottom: 12px; }
+        .pp-search-wrap {
+          flex: 1; max-width: 340px; display: flex; align-items: center; height: 36px;
+          border: 1px solid var(--border-slate-200); border-radius: 9px; padding: 0 12px;
+          background: var(--bg-pure-white); transition: all 0.2s;
+        }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
+        .pp-search::placeholder { color: var(--text-slate-400); }
+        
+        .pp-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .pp-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-meta-dot { color: var(--text-slate-300); }
+        .pp-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
+        .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        
+        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
 
-          /* TABLE CARD */
-          .skl-table-card {
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px 0 rgba(15,23,42,0.02), 0 8px 24px -16px rgba(15,23,42,0.06);
-          }
-          .skl-table-head {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding: 16px 22px;
-            border-bottom: 1px solid var(--border-slate-100);
-          }
-          .skl-table-head-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-          .skl-table-icon {
-            width: 32px; height: 32px; border-radius: 9px;
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-          }
-          .skl-table-title { font-size: 14px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.005em; }
-          .skl-table-sub { font-size: 11.5px; color: var(--text-slate-500); margin-top: 2px; font-weight: 500; line-height: 1.4; }
-          .skl-filter-chip {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 4px 4px 4px 10px;
-            border-radius: 999px;
-            background: rgba(99,102,241,0.08);
-            color: #4f46e5;
-            border: 1px solid rgba(99,102,241,0.18);
-            font-size: 11px; font-weight: 700;
-          }
-          .skl-filter-chip button {
-            width: 18px; height: 18px;
-            border-radius: 50%;
-            background: rgba(99,102,241,0.18);
-            border: none; color: #4f46e5;
-            cursor: pointer; padding: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 13px; line-height: 1; font-weight: 700;
-          }
+        /* Stat cards */
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .pp-stat-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0px; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
+        }
+        .pp-stat-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon {
+          width: 24px; height: 24px; border-radius: 6px;
+          display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-500); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+        .pp-stat-value { font-size: 22px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1; }
 
-          /* TABLE CELLS */
-          .skl-table .ant-table { background: transparent; }
-          .skl-table .ant-table-thead > tr > th {
-            background: var(--bg-slate-50) !important;
-            color: var(--text-slate-400) !important;
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.06em !important;
-            border-bottom: 1px solid var(--border-slate-100) !important;
-            padding: 12px 18px !important;
-          }
-          .skl-table .ant-table-tbody > tr > td {
-            padding: 14px 18px !important;
-            border-bottom: 1px solid var(--bg-slate-50) !important;
-            transition: background 0.15s ease;
-          }
-          .skl-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
-          .skl-table .ant-table-cell-fix-right { background: var(--bg-pure-white) !important; transition: background 0.15s ease !important; }
-          .skl-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-right { background: var(--bg-slate-50) !important; }
-          .skl-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        /* Grid */
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pc-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          border-radius: 0px; padding: 16px; cursor: pointer; transition: all 0.2s;
+          display: flex; flex-direction: column; gap: 12px; position: relative;
+        }
+        .pc-card:hover { border-color: var(--border-slate-300); box-shadow: 0 4px 12px rgba(15,23,42,0.03); transform: translateY(-1px); }
+        .pc-top { display: flex; flex-direction: column; gap: 8px; }
+        .pc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+        .pc-type-badge {
+          display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 5px;
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+          background: var(--bg-slate-100); color: var(--text-slate-600);
+        }
+        .pc-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); line-height: 1.3; margin: 0; }
+        .pc-desc {
+          font-size: 13px; color: var(--text-slate-500); line-height: 1.5; margin: 0;
+          display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-foot { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border-slate-100); }
+        .pc-foot-meta { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
 
-          .skl-skill-cell { display: flex; align-items: center; gap: 12px; }
-          .skl-skill-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.06));
-            border: 1px solid rgba(99,102,241,0.16);
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #6366f1;
-            flex-shrink: 0; padding: 6px;
-            overflow: hidden;
-          }
-          .skl-skill-icon img { width: 100%; height: 100%; object-fit: contain; }
-          .skl-exp-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: linear-gradient(135deg, rgba(236,72,153,0.08), rgba(244,114,182,0.06));
-            border: 1px solid rgba(236,72,153,0.16);
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #ec4899;
-            flex-shrink: 0;
-          }
-          .skl-skill-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-          .skl-skill-name {
-            font-size: 13px; font-weight: 700; color: var(--text-slate-900);
-            display: inline-flex; align-items: center; gap: 6px;
-          }
-          .skl-skill-meta {
-            font-size: 11px; color: var(--text-slate-400);
-            font-weight: 600;
-            display: inline-flex; align-items: center; gap: 4px;
-          }
-          .skl-now-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: #10b981; position: relative; flex-shrink: 0;
-            box-shadow: 0 0 0 2px rgba(16,185,129,0.18);
-          }
-          .skl-now-pulse {
-            position: absolute; inset: -4px; border-radius: 50%;
-            background: rgba(16,185,129,0.35);
-            animation: sklPulse 1.6s ease-out infinite;
-          }
-          @keyframes sklPulse {
-            0% { transform: scale(0.8); opacity: 0.7; }
-            70% { transform: scale(1.6); opacity: 0; }
-            100% { transform: scale(1.6); opacity: 0; }
-          }
+        /* Dark theme overrides for Proposal card style */
+        [data-theme='dark'] .pc-card { background: #0B0F1A; border-color: #1e293b; }
+        [data-theme='dark'] .pc-card:hover { border-color: #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        [data-theme='dark'] .pc-type-badge { background: #1e293b; color: #cbd5e1; }
+        [data-theme='dark'] .pc-title { color: #ffffff; }
+        [data-theme='dark'] .pc-desc, [data-theme='dark'] .pc-foot-meta { color: #94a3b8; }
+        [data-theme='dark'] .pc-foot { border-top-color: #1e293b; }
 
-          .skl-prof-cell { display: flex; flex-direction: column; gap: 6px; }
-          .skl-prof-pill {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 9px; border-radius: 7px;
-            font-size: 10.5px; font-weight: 800;
-            letter-spacing: 0.03em; width: fit-content;
-            text-transform: uppercase;
-          }
-          .skl-prof-bar {
-            width: 100%; height: 4px; border-radius: 999px;
-            background: var(--bg-slate-50);
-            overflow: hidden;
-          }
-          .skl-prof-bar-fill {
-            height: 100%; border-radius: 999px;
-            transition: width 0.4s ease;
-          }
+        /* Empty state */
+        .pp-empty { text-align: center; padding: 60px 20px; background: var(--bg-slate-50); border: 1px dashed var(--border-slate-200); border-radius: 12px; }
+        .pp-empty-orb { width: 56px; height: 56px; border-radius: 16px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); display: flex; align-items: center; justify-content: center; color: var(--text-slate-400); margin: 0 auto 16px; }
+        .pp-empty-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); margin-bottom: 6px; }
+        .pp-empty-sub { font-size: 13px; color: var(--text-slate-500); }
 
-          .skl-years-pill, .skl-cert-pill, .skl-loc-pill, .skl-type-pill {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 3px 9px;
-            border-radius: 7px;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-            color: var(--text-slate-600);
-            font-size: 11px; font-weight: 700;
-            text-transform: capitalize;
-          }
-          .skl-cert-pill {
-            background: rgba(16,185,129,0.08);
-            color: #059669;
-            border-color: rgba(16,185,129,0.22);
-          }
-          .skl-loc-pill { background: rgba(99,102,241,0.06); color: #4f46e5; border-color: rgba(99,102,241,0.18); }
-          .skl-type-pill { background: rgba(139,92,246,0.06); color: #7c3aed; border-color: rgba(139,92,246,0.18); }
-          .skl-meta-text { font-size: 12px; color: var(--text-slate-400); font-weight: 500; }
+        /* Table */
+        .pp-table-wrap {
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0px; overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .pp-table .ant-table { background: transparent; font-size: 13px; }
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          color: var(--text-slate-600);
+          font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px;
+        }
+        .pp-table .ant-table-tbody > tr > td { padding: 12px 16px; border-bottom: 1px solid var(--border-slate-100); }
+        .pp-table .pp-row { transition: background 0.2s; cursor: pointer; }
+        .pp-table .pp-row:hover { background: var(--bg-slate-50); }
 
-          .skl-timeline-cell { display: flex; flex-direction: column; gap: 4px; }
-          .skl-timeline-range {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 12px; font-weight: 600; color: var(--text-slate-700);
-          }
-          .skl-timeline-range svg { color: var(--text-slate-400); }
-          .skl-timeline-tenure {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: 10.5px; font-weight: 700;
-            color: var(--text-slate-500);
-            text-transform: uppercase; letter-spacing: 0.03em;
-          }
-          .skl-timeline-tenure.is-active { color: #059669; }
+        /* Existing Skl table cell overrides */
+        .skl-skill-cell { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .skl-skill-icon {
+          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-500);
+        }
+        .skl-skill-icon img { width: 18px; height: 18px; object-fit: contain; }
+        .skl-skill-text { display: flex; flex-direction: column; min-width: 0; }
+        .skl-skill-name { font-size: 14px; font-weight: 600; color: var(--text-slate-900); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .skl-skill-meta { font-size: 12px; color: var(--text-slate-500); display: flex; align-items: center; gap: 4px; }
+        
+        .skl-prof-cell { display: flex; flex-direction: column; gap: 6px; }
+        .skl-prof-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; width: fit-content; text-transform: uppercase; letter-spacing: 0.03em; }
+        .skl-prof-bar { height: 4px; background: var(--bg-slate-100); border-radius: 2px; overflow: hidden; width: 140px; }
+        .skl-prof-bar-fill { height: 100%; border-radius: 2px; }
 
-          .skl-visibility { display: inline-flex; align-items: center; gap: 8px; }
-          .skl-vis-label { font-size: 11px; font-weight: 700; color: var(--text-slate-400); letter-spacing: 0.02em; }
-          .skl-vis-label.is-on { color: #10b981; }
+        .skl-exp-icon {
+          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.2); color: #ec4899;
+        }
 
-          .skl-row-actions { display: inline-flex; gap: 4px; align-items: center; justify-content: flex-end; }
-          .skl-icon-btn {
-            width: 28px; height: 28px; border-radius: 8px;
-            background: transparent; border: 1px solid transparent;
-            color: var(--text-slate-500);
-            cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center;
-            transition: all 0.15s ease;
-          }
-          .skl-icon-btn:hover { background: var(--bg-slate-50); border-color: var(--border-slate-100); color: #6366f1; }
-          .skl-icon-btn.skl-icon-danger:hover { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #dc2626; }
+        .skl-years-pill, .skl-type-pill, .skl-loc-pill {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-700);
+        }
+        .skl-cert-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: #10b981; }
+        
+        .skl-meta-text { color: var(--text-slate-400); font-size: 12.5px; }
 
-          /* EMPTY */
-          .skl-empty {
-            padding: 56px 24px; text-align: center;
-            display: flex; flex-direction: column; align-items: center;
-          }
-          .skl-empty-icon {
-            width: 64px; height: 64px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08));
-            color: #6366f1;
-            display: inline-flex; align-items: center; justify-content: center;
-            margin-bottom: 14px;
-          }
-          .skl-empty-title { font-size: 14px; font-weight: 800; color: var(--text-slate-900); margin-bottom: 4px; }
-          .skl-empty-sub { font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 16px; max-width: 340px; }
-          .skl-empty-cta {
-            height: 36px !important; border-radius: 10px !important; padding: 0 14px !important;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; color: #fff !important;
-            border: none !important; font-weight: 700 !important;
-            box-shadow: 0 4px 12px -2px rgba(99,102,241,0.4) !important;
-          }
+        .skl-visibility { display: flex; align-items: center; gap: 8px; }
+        .skl-vis-label { font-size: 12px; font-weight: 500; color: var(--text-slate-400); }
+        .skl-vis-label.is-on { color: var(--text-slate-700); }
 
-          /* DRAWER */
-          .skl-drawer .ant-drawer-header { padding: 0 !important; border-bottom: 1px solid var(--border-slate-100); }
-          .skl-drawer .ant-drawer-header-title { padding: 16px 24px; }
-          .skl-drawer .ant-drawer-body { padding: 22px 24px; background: var(--bg-pure-white); }
-          .skl-drawer .ant-drawer-footer { padding: 0; border-top: 1px solid var(--border-slate-100); background: var(--bg-pure-white); }
-          .skl-drawer-bg {
-            position: absolute; inset: 0; pointer-events: none;
-            background:
-              radial-gradient(60% 80% at 100% 0%, rgba(139,92,246,0.08) 0%, transparent 55%),
-              radial-gradient(60% 60% at 0% 100%, rgba(236,72,153,0.06) 0%, transparent 60%);
-          }
-          .skl-drawer-icon {
-            width: 42px; height: 42px; border-radius: 12px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: #fff; display: inline-flex; align-items: center; justify-content: center;
-            box-shadow: 0 6px 14px -4px rgba(99,102,241,0.45);
-            flex-shrink: 0;
-          }
-          .skl-drawer-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.01em; }
-          .skl-drawer-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; margin-top: 2px; }
-          .skl-drawer-badge {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 9px; border-radius: 999px;
-            background: rgba(99,102,241,0.1); color: #6366f1;
-            border: 1px solid rgba(99,102,241,0.22);
-            font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
-            flex-shrink: 0;
-          }
-          .skl-drawer-footer {
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            padding: 14px 24px;
-          }
-          .skl-drawer-footer-hint {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-size: 11px; color: var(--text-slate-400); font-weight: 600;
-          }
-          .skl-drawer-footer-hint svg { color: #10b981; }
-          .skl-btn-cancel {
-            border-radius: 10px !important;
-            height: 38px !important;
-            font-weight: 600 !important;
-            padding: 0 18px !important;
-          }
+        .skl-row-actions { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+        .skl-icon-btn {
+          width: 28px; height: 28px; border-radius: 6px; border: 1px solid transparent; background: transparent;
+          color: var(--text-slate-400); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
+        }
+        .skl-icon-btn:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); color: var(--text-slate-700); }
+        .skl-icon-danger:hover { background: #fef2f2; border-color: #fca5a5; color: #ef4444; }
 
-          /* SECTION CARDS */
-          .skl-section-card {
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 14px;
-            transition: border-color 0.15s ease;
-          }
-          .skl-section-card:hover { border-color: var(--border-slate-200); }
-          .skl-section-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
-          .skl-section-step {
-            width: 28px; height: 28px; border-radius: 8px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 800; flex-shrink: 0;
-          }
-          .skl-section-row { display: flex; align-items: center; gap: 6px; }
-          .skl-section-title { font-size: 12.5px; font-weight: 800; color: var(--text-slate-900); text-transform: uppercase; letter-spacing: 0.04em; }
-          .skl-section-sub { font-size: 11px; color: var(--text-slate-400); font-weight: 500; display: block; line-height: 1.4; }
+        .skl-timeline-cell { display: flex; flex-direction: column; gap: 4px; }
+        .skl-timeline-range { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        .skl-timeline-tenure { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-400); text-transform: uppercase; letter-spacing: 0.05em; }
+        .skl-timeline-tenure.is-active { color: #10b981; }
 
-          .skl-form-label { font-size: 12px; font-weight: 700; color: var(--text-slate-700); }
-          .skl-drawer-form .ant-input,
-          .skl-drawer-form .ant-input-affix-wrapper,
-          .skl-drawer-form .ant-input-number,
-          .skl-drawer-form .ant-select-selector,
-          .skl-drawer-form .ant-picker {
-            border-radius: 10px !important;
-            border-color: var(--border-slate-200) !important;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-          }
-          .skl-drawer-form .ant-input:focus,
-          .skl-drawer-form .ant-input-affix-wrapper-focused,
-          .skl-drawer-form .ant-select-focused .ant-select-selector,
-          .skl-drawer-form .ant-picker-focused {
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
-          }
+        .skl-now-dot { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; width: 6px; height: 6px; }
+        .skl-now-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); animation: sklPulse 2s infinite; }
+        @keyframes sklPulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        }
 
-          .skl-toggle-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-          }
-          .skl-toggle-text { display: flex; flex-direction: column; gap: 2px; }
-          .skl-toggle-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-slate-900); }
-          .skl-toggle-sub { font-size: 11px; color: var(--text-slate-500); font-weight: 500; }
+        /* ---------------- Drawer Styles ---------------- */
+        .skl-drawer .ant-drawer-content { background: var(--bg-pure-white); }
+        .skl-drawer .ant-drawer-header { border-bottom: none; padding: 0; }
+        .skl-drawer .ant-drawer-body { padding: 24px; background: var(--bg-slate-50); }
+        .skl-drawer .ant-drawer-close { display: none; }
+        
+        .skl-drawer-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(99,102,241,0.05), transparent 60%); }
+        .skl-drawer-icon {
+          width: 42px; height: 42px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .skl-drawer-title { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.2; }
+        .skl-drawer-sub { font-size: 13px; color: var(--text-slate-500); margin-top: 2px; }
+        .skl-drawer-badge {
+          display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px;
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+        }
 
-          .skl-drawer-note {
-            display: flex; gap: 10px; align-items: center;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(236,72,153,0.04));
-            border: 1px solid rgba(99,102,241,0.18);
-            margin-top: 14px;
-          }
-          .skl-drawer-note-icon {
-            width: 26px; height: 26px; border-radius: 8px;
-            background: rgba(99,102,241,0.14); color: #6366f1;
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-          }
-          .skl-drawer-note-text { font-size: 11.5px; color: var(--text-slate-700); line-height: 1.5; font-weight: 500; }
+        .skl-drawer-footer { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .skl-drawer-footer-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-slate-400); font-weight: 500; }
+        
+        .skl-btn-cancel { height: 36px; border-radius: 8px; font-weight: 600; color: var(--text-slate-600); border-color: var(--border-slate-200); }
+        .skl-btn-cancel:hover { background: var(--bg-slate-50); color: var(--text-slate-900); border-color: var(--border-slate-300); }
+        
+        .skl-cta-btn {
+          height: 36px; border-radius: 8px; font-weight: 600; font-size: 13px;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          box-shadow: 0 2px 4px rgba(59,130,246,0.15) !important;
+        }
 
-          /* ENHANCED VIEW DETAILS */
-          .skl-view-hero-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 20px;
-            border-radius: 14px;
-            border: 1px solid var(--border-slate-100);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.01);
-          }
-          .skl-view-hero-logo {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            border: 1px solid var(--border-slate-100);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-          }
-          .skl-view-status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-            border: 1px solid transparent;
-          }
-          .skl-view-status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
-          }
-          .skl-view-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
-          }
-          .skl-view-card {
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 106px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
-            transition: border-color 0.2s ease;
-            --dot-inactive: var(--border-slate-100);
-          }
-          .skl-view-card:hover {
-            border-color: var(--border-slate-200);
-          }
-          .skl-view-card-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-slate-400);
-          }
-          .skl-view-card-premium {
-            border-left: 3px solid #ddd;
-          }
-          .skl-view-card-icon-box {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .skl-view-segments {
-            display: flex;
-            gap: 6px;
-            width: 100%;
-          }
-          .skl-view-segment-dot {
-            flex: 1;
-            height: 6px;
-            border-radius: 999px;
-            transition: background-color 0.2s ease;
-          }
-          .skl-view-certs-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            margin-top: 10px;
-          }
-          .skl-view-cert-card {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px;
-            border-radius: 10px;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-          }
-          .skl-view-section-box {
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
-          }
-          .skl-view-section-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: var(--text-slate-800);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding-left: 8px;
-            border-left: 3px solid #6366f1;
-            margin: 0 0 12px 0;
-            line-height: 1.2;
-          }
-          .skl-view-desc-paragraph {
-            font-size: 13px;
-            color: var(--text-slate-600);
-            line-height: 1.6;
-            margin: 0;
-          }
-          .skl-view-list-item {
-            color: var(--text-slate-700);
-            font-size: 13px;
-            line-height: 1.55;
-          }
-          .skl-view-cert-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: rgba(16,185,129,0.08);
-            color: #10b981;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-          }
-          .skl-view-cert-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-slate-800);
-            line-height: 1.4;
-          }
-          .skl-view-cert-badge {
-            font-size: 10px;
-            font-weight: 600;
-            color: #10b981;
-            background: rgba(16,185,129,0.06);
-            padding: 1px 6px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-          }
-          .skl-view-empty-state {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 20px;
-            color: var(--text-slate-400);
-            font-size: 12px;
-            font-weight: 500;
-            border: 1px dashed var(--border-slate-100);
-            border-radius: 10px;
-            margin-top: 10px;
-          }
+        .skl-section-card {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; padding: 20px; margin-bottom: 16px;
+        }
+        .skl-section-title { font-size: 14px; font-weight: 700; color: var(--text-slate-900); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .skl-section-sub { font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 20px; }
+        
+        .skl-form-label { font-size: 12px; font-weight: 600; color: var(--text-slate-700); margin-bottom: 6px; display: block; }
+        
+        .skl-drawer-form .ant-input,
+        .skl-drawer-form .ant-input-affix-wrapper,
+        .skl-drawer-form .ant-input-number,
+        .skl-drawer-form .ant-select-selector,
+        .skl-drawer-form .ant-picker {
+          border-radius: 8px;
+        }
 
-          /* RESPONSIVE */
-          @media (max-width: 1024px) {
-            .skl-header {
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 12px;
-            }
-            .skl-header-left {
-              width: 100%;
-            }
-            .skl-header-actions {
-              width: 100%;
-              justify-content: flex-start;
-              gap: 10px;
-            }
-            .skl-view-grid {
-              grid-template-columns: 1fr;
-              gap: 12px;
-            }
-            .skl-table-head {
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 10px;
-              padding: 14px 16px;
-            }
-            .skl-table-head-left {
-              width: 100%;
-            }
-          }
+        .skl-toggle-row {
+          display: flex; align-items: center; justify-content: space-between; padding: 16px;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; margin-bottom: 16px;
+        }
+        .skl-toggle-info { flex: 1; padding-right: 16px; }
+        .skl-toggle-title { font-size: 14px; font-weight: 600; color: var(--text-slate-900); margin-bottom: 2px; }
+        .skl-toggle-sub { font-size: 12.5px; color: var(--text-slate-500); }
+        
+        /* View specific details in drawer */
+        .skl-view-details { padding-bottom: 16px; }
+        .skl-view-section-box { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; padding: 20px; }
+        .skl-view-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-900); margin-bottom: 12px; }
+        .skl-view-desc-paragraph { font-size: 14px; color: var(--text-slate-700); line-height: 1.6; margin: 0; }
+        .skl-view-list-item { font-size: 14px; color: var(--text-slate-700); padding: 8px 0; border-bottom: 1px solid var(--border-slate-100); display: flex; align-items: center; gap: 10px; }
+        .skl-view-list-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .skl-view-empty-state { text-align: center; padding: 20px; color: var(--text-slate-500); font-size: 13px; font-style: italic; border: 1px dashed var(--border-slate-200); border-radius: 8px; }
 
-          @media (max-width: 768px) {
-            .skl-canvas {
-              margin: 0 -16px;
-              padding: 24px 16px 40px;
-            }
-            .skl-header {
-              padding: 16px;
-              margin: -24px -16px 14px;
-            }
-          }
-
-          @media (max-width: 576px) {
-            .skl-header-actions {
-              flex-direction: column;
-              align-items: stretch;
-              gap: 8px;
-            }
-            .skl-search {
-              width: 100% !important;
-            }
-            .skl-cta-btn {
-              width: 100% !important;
-              justify-content: center !important;
-            }
-            .skl-drawer .ant-drawer-content-wrapper {
-              width: 100% !important;
-            }
-            .skl-drawer .ant-drawer-body {
-              padding: 16px !important;
-            }
-            .skl-drawer .ant-drawer-footer {
-              padding: 12px 16px !important;
-            }
-            .skl-view-hero-card {
-              padding: 12px 14px !important;
-              gap: 12px !important;
-            }
-            .skl-view-hero-logo {
-              width: 48px !important;
-              height: 48px !important;
-            }
-            .skl-view-main-name {
-              font-size: 16px !important;
-            }
-          }
-
-          /* DARK */
-          [data-theme='dark'] .skl-canvas { background: #0d1117 !important; }
-          [data-theme='dark'] .skl-header { border-bottom-color: #30363d !important; background: rgba(13, 17, 23, 0.85) !important; }
-          [data-theme='dark'] .skl-header-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-header-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-header-icon { background: rgba(99,102,241,0.14) !important; color: #818cf8 !important; }
-          [data-theme='dark'] .skl-search { background: #0d1117 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-stat-tile { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-stat-tile:hover { border-color: #3d444d !important; }
-          [data-theme='dark'] .skl-stat-value { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-stat-label { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-stat-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-segment { background: #161b22 !important; border-color: #30363d !important; color: #8b949e !important; }
-          [data-theme='dark'] .skl-segment:hover:not(.is-active) { background: #1c2128 !important; color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-segment-count { background: #0d1117 !important; color: #8b949e !important; }
-          [data-theme='dark'] .skl-table-card { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-table-head { border-bottom-color: #30363d !important; }
-          [data-theme='dark'] .skl-table-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-table-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-table .ant-table-thead > tr > th { background: #0d1117 !important; color: #6e7681 !important; border-bottom-color: #30363d !important; }
-          [data-theme='dark'] .skl-table .ant-table-tbody > tr > td { border-bottom-color: #21262d !important; color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-table .ant-table-tbody > tr:hover > td { background: #1c2128 !important; }
-          [data-theme='dark'] .skl-table .ant-table-cell-fix-right { background: #161b22 !important; }
-          [data-theme='dark'] .skl-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-right { background: #1c2128 !important; }
-          [data-theme='dark'] .skl-skill-name { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-skill-meta { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-skill-icon { background: rgba(99,102,241,0.12) !important; border-color: rgba(99,102,241,0.28) !important; color: #818cf8 !important; }
-          [data-theme='dark'] .skl-exp-icon { background: rgba(236,72,153,0.12) !important; border-color: rgba(236,72,153,0.28) !important; color: #f472b6 !important; }
-          [data-theme='dark'] .skl-prof-bar { background: #0d1117 !important; }
-          [data-theme='dark'] .skl-years-pill, [data-theme='dark'] .skl-type-pill, [data-theme='dark'] .skl-loc-pill { background: #0d1117 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-meta-text { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-timeline-range { color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-icon-btn { color: #8b949e !important; }
-          [data-theme='dark'] .skl-icon-btn:hover { background: #1c2128 !important; border-color: #30363d !important; color: #818cf8 !important; }
-          [data-theme='dark'] .skl-empty-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-empty-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-drawer .ant-drawer-content { background: #161b22 !important; }
-          [data-theme='dark'] .skl-drawer .ant-drawer-body { background: #161b22 !important; }
-          [data-theme='dark'] .skl-drawer .ant-drawer-header { border-bottom-color: #30363d !important; }
-          [data-theme='dark'] .skl-drawer .ant-drawer-footer { background: #161b22 !important; border-top-color: #30363d !important; }
-          [data-theme='dark'] .skl-drawer-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-drawer-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-section-card { background: #0d1117 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-section-card:hover { border-color: #3d444d !important; }
-          [data-theme='dark'] .skl-section-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-section-sub { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-form-label { color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-drawer-form .ant-input,
-          [data-theme='dark'] .skl-drawer-form .ant-input-affix-wrapper,
-          [data-theme='dark'] .skl-drawer-form .ant-input-number,
-          [data-theme='dark'] .skl-drawer-form .ant-select-selector,
-          [data-theme='dark'] .skl-drawer-form .ant-picker {
-            background: #0d1117 !important;
-            border-color: #30363d !important;
-            color: #c9d1d9 !important;
-          }
-          [data-theme='dark'] .skl-toggle-row { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-toggle-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-toggle-sub { color: #8b949e !important; }
-          [data-theme='dark'] .skl-drawer-note { background: rgba(99,102,241,0.08) !important; border-color: rgba(99,102,241,0.25) !important; }
-          [data-theme='dark'] .skl-drawer-note-text { color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-drawer-footer-hint { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-btn-cancel { background: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
-          
-          /* Dark mode overrides for enhanced Skill Details */
-          [data-theme='dark'] .skl-view-card { background: #161b22 !important; border-color: #30363d !important; --dot-inactive: #30363d !important; }
-          [data-theme='dark'] .skl-view-card:hover { border-color: #3d444d !important; }
-          [data-theme='dark'] .skl-view-card-label { color: #6e7681 !important; }
-          [data-theme='dark'] .skl-view-card-value { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-view-hero-card { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-view-hero-logo { background: #0d1117 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-view-cert-card { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-view-cert-name { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-view-empty-state { border-color: #30363d !important; color: #6e7681 !important; }
-          [data-theme='dark'] .skl-view-section-box { background: #161b22 !important; border-color: #30363d !important; }
-          [data-theme='dark'] .skl-view-section-title { color: #f0f6fc !important; }
-          [data-theme='dark'] .skl-view-desc-paragraph { color: #c9d1d9 !important; }
-          [data-theme='dark'] .skl-view-list-item { color: #c9d1d9 !important; }
-          `,
+        /* Zero border-radius for drawer inputs and section cards */
+        .ant-input, .ant-input-affix-wrapper, .ant-select-selector,
+        .ant-picker, .ant-input-number, .ant-input-textarea { border-radius: 0 !important; }
+        .skl-section-card { border-radius: 0 !important; }
+        .skl-view-section-box { border-radius: 0 !important; }
+        .skl-view-empty-state { border-radius: 0 !important; }
+        .ant-btn { border-radius: 8px !important; }
+        
+        `
         }} />
       </MainLayout>
     </ProtectedRoute>

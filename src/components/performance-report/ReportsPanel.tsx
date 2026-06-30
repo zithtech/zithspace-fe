@@ -47,13 +47,13 @@ const SECTIONS: ReadonlyArray<{
   icon: React.ReactNode;
   color: string;
 }> = [
-  { key: 'overview', label: 'Overview', icon: <Gauge size={16} />, color: '#0EA5E9' },
-  { key: 'tickets', label: 'Tickets', icon: <Ticket size={16} />, color: '#EC4899' },
-  { key: 'time_tracking', label: 'Time Tracking', icon: <Timer size={16} />, color: '#F59E0B' },
-  { key: 'daily_updates', label: 'Daily Updates', icon: <NotebookPen size={16} />, color: '#8B5CF6' },
-  { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={16} />, color: '#3B82F6' },
-  { key: 'leaves', label: 'Leaves', icon: <Plane size={16} />, color: '#10B981' },
-];
+    { key: 'overview', label: 'Overview', icon: <Gauge size={16} />, color: '#0EA5E9' },
+    { key: 'tickets', label: 'Tickets', icon: <Ticket size={16} />, color: '#EC4899' },
+    { key: 'time_tracking', label: 'Time Tracking', icon: <Timer size={16} />, color: '#F59E0B' },
+    { key: 'daily_updates', label: 'Daily Updates', icon: <NotebookPen size={16} />, color: '#8B5CF6' },
+    { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={16} />, color: '#3B82F6' },
+    { key: 'leaves', label: 'Leaves', icon: <Plane size={16} />, color: '#10B981' },
+  ];
 
 // In-month performance report — Tickets slice. Pick a project, member and date
 // range, then "View Report" lists every ticket the member logged time on within
@@ -229,7 +229,7 @@ export default function ReportsPanel() {
           }))
         );
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Fetch with EXPLICIT filters (no closure on state) so the auto-run can never
@@ -331,10 +331,10 @@ export default function ReportsPanel() {
     points.avg === null
       ? '#94a3b8'
       : points.avg >= 90
-      ? '#059669'
-      : points.avg >= 75
-      ? '#b45309'
-      : '#dc2626';
+        ? '#059669'
+        : points.avg >= 75
+          ? '#b45309'
+          : '#dc2626';
 
   // Time Tracking score from the surfaced average (6h/day = 100).
   const ttPoints = ttStats ? timeTrackingPoints(ttStats.avgSeconds / 3600) : null;
@@ -433,9 +433,9 @@ export default function ReportsPanel() {
             </Button>
           </Dropdown>
 
-          <Button type="primary" icon={<FileSearchOutlined />} loading={loading} onClick={run}>
+          {/* <Button type="primary" icon={<FileSearchOutlined />} loading={loading} onClick={run}>
             View Report
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -579,66 +579,66 @@ export default function ReportsPanel() {
               />
             ) : (
               <>
-            <div className="prr-statbar">
-              <div className="prr-stat prr-stat--points">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num" style={{ color: pointsColor }}>
-                    {points.avg ?? '—'}
-                  </span>
-                  {points.avg !== null && <span className="prr-pts-max">/ 100</span>}
+                <div className="prr-statbar">
+                  <div className="prr-stat prr-stat--points">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num" style={{ color: pointsColor }}>
+                        {points.avg ?? '—'}
+                      </span>
+                      {points.avg !== null && <span className="prr-pts-max">/ 100</span>}
+                    </div>
+                    <div className="prr-stat-label">
+                      Avg points{points.scored ? ` · ${points.scored} scored` : ''}
+                    </div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.total}</span>
+                      <span className="prr-pct prr-pct--slate">100%</span>
+                    </div>
+                    <div className="prr-stat-label">Total tickets</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.onTime}</span>
+                      <span className="prr-pct prr-pct--green">{stats.onTimePct}%</span>
+                    </div>
+                    <div className="prr-stat-label">On-time completed</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.delayed}</span>
+                      <span className="prr-pct prr-pct--red">{stats.delayedPct}%</span>
+                    </div>
+                    <div className="prr-stat-label">Delayed</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.notTracked}</span>
+                      <span className="prr-pct prr-pct--amber">{stats.notTrackedPct}%</span>
+                    </div>
+                    <div className="prr-stat-label">Not tracked</div>
+                  </div>
+                  <div className="prr-statbar-caption">
+                    <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
+                    {rangeLabel}
+                  </div>
                 </div>
-                <div className="prr-stat-label">
-                  Avg points{points.scored ? ` · ${points.scored} scored` : ''}
-                </div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.total}</span>
-                  <span className="prr-pct prr-pct--slate">100%</span>
-                </div>
-                <div className="prr-stat-label">Total tickets</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.onTime}</span>
-                  <span className="prr-pct prr-pct--green">{stats.onTimePct}%</span>
-                </div>
-                <div className="prr-stat-label">On-time completed</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.delayed}</span>
-                  <span className="prr-pct prr-pct--red">{stats.delayedPct}%</span>
-                </div>
-                <div className="prr-stat-label">Delayed</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.notTracked}</span>
-                  <span className="prr-pct prr-pct--amber">{stats.notTrackedPct}%</span>
-                </div>
-                <div className="prr-stat-label">Not tracked</div>
-              </div>
-              <div className="prr-statbar-caption">
-                <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
-                {rangeLabel}
-              </div>
-            </div>
-            <TimelineTree
-              tickets={tickets as any}
-              hideToolbar
-              onPointsInfo={() => setPointsHelpOpen(true)}
-              pointsOf={(t: any) =>
-                ticketPoints(
-                  {
-                    status: t.status,
-                    estimateHours: t.estimateHours ?? 0,
-                    trackedSeconds: t.trackedSeconds ?? 0,
-                  },
-                  statusMarks
-                )
-              }
-            />
+                <TimelineTree
+                  tickets={tickets as any}
+                  hideToolbar
+                  onPointsInfo={() => setPointsHelpOpen(true)}
+                  pointsOf={(t: any) =>
+                    ticketPoints(
+                      {
+                        status: t.status,
+                        estimateHours: t.estimateHours ?? 0,
+                        trackedSeconds: t.trackedSeconds ?? 0,
+                      },
+                      statusMarks
+                    )
+                  }
+                />
               </>
             )}
           </>

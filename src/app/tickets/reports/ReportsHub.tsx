@@ -240,14 +240,14 @@ export default function ReportsHub() {
       gen.length === 0
         ? 0
         : Math.round(
-            gen.reduce((s, r) => s + (r.healthScore ?? 0), 0) / gen.length
-          );
+          gen.reduce((s, r) => s + (r.healthScore ?? 0), 0) / gen.length
+        );
     const avgCompletion =
       gen.length === 0
         ? 0
         : Math.round(
-            gen.reduce((s, r) => s + (r.completionPct ?? 0), 0) / gen.length
-          );
+          gen.reduce((s, r) => s + (r.completionPct ?? 0), 0) / gen.length
+        );
     const ticketsShipped = gen.reduce((s, r) => s + (r.completedTickets ?? 0), 0);
 
     // 7-day trend of reports generated per day.
@@ -283,16 +283,16 @@ export default function ReportsHub() {
         prev.map((r) =>
           r.sprintId === sprintId
             ? {
-                ...r,
-                hasReport: true,
-                healthScore: summary.healthScore,
-                healthBand: summary.healthBand,
-                completionPct: summary.completionPct,
-                totalTickets: summary.totalTickets,
-                completedTickets: summary.completedTickets,
-                generatedAt: summary.generatedAt,
-                generatedById: summary.generatedById,
-              }
+              ...r,
+              hasReport: true,
+              healthScore: summary.healthScore,
+              healthBand: summary.healthBand,
+              completionPct: summary.completionPct,
+              totalTickets: summary.totalTickets,
+              completedTickets: summary.completedTickets,
+              generatedAt: summary.generatedAt,
+              generatedById: summary.generatedById,
+            }
             : r
         )
       );
@@ -820,7 +820,8 @@ export default function ReportsHub() {
         .pp-shell {
           display: flex;
           margin: 0 -8px;
-          min-height: calc(100vh - 64px);
+          height: 100%;
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
 
@@ -833,9 +834,10 @@ export default function ReportsHub() {
           display: flex;
           flex-direction: column;
           padding: 14px 14px 0;
-          position: sticky;
-          top: 0;
-          height: calc(100vh - 54px);
+          position: relative;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         .pp-side-head {
           display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
@@ -897,7 +899,7 @@ export default function ReportsHub() {
         .pp-trash .anticon { font-size: 15px; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100%; }
         .pp-body { flex: 1 0 auto; }
         .rh-main-head { padding: 6px 0 10px; }
         .rh-main-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

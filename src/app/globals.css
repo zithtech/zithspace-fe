@@ -26487,4 +26487,20 @@ select:-webkit-autofill:focus {
 .es-drawer, .es-drawer *,
 .dm-drawer, .dm-drawer * {
   border-radius: 0 !important;
-}
+}
+
+/* Skills & Experience drawer — section head layout */
+.skl-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* Icon + title on the same line */
+.skl-section-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+

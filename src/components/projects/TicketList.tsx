@@ -2039,21 +2039,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           onConfirm={() => handleDeleteTicket(record.id)}
                         >
                           <div 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '8px', 
-                              margin: '-5px -12px', 
-                              padding: '5px 12px',
-                              width: 'calc(100% + 24px)',
-                              height: '100%' 
-                            }}
+                            className="tl-menu-item"
                             onClick={(e) => {
                               e.stopPropagation();
                             }}
                           >
-                            <DeleteOutlined style={{ fontSize: '14px' }} />
-                            <span>Delete Ticket</span>
+                            <span className="tl-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>
+                              <DeleteOutlined />
+                            </span>
+                            <span className="tl-menu-text">
+                              <span className="tl-menu-title">Delete Ticket</span>
+                              <span className="tl-menu-desc">Move to trash</span>
+                            </span>
                           </div>
                         </ConfirmDialog>
                       )
@@ -2281,6 +2278,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           overflow-y: auto;
           overflow-x: auto;
           margin: 0;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .pp-table-wrap::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-body::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-content::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+        }
+        .pp-table-wrap .ant-table-body,
+        .pp-table-wrap .ant-table-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
         [data-theme='dark'] .pp-table-wrap {
           background: #0f1419;
@@ -4832,68 +4843,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </Tag>
                       </div>
                       <Space size={8}>
-                        <Select
-                          mode="multiple"
-                          placeholder="Filter Status"
-                          style={{ width: 140 }}
-                          value={backlogStatusFilter}
-                          onChange={setBacklogStatusFilter}
-                          options={finalStatusOptions}
-                          allowClear
-                          maxTagCount={1}
-                          size="small"
-                          className="saas-select-minimal"
-                        />
-                        {backlogSelectedRowKeys.length > 0 && (
-                          <Space size={8}>
-                            {canManageTickets && (
-                              <Button
-                                type="primary"
-                                size="small"
-                                icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                                onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
-                                style={{
-                                  background: 'var(--premium-blue)',
-                                  borderColor: 'var(--premium-blue)',
-                                  fontWeight: 800,
-                                  height: 24,
-                                  fontSize: 10,
-                                  borderRadius: 4,
-                                  textTransform: 'uppercase'
-                                }}
-                              >
-                                Move to Archive
-                              </Button>
-                            )}
-                            {canDeleteTicket && (
-                              <ConfirmDialog
-                                tone="danger"
-                                icon={<DeleteOutlined />}
-                                title="Move to Trash?"
-                                description={`Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`}
-                                confirmText="Delete"
-                                cancelText="Cancel"
-                                placement="bottomRight"
-                                onConfirm={() => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])}
-                              >
-                                <Button
-                                  danger
-                                  size="small"
-                                  icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                                  style={{
-                                    fontWeight: 800,
-                                    height: 24,
-                                    fontSize: 10,
-                                    borderRadius: 4,
-                                    textTransform: 'uppercase'
-                                  }}
-                                >
-                                  Delete
-                                </Button>
-                              </ConfirmDialog>
-                            )}
-                          </Space>
-                        )}
                         <Input
                           placeholder="Search backlog..."
                           prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}

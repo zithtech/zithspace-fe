@@ -189,7 +189,10 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
               variant="filled"
               style={inputStyle}
               value={data.title}
-              onChange={(e) => handleUpdate({ title: e.target.value })}
+              onChange={(e) => {
+                const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+                handleUpdate({ title: cleanVal });
+              }}
             />
           </Form.Item>
         </div>
@@ -289,8 +292,9 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
                   style={inputStyle}
                   value={phase.title}
                   onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                     const newPhases = [...data.phases];
-                    newPhases[index] = { ...phase, title: e.target.value };
+                    newPhases[index] = { ...phase, title: cleanVal };
                     handleUpdate({ phases: newPhases });
                   }}
                 />

@@ -13,6 +13,7 @@ import {
   Modal,
   DatePicker,
   Avatar,
+  Popconfirm,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -142,8 +143,8 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase();
 
-export default function ProposalsListPage() {
-  useActivitySource({ section: 'WORK', module: 'Proposals', page: 'ProposalList' });
+export default function ProposalsTrashPage() {
+  useActivitySource({ section: 'WORK', module: 'Proposals', page: 'ProposalTrash' });
   const { user, isLoading } = useAuth();
   const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
   const router = useRouter();
@@ -293,7 +294,7 @@ export default function ProposalsListPage() {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const data = await ProposalService.getProposals();
+      const data = await ProposalService.getTrashedProposals();
       if (Array.isArray(data)) setProposals(data);
       else if (data && Array.isArray(data.data)) setProposals(data.data);
       else setProposals([]);
@@ -326,12 +327,35 @@ export default function ProposalsListPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await ProposalService.deleteProposal(id);
-      messageApi.success('Moved to trash');
+      await ProposalService.hardDeleteProposal(id);
+      messageApi.success('Proposal permanently deleted');
       fetchProposals();
     } catch (err) {
       console.error('Delete error:', err);
-      messageApi.error('Failed to move to trash');
+      messageApi.error('Failed to permanently delete proposal');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await ProposalService.restoreProposal(id);
+      messageApi.success('Proposal restored');
+      fetchProposals();
+    } catch (err) {
+      console.error('Restore error:', err);
+      messageApi.error('Failed to restore proposal');
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    if (!canDeleteProposal) return;
+    try {
+      await ProposalService.emptyTrash();
+      messageApi.success('Trash emptied');
+      fetchProposals();
+    } catch (err) {
+      console.error('Empty trash error:', err);
+      messageApi.error('Failed to empty trash');
     }
   };
 
@@ -566,10 +590,7 @@ export default function ProposalsListPage() {
   }, [proposals]);
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'all', label: 'All proposals', icon: <FolderOutlined />, color: '#3B82F6' },
-    { key: 'mine', label: 'My proposals', icon: <UserOutlined />, color: '#64748B' },
-    { key: 'sent', label: 'Sent', icon: <GlobalOutlined />, color: '#10B981' },
-    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
+    { key: 'all', label: 'All trashed', icon: <RestOutlined />, color: '#ef4444' },
   ];
 
   // ─── Premium row/card action menu (shared by table + cards) ─────────────────
@@ -586,12 +607,7 @@ export default function ProposalsListPage() {
   const actionMenu = (p: any) => ({
     className: 'pp-action-menu',
     items: [
-      { key: 'view', label: menuLabel('View proposal', 'Open the full view', <EyeOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
-      { key: 'edit', disabled: !canUpdateProposal, label: menuLabel('Edit', 'Open in the builder', <EditOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
-      { key: 'template', disabled: !canCreateProposal, label: menuLabel('Save as Template', 'Reuse this layout', <SnippetsOutlined />, '#059669', 'rgba(5,150,105,0.12)') },
-      { type: 'divider' as const },
-      { key: 'pdf', label: menuLabel('Export PDF', 'Download as .pdf', <FilePdfOutlined />, '#64748b', 'rgba(100,116,139,0.12)') },
-      { key: 'word', label: menuLabel('Export Word', 'Download as .docx', <FileWordOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
+      { key: 'restore', disabled: !canUpdateProposal, label: menuLabel('Restore', 'Move back to active proposals', <ReloadOutlined />, '#059669', 'rgba(5,150,105,0.12)') },
       { type: 'divider' as const },
       {
         key: 'delete',
@@ -601,9 +617,9 @@ export default function ProposalsListPage() {
           <ConfirmDialog
             tone="danger"
             icon={<DeleteOutlined style={{ fontSize: 15 }} />}
-            title="Move to Trash"
-            description="Are you sure you want to move this proposal to trash?"
-            confirmText="Move to Trash"
+            title="Delete Permanently"
+            description="Are you sure you want to permanently delete this proposal? This action cannot be undone."
+            confirmText="Delete"
             cancelText="Cancel"
             placement="left"
             onConfirm={() => handleDelete(p.id)}
@@ -619,7 +635,7 @@ export default function ProposalsListPage() {
                 e.stopPropagation();
               }}
             >
-              {menuLabel('Move to trash', 'Move this proposal to trash', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+              {menuLabel('Delete Permanently', 'Cannot be undone', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
             </div>
           </ConfirmDialog>
         )
@@ -627,11 +643,7 @@ export default function ProposalsListPage() {
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
-      if (key === 'view') openProposal(p);
-      else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
-      else if (key === 'template') openSaveAsTemplate(p);
-      else if (key === 'pdf') handleExport(p.id, 'pdf');
-      else if (key === 'word') handleExport(p.id, 'word');
+      if (key === 'restore') handleRestore(p.id);
     },
   });
 
@@ -794,24 +806,21 @@ export default function ProposalsListPage() {
           {/* ============================ SIDEBAR ============================ */}
           <aside className="pp-sidebar">
             <div className="pp-side-head">
-              <div className="pp-side-logo"><FileDoneOutlined /></div>
+              <div className="pp-side-logo"><RestOutlined /></div>
               <div className="pp-side-head-text">
-                <div className="pp-side-title">Proposals</div>
-                <div className="pp-side-subtitle">Drafts · sent · won</div>
+                <div className="pp-side-title">Trash</div>
+                <div className="pp-side-subtitle">Deleted proposals</div>
               </div>
             </div>
 
-            {canCreateProposal && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="pp-create-btn"
-                onClick={() => router.push('/proposals/builder')}
-                block
-              >
-                Create Proposal
-              </Button>
-            )}
+            <Button
+              icon={<FolderOutlined />}
+              className="pp-create-btn"
+              onClick={() => router.push('/proposals')}
+              block
+            >
+              Back to Proposals
+            </Button>
 
             <div className="pp-side-scroll">
               <div className="pp-side-section-label">Views</div>
@@ -883,24 +892,8 @@ export default function ProposalsListPage() {
                 )}
               </div>
 
-              <div className="pp-side-section-label">Recently opened</div>
-              <div className="pp-side-recents">
-                {recents.length === 0 ? (
-                  <div className="pp-recents-empty">Proposals you open appear here</div>
-                ) : (
-                  recents.map((r) => (
-                    <button key={r.id} type="button" className="pp-recent-item" onClick={() => setPreviewProposal(r)}>
-                      <FileTextOutlined className="pp-recent-icon" />
-                      <div className="pp-recent-body">
-                        <span className="pp-recent-title">{r.title}</span>
-                        <span className="pp-recent-sub">{r.client_name || 'No client'} · {formatDistanceToNow(new Date(r.ts), { addSuffix: true })}</span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+              {/* Removed recently opened for trash page */}
             </div>
-
           </aside>
 
           {/* ============================ MAIN ============================ */}
@@ -927,6 +920,19 @@ export default function ProposalsListPage() {
               </div>
 
               <div className="pp-topbar-actions">
+                {canDeleteProposal && proposals.length > 0 && (
+                  <Popconfirm
+                    title="Empty Trash"
+                    description="This will permanently delete all trashed proposals. This action cannot be undone."
+                    onConfirm={handleEmptyTrash}
+                    okText="Empty Trash"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
+                    placement="bottomRight"
+                  >
+                    <Button size="small" danger type="primary" icon={<RestOutlined />}>Empty Trash</Button>
+                  </Popconfirm>
+                )}
                 <div className="pp-segmented">
                   <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                   <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
@@ -940,28 +946,7 @@ export default function ProposalsListPage() {
             <div className="pp-divider" />
 
             {/* Stat cards */}
-            <div className="pp-stats">
-              {statCells.map((s) => (
-                <div key={s.key} className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                      <span className="pp-stat-label">{s.title}</span>
-                    </div>
-                    {s.delta > 0 && (
-                      <span className="pp-stat-delta"><RiseOutlined style={{ fontSize: 9 }} />+{s.delta}</span>
-                    )}
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{s.value}{s.suffix}</span>
-                      <span className="pp-stat-period">this week</span>
-                    </div>
-                    <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Removed stat cards for Trash */}
 
             {/* Table / grid */}
             <div className="pp-body">

@@ -56,11 +56,11 @@ function resolveHostInfo() {
     }
   } else {
     const parts = hostname.split('.');
-    if (parts.length > 2 && parts[0] !== "www") {
-      if (parts[0] !== "app") subdomain = parts[0];
+    if (parts.length > 2 && parts[0] !== "www" && parts[0] !== "app") {
+      subdomain = parts[0];
       if (!hasValidEnvRoot) {
-        const baseDomain = parts.slice(-2).join('.');
-        rootHost = `app.${baseDomain}`;
+        const port = window.location.port;
+        rootHost = parts.slice(1).join('.') + (port ? `:${port}` : '');
       }
     }
   }

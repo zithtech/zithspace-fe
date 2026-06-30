@@ -43,17 +43,30 @@ export async function downloadReportPdf(el: HTMLElement, filename: string): Prom
 
 /** Same render as downloadReportPdf, but returns the PDF as a Blob (no download). */
 export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
-  const html2pdf = (await import("html2pdf.js")).default;
-  return (await (html2pdf() as any).set(baseOptions(el, filename)).from(el).outputPdf("blob")) as Blob;
+  const clone = el.cloneNode(true) as HTMLElement;
+  el.parentNode?.appendChild(clone);
+
+  try {
+    paginateTables(clone);
+    const html2pdf = (await import("html2pdf.js")).default;
+    return (await (html2pdf() as any).set(baseOptions(clone, filename)).from(clone).outputPdf("blob")) as Blob;
+  } finally {
+    clone.remove();
+  }
 }
 
 export async function downloadReportDocx(el: HTMLElement, filename: string): Promise<void> {
-  const html2pdf = (await import("html2pdf.js")).default;
-  // Render once to a single tall canvas, then paginate it into A4-sized slices.
-  const worker = (html2pdf() as any).set(baseOptions(el, filename)).from(el).toCanvas();
-  const canvas: HTMLCanvasElement = await worker.get("canvas");
+  const clone = el.cloneNode(true) as HTMLElement;
+  el.parentNode?.appendChild(clone);
 
-  const pages = sliceCanvasToPages(canvas);
+  try {
+    paginateTables(clone);
+    const html2pdf = (await import("html2pdf.js")).default;
+    // Render once to a single tall canvas, then paginate it into A4-sized slices.
+    const worker = (html2pdf() as any).set(baseOptions(clone, filename)).from(clone).toCanvas();
+    const canvas: HTMLCanvasElement = await worker.get("canvas");
+
+    const pages = sliceCanvasToPages(canvas);
   const children: Paragraph[] = pages.map(
     (p) =>
       new Paragraph({
@@ -83,6 +96,69 @@ export async function downloadReportDocx(el: HTMLElement, filename: string): Pro
 
   const blob = await Packer.toBlob(doc);
   saveAs(blob, filename);
+  } finally {
+    clone.remove();
+  }
+}
+
+function paginateTables(el: HTMLElement) {
+  const PAGE_HEIGHT = 1122.94;
+  
+  const tables = Array.from(el.querySelectorAll('table'));
+  let t = 0;
+  
+  while (t < tables.length) {
+    const table = tables[t];
+    t++;
+    
+    const tbody = table.querySelector('tbody');
+    const thead = table.querySelector('thead');
+    if (!tbody || !thead) continue;
+    
+    // Ignore atomic blocks
+    if (table.closest('.avoid-split') || table.style.pageBreakInside === 'avoid') continue;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) continue;
+    
+    const elTop = el.getBoundingClientRect().top;
+    
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rect = row.getBoundingClientRect();
+      const rowTop = rect.top - elTop;
+      const rowBottom = rect.bottom - elTop;
+      
+      const pageIndexTop = Math.floor(rowTop / PAGE_HEIGHT);
+      const pageIndexBottom = Math.floor(rowBottom / PAGE_HEIGHT);
+      
+      if (pageIndexBottom > pageIndexTop) {
+        const newTable = table.cloneNode(false) as HTMLTableElement;
+        const newThead = thead.cloneNode(true) as HTMLTableSectionElement;
+        const newTbody = document.createElement('tbody');
+        newTable.appendChild(newThead);
+        newTable.appendChild(newTbody);
+
+        const wrapper = document.createElement('div');
+        wrapper.style.pageBreakBefore = 'always';
+        
+        const topSpacer = document.createElement('div');
+        topSpacer.style.height = '32px';
+        
+        for (let j = i; j < rows.length; j++) {
+          newTbody.appendChild(rows[j]);
+        }
+        
+        wrapper.appendChild(topSpacer);
+        wrapper.appendChild(newTable);
+        
+        table.parentNode?.insertBefore(wrapper, table.nextSibling);
+        
+        tables.splice(t, 0, newTable);
+        break;
+      }
+    }
+  }
 }
 
 type PageImage = { bytes: Uint8Array; width: number; height: number };

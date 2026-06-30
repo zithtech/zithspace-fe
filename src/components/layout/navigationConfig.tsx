@@ -436,6 +436,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/proposals/templates",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
+          {
+            key: "/proposals/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/proposals/trash",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
         ],
       },
       {

@@ -57,19 +57,7 @@ export const generateCoverHtml = (coverBlock: any) => {
       <div style="position: absolute; bottom: -350px; right: -350px; width: 700px; height: 650px; transform: rotate(45deg); background: #0ea5e9; border-radius: 32px; z-index: 2;"></div>
       <!-- Dark blue solid -->
       <div style="position: absolute; bottom: -250px; right: -300px; width: 500px; height: 600px; transform: rotate(45deg); background: linear-gradient(135deg, #0f172a, #1e3a8a); border-radius: 32px; z-index: 3; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"></div>
-      <!-- Top Right Dots Pattern -->
-      <div style="position: absolute; top: 180px; right: 100px; width: 120px; height: 220px; background-image: radial-gradient(#94a3b8 2px, transparent 2px); background-size: 24px 24px; opacity: 0.6; z-index: 1;"></div>
 
-      <!-- Center Geometric Diamonds -->
-      <div style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; z-index: 1; opacity: 0.15; pointer-events: none;">
-        <div style="position: absolute; top: 40px; left: 100px; width: 100px; height: 100px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 100px; left: 40px; width: 100px; height: 100px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 100px; left: 160px; width: 100px; height: 100px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 160px; left: 100px; width: 100px; height: 100px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 110px; left: 110px; width: 80px; height: 80px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 70px; left: 70px; width: 60px; height: 60px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-        <div style="position: absolute; top: 170px; left: 170px; width: 60px; height: 60px; border: 2px solid #0f172a; transform: rotate(45deg);"></div>
-      </div>
 
       <!-- Top Right Logo & Company -->
       <div style="position: absolute; top: 80px; right: 100px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">

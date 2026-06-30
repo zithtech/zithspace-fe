@@ -70,13 +70,17 @@ function StatCards({ items }: { items: Stat[] }) {
           {items.map((it, i) => (
             <td
               key={i}
-              style={{ border: `1px solid ${C.border}`, padding: '9px 11px', verticalAlign: 'top', background: '#fff' }}
+              style={{ border: `1px solid ${C.border}`, padding: 0, verticalAlign: 'top', background: '#fff' }}
             >
-              <div style={{ fontSize: 19, fontWeight: 800, color: it.color || C.ink, lineHeight: '22px' }}>
-                {it.value}
-              </div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 3 }}>
-                {it.label}
+              <div style={{ padding: '0 13px' }}>
+                <div style={{ height: 12 }} />
+                <div style={{ fontSize: 19, fontWeight: 800, color: it.color || C.ink, lineHeight: '22px' }}>
+                  {it.value}
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.faint, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 3 }}>
+                  {it.label}
+                </div>
+                <div style={{ height: 14 }} />
               </div>
             </td>
           ))}
@@ -207,23 +211,45 @@ const ReportPrintable = React.forwardRef<HTMLDivElement, Props>(function ReportP
           <tbody>
             <tr>
               <td style={{ width: '1%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: 0 }}>
-                <div style={{ padding: '18px 24px' }}>
+                <div style={{ padding: '0 24px' }}>
+                  <div style={{ height: 17 }} />
                   <table style={{ borderCollapse: 'collapse', margin: 0, padding: 0 }} cellPadding={0} cellSpacing={0}><tbody><tr>
-                    <td style={{ verticalAlign: 'bottom', fontSize: 36, fontWeight: 800, color: scoreColor(model.overall), lineHeight: '1', padding: 0 }}>
+                    <td
+                      style={{
+                        verticalAlign: 'baseline',
+                        fontSize: 36,
+                        fontWeight: 800,
+                        color: scoreColor(model.overall),
+                        lineHeight: 1,
+                        padding: '0 0 16px 0',
+                      }}
+                    >
                       {model.overall ?? '—'}
                     </td>
-                    <td style={{ verticalAlign: 'bottom', fontSize: 16, fontWeight: 700, color: C.faint, lineHeight: '1', padding: '0 0 1px 4px' }}>
+                    <td
+                      style={{
+                        verticalAlign: 'baseline',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: C.faint,
+                        lineHeight: 1,
+                        padding: '0 0 16px 4px',
+                      }}
+                    >
                       / 100
                     </td>
                   </tr></tbody></table>
+                  <div style={{ height: 23 }} />
                 </div>
               </td>
               <td style={{ verticalAlign: 'middle', padding: 0 }}>
-                <div style={{ padding: '18px 24px', paddingLeft: 0, display: 'block' }}>
+                <div style={{ padding: '0 24px 0 0', display: 'block' }}>
+                  <div style={{ height: 20 }} />
                   <div style={{ fontSize: 16, fontWeight: 800, color: overallBand.color, lineHeight: 1 }}>{overallBand.label}</div>
                   <div style={{ fontSize: 13, color: C.muted, marginTop: 6, lineHeight: 1 }}>
                     Overall performance · weighted across stages
                   </div>
+                  <div style={{ height: 21 }} />
                 </div>
               </td>
             </tr>
@@ -238,30 +264,34 @@ const ReportPrintable = React.forwardRef<HTMLDivElement, Props>(function ReportP
                 {rowStages.map((s) => {
                   const band = performanceBand(s.score);
                   return (
-                    <td key={s.key} style={{ border: `1px solid ${C.border}`, padding: '11px 13px', verticalAlign: 'top', opacity: s.enabled ? 1 : 0.55 }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ fontSize: 12.5, fontWeight: 700 }}>{s.label}</td>
-                            <td style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 700, color: C.muted }}>{Number(s.weight)}%</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>
-                              <table style={{ borderCollapse: 'collapse', margin: 0, padding: 0 }} cellPadding={0} cellSpacing={0}><tbody><tr>
-                                <td style={{ verticalAlign: 'bottom', fontSize: 24, fontWeight: 800, color: scoreColor(s.score), lineHeight: '1', padding: 0 }}>{s.score ?? '—'}</td>
-                                <td style={{ verticalAlign: 'bottom', fontSize: 10.5, fontWeight: 700, color: C.faint, lineHeight: '1', padding: '0 0 1px 2px' }}> / 100</td>
-                              </tr></tbody></table>
-                            </td>
-                            <td style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 800, color: band.color, verticalAlign: 'bottom' }}>
-                              {s.enabled ? band.label : 'Excluded'}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <td key={s.key} style={{ border: `1px solid ${C.border}`, padding: 0, verticalAlign: 'middle', opacity: s.enabled ? 1 : 0.55 }}>
+                      <div style={{ padding: '0 14px' }}>
+                        <div style={{ height: 12 }} />
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ fontSize: 12.5, fontWeight: 700 }}>{s.label}</td>
+                              <td style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 700, color: C.muted }}>{Number(s.weight)}%</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>
+                                <table style={{ borderCollapse: 'collapse', margin: 0, padding: 0 }} cellPadding={0} cellSpacing={0}><tbody><tr>
+                                  <td style={{ verticalAlign: 'bottom', fontSize: 24, fontWeight: 800, color: scoreColor(s.score), lineHeight: '1', padding: 0 }}>{s.score ?? '—'}</td>
+                                  <td style={{ verticalAlign: 'bottom', fontSize: 10.5, fontWeight: 700, color: C.faint, lineHeight: '1', padding: '0 0 1px 2px' }}> / 100</td>
+                                </tr></tbody></table>
+                              </td>
+                              <td style={{ textAlign: 'right', fontSize: 10.5, fontWeight: 800, color: band.color, verticalAlign: 'bottom' }}>
+                                {s.enabled ? band.label : 'Excluded'}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div style={{ height: 16 }} />
+                      </div>
                     </td>
                   );
                 })}

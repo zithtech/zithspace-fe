@@ -30,6 +30,52 @@ const SectionLabel: React.FC<{ children: React.ReactNode; accent?: boolean }> = 
 export const BlockProperties = () => {
   const { blocks, selectedBlockId, updateBlock, setSelectedBlockId, documentTheme, setDocumentTheme } = useProposalStore();
 
+  const [emailError, setEmailError] = useState<string>('');
+  const [phoneError, setPhoneError] = useState<string>('');
+  const [websiteError, setWebsiteError] = useState<string>('');
+
+  const validateEmail = (val: string) => {
+    if (!val) {
+      setEmailError('');
+      return true;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(val)) {
+      setEmailError('Invalid email');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  const validatePhone = (val: string) => {
+    if (!val) {
+      setPhoneError('');
+      return true;
+    }
+    const phoneRegex = /^[+]?[0-9\s\-()]{7,15}$/;
+    if (!phoneRegex.test(val)) {
+      setPhoneError('Invalid phone');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
+
+  const validateWebsite = (val: string) => {
+    if (!val) {
+      setWebsiteError('');
+      return true;
+    }
+    const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-./?%&=]*)?$/;
+    if (!urlPattern.test(val)) {
+      setWebsiteError('Invalid website URL');
+      return false;
+    }
+    setWebsiteError('');
+    return true;
+  };
+
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
   const otherBlocks = blocks.filter((b) => b.id !== selectedBlockId);
   const coverBlock = blocks.find((b) => b.type === 'cover');
@@ -171,19 +217,29 @@ export const BlockProperties = () => {
                 <Input
                   placeholder="Agency Name"
                   value={coverBlock?.data?.senderCompany}
-                  onChange={(e) => handleUpdateBranding({ senderCompany: e.target.value })}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                    handleUpdateBranding({ senderCompany: cleanVal });
+                  }}
                 />
               </div>
             </div>
 
             <div className="pb-props__brand-contact">
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <SectionLabel>Website URL</SectionLabel>
                 <Input
                   placeholder="Website URL"
+                  status={websiteError ? 'error' : undefined}
                   value={coverBlock?.data?.senderWebsite}
-                  onChange={(e) => handleUpdateBranding({ senderWebsite: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    handleUpdateBranding({ senderWebsite: val });
+                    validateWebsite(val);
+                  }}
+                  onBlur={(e) => validateWebsite(e.target.value)}
                 />
+                {websiteError && <span style={{ fontSize: '10.5px', color: '#ff4d4f', fontWeight: 500 }}>{websiteError}</span>}
               </div>
               <div className="pb-props__brand-grid">
                 <div>
@@ -191,7 +247,10 @@ export const BlockProperties = () => {
                   <Input
                     placeholder="Name"
                     value={coverBlock?.data?.senderName}
-                    onChange={(e) => handleUpdateBranding({ senderName: e.target.value })}
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                      handleUpdateBranding({ senderName: cleanVal });
+                    }}
                   />
                 </div>
                 <div>
@@ -199,21 +258,42 @@ export const BlockProperties = () => {
                   <Input
                     placeholder="Position/Role"
                     value={coverBlock?.data?.senderPosition}
-                    onChange={(e) => handleUpdateBranding({ senderPosition: e.target.value })}
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                      handleUpdateBranding({ senderPosition: cleanVal });
+                    }}
                   />
                 </div>
               </div>
               <div className="pb-props__brand-grid">
-                <Input
-                  placeholder="Phone"
-                  value={coverBlock?.data?.senderContact}
-                  onChange={(e) => handleUpdateBranding({ senderContact: e.target.value })}
-                />
-                <Input
-                  placeholder="Email"
-                  value={coverBlock?.data?.senderEmail}
-                  onChange={(e) => handleUpdateBranding({ senderEmail: e.target.value })}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <Input
+                    placeholder="Phone"
+                    status={phoneError ? 'error' : undefined}
+                    value={coverBlock?.data?.senderContact}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleUpdateBranding({ senderContact: val });
+                      validatePhone(val);
+                    }}
+                    onBlur={(e) => validatePhone(e.target.value)}
+                  />
+                  {phoneError && <span style={{ fontSize: '10.5px', color: '#ff4d4f', fontWeight: 500 }}>{phoneError}</span>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <Input
+                    placeholder="Email"
+                    status={emailError ? 'error' : undefined}
+                    value={coverBlock?.data?.senderEmail}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleUpdateBranding({ senderEmail: val });
+                      validateEmail(val);
+                    }}
+                    onBlur={(e) => validateEmail(e.target.value)}
+                  />
+                  {emailError && <span style={{ fontSize: '10.5px', color: '#ff4d4f', fontWeight: 500 }}>{emailError}</span>}
+                </div>
               </div>
               <div>
                 <SectionLabel>Business Address</SectionLabel>
@@ -221,7 +301,10 @@ export const BlockProperties = () => {
                   placeholder="Street, City, State, ZIP"
                   autoSize={{ minRows: 2, maxRows: 4 }}
                   value={coverBlock?.data?.senderAddress}
-                  onChange={(e) => handleUpdateBranding({ senderAddress: e.target.value })}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+                    handleUpdateBranding({ senderAddress: cleanVal });
+                  }}
                 />
               </div>
             </div>

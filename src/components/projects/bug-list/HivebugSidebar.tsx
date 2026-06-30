@@ -458,16 +458,9 @@ function FolderNode({
         ) : (
           <Folder size={15} style={{ color: folder.color || "#7aa2f7" }} />
         )}
-        <span className="hb-row-label">{folder.name}</span>
-        {folderCompleted && (
-          <Tooltip title="All sheets completed">
-            <CheckCircle2
-              size={12}
-              className="hb-row-status-icon hb-row-status-completed"
-              aria-label="All sheets completed"
-            />
-          </Tooltip>
-        )}
+        <span className="hb-row-label" style={{ color: folderCompleted ? "var(--hb-success)" : undefined }}>
+          {folder.name}
+        </span>
         <span className="hb-row-count">
           {Math.max(0, (folder._count?.bugs ?? 0) - trashCount)}
         </span>

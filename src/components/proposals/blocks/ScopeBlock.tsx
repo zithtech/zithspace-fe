@@ -248,8 +248,9 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                   style={inputStyle}
                   value={m.title}
                   onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                     const newMilestones = [...data.milestones];
-                    newMilestones[index] = { ...m, title: e.target.value };
+                    newMilestones[index] = { ...m, title: cleanVal };
                     handleUpdate({ milestones: newMilestones });
                   }}
                 />
@@ -262,8 +263,9 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                   style={inputStyle}
                   value={m.deliverables}
                   onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                     const newMilestones = [...data.milestones];
-                    newMilestones[index] = { ...m, deliverables: e.target.value };
+                    newMilestones[index] = { ...m, deliverables: cleanVal };
                     handleUpdate({ milestones: newMilestones });
                   }}
                 />
@@ -277,8 +279,9 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                   style={inputStyle}
                   value={m.tasks}
                   onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                     const newMilestones = [...data.milestones];
-                    newMilestones[index] = { ...m, tasks: e.target.value };
+                    newMilestones[index] = { ...m, tasks: cleanVal };
                     handleUpdate({ milestones: newMilestones });
                   }}
                 />
@@ -355,8 +358,9 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                   style={inputStyle}
                   value={term.title}
                   onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                     const newTerms = [...data.terms];
-                    newTerms[index] = { ...term, title: e.target.value };
+                    newTerms[index] = { ...term, title: cleanVal };
                     handleUpdate({ terms: newTerms });
                   }}
                 />

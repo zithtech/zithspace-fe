@@ -210,13 +210,13 @@ export default function TenantKeysPage() {
           </div>
 
           {/* Table Section */}
-          <div className="p-0">
+          <div className="p-0 overflow-x-auto w-full">
             <Table
               columns={columns}
               dataSource={tenants}
               rowKey="id"
               loading={loading}
-              scroll={{ x: 'max-content' }}
+              scroll={{ x: 1000 }}
               pagination={{ 
                 pageSize: 15,
                 className: "px-4 py-3 border-t border-gray-100 dark:border-[#1e252e] m-0",

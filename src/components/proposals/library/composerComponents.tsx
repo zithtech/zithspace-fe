@@ -1,8 +1,8 @@
 'use client';
 
 import '@/app/proposals/library.css';
-import React, { useLayoutEffect, useRef } from 'react';
-import { Input, Segmented, Button } from 'antd';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { Input, Segmented, Button, message } from 'antd';
 import { nanoid } from 'nanoid';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
@@ -67,7 +67,7 @@ const DEFAULTS: Record<string, () => Record<string, any>> = {
   callout: () => ({ variant: 'info', title: 'Note', text: '' }),
   image: () => ({ src: '', caption: '' }),
   gallery: () => ({ columns: 3, images: [{ id: nanoid(), src: '' }, { id: nanoid(), src: '' }] }),
-  video: () => ({ label: 'Embedded video' }),
+  video: () => ({ label: 'Embedded video', src: '', caption: '' }),
   pricing: () => ({ label: 'Pricing', rows: [{ item: '', price: '' }] }),
   quote: () => ({ text: '', author: '' }),
   cta: () => ({ text: 'Accept Proposal' }),
@@ -129,15 +129,19 @@ export const CALLOUT_VARIANTS: Record<string, { color: string; bg: string; borde
 };
 
 // ── Inline editors ────────────────────────────────────────────────────────
-const TextLine: React.FC<{ value: string; onChange?: (v: string) => void; placeholder?: string; className?: string; editable?: boolean }> =
-  ({ value, onChange, placeholder, className, editable }) => {
+const TextLine: React.FC<{ value: string; onChange?: (v: string) => void; placeholder?: string; className?: string; editable?: boolean; strictlyAlphanumeric?: boolean }> =
+  ({ value, onChange, placeholder, className, editable, strictlyAlphanumeric }) => {
     if (!editable) return <span className={className}>{value || placeholder}</span>;
     return (
       <input
         className={`cmp-inp ${className || ''}`}
         value={value}
         placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(e) => {
+          const regex = strictlyAlphanumeric ? /[^a-zA-Z0-9\s]/g : /[^a-zA-Z0-9\s\-.,()?!:;&'"·]/g;
+          const sanitized = e.target.value.replace(regex, '');
+          onChange?.(sanitized);
+        }}
         onClick={(e) => e.stopPropagation()}
       />
     );
@@ -152,7 +156,10 @@ const TextArea: React.FC<{ value: string; onChange?: (v: string) => void; placeh
         value={value}
         placeholder={placeholder}
         rows={2}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(e) => {
+          const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+          onChange?.(sanitized);
+        }}
         onClick={(e) => e.stopPropagation()}
       />
     );
@@ -174,7 +181,11 @@ const AutoTextArea: React.FC<{ value: string; onChange: (v: string) => void; pla
         value={value}
         placeholder={placeholder}
         rows={1}
-        onChange={(e) => { onChange(e.target.value); resize(); }}
+        onChange={(e) => {
+          const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+          onChange(sanitized);
+          resize();
+        }}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
         style={{ overflow: 'hidden', resize: 'none', display: 'block' }}
@@ -226,6 +237,117 @@ const ImageField: React.FC<{ src?: string; onChange: (src: string) => void; heig
     );
   };
 
+// Video picker: upload a file (stored as data URL) or paste a video URL.
+const VideoField: React.FC<{ src?: string; onChange: (src: string) => void; height?: number; onRemove?: () => void; editable?: boolean }> =
+  ({ src, onChange, height = 200, onRemove, editable }) => {
+    const fileRef = useRef<HTMLInputElement>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Limit video file size to 50MB to prevent memory crashes
+      if (file.size > 50 * 1024 * 1024) {
+        message.error('Video file is too large. Max size is 50MB.');
+        setError('Video file is too large. Max size is 50MB.');
+        return;
+      }
+
+      setError(null);
+      const reader = new FileReader();
+      reader.onload = () => {
+        onChange(reader.result as string);
+      };
+      reader.onerror = () => {
+        message.error('Failed to read video file.');
+        setError('Failed to read video file.');
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    };
+
+    const isEmbedUrl = (url: string) => {
+      return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com');
+    };
+
+    const getEmbedUrl = (url: string) => {
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        let videoId = '';
+        if (url.includes('v=')) {
+          videoId = url.split('v=')[1].split('&')[0];
+        } else if (url.includes('youtu.be/')) {
+          videoId = url.split('youtu.be/')[1].split('?')[0];
+        } else if (url.includes('embed/')) {
+          videoId = url.split('embed/')[1].split('?')[0];
+        }
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+      }
+      if (url.includes('vimeo.com')) {
+        const id = url.split('/').pop()?.split('?')[0];
+        return id ? `https://player.vimeo.com/video/${id}` : url;
+      }
+      return url;
+    };
+
+    if (src) {
+      const showEmbed = isEmbedUrl(src);
+      return (
+        <div className="cmp-img" style={{ height, background: '#000' }} onClick={(e) => e.stopPropagation()}>
+          {showEmbed ? (
+            <iframe
+              src={getEmbedUrl(src)}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video src={src} controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          )}
+          {editable && (
+            <div className="cmp-img__tools">
+              <button type="button" title="Replace" onClick={() => fileRef.current?.click()}><UploadIcon size={12} /></button>
+              <button type="button" title="Remove" onClick={() => (onRemove ? onRemove() : onChange(''))}><X size={12} /></button>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="video/*" hidden onChange={pickFile} />
+        </div>
+      );
+    }
+
+    if (!editable) {
+      return null;
+    }
+
+    return (
+      <div className="cmp-img-empty" style={{ height }} onClick={(e) => e.stopPropagation()}>
+        {onRemove && <button type="button" className="cmp-img-x" title="Remove" onClick={onRemove}><X size={11} /></button>}
+        <button type="button" className="cmp-img-up" onClick={() => fileRef.current?.click()}><UploadIcon size={14} /> Upload video</button>
+        <div className="cmp-img-or">or</div>
+        <div className="cmp-img-urlrow">
+          <Link2 size={12} />
+          <input
+            className="cmp-img-url"
+            placeholder="Paste YouTube, Vimeo or MP4 URL"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const v = (e.target as HTMLInputElement).value.trim();
+                if (v) onChange(v);
+              }
+            }}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v) onChange(v);
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        {error && <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>{error}</div>}
+        <input ref={fileRef} type="file" accept="video/*" hidden onChange={pickFile} />
+      </div>
+    );
+  };
+
 // Right-panel rich-text editor for the Paragraph component.
 export const ParagraphSettings: React.FC<{ props: any; onChange: (patch: Record<string, any>) => void }> = ({ props, onChange }) => {
   const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-secondary, #64748b)', margin: '0 0 6px', display: 'block' };
@@ -258,7 +380,10 @@ export const TwoColumnSettings: React.FC<{ props: any; onChange: (patch: Record<
               onApply={(newTitle) => onChange({ [tKey]: newTitle })}
             />
           </div>
-          <Input value={props?.[tKey] || ''} placeholder={`${title.toLowerCase()} name`} onChange={(e) => onChange({ [tKey]: e.target.value })} style={{ marginBottom: 10 }} />
+          <Input value={props?.[tKey] || ''} placeholder={`${title.toLowerCase()} name`} onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+            onChange({ [tKey]: cleanVal });
+          }} style={{ marginBottom: 10 }} />
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={label}>{title} Content</span>
@@ -296,7 +421,10 @@ export const HeadingSettings: React.FC<{ props: any; onChange: (patch: Record<st
       <Input
         value={props?.text || ''}
         placeholder="Section Heading"
-        onChange={(e) => onChange({ text: e.target.value })}
+        onChange={(e) => {
+          const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+          onChange({ text: cleanVal });
+        }}
       />
     </div>
   );
@@ -312,7 +440,10 @@ export const PhaseSettings: React.FC<{ props: any; onChange: (patch: Record<stri
         <Input
           value={props?.badge || ''}
           placeholder="e.g. PHASE 1"
-          onChange={(e) => onChange({ badge: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+            onChange({ badge: cleanVal });
+          }}
         />
       </div>
       <div>
@@ -327,7 +458,10 @@ export const PhaseSettings: React.FC<{ props: any; onChange: (patch: Record<stri
         <Input
           value={props?.title || ''}
           placeholder="Phase Title"
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+            onChange({ title: cleanVal });
+          }}
         />
       </div>
     </div>
@@ -357,7 +491,7 @@ export const BulletsSettings: React.FC<{ props: any; onChange: (patch: Record<st
               placeholder={`Point ${idx + 1}`}
               onChange={(e) => {
                 const next = [...items];
-                next[idx] = e.target.value;
+                next[idx] = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
                 onChange({ items: next });
               }}
               style={{ flex: 1 }}
@@ -528,7 +662,10 @@ export const CalloutSettings: React.FC<{ props: any; onChange: (patch: Record<st
         <Input
           value={props?.title || ''}
           placeholder="Callout title"
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+            onChange({ title: cleanVal });
+          }}
         />
       </div>
       <div>
@@ -544,7 +681,10 @@ export const CalloutSettings: React.FC<{ props: any; onChange: (patch: Record<st
           rows={4}
           value={props?.text || ''}
           placeholder="Callout body text..."
-          onChange={(e) => onChange({ text: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+            onChange({ text: cleanVal });
+          }}
         />
       </div>
     </div>
@@ -569,7 +709,10 @@ export const QuoteSettings: React.FC<{ props: any; onChange: (patch: Record<stri
           rows={4}
           value={props?.text || ''}
           placeholder="Client testimonial..."
-          onChange={(e) => onChange({ text: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+            onChange({ text: cleanVal });
+          }}
         />
       </div>
       <div>
@@ -584,7 +727,10 @@ export const QuoteSettings: React.FC<{ props: any; onChange: (patch: Record<stri
         <Input
           value={props?.author || ''}
           placeholder="Client Name · Role"
-          onChange={(e) => onChange({ author: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"·]/g, '');
+            onChange({ author: cleanVal });
+          }}
         />
       </div>
     </div>
@@ -609,7 +755,10 @@ export const KeyValueSettings: React.FC<{ props: any; onChange: (patch: Record<s
         <Input
           value={props?.label || ''}
           placeholder="e.g. Highlights"
-          onChange={(e) => onChange({ label: e.target.value })}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '');
+            onChange({ label: cleanVal });
+          }}
         />
       </div>
       <div>
@@ -631,7 +780,7 @@ export const KeyValueSettings: React.FC<{ props: any; onChange: (patch: Record<s
                   placeholder="Label"
                   onChange={(e) => {
                     const next = [...rows];
-                    next[idx] = { ...row, k: e.target.value };
+                    next[idx] = { ...row, k: e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') };
                     onChange({ rows: next });
                   }}
                 />
@@ -641,7 +790,7 @@ export const KeyValueSettings: React.FC<{ props: any; onChange: (patch: Record<s
                   placeholder="Value"
                   onChange={(e) => {
                     const next = [...rows];
-                    next[idx] = { ...row, v: e.target.value };
+                    next[idx] = { ...row, v: e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') };
                     onChange({ rows: next });
                   }}
                 />
@@ -691,15 +840,15 @@ export const ComposerBlockView: React.FC<{
 
   switch (kind) {
     case 'heading':
-      return <TextLine editable={editable} value={props.text} onChange={(v) => set({ text: v })} placeholder="Section Heading" className="cmp-b-heading" />;
+      return <TextLine editable={editable} value={props.text} onChange={(v) => set({ text: v })} placeholder="Section Heading" className="cmp-b-heading" strictlyAlphanumeric />;
 
     case 'phase':
       return (
         <div className="cmp-b-phase">
           <span className="cmp-b-phase__badge">
-            <TextLine editable={editable} value={props.badge} onChange={(v) => set({ badge: v })} placeholder="PHASE 1" />
+            <TextLine editable={editable} value={props.badge} onChange={(v) => set({ badge: v })} placeholder="PHASE 1" strictlyAlphanumeric />
           </span>
-          <TextLine editable={editable} value={props.title} onChange={(v) => set({ title: v })} placeholder="Phase Title" className="cmp-b-phase__title" />
+          <TextLine editable={editable} value={props.title} onChange={(v) => set({ title: v })} placeholder="Phase Title" className="cmp-b-phase__title" strictlyAlphanumeric />
         </div>
       );
 
@@ -903,7 +1052,7 @@ export const ComposerBlockView: React.FC<{
     case 'twoColumn': {
       const col = (tKey: string, bKey: string, ph: string) => (
         <div className="cmp-b-twocol">
-          <TextLine editable={editable} value={props[tKey]} onChange={(v) => set({ [tKey]: v })} placeholder={ph} className="cmp-b-twocol-title" />
+          <TextLine editable={editable} value={props[tKey]} onChange={(v) => set({ [tKey]: v })} placeholder={ph} className="cmp-b-twocol-title" strictlyAlphanumeric />
           {props[bKey] ? (
             <div className="cmp-b-twocol-body"><TiptapViewer content={props[bKey]} /></div>
           ) : editable ? (
@@ -957,7 +1106,17 @@ export const ComposerBlockView: React.FC<{
 
     case 'video':
       return (
-        <div className="cmp-b-image__ph cmp-b-image__ph--video"><Video size={22} /><span>Video embed</span></div>
+        <div className="cmp-b-image">
+          <VideoField
+            editable={editable}
+            src={props.src}
+            onChange={(src) => set({ src })}
+            height={200}
+          />
+          {(editable || props.caption) && (
+            <TextLine editable={editable} value={props.caption} onChange={(v) => set({ caption: v })} placeholder="Video caption" className="cmp-b-cap" />
+          )}
+        </div>
       );
 
     case 'pricing':

@@ -29,6 +29,7 @@ import {
   UserOutlined,
   CheckOutlined,
   BulbOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadService, SquadMember } from '@/services/squadService';
 import { MembersService } from '@/services/membersService';
@@ -738,15 +739,30 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                 )}
               </div>
 
-              <div className="squad-section-title">
-                <StarOutlined /> Status
-              </div>
-              <Form.Item name="squadStatus" style={{ marginBottom: 0 }}>
-                <Select size="large" style={{ width: 220 }}>
-                  <Option value={true}>Active</Option>
-                  <Option value={false}>Inactive</Option>
-                </Select>
-              </Form.Item>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <div className="squad-section-title">
+                    <StarOutlined /> Status
+                  </div>
+                  <Form.Item name="squadStatus" style={{ marginBottom: 0 }}>
+                    <Select size="large" style={{ width: '100%' }}>
+                      <Option value={true}>Active</Option>
+                      <Option value={false}>Inactive</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <div className="squad-section-title">
+                    <InboxOutlined /> Archived Status
+                  </div>
+                  <Form.Item name="isArchived" style={{ marginBottom: 0 }}>
+                    <Select size="large" style={{ width: '100%' }}>
+                      <Option value={false}>Active</Option>
+                      <Option value={true}>Archived</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
             </>
           ) : (
             <>

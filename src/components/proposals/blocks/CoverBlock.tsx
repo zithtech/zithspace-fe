@@ -182,8 +182,24 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         validUntil: data.validUntil ? dayjs(data.validUntil) : null
       }}
       onValuesChange={(_, allValues) => {
+        const cleanInput = (val: string) => val ? val.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') : '';
+        const cleanTitle = cleanInput(allValues.title);
+        const cleanClientCompany = cleanInput(allValues.clientCompany);
+        const cleanClientName = cleanInput(allValues.clientName);
+
+        if (allValues.title !== cleanTitle || allValues.clientCompany !== cleanClientCompany || allValues.clientName !== cleanClientName) {
+          form.setFieldsValue({
+            title: cleanTitle,
+            clientCompany: cleanClientCompany,
+            clientName: cleanClientName
+          });
+        }
+
         onUpdate({
           ...allValues,
+          title: cleanTitle,
+          clientCompany: cleanClientCompany,
+          clientName: cleanClientName,
           date: allValues.date ? allValues.date.toISOString().split('T')[0] : null,
           validUntil: allValues.validUntil ? allValues.validUntil.toISOString().split('T')[0] : null
         });
@@ -237,12 +253,20 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
 
           <Row gutter={8}>
             <Col span={12}>
-              <Form.Item label={<span style={labelStyle}>Mail</span>} name="clientEmail">
+              <Form.Item
+                label={<span style={labelStyle}>Mail</span>}
+                name="clientEmail"
+                rules={[{ type: 'email', message: 'Invalid email' }]}
+              >
                 <Input prefix={<MailOutlined style={{ color: 'var(--border-color)' }} />} placeholder="jane@acme.com" variant="filled" style={inputStyle} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label={<span style={labelStyle}>Phone</span>} name="clientPhone">
+              <Form.Item
+                label={<span style={labelStyle}>Phone</span>}
+                name="clientPhone"
+                rules={[{ pattern: /^[+]?[0-9\s\-()]{7,15}$/, message: 'Invalid phone' }]}
+              >
                 <Input prefix={<PhoneOutlined style={{ color: 'var(--border-color)' }} />} placeholder="(555) 000-0000" variant="filled" style={inputStyle} />
               </Form.Item>
             </Col>

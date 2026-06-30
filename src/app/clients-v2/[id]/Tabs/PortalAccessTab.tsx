@@ -227,6 +227,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
             undefined
             : undefined),
         username: values.username || undefined,
+        portalUrl: typeof window !== "undefined" ? `${window.location.origin}/portal/login` : undefined,
       };
       const created = await clientPortalService.create(clientId, payload);
       setCreateOpen(false);

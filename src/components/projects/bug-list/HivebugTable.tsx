@@ -483,10 +483,12 @@ function Pill({ label, dot, fg }: { label: string; dot: string; fg: string }) {
     <span
       className="hb-pill"
       style={{
-        color: fg,
-        background: `${dot}1a`,
-        borderColor: `${dot}33`,
-      }}
+        "--pill-fg": fg,
+        "--pill-dot": dot,
+        background: "transparent",
+        borderColor: `${dot}66`,
+        borderRadius: "8px",
+      } as React.CSSProperties}
     >
 
       {label}
@@ -577,30 +579,31 @@ function BugStatusDropdown({
       <button 
         className="hb-bug-status-dropdown"
         style={{
+          "--pill-fg": currentColors.fg,
+          "--pill-dot": currentColors.dot,
           display: "flex",
           alignItems: "center",
           gap: "6px",
           padding: "3px 8px",
-          border: `1px solid ${currentColors.dot}33`,
-          borderRadius: "12px",
-          background: `${currentColors.dot}1a`,
-          color: currentColors.fg,
+          border: `1px solid ${currentColors.dot}66`,
+          borderRadius: "8px",
+          background: "transparent",
           fontSize: "12px",
           fontWeight: "500",
           cursor: "pointer",
           transition: "all 0.15s ease",
           outline: "none",
           whiteSpace: "nowrap",
-        }}
+        } as React.CSSProperties}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = `${currentColors.dot}66`;
-          e.currentTarget.style.background = `${currentColors.dot}26`;
+          e.currentTarget.style.borderColor = `${currentColors.dot}`;
+          e.currentTarget.style.background = "transparent";
           e.currentTarget.style.transform = "translateY(-1px)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = `${currentColors.dot}33`;
-          e.currentTarget.style.background = `${currentColors.dot}1a`;
-          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.borderColor = `${currentColors.dot}66`;
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.transform = "none";
         }}
         onFocus={(e) => {
           e.currentTarget.style.borderColor = `${currentColors.dot}66`;

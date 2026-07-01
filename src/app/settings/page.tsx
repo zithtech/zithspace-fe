@@ -835,7 +835,7 @@ export default function SettingsPage() {
 
             <Row gutter={[24, 24]} align="middle" style={{ position: 'relative', zIndex: 1 }}>
               <Col xs={24} md={16}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0, flexWrap: 'wrap' }}>
                   <div style={{
                     width: 64,
                     height: 64,
@@ -1981,17 +1981,11 @@ export default function SettingsPage() {
   return (
     <MainLayout>
       {contextHolder}
-      <div style={{
-        margin: "0 -24px",
-        height: "calc(100vh - 64px)",
-        background: token.colorBgContainer,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden"
-      }}>
+      <div className="settings-main-wrapper" style={{ background: token.colorBgContainer }}>
         {/* Premium Header */}
         <TimeTrackingHeader
-          style={{ padding: '8px 32px', marginBottom: 0, background: token.colorBgContainer }}
+          className="settings-page-header"
+          style={{ background: token.colorBgContainer }}
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
@@ -2008,7 +2002,7 @@ export default function SettingsPage() {
           }
         />
 
-        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="settings-tab-container">
           {/* Settings Tabs */}
           <Tabs
             activeKey={activeTab}
@@ -2290,6 +2284,46 @@ export default function SettingsPage() {
           subtitle={tenantProfile.name}
         />
       )}
+
+      <style jsx global>{`
+        .settings-main-wrapper {
+          margin: 0 -24px;
+          height: calc(100vh - 64px);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .settings-page-header {
+          padding: 8px 32px;
+          margin-bottom: 0;
+        }
+        .settings-tab-container {
+          padding: 0 32px;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        @media (max-width: 900px) {
+          .settings-main-wrapper {
+            margin: 0;
+            height: auto;
+            min-height: calc(100vh - 64px);
+          }
+          .settings-page-header {
+            padding: 16px;
+          }
+          .settings-tab-container {
+            padding: 0 16px;
+            overflow: visible;
+          }
+          .settings-tabs .ant-tabs-nav-list {
+            padding-bottom: 8px;
+          }
+        }
+      `}</style>
+
       </div>
     </MainLayout>
   );

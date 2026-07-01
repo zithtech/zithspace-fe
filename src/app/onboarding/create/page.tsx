@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Spin, message } from "antd";
+import { Menu } from "lucide-react";
 import {
   UserOutlined,
   IdcardOutlined,
@@ -263,10 +264,16 @@ const OnboardingContent = () => {
 
   return (
     <div className="onb">
-      {/* ── Slim sticky header: icon chip + title/subtitle + compact step indicator ── */}
       <div className="onb-header">
         <div className="onb-header-top">
           <div className="onb-header-about">
+            <button 
+              className="ob-mobile-menu-btn" 
+              onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
             <div
               className="onb-header-icon"
               style={{ background: activeStep.tint, color: activeStep.color }}
@@ -425,15 +432,15 @@ const OnboardingContent = () => {
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           backdrop-filter: blur(12px);
-          padding: 12px 0 0;
-          margin-bottom: 16px;
+          padding: 12px 24px 0 28px;
+          margin: -12px -22px 16px;
         }
         .onb-header-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 0 4px 12px;
+          padding: 0 0 12px;
         }
         .onb-header-about {
           display: flex;
@@ -558,11 +565,11 @@ const OnboardingContent = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 12px 4px;
+          padding: 12px 28px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
-          margin: 0 -4px;
+          margin: 0 -22px;
         }
         .onb-footer-actions {
           display: flex;
@@ -588,6 +595,16 @@ const OnboardingContent = () => {
         .onb-btn--primary {
           background: ${PALETTE.blue} !important;
           border-color: ${PALETTE.blue} !important;
+        }
+
+        @media (max-width: 900px) {
+          .onb-header {
+            padding: 12px 16px 0 16px;
+          }
+          .onb-header-top {
+            flex-direction: column;
+            align-items: flex-start;
+          }
         }
       `}</style>
     </div>

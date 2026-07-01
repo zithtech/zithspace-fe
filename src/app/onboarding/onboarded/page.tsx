@@ -11,7 +11,10 @@ import {
   Dropdown,
   Tooltip,
   Select,
+  Pagination,
+  Typography,
 } from "antd";
+const { Text } = Typography;
 import type { ColumnsType } from "antd/es/table";
 import {
   Search,
@@ -25,6 +28,7 @@ import {
   ShieldCheck,
   MoreVertical,
   RotateCw,
+  Menu,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
@@ -363,6 +367,13 @@ const Onboarded = () => {
       {/* ── 1) HEADER: about + search + add ─────────────────────────────────── */}
       <div className="onb-header">
         <div className="onb-header-about">
+          <button 
+            className="ob-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="onb-header-icon">
             <Users size={18} />
           </div>
@@ -439,59 +450,31 @@ const Onboarded = () => {
           dataSource={pagedRows}
           pagination={false}
           onRow={() => ({ className: "onb-row" })}
+          scroll={{ x: 'max-content' }}
         />
       </div>
 
       {/* Sticky footer pager */}
       {total > 0 && (
-        <div className="onb-footer onb-footer--sticky">
-          <div className="onb-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
-          </div>
-          <div className="onb-pager">
-            <button
-              type="button"
-              className="onb-pager-btn"
-              disabled={tablePage <= 1}
-              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-            >
-              ‹
-            </button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1)
-              .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
-              .map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`onb-pager-num ${p === tablePage ? "is-active" : ""}`}
-                  onClick={() => setTablePage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            <button
-              type="button"
-              className="onb-pager-btn"
-              disabled={tablePage >= pageCount}
-              onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}
-            >
-              ›
-            </button>
-            <Select
-              className="onb-pagesize"
-              size="small"
-              value={tablePageSize}
-              onChange={(v) => {
-                setTablePageSize(v);
-                setTablePage(1);
-              }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({
-                value: n,
-                label: `${n} / page`,
-              }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
+        <div className="bd2-pagination">
+          <Text className="bd2-pagination-meta">
+            <b>{pageStart}</b>–
+            <b>{pageEnd}</b> of{' '}
+            <b>{total}</b>{' '}
+            {total === 1 ? 'employee' : 'employees'}
+          </Text>
+          <Pagination
+            current={tablePage}
+            pageSize={tablePageSize}
+            total={total}
+            onChange={(p, s) => {
+              setTablePage(p);
+              if (s) setTablePageSize(s);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 25, 50, 100]}
+            size="small"
+          />
         </div>
       )}
 
@@ -501,7 +484,9 @@ const Onboarded = () => {
         /* 1) Header */
         .onb-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
         }
         .onb-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .onb-header-icon {
@@ -549,6 +534,26 @@ const Onboarded = () => {
         /* 3) Table */
         .onb-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .onb-table .ant-table { background: transparent; font-size: 12px; }
+        .onb-table .ant-pagination { margin: 12px 12px 8px !important; }
+
+        @media (max-width: 900px) {
+          .onb-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 16px;
+            gap: 12px;
+          }
+          .onb-header-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .onb-search-wrap {
+            width: 100%;
+          }
+          .onb-stats {
+            grid-template-columns: 1fr;
+          }
+        }
         .onb-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
@@ -581,28 +586,38 @@ const Onboarded = () => {
           background: ${TINT.blue}; color: ${PALETTE.blue}; font-size: 11.5px; font-weight: 600;
         }
 
-        /* Sticky footer pager */
-        .onb-footer {
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-          height: 52px; box-sizing: border-box;
+        /* Sticky pagination */
+        .bd2-pagination {
+          position: sticky;
+          bottom: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: auto -22px 0;
+          padding: 12px 28px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-100);
+          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
         }
-        .onb-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin-top: auto; padding: 0 14px;
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-top: none;
-          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        [data-theme='dark'] .bd2-pagination {
+          background: #0d1117 !important;
+          border-top-color: #1f2937 !important;
         }
-        .onb-footer-info { font-size: 12px; color: var(--text-slate-500); }
-        .onb-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
-        .onb-pager { display: flex; align-items: center; gap: 3px; }
-        .onb-pager-btn, .onb-pager-num {
-          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        .bd2-pagination-meta {
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-500) !important;
+          letter-spacing: -0.005em;
         }
-        .onb-pager-btn:hover:not(:disabled), .onb-pager-num:hover { border-color: #93c5fd; color: ${PALETTE.blue}; }
-        .onb-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .onb-pager-num.is-active { background: ${PALETTE.blue}; border-color: ${PALETTE.blue}; color: #fff; }
-        .onb-pagesize { margin-left: 5px; }
-        .onb-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+        .bd2-pagination-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .bd2-pagination-meta b {
+          color: #f1f5f9 !important;
+        }
       `}</style>
     </div>
   );

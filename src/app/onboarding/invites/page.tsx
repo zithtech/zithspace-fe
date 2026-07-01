@@ -14,7 +14,10 @@ import {
   Space,
   Row,
   Col,
+  Pagination,
+  Typography,
 } from 'antd';
+const { Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
 import {
   MailPlus,
@@ -31,6 +34,7 @@ import {
   User,
   Smartphone,
   ShieldCheck,
+  Menu,
 } from 'lucide-react';
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -181,6 +185,9 @@ function InvitesContent() {
   const { canCreateOnboarding } = usePermission();
 
   const [rows, setRows] = useState<Invite[]>([]);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
+
   const [loading, setLoading] = useState(false);
 
   // create drawer
@@ -503,11 +510,25 @@ function InvitesContent() {
     },
   ];
 
+  const total = rows.length;
+  const pageStart = (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
+  const pagedRows = useMemo(() => {
+    return rows.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  }, [rows, tablePage, tablePageSize]);
+
   return (
     <div className="onbi">
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div className="onbi-header">
         <div className="onbi-header-about">
+          <button 
+            className="ob-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="onbi-header-icon">
             <MailPlus size={20} />
           </div>
@@ -570,12 +591,37 @@ function InvitesContent() {
           className="onbi-table"
           loading={loading}
           columns={columns}
-          dataSource={rows}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: 'small' }}
+          dataSource={pagedRows}
+          pagination={false}
           onRow={() => ({ className: 'onbi-row' })}
           locale={{ emptyText: 'No invites yet — invite your first employee.' }}
+          scroll={{ x: 'max-content' }}
         />
       </div>
+
+      {/* Sticky footer pager */}
+      {total > 0 && (
+        <div className="bd2-pagination">
+          <Text className="bd2-pagination-meta">
+            <b>{pageStart}</b>–
+            <b>{pageEnd}</b> of{' '}
+            <b>{total}</b>{' '}
+            {total === 1 ? 'invite' : 'invites'}
+          </Text>
+          <Pagination
+            current={tablePage}
+            pageSize={tablePageSize}
+            total={total}
+            onChange={(p, s) => {
+              setTablePage(p);
+              if (s) setTablePageSize(s);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 25, 50, 100]}
+            size="small"
+          />
+        </div>
+      )}
 
       {/* ── CREATE DRAWER ───────────────────────────────────────────────── */}
       <Drawer
@@ -657,9 +703,14 @@ function InvitesContent() {
                       style={{ marginBottom: 18 }}
                       name="firstName"
                       label={fieldLabel('First name')}
-                      rules={[{ required: true, message: 'First name is required' }]}
+                      rules={[
+                        { required: true, message: 'First name is required' },
+                        { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                      ]}
                     >
-                      <Input size="large" maxLength={80} placeholder="Jane" />
+                      <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
@@ -667,9 +718,14 @@ function InvitesContent() {
                       style={{ marginBottom: 18 }}
                       name="lastName"
                       label={fieldLabel('Last name')}
-                      rules={[{ required: true, message: 'Last name is required' }]}
+                      rules={[
+                        { required: true, message: 'Last name is required' },
+                        { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                      ]}
                     >
-                      <Input size="large" maxLength={80} placeholder="Doe" />
+                      <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
@@ -710,12 +766,16 @@ function InvitesContent() {
                       style={{ marginBottom: 0 }}
                       name="mobile"
                       label={fieldLabel('Mobile')}
+                      rules={[{ pattern: /^[0-9]{7,15}$/, message: 'Must be 7-15 digits' }]}
                     >
                       <Input
                         size="large"
-                        maxLength={20}
-                        placeholder="+1 555 000 1234"
+                        maxLength={15}
+                        placeholder="9876543210"
                         prefix={<Smartphone size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                        }}
                       />
                     </Form.Item>
                   </Col>
@@ -804,13 +864,23 @@ function InvitesContent() {
               >
                 <Row gutter={[20, 6]}>
                   <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 18 }} name="firstName" label={fieldLabel('First name')} rules={[{ required: true, message: 'First name is required' }]}>
-                      <Input size="large" maxLength={80} placeholder="Jane" />
+                    <Form.Item style={{ marginBottom: 18 }} name="firstName" label={fieldLabel('First name')} rules={[
+                      { required: true, message: 'First name is required' },
+                      { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                    ]}>
+                      <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 18 }} name="lastName" label={fieldLabel('Last name')} rules={[{ required: true, message: 'Last name is required' }]}>
-                      <Input size="large" maxLength={80} placeholder="Doe" />
+                    <Form.Item style={{ marginBottom: 18 }} name="lastName" label={fieldLabel('Last name')} rules={[
+                      { required: true, message: 'Last name is required' },
+                      { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                    ]}>
+                      <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
@@ -949,7 +1019,9 @@ function InvitesContent() {
         /* Header */
         .onbi-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
         }
         .onbi-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .onbi-header-icon {
@@ -996,8 +1068,42 @@ function InvitesContent() {
           white-space: nowrap !important;
         }
         .onbi-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
+        .onbi-table .ant-table-tbody > tr > td { padding: 8px 12px !important; border-bottom: 1px solid var(--border-slate-100) !important; }
         .onbi-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .onbi-table .ant-table-tbody > tr.onbi-row:hover > td { background: var(--bg-slate-50) !important; }
+
+        /* Sticky pagination */
+        .bd2-pagination {
+          position: sticky;
+          bottom: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: auto -22px 0;
+          padding: 12px 28px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-100);
+          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
+        }
+        [data-theme='dark'] .bd2-pagination {
+          background: #0d1117 !important;
+          border-top-color: #1f2937 !important;
+        }
+        .bd2-pagination-meta {
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-500) !important;
+          letter-spacing: -0.005em;
+        }
+        .bd2-pagination-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .bd2-pagination-meta b {
+          color: #f1f5f9 !important;
+        }
         .onbi-table .ant-pagination { margin: 12px 12px 8px !important; }
 
         /* Drawer form fields — outlined white, 40px, blue focus ring */
@@ -1036,6 +1142,22 @@ function InvitesContent() {
 
         /* Share-link modal — square premium look */
         .onbi-modal { border-radius: 0 !important; padding: 0 !important; overflow: hidden; }
+
+        @media (max-width: 900px) {
+          .onbi-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 16px;
+            gap: 12px;
+          }
+          .onbi-header-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .onbi-stats {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
   );

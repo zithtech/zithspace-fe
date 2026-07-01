@@ -33,7 +33,7 @@ const { Text, Title } = Typography;
 const EmployeeHistoryView = ({ data }: any) => {
   if (!data || data.length === 0) {
     return (
-      <div style={{ padding: "40px 0", textAlign: "center", background: "#ffffff", borderRadius: 16, border: "1px dashed #e2e8f0" }}>
+      <div style={{ padding: "40px 0", textAlign: "center", background: "var(--bg-pure-white, #ffffff)", borderRadius: 16, border: "1px dashed var(--border-slate-200, #e2e8f0)" }}>
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={<Text type="secondary">No employment history available</Text>}
@@ -51,16 +51,41 @@ const EmployeeHistoryView = ({ data }: any) => {
   };
 
   const getFileName = (fileData: any) => {
-    if (!fileData) return "";
+    let rawName = "Document";
+    if (!fileData) return rawName;
     if (typeof fileData === "string")
-      return fileData.split("/").pop() || "Document";
-    if (fileData.fileName) return fileData.fileName;
-    if (fileData.url) return fileData.url.split("/").pop() || "Document";
-    return "Document";
+      rawName = fileData.split("/").pop() || "Document";
+    else if (fileData.fileName) rawName = fileData.fileName;
+    else if (fileData.url) {
+      try {
+        const urlObj = new URL(fileData.url);
+        rawName = urlObj.pathname.split("/").pop() || "Document";
+      } catch (e) {
+        rawName = fileData.url.split("/").pop() || "Document";
+      }
+    }
+    
+    // Remove nanoid(12)_ prefix if present (12 chars + underscore)
+    if (/^[A-Za-z0-9_-]{12}_/.test(rawName)) {
+      rawName = rawName.substring(13);
+    }
+    
+    // Sometimes the filename is still just a UUID or has long text, but removing the prefix helps
+    return rawName;
+  };
+
+  const normalizeDownloadUrl = (fileData: any) => {
+    if (!fileData) return null;
+    if (fileData.downloadUrl) return fileData.downloadUrl;
+    // Fallback to url if downloadUrl is missing
+    if (fileData.url) return fileData.url;
+    if (typeof fileData === "string") return fileData;
+    return null;
   };
 
   const DocumentCard = ({ label, fileData }: any) => {
     const fileUrl = normalizeFileUrl(fileData);
+    const fileDownloadUrl = normalizeDownloadUrl(fileData);
     const fileName = getFileName(fileData);
 
     if (!fileUrl) return null;
@@ -69,9 +94,9 @@ const EmployeeHistoryView = ({ data }: any) => {
       <div
         style={{
           padding: "16px",
-          background: "#ffffff",
+          background: "var(--bg-pure-white, #ffffff)",
           borderRadius: 12,
-          border: "1px solid #e2e8f0",
+          border: "1px solid var(--border-slate-200, #e2e8f0)",
           marginBottom: 12,
           display: "flex",
           justifyContent: "space-between",
@@ -84,7 +109,7 @@ const EmployeeHistoryView = ({ data }: any) => {
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: "#eff6ff",
+            background: "var(--bg-blue-50, #eff6ff)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -93,10 +118,10 @@ const EmployeeHistoryView = ({ data }: any) => {
             <FileText size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-slate-900, #1e293b)" }}>
               {label}
             </div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>{fileName.length > 30 ? fileName.substring(0, 30) + "..." : fileName}</div>
+            <div style={{ fontSize: 11, color: "var(--text-slate-500, #64748b)" }}>{fileName.length > 30 ? fileName.substring(0, 30) + "..." : fileName}</div>
           </div>
         </div>
         <Space size={8}>
@@ -105,7 +130,7 @@ const EmployeeHistoryView = ({ data }: any) => {
               type="text"
               icon={<Eye size={16} />}
               onClick={() => window.open(fileUrl, "_blank")}
-              style={{ color: "#64748b" }}
+              style={{ color: "var(--text-slate-500, #64748b)" }}
             />
           </Tooltip>
           <Tooltip title="Download">
@@ -114,11 +139,11 @@ const EmployeeHistoryView = ({ data }: any) => {
               icon={<Download size={16} />}
               onClick={() => {
                 const link = document.createElement("a");
-                link.href = fileUrl;
+                link.href = fileDownloadUrl || fileUrl;
                 link.download = fileName;
                 link.click();
               }}
-              style={{ color: "#64748b" }}
+              style={{ color: "var(--text-slate-500, #64748b)" }}
             />
           </Tooltip>
         </Space>
@@ -134,9 +159,9 @@ const EmployeeHistoryView = ({ data }: any) => {
           style={{
             marginBottom: 16,
             borderRadius: 16,
-            border: "1px solid #f1f5f9",
+            border: "1px solid var(--border-slate-100, #f1f5f9)",
             overflow: "hidden",
-            background: "#ffffff",
+            background: "var(--bg-pure-white, #ffffff)",
             boxShadow: "none",
           }}
           bodyStyle={{ padding: 20 }}
@@ -147,20 +172,20 @@ const EmployeeHistoryView = ({ data }: any) => {
                 width: 48,
                 height: 48,
                 borderRadius: 12,
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                background: "var(--bg-pure-white, #ffffff)",
+                border: "1px solid var(--border-slate-100, #f1f5f9)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#1e293b"
+                color: "var(--text-slate-900, #1e293b)"
               }}>
                 <Building2 size={24} />
               </div>
               <div>
-                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900, #1e293b)" }}>
                   {company.companyName || `Company ${index + 1}`}
                 </Title>
-                <div style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>
+                <div style={{ fontSize: 14, color: "var(--text-slate-500, #64748b)", fontWeight: 500 }}>
                   {company.designation || "Position not specified"}
                 </div>
               </div>
@@ -170,7 +195,7 @@ const EmployeeHistoryView = ({ data }: any) => {
                 borderRadius: 20,
                 padding: "4px 12px",
                 fontWeight: 600,
-                background: "#f0fdf4",
+                background: "var(--bg-green-50, #f0fdf4)",
                 color: "#166534",
                 border: "none",
               }}
@@ -184,12 +209,12 @@ const EmployeeHistoryView = ({ data }: any) => {
             <Col span={12}>
               <div style={{
                 padding: "16px 20px",
-                background: "#ffffff",
+                background: "var(--bg-pure-white, #ffffff)",
                 borderRadius: 16,
                 height: "100%",
-                border: "1px solid #f1f5f9"
+                border: "1px solid var(--border-slate-100, #f1f5f9)"
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "var(--text-slate-600, #475569)", display: "flex", alignItems: "center", gap: 8 }}>
                   <MapPin size={16} color="#3b82f6" />
                   Company Details
                 </div>
@@ -204,7 +229,7 @@ const EmployeeHistoryView = ({ data }: any) => {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>Address</Text>
-                    <Text style={{ fontSize: 12, color: "#1e293b" }}>{company.address || "-"}</Text>
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-900, #1e293b)" }}>{company.address || "-"}</Text>
                   </div>
                 </Space>
               </div>
@@ -214,10 +239,10 @@ const EmployeeHistoryView = ({ data }: any) => {
             <Col span={12}>
               <div style={{
                 padding: "16px 20px",
-                background: "#ffffff",
+                background: "var(--bg-pure-white, #ffffff)",
                 borderRadius: 16,
                 height: "100%",
-                border: "1px solid #f1f5f9"
+                border: "1px solid var(--border-slate-100, #f1f5f9)"
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "#0369a1", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={16} color="#0284c7" />
@@ -246,7 +271,7 @@ const EmployeeHistoryView = ({ data }: any) => {
             <Col span={24}>
               <Divider style={{ margin: "4px 0" }} />
               <div style={{ marginBottom: 16, marginTop: 8 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "var(--text-slate-900, #1e293b)", display: "flex", alignItems: "center", gap: 8 }}>
                   <FileText size={18} color="#3b82f6" />
                   Documents & Certificates
                 </div>
@@ -266,53 +291,20 @@ const EmployeeHistoryView = ({ data }: any) => {
                 {/* Onboarding documents (per document type) */}
                 {Array.isArray(company.documents) && company.documents.length > 0 ? (
                   <div style={{ marginTop: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "var(--text-slate-600, #475569)", display: "flex", alignItems: "center", gap: 8 }}>
                       <FileText size={16} color="#3b82f6" />
                       Submitted Documents
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
                       {company.documents.map((doc: any, dIdx: number) => {
                         const files = Array.isArray(doc?.files) ? doc.files : [];
-                        return (
-                          <div
-                            key={`doc-${dIdx}`}
-                            style={{
-                              padding: 16,
-                              background: "#ffffff",
-                              borderRadius: 12,
-                              border: "1px solid #e2e8f0",
-                            }}
-                          >
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>
-                              {doc?.documentType || "Document"}
-                            </div>
-                            <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                              {files.length > 0 ? (
-                                files.map((f: any, fIdx: number) => {
-                                  const url = normalizeFileUrl(f);
-                                  const name = getFileName(f);
-                                  if (!url) return null;
-                                  return (
-                                    <a
-                                      key={`f-${fIdx}`}
-                                      href={url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#2563eb" }}
-                                    >
-                                      <ExternalLink size={14} />
-                                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                        {name.length > 32 ? name.substring(0, 32) + "..." : name}
-                                      </span>
-                                    </a>
-                                  );
-                                })
-                              ) : (
-                                <Text type="secondary" style={{ fontSize: 12 }}>No file</Text>
-                              )}
-                            </Space>
-                          </div>
-                        );
+                        return files.map((f: any, fIdx: number) => (
+                          <DocumentCard 
+                            key={`doc-${dIdx}-${fIdx}`} 
+                            label={doc?.documentType || "Document"} 
+                            fileData={f} 
+                          />
+                        ));
                       })}
                     </div>
                   </div>
@@ -325,7 +317,7 @@ const EmployeeHistoryView = ({ data }: any) => {
               <Col span={24}>
                 <Divider style={{ margin: "4px 0" }} />
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "var(--text-slate-900, #1e293b)", display: "flex", alignItems: "center", gap: 8 }}>
                     <User size={18} color="#3b82f6" />
                     Reference Contacts
                   </div>
@@ -333,25 +325,25 @@ const EmployeeHistoryView = ({ data }: any) => {
                     {company.contacts.map((contact: any, idx: number) => (
                       <div key={idx} style={{
                         padding: 16,
-                        background: "#ffffff",
+                        background: "var(--bg-pure-white, #ffffff)",
                         borderRadius: 12,
-                        border: "1px solid #e2e8f0"
+                        border: "1px solid var(--border-slate-200, #e2e8f0)"
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                           <Tag color="blue" style={{ borderRadius: 6 }}>{contact.contactRole?.toUpperCase() || "CONTACT"}</Tag>
                         </div>
                         <Space direction="vertical" size={8} style={{ width: "100%" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <User size={14} color="#64748b" />
+                            <User size={14} color="var(--text-slate-500, #64748b)" />
                             <Text strong style={{ fontSize: 13 }}>{contact.contactName}</Text>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <Phone size={14} color="#64748b" />
+                            <Phone size={14} color="var(--text-slate-500, #64748b)" />
                             <Text style={{ fontSize: 12 }}>{contact.contactNumber}</Text>
                           </div>
                           {contact.contactEmail && (
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <Mail size={14} color="#64748b" />
+                              <Mail size={14} color="var(--text-slate-500, #64748b)" />
                               <Text style={{ fontSize: 12 }}>{contact.contactEmail}</Text>
                             </div>
                           )}

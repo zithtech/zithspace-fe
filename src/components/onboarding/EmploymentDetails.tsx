@@ -486,7 +486,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
         >
           <Row gutter={24}>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Position</span>}
                 name="positionId"
@@ -503,7 +503,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Employee Type</span>}
                 name="employeeType"
@@ -517,7 +517,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Work Location</span>}
                 name="workLocation"
@@ -527,7 +527,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Work Type</span>}
                 name="workType"
@@ -550,7 +550,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Work Joining Date</span>}
                 name="employeeJoiningDate"
@@ -560,7 +560,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={{ fontWeight: 500 }}>Notice Period</span>}
                 name="noticePeriod"
@@ -570,7 +570,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={24}>
+            <Col xs={24} md={24}>
               {workType === "Hybrid" && (
                 <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
@@ -628,7 +628,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               )}
             </Col>
 
-            <Col span={24}>
+            <Col xs={24} md={24}>
               <Form.Item name="workShift" hidden>
                 <Input />
               </Form.Item>
@@ -672,17 +672,17 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
         >
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
                 <DatePicker style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
                 <DatePicker style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
                 <Select showSearch placeholder="Select Manager" optionFilterProp="children">
                   {members?.map((member) => (
@@ -691,7 +691,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
                 <Select mode="multiple" allowClear placeholder="Select Projects" maxTagCount="responsive">
                   {projects.map((project) => (
@@ -749,7 +749,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 { label: "Sat", value: "Sat" },
                 { label: "Sun", value: "Sun" },
               ].map((day) => (
-                <Col span={8} key={day.value}>
+                <Col xs={24} md={8} key={day.value}>
                   <Checkbox value={day.value}>{day.label}</Checkbox>
                 </Col>
               ))}

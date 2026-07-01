@@ -83,11 +83,14 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
           }
         >
           <Row gutter={24}>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="bankName"
                 label={<span style={{ fontWeight: 500 }}>Bank Name</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
               >
                 <Input placeholder="Enter Bank Name" onKeyDown={(e) => {
                   if (e.key.length > 1) return;
@@ -98,11 +101,14 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="accountHolderName"
                 label={<span style={{ fontWeight: 500 }}>Account Holder Name</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
               >
                 <Input placeholder="Account Holder Name" onKeyDown={(e) => {
                   if (e.key.length > 1) return;
@@ -113,17 +119,18 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="accountNumber"
                 label={<span style={{ fontWeight: 500 }}>Account Number</span>}
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                  { pattern: /^[0-9]{9,18}$/, message: "Account number must be 9-18 digits" }
                 ]}
               >
                 <Input
                   placeholder="Account Number"
+                  maxLength={18}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key.length === 1) {
                       e.preventDefault();
@@ -133,21 +140,27 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="ifscCode"
                 label={<span style={{ fontWeight: 500 }}>IFSC Code</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: "Invalid IFSC Code format" }
+                ]}
               >
                 <Input placeholder="IFSC Code" />
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="branchName"
                 label={<span style={{ fontWeight: 500 }}>Branch Name</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Za-z0-9\s.,/-]+$/, message: "No special characters allowed" }
+                ]}
               >
                 <Input placeholder="Branch Name" onKeyDown={(e) => {
                   if (e.key.length > 1) return;
@@ -158,7 +171,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="accountType"
                 label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Account Type</span>}
@@ -189,17 +202,18 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
           layout="vertical"
         >
           <Row gutter={24}>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="uanNumber"
                 label={<span style={{ fontWeight: 500 }}>UAN Number</span>}
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                  { pattern: /^[0-9]{12}$/, message: "UAN must be 12 digits" }
                 ]}
               >
                 <Input
                   placeholder="UAN Number"
+                  maxLength={12}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key.length === 1) {
                       e.preventDefault();
@@ -209,37 +223,35 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="pfNumber"
                 label={<span style={{ fontWeight: 500 }}>PF Number</span>}
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                  { pattern: /^[A-Za-z]{5}[0-9]{17}$/, message: "Invalid PF format (e.g. MHBAN00000640000000123)" }
                 ]}
               >
                 <Input
                   placeholder="PF Number"
-                  onKeyPress={(e) => {
-                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
-                      e.preventDefault();
-                    }
-                  }}
+                  maxLength={22}
+                  style={{ textTransform: "uppercase" }}
                 />
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="esiNumber"
                 label={<span style={{ fontWeight: 500 }}>ESI Number</span>}
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                  { pattern: /^[0-9]{17}$/, message: "ESI must be 17 digits" }
                 ]}
               >
                 <Input
                   placeholder="ESI Number"
+                  maxLength={17}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key.length === 1) {
                       e.preventDefault();
@@ -249,7 +261,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="taxRegime"
                 label={<span style={{ fontWeight: 500 }}>Tax Regime</span>}
@@ -262,7 +274,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 name="paymentType"
                 label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Payment Type</span>}

@@ -92,11 +92,11 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 /* ================= UPLOAD FIELD COMPONENT ================= */
 const UploadField = ({ label, name, form }: any) => {
+  const currentValue = Form.useWatch(name, form);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
   useEffect(() => {
-    const currentValue = form.getFieldValue(name);
     if (currentValue) {
       if (typeof currentValue === "string") {
         // Handle R2 URL
@@ -114,7 +114,7 @@ const UploadField = ({ label, name, form }: any) => {
         );
       }
     }
-  }, [form, name]);
+  }, [currentValue]);
 
   const handleFileSelect = async (file: File) => {
     if (file.size > MAX_SIZE) {

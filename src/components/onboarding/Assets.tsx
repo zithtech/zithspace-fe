@@ -210,7 +210,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
       <Row gutter={[16, 16]}>
         {/* ADD BUTTON AS DASHED BOX */}
-        <Col span={6}>
+        <Col xs={24} md={6}>
           <div
             onClick={() => {
               setEditIndex(null);
@@ -257,7 +257,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         {assets.map((asset, index) => {
           const AssetIcon = getAssetIcon(asset.item);
           return (
-            <Col span={6} key={index}>
+            <Col xs={24} md={6} key={index}>
               <div
                 style={cardStyle}
                 onMouseEnter={() => setHoverIndex(index)}
@@ -447,7 +447,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
           <SectionHeader icon={Info} title="Device Information" subtitle="Brand and technical specifications" />
 
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item
                 label={<span style={labelStyle}>Brand Name</span>}
                 name="brand"
@@ -456,7 +456,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
                 <Input placeholder="e.g. Apple, Dell" style={{ height: "40px", borderRadius: "8px" }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item
                 label={<span style={labelStyle}>Model Name</span>}
                 name="model"

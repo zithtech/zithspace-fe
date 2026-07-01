@@ -256,14 +256,7 @@ export default function ReportsPanel() {
     []
   );
 
-  // "View Report" button — uses the currently-picked range.
-  const run = () => {
-    if (!range?.[0] || !range?.[1]) {
-      message.warning('Pick a date range first');
-      return;
-    }
-    fetchReport(range, projectId, memberId);
-  };
+
 
   // Auto-load the CURRENT MONTH as soon as a member is picked, regardless of any
   // previously-chosen range.
@@ -389,7 +382,13 @@ export default function ReportsPanel() {
             value={range}
             allowClear={false}
             format="MMM D, YYYY"
-            onChange={(d) => d && d[0] && d[1] && setRange([d[0], d[1]])}
+            onChange={(d) => {
+              if (d && d[0] && d[1]) {
+                const r: [Dayjs, Dayjs] = [d[0], d[1]];
+                setRange(r);
+                fetchReport(r, projectId, memberId);
+              }
+            }}
             presets={[
               { label: 'This month', value: [dayjs().startOf('month'), dayjs()] },
               {
@@ -433,9 +432,6 @@ export default function ReportsPanel() {
             </Button>
           </Dropdown>
 
-          {/* <Button type="primary" icon={<FileSearchOutlined />} loading={loading} onClick={run}>
-            View Report
-          </Button> */}
         </div>
       </div>
 
@@ -465,7 +461,7 @@ export default function ReportsPanel() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
-                  Choose your filters and hit <strong>View Report</strong> to see tickets
+                  Choose your filters to see tickets
                   worked in the selected window.
                 </Text>
               }

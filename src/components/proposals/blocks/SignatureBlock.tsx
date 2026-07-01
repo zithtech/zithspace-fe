@@ -197,7 +197,18 @@ export const SignatureBlockSettings: React.FC<{ data: any; onUpdate: (data: any)
   const labelStyle: React.CSSProperties = { fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '6px', display: 'block' };
   const inputStyle: React.CSSProperties = { borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' };
 
-  const handleUpdate = (changed: any) => onUpdate({ ...data, ...changed });
+  const cleanInput = (val: string) => val ? val.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') : '';
+  const handleUpdate = (changed: any) => {
+    const cleaned: any = {};
+    for (const key in changed) {
+      if (typeof changed[key] === 'string' && key !== 'companySignatureFont' && key !== 'clientSignatureFont') {
+        cleaned[key] = cleanInput(changed[key]);
+      } else {
+        cleaned[key] = changed[key];
+      }
+    }
+    onUpdate({ ...data, ...cleaned });
+  };
 
   const cardStyle: React.CSSProperties = { padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px' };
   const sectionHead = (icon: React.ReactNode, label: string) => (

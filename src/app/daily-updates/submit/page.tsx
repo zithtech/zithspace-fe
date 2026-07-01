@@ -783,7 +783,7 @@ function SubmitDailyUpdateContent() {
       return;
     }
 
-    if (alreadySubmitted || (!hasActiveTimer && !attCompletable)) {
+    if (alreadySubmitted || (!hasActiveTimer && !attCompletable) || isMissedUpdate) {
       doSubmit({ stopTimer: false, completeAttendance: false });
       return;
     }

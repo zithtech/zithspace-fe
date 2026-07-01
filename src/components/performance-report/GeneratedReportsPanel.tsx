@@ -1,6 +1,20 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+/** Force-download a file — routes through a server-side proxy to avoid CORS / PDF viewer issues. */
+function forceDownload(url: string, filename: string) {
+  // Use our Next.js proxy route which fetches the file server-side and sends it
+  // back with Content-Disposition: attachment — guaranteed download, no new tab.
+  const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+  const a = document.createElement('a');
+  a.href = proxyUrl;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 import {
   Avatar,
   Button,
@@ -131,8 +145,13 @@ export default function GeneratedReportsPanel() {
 
   const resolveAvatar = async (url?: string | null): Promise<string | null> => {
     if (!url) return null;
+    if (url.startsWith('data:')) return url;
     try {
-      const res = await fetch(url, { mode: 'cors' });
+      // Route through the backend proxy — html2canvas can't capture CORS-blocked images.
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error('Proxy failed');
       const blob = await res.blob();
       return await new Promise<string | null>((resolve) => {
         const reader = new FileReader();
@@ -513,7 +532,14 @@ export default function GeneratedReportsPanel() {
                     <span className="gr-gen">Generated {dayjs(r.generatedAt).format('MMM D, YYYY')}</span>
                     <div className="gr-actions">
                       <a href={r.fileUrl} target="_blank" rel="noopener noreferrer"><Button size="small" icon={<FilePdfOutlined />}>Open</Button></a>
-                      <a href={r.fileUrl} download><Button size="small" icon={<DownloadOutlined />} /></a>
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const filename = r.fileUrl.split('/').pop()?.split('?')[0] || 'report.pdf';
+                          forceDownload(r.fileUrl, filename);
+                        }}
+                      />
                       {canUpdatePerformanceReportSetting && (
                         <Popconfirm title="Delete this report?" onConfirm={() => onDelete(r.id)} okText="Delete" okButtonProps={{ danger: true }}>
                           <Button size="small" danger icon={<DeleteOutlined />} />

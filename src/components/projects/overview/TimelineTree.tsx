@@ -23,6 +23,7 @@ interface TimelineTicket {
   title: string;
   status: string;
   priority: string | null;
+  type: string | null;
   assigneeName: string | null;
   assigneeAvatar: string | null;
   startDate: string | Date | null;
@@ -280,6 +281,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
               </button>
             )}
           </span>
+          <span className="tl-col">Type</span>
           <span className="tl-col">Start</span>
           <span className="tl-col">End</span>
           <span className="tl-col">Est</span>
@@ -382,6 +384,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
                                     </Tooltip>
                                     {t.sprintName && <span className="tl-sprint">{t.sprintName}</span>}
                                   </div>
+                                  <span className="tl-col" style={{ textTransform: "capitalize" }}>{t.type || "—"}</span>
                                   <span className="tl-col">{fmtDate(t.startDate)}</span>
                                   <span className="tl-col">{fmtDate(t.endDate || t.dueDate)}</span>
                                   <span className="tl-col" style={!eff.est ? { color: "var(--text-slate-400)" } : undefined}>

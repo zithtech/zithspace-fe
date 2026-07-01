@@ -21,6 +21,22 @@ export const ProposalService = {
     return api.delete(`/api/proposals/${id}`);
   },
 
+  getTrashedProposals: async () => {
+    return api.get('/api/proposals/trash');
+  },
+
+  restoreProposal: async (id: string) => {
+    return api.post(`/api/proposals/${id}/restore`);
+  },
+
+  hardDeleteProposal: async (id: string) => {
+    return api.delete(`/api/proposals/${id}/hard`);
+  },
+
+  emptyTrash: async () => {
+    return api.delete('/api/proposals/trash/empty');
+  },
+
   requestProposalExport: async (id: string) => {
     return api.post(`/api/proposals/${id}/export`);
   },

@@ -23,7 +23,7 @@ import {
     Ticket,
     CalendarDays
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
 import { useDocumentHub, globalDataKeys } from '@/hooks/useGlobalData'
@@ -455,6 +455,7 @@ const SIDEBAR_WIDTH_STORAGE_KEY = 'documenthub:sidebarWidth';
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
     useActivitySource({ section: "WORK", module: "DocumentHub", page: "DocumentDetail" });
     const [collapsed, setCollapsed] = useState(false)
@@ -638,14 +639,28 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
             // Select first document if currently on placeholder
             if (selectedDoc === 'api-ref') {
-                const firstFile = documentHub.treeNodes.find(n => n.type === 'file' && n.documentId);
-                if (firstFile && firstFile.documentId) {
-                    setSelectedDoc(firstFile.documentId);
-                    setSelectedTreeNodeId(firstFile.id);
+                const nodeId = searchParams.get('nodeId');
+                let initialNode = null;
+                if (nodeId) {
+                    initialNode = documentHub.treeNodes.find(n => n.id === nodeId);
+                }
+                
+                if (initialNode && initialNode.type === 'file' && initialNode.documentId) {
+                    setSelectedDoc(initialNode.documentId);
+                    setSelectedTreeNodeId(initialNode.id);
+                } else {
+                    const firstFile = documentHub.treeNodes.find(n => n.type === 'file' && n.documentId);
+                    if (firstFile && firstFile.documentId) {
+                        setSelectedDoc(firstFile.documentId);
+                        setSelectedTreeNodeId(firstFile.id);
+                    }
+                    if (initialNode) {
+                        setSelectedTreeNodeId(initialNode.id);
+                    }
                 }
             }
         }
-    }, [documentHub?.treeNodes]);
+    }, [documentHub?.treeNodes, searchParams]);
 
     // Handle browser back/refresh — show the native unsaved-changes prompt only
     // while a save is genuinely in flight or pending. The autosave hook also

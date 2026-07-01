@@ -2361,11 +2361,23 @@ export default function MembersPage() {
                               ) : <span className="pc-foot-val">—</span>}
                             </span>
                             <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0 }}>
+                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <span className="pc-foot-key">Email:</span>
                               <span className="pc-foot-val" title={item.workEmail || undefined} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {item.workEmail || "—"}
                               </span>
+                              {item.workEmail && (
+                                <Tooltip title="Copy Email">
+                                  <CopyOutlined
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(item.workEmail);
+                                      messageApi.success("Email copied to clipboard");
+                                    }}
+                                    style={{ cursor: "pointer", fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}
+                                  />
+                                </Tooltip>
+                              )}
                             </span>
                           </div>
                           <div className="pc-foot-row" style={{ flexWrap: "nowrap", overflow: "hidden" }}>

@@ -196,7 +196,7 @@ export const EditableTable: React.FC<Props> = ({ value, editable, onChange }) =>
                     className="etbl-hinput"
                     value={col.label}
                     placeholder="Column"
-                    onChange={(e) => setLabel(col.id, e.target.value)}
+                    onChange={(e) => setLabel(col.id, e.target.value.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, ''))}
                     onClick={(e) => e.stopPropagation()}
                     style={{ textAlign: col.align || 'left' }}
                   />

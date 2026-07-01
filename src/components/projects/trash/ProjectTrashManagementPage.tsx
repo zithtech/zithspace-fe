@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -18,6 +18,7 @@ import {
   Select,
   DatePicker,
   Pagination,
+  Divider,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
@@ -31,6 +32,8 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { FolderKanban, Trash2, AlertTriangle, Clock } from "lucide-react";
 import {
@@ -114,6 +117,14 @@ export default function ProjectTrashManagementPage() {
   }>({});
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsSidebarOpen(window.innerWidth >= 1100);
+    }
+  }, []);
 
   const { data: trashProjects, isLoading, refetch } = useProjectTrash();
   const restoreProject = useRestoreProject();
@@ -256,7 +267,12 @@ export default function ProjectTrashManagementPage() {
 
   return (
     <div className="pm2-page">
-      <div className="pm2-shell-wrap">
+      <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        <div
+          className="pm2-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
         <div className="pm2-shell">
           {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="pm2-sidebar">
@@ -377,6 +393,24 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
+              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                <button
+                  type="button"
+                  className="pm2-sidebar-show-toggle"
+                  onClick={() => setIsSidebarOpen((v) => !v)}
+                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                  aria-pressed={!isSidebarOpen}
+                >
+                  {isSidebarOpen ? (
+                    <MenuFoldOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                  )}
+                </button>
+              </Tooltip>
+
+              <Divider type="vertical" style={{ height: 24, margin: '0 12px 0 0', opacity: 0.5 }} className="pm2-sidebar-divider" />
+
               <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
                 <SearchOutlined className="pp-search-icon" />
                 <input
@@ -1183,6 +1217,87 @@ export default function ProjectTrashManagementPage() {
         [data-theme='dark'] .premium-table .ant-table-expanded-row > td {
           background: rgba(15, 23, 42, 0.5);
           border-bottom-color: #1e293b;
+        }
+
+        /* ── Sidebar show/hide toggle (only visible < 1100px) ── */
+        .pm2-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .pm2-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .pm2-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle {
+          background: #111720 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle:hover {
+          background: #1c232e !important;
+          border-color: #475569 !important;
+          color: #f1f5f9;
+        }
+
+        /* Desktop > 1100px: Hide toggle */
+        @media (min-width: 1100px) {
+          .pm2-sidebar-show-toggle, .pm2-sidebar-divider {
+            display: none !important;
+          }
+        }
+
+        /* Mobile < 1100px: Off-canvas drawer */
+        @media (max-width: 1099.98px) {
+          .pm2-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
+            transform: translateX(0);
+          }
+          .pm2-shell-wrap.is-sidebar-closed .pm2-sidebar {
+            transform: translateX(-100%);
+          }
+          .pm2-shell-wrap .pm2-sidebar {
+            position: fixed;
+            top: 0; left: 0; width: 260px; height: 100vh;
+            max-height: none;
+            z-index: 9999;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+          }
+          .pm2-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar-backdrop {
+            display: block;
+            opacity: 1;
+          }
         }
       `}</style>
     </div>

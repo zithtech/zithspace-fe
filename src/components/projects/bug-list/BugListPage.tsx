@@ -44,6 +44,8 @@ import {
   Briefcase,
   List,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -204,7 +206,7 @@ export default function BugListPage() {
     projectId: selectedProjectId || undefined,
   });
 
-  const [sidebarWidth, setSidebarWidth] = useState(252);
+  const [sidebarWidth, setSidebarWidth] = useState(230);
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -624,13 +626,21 @@ export default function BugListPage() {
       <main className="hb-main">
         <header className="hb-header">
           <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
-            {isMobile && (
+            {isMobile ? (
               <button
                 className="hb-btn hb-btn-icon hb-btn-ghost"
                 onClick={() => setMobileMenuOpen(true)}
                 style={{ marginRight: 8, padding: "4px 8px" }}
               >
                 <Menu size={18} />
+              </button>
+            ) : (
+              <button
+                className="hb-btn hb-btn-icon hb-btn-ghost"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{ marginRight: 8, padding: "4px 8px" }}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
               </button>
             )}
             <div className="hb-project-switcher-header">

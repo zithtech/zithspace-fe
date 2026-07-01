@@ -1612,6 +1612,7 @@ export default function BucketManagementPage() {
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
+          grid-column: 2;
         }
         [data-theme="dark"] .bh2-main {
           background: transparent !important;
@@ -1627,8 +1628,9 @@ export default function BucketManagementPage() {
           flex-shrink: 0;
           align-self: flex-start;
           transition: opacity 0.3s ease, border-color 0.3s ease, transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s ease;
-          position: sticky;
-          top: 0;
+          position: fixed;
+          top: 54px;
+          bottom: 0;
           height: calc(100vh - 54px);
           overflow: hidden;
           z-index: 10;
@@ -3043,11 +3045,13 @@ export default function BucketManagementPage() {
         .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
           background: var(--bg-slate-50) !important;
           z-index: 10 !important;
+          position: sticky !important;
         }
         .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
         .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
           background: var(--bg-pure-white) !important;
           z-index: 10 !important;
+          position: sticky !important;
         }
         .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
         .premium-table .ant-table-tbody > tr.premium-row:hover > td.ant-table-cell-fix-left,
@@ -3057,13 +3061,13 @@ export default function BucketManagementPage() {
         }
 
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #1e293b;
-          border-bottom-color: #334155 !important;
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
           color: #94a3b8 !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
-          background: #1e293b !important;
+          background: #0f1419 !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {

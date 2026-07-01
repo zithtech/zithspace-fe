@@ -33,6 +33,7 @@ import {
   InboxOutlined,
   RocketOutlined,
   ReloadOutlined,
+  RollbackOutlined,
   CloseOutlined,
   DeleteOutlined,
   UnorderedListOutlined,
@@ -197,6 +198,20 @@ export default function SquadManagement() {
     } catch (error) {
       console.error(error);
       message.error('Failed to delete squad');
+    }
+  };
+
+  const handleArchive = async (squad: Squad) => {
+    try {
+      setLoading(true);
+      await SquadService.archiveSquad(squad.id, !squad.isArchived);
+      message.success(`Squad ${squad.isArchived ? 'unarchived' : 'archived'} successfully`);
+      fetchSquads();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to update squad archive status');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -369,6 +384,7 @@ export default function SquadManagement() {
     items: [
       { key: 'view', label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><EyeOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">View details</span><span className="sq-menu-desc">Open squad details</span></span></div> },
       { key: 'edit', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Manage</span><span className="sq-menu-desc">Edit squad configuration</span></span></div> },
+      { key: 'archive', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#4f46e5', background: 'rgba(79,70,229,0.12)' }}>{squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />}</span><span className="sq-menu-text"><span className="sq-menu-title">{squad.isArchived ? 'Unarchive' : 'Archive'}</span><span className="sq-menu-desc">{squad.isArchived ? 'Restore squad to active list' : 'Archive this squad'}</span></span></div> },
       { type: 'divider' as const },
       { 
         key: 'delete', 
@@ -383,7 +399,7 @@ export default function SquadManagement() {
             onConfirm={() => handleDelete(squad.id)}
             placement="left"
           >
-            <div className="sq-menu-item" style={{ margin: '-7px -9px', padding: '7px 9px', width: 'calc(100% + 18px)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="sq-menu-item" style={{ cursor: 'pointer' }} onClick={(e) => e.stopPropagation()}>
               <span className="sq-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
               <span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span>
             </div>
@@ -395,6 +411,7 @@ export default function SquadManagement() {
       domEvent.stopPropagation();
       if (key === 'view') handleOpen(squad);
       else if (key === 'edit') handleManage(squad);
+      else if (key === 'archive') handleArchive(squad);
       // delete is handled by ConfirmDialog
     },
   });

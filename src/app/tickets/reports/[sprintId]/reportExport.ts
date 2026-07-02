@@ -35,41 +35,78 @@ function baseOptions(el: HTMLElement, filename: string) {
   };
 }
 
-export async function downloadReportPdf(sprintId: string, el: HTMLElement, filename: string): Promise<void> {
-  // Extract the HTML payload
-  const htmlPayload = el.outerHTML;
+export async function downloadReportPdf(sprintIdOrEl: string | HTMLElement, elOrFilename: HTMLElement | string, filename?: string): Promise<void> {
+  let sprintId: string | undefined;
+  let el: HTMLElement;
+  let fname: string;
 
-  // Send to backend Puppeteer service with a longer timeout
-  const response = await api.post(
-    `/api/sprint-report/${sprintId}/export-pdf`,
-    { htmlPayload },
-    { 
-      responseType: "blob",
-      timeout: 60000 // 60 seconds to allow for Puppeteer rendering
-    }
-  );
-
-  // Ensure we have a Blob
-  let blob = response.data;
-  if (!(blob instanceof Blob)) {
-    blob = new Blob([blob], { type: 'application/pdf' });
+  if (typeof sprintIdOrEl === 'string') {
+    sprintId = sprintIdOrEl;
+    el = elOrFilename as HTMLElement;
+    fname = filename as string;
+  } else {
+    el = sprintIdOrEl;
+    fname = elOrFilename as string;
   }
 
-  // Attempt saveAs
+  if (sprintId) {
+    // Extract the HTML payload
+    const htmlPayload = el.outerHTML;
+
+    // Send to backend Puppeteer service with a longer timeout
+    const response = await api.post(
+      `/api/sprint-report/${sprintId}/export-pdf`,
+      { htmlPayload },
+      { 
+        responseType: "blob",
+        timeout: 60000 // 60 seconds to allow for Puppeteer rendering
+      }
+    );
+
+    // Ensure we have a Blob
+    let blob = response.data;
+    if (!(blob instanceof Blob)) {
+      blob = new Blob([blob], { type: 'application/pdf' });
+    }
+
+    // Attempt saveAs
+    try {
+      saveAs(blob, fname);
+    } catch (err) {
+      console.error("file-saver failed, using fallback:", err);
+      // Fallback to native anchor tag
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.style.display = 'none';
+      link.href = url;
+      link.setAttribute('download', fname);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    }
+  } else {
+    // Fallback for non-sprint reports (html2pdf)
+    const clone = el.cloneNode(true) as HTMLElement;
+    el.parentNode?.appendChild(clone);
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      await (html2pdf() as any).set(baseOptions(clone, fname)).from(clone).save();
+    } finally {
+      clone.remove();
+    }
+  }
+}
+
+export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
+  const clone = el.cloneNode(true) as HTMLElement;
+  el.parentNode?.appendChild(clone);
   try {
-    saveAs(blob, filename);
-  } catch (err) {
-    console.error("file-saver failed, using fallback:", err);
-    // Fallback to native anchor tag
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.style.display = 'none';
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    const html2pdf = (await import("html2pdf.js")).default;
+    const worker = (html2pdf() as any).set(baseOptions(clone, filename)).from(clone);
+    return await worker.outputPdf("blob");
+  } finally {
+    clone.remove();
   }
 }
 

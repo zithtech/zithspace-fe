@@ -861,7 +861,7 @@ export default function SprintPlanComponent() {
                         onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
                         title={proj.label}
                       >
-                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}1A`, color: color, borderColor: `${color}3D`, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                        <span className="sp-sidebar-item-avatar" style={{ color: color, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
                           {initials}
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
@@ -907,7 +907,7 @@ export default function SprintPlanComponent() {
                       >
                         <span
                           className="sp-sidebar-status-chip"
-                          style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                          style={{}}
                         >
                           {seg.k === 'all' ? (
                             <span
@@ -5177,7 +5177,6 @@ export default function SprintPlanComponent() {
         }
         .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
           color: #3b82f6 !important;
-          border-color: #3b82f6 !important;
         }
         [data-theme='dark'] .sp-sidebar-item.active {
           background: rgba(59, 130, 246, 0.18) !important;
@@ -5185,13 +5184,11 @@ export default function SprintPlanComponent() {
         }
         [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
           color: #60a5fa !important;
-          border-color: #60a5fa !important;
         }
         .sp-sidebar-status-chip {
           width: 22px;
           height: 22px;
           border-radius: 6px;
-          border: 1px solid;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -5210,7 +5207,6 @@ export default function SprintPlanComponent() {
           width: 22px;
           height: 22px;
           border-radius: 6px;
-          border: 1px solid;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -5220,13 +5216,9 @@ export default function SprintPlanComponent() {
           letter-spacing: -0.01em;
         }
         .sp-sidebar-item-avatar-all {
-          background: var(--bg-slate-50);
-          border-color: var(--border-slate-200);
           color: var(--text-slate-600);
         }
         [data-theme='dark'] .sp-sidebar-item-avatar-all {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
           color: #94a3b8 !important;
         }
         .sp-sidebar-item-label {

@@ -2529,7 +2529,8 @@ export default function LeadSettingsPage() {
                                             <Form.Item
                                                 name="platformName"
                                                 label={<span className="lset-form-label">Name</span>}
-                                                rules={[{ required: true, message: "Required" }]}
+                                                rules={[{ required: true, message: "Required" }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: "Special characters are not allowed" }]}
+                                                getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}
                                             >
                                                 <Input
                                                     placeholder={platformTypeWatch === "website" ? "e.g. Zukvo, Zithtech" : "e.g. AngelList Talent"}

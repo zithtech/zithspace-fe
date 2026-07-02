@@ -415,7 +415,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               background: record.color
                 ? `linear-gradient(135deg, ${record.color} 0%, ${record.color}cc 100%)`
                 : 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-              boxShadow: record.color ? `0 4px 12px ${record.color}40, inset 0 1px 0 rgba(255,255,255,0.3)` : 'none',
+              boxShadow: 'none',
             }}
           >
             {!record.color && <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>?</span>}
@@ -523,7 +523,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                       backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
                       color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
                       fontSize: 10,
-                      boxShadow: 'none',
+                      boxShadow: "none",
                       border: 'none'
                     }}
                   />
@@ -573,7 +573,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                         className="dm-hero-icon"
                         style={{
                           background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
-                          boxShadow: `0 12px 32px ${type.color}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                          boxShadow: 'none',
                         }}
                       >
                         {React.cloneElement(type.icon as React.ReactElement, {
@@ -643,7 +643,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                             className="dm-primary-btn"
                             style={{
                               background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                              boxShadow: `0 6px 14px ${type.color}40`,
+                              boxShadow: "none",
                             }}
                           >
                             New Definition
@@ -789,7 +789,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     className="dm-drawer-icon"
                     style={{
                       background: `linear-gradient(135deg, ${drawerType.color} 0%, ${drawerType.color}cc 100%)`,
-                      boxShadow: `0 10px 24px ${drawerType.color}45, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                      boxShadow: 'none',
                     }}
                   >
                     {editingOption ? <EditOutlined style={{ color: '#fff', fontSize: 18 }} /> : <PlusOutlined style={{ color: '#fff', fontSize: 18 }} />}
@@ -817,7 +817,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         styles={{
           header: { padding: 0, border: 'none' },
           body: { padding: 0, background: 'var(--bg-pure-white)' },
-          wrapper: { boxShadow: '-24px 0 60px rgba(15, 23, 42, 0.2)' },
+          wrapper: { boxShadow: 'none' },
         }}
         footer={
           <div className="dm-drawer-footer">
@@ -992,6 +992,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       </Drawer>
 
       <style jsx global>{`
+        /* ── Header Sticky Wrapper ────────────────────────────────── */
+        .ts-sticky-header {
+          border-left: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme='dark'] .ts-sticky-header {
+          border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
         /* ── Tabs structural fix ──────────────────────────────────── */
         .manager-tabs, 
         .manager-tabs .ant-tabs-content, 
@@ -1003,26 +1011,26 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         /* ── Desktop Left Sidebar Nav ──────────────────────────────────────── */
         .manager-tabs.ant-tabs-left > .ant-tabs-nav {
           width: 264px;
-          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
+          background: transparent;
           margin-bottom: 0 !important;
-          border-right: 1px solid var(--border-slate-100);
+          border-right: 1px solid rgba(0, 0, 0, 0.08);
           padding: 20px 10px;
         }
         [data-theme='dark'] .manager-tabs.ant-tabs-left > .ant-tabs-nav {
-          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
+          background: transparent !important;
           border-right-color: #1f2937 !important;
         }
         
         /* ── Mobile/Tablet Top Nav ─────────────────────────────────────────── */
         .manager-tabs.ant-tabs-top > .ant-tabs-nav {
           width: 100%;
-          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
+          background: transparent;
           margin-bottom: 0 !important;
-          border-bottom: 1px solid var(--border-slate-100);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           padding: 10px 16px 0;
         }
         [data-theme='dark'] .manager-tabs.ant-tabs-top > .ant-tabs-nav {
-          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
+          background: transparent !important;
           border-bottom-color: #1f2937 !important;
         }
         .manager-tabs.ant-tabs-top .tab-label-container {
@@ -1070,9 +1078,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: rgba(255, 255, 255, 0.04) !important;
         }
         .manager-tabs .ant-tabs-tab-active {
-          background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%) !important;
-          border-color: rgba(59, 130, 246, 0.18) !important;
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08), 0 1px 0 rgba(255,255,255,0.6) inset !important;
+          background: transparent !important;
+          border-color: transparent !important;
+          box-shadow: none;
         }
         .manager-tabs.ant-tabs-left .ant-tabs-tab-active::before {
           content: '';
@@ -1084,12 +1092,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           height: 24px;
           background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
           border-radius: 2px;
-          box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+          box-shadow: none;
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-tab-active {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
-          border-color: rgba(59, 130, 246, 0.25) !important;
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.18) !important;
+          background: transparent !important;
+          border-color: transparent !important;
+          box-shadow: none;
         }
         .manager-tabs .ant-tabs-ink-bar {
           display: none;
@@ -1127,12 +1135,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }
         .tab-icon-box.active {
           background: var(--bg-pure-white);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+          box-shadow: none;
           transform: scale(1.05);
         }
         [data-theme='dark'] .tab-icon-box.active {
           background: #1a2035 !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+          box-shadow: none;
           border-color: rgba(255, 255, 255, 0.08) !important;
         }
         .tab-title {
@@ -1353,11 +1361,11 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           flex: 1;
           max-width: 420px;
           transition: all 0.2s ease;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          box-shadow: none;
         }
         .dm-search-box:focus-within {
           border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          box-shadow: none;
         }
         [data-theme='dark'] .dm-search-box {
           background: #161b22 !important;
@@ -1365,7 +1373,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }
         [data-theme='dark'] .dm-search-box:focus-within {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+          box-shadow: none;
         }
         .dm-search-icon {
           color: #94a3b8;
@@ -1437,10 +1445,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border-color: #cbd5e1;
         }
         .dm-chip.active {
-          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-          border-color: #1e293b;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          border-color: #3b82f6;
           color: #fff;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         [data-theme='dark'] .dm-chip {
           background: #161b22 !important;
@@ -1477,14 +1485,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
         /* ── Table wrapper ────────────────────────────────────────── */
         .dm-table-wrapper {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-100);
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
           border-radius: 16px;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: none;
         }
         [data-theme='dark'] .dm-table-wrapper {
-          background: #0d1117 !important;
+          background: transparent !important;
           border-color: #1f2937 !important;
         }
 
@@ -1583,16 +1591,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          background:
-            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.04) 0%, transparent 35%),
-            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.03) 0%, transparent 35%),
-            var(--bg-pure-white);
+          background: transparent;
         }
         [data-theme='dark'] .tab-content-area {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 35%),
-            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.05) 0%, transparent 35%),
-            #0b0f1a !important;
+          background: transparent !important;
         }
 
         /* ── Category header ──────────────────────────────────────── */
@@ -1761,7 +1763,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
         /* ── Left sidebar badge counts ────────────────────────────── */
         [data-theme='dark'] .manager-tabs .ant-tabs-tab .ant-badge-count {
-          box-shadow: none !important;
+          box-shadow: none;
         }
 
         /* ── Drag handle color ────────────────────────────────────── */
@@ -1938,7 +1940,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           font-size: 13px !important;
           background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
           border: none !important;
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35) !important;
+          box-shadow: none;
         }
         .dm-drawer-submit:hover {
           filter: brightness(1.08);
@@ -1966,7 +1968,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .dm-drawer .ant-input-number-focused,
         .dm-drawer .ant-select-focused .ant-select-selector {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+          box-shadow: none;
         }
         .dm-drawer .dm-input-mono input,
         .dm-drawer .dm-input-mono.ant-input {
@@ -2063,7 +2065,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .dm-modal .ant-input-number-focused,
         .dm-modal .ant-select-focused .ant-select-selector {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+          box-shadow: none;
         }
         .dm-input-mono input,
         .dm-input-mono.ant-input {
@@ -2076,7 +2078,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+          box-shadow: none;
         }
 
         /* ── Live preview card in modal ───────────────────────────── */
@@ -2117,7 +2119,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: var(--bg-pure-white);
           border-radius: 10px;
           border: 1px solid var(--border-slate-100);
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          box-shadow: none;
           width: fit-content;
         }
         [data-theme='dark'] .dm-preview-chip {

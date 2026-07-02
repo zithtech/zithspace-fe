@@ -14,6 +14,7 @@ import {
   Col,
   Space,
 } from 'antd';
+import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -321,6 +322,14 @@ export default function ApplyLeavePanel() {
       {/* HEADER */}
       <div className="lva-header">
         <div className="lva-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lva-header-icon"><WalletOutlined /></div>
           <div>
             <div className="lva-header-title">Apply Leave</div>
@@ -391,7 +400,7 @@ export default function ApplyLeavePanel() {
 
       {/* TABLE */}
       <div className="lva-table-wrap">
-        <Table rowKey="id" size="small" className="lva-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lva-row' })} />
+        <Table rowKey="id" size="small" className="lva-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lva-row' })} />
       </div>
 
       {total > 0 && (

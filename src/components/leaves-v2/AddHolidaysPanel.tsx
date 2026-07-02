@@ -19,6 +19,7 @@ import {
   FilterOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -269,6 +270,14 @@ export default function AddHolidaysPanel() {
     <div className="lvh">
       <div className="lvh-header">
         <div className="lvh-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvh-header-icon"><CalendarOutlined /></div>
           <div>
             <div className="lvh-header-title">Government Holidays</div>
@@ -309,7 +318,7 @@ export default function AddHolidaysPanel() {
       </div>
 
       <div className="lvh-table-wrap">
-        <Table rowKey="id" size="small" className="lvh-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lvh-row' })} />
+        <Table rowKey="id" size="small" className="lvh-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} />
       </div>
 
       {total > 0 && (

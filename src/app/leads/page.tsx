@@ -167,7 +167,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
         </Col>
 
         <Col span={21}>
-          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} style={{ marginBottom: 8 }}>
+          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')} style={{ marginBottom: 8 }}>
             <Input
               placeholder="Document Title (e.g. Project Brief)"
               className="premium-input"
@@ -409,7 +409,7 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         </div>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
+            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
               <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
@@ -468,7 +468,7 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
+            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
               <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
@@ -489,12 +489,12 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         </div>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
+            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.&'()]+$/, message: 'Please enter a valid company name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.&'()]/g, '')}>
               <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
+            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>} rules={[{ pattern: /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/, message: 'Please enter a valid domain (e.g. acme.com)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\-.]/g, '')}>
               <Input placeholder="acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
             </Form.Item>
           </Col>
@@ -523,7 +523,7 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
             <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>What they said and where it sits in your pipeline</Text>
           </div>
         </div>
-        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
+        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
           <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 0 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
@@ -4213,7 +4213,7 @@ export default function LeadsPage() {
                   </div>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
+                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
                         <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
@@ -4272,19 +4272,19 @@ export default function LeadsPage() {
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
+                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
+                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>} rules={[{ pattern: /^([0-5](\.\d{1,2})?(\/5)?)$/, message: 'Please enter a valid rating (e.g. 4.9 or 4.9/5)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-5./]/g, '')}>
                         <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
+                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>} rules={[{ pattern: /^[\$0-9kKMB,\.+\s]+$/, message: 'Please enter a valid amount (e.g. $10k+)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\$0-9kKMB,\.+\s]/g, '')}>
                         <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
@@ -4338,10 +4338,10 @@ export default function LeadsPage() {
                       <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
                     </div>
                   </div>
-                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
+                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
                     <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
-                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
+                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>} rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]} getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}>
                     <TextArea
                       rows={4}
                       placeholder="Enter the full job description or client request..."
@@ -4365,6 +4365,8 @@ export default function LeadsPage() {
                         <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
                       </Space>
                     }
+                    rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]}
+                    getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}
                   >
                     <TextArea
                       rows={4}
@@ -4380,29 +4382,29 @@ export default function LeadsPage() {
                   </Form.Item>
                   <Row gutter={16}>
                     <Col span={24}>
-                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
-                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
+                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
+                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[0-9\s\-,.]+$/, message: 'Please enter a valid duration (numbers only)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-9\s\-,.]/g, '')}>
                         <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                        <InputNumber style={{ width: '100%', borderRadius: 0 }} min={0} autoComplete="off" />
+                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
+                        <Input placeholder="e.g. 50" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
+                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
                         <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
+                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>} rules={[{ pattern: /^[A-Za-z\/\-]+$/, message: 'Please enter a valid type' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\/\-]/g, '')}>
                         <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>
@@ -4458,7 +4460,7 @@ export default function LeadsPage() {
                       </Form.Item>
                     </Col>
                   </Row>
-                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
+                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
                     <Input placeholder="https://..." style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
                   <Row gutter={16}>

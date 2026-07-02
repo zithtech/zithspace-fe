@@ -22,6 +22,7 @@ import {
 } from '@/store/proposalLibraryStore';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import '../library.css';
 
 type SavedView = 'all' | 'global' | 'archived';
@@ -77,6 +78,7 @@ function SectionsContent() {
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'SectionLibrary' });
   const router = useRouter();
   const [messageApi, holder] = message.useMessage();
+  const [modal, modalHolder] = Modal.useModal();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
   const sections = useProposalLibraryStore((s) => s.sections);
@@ -166,17 +168,7 @@ function SectionsContent() {
     }
   };
 
-  const confirmDelete = (s: LibrarySection) => {
-    Modal.confirm({
-      title: 'Delete section?',
-      content: `"${s.name}" will be permanently removed and dropped from any templates that use it.`,
-      okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
-      onOk: async () => {
-        try { await deleteSection(s.id); messageApi.success('Section deleted'); }
-        catch (e: any) { messageApi.error(e?.message || 'Could not delete section'); }
-      },
-    });
-  };
+
 
   const actionMenu = (s: LibrarySection): MenuProps => ({
     items: [
@@ -191,7 +183,32 @@ function SectionsContent() {
           desc={s.archived ? 'Bring back to the library' : 'Hide from pickers'} />,
       } : null,
       (canDeleteProposal && !s.system) ? { type: 'divider' } : null,
-      (canDeleteProposal && !s.system) ? { key: 'delete', danger: true, label: <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" /> } : null,
+      (canDeleteProposal && !s.system) ? { 
+        key: 'delete', 
+        danger: true, 
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined />}
+            title="Delete section?"
+            description={`"${s.name}" will be permanently removed and dropped from any templates that use it.`}
+            confirmText="Delete"
+            placement="bottomRight"
+            onConfirm={async () => {
+              try { await deleteSection(s.id); messageApi.success('Section deleted'); }
+              catch (e: any) { messageApi.error(e?.message || 'Could not delete section'); }
+            }}
+          >
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
+            </div>
+          </ConfirmDialog>
+        )
+      } : null,
     ].filter(Boolean) as MenuProps['items'],
     onClick: async ({ key, domEvent }) => {
       domEvent.stopPropagation();
@@ -199,7 +216,6 @@ function SectionsContent() {
         if (key === 'edit') openEdit(s);
         else if (key === 'duplicate') { await duplicateSection(s.id); messageApi.success('Section duplicated'); }
         else if (key === 'archive') { await archiveSection(s.id, !s.archived); messageApi.success(s.archived ? 'Section restored' : 'Section archived'); }
-        else if (key === 'delete') confirmDelete(s);
       } catch (e: any) {
         messageApi.error(e?.message || 'Action failed');
       }
@@ -231,6 +247,7 @@ function SectionsContent() {
   return (
     <>
       {holder}
+      {modalHolder}
       <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
         <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
         {/* ============================ SIDEBAR ============================ */}

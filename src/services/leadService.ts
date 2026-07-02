@@ -55,7 +55,7 @@ export interface Lead {
   is_mail_sent?: boolean;
 
   // Lead source kind + shared company block
-  lead_source_kind?: 'platform' | 'website';
+  lead_source_kind?: 'platform' | 'website' | 'intake';
   company?: string;
   company_domain?: string;
   company_size?: string;
@@ -107,12 +107,13 @@ export interface LeadPayload {
   ai_summary?: string;
 
   // Lead source kind + shared company block
-  leadSourceKind?: 'platform' | 'website';
+  leadSourceKind?: 'platform' | 'website' | 'intake';
   company?: string;
   companyDomain?: string;
   companySize?: string;
   inquiryMessage?: string;
   websiteSource?: string;
+  formData?: Record<string, any>;
 }
 
 export class LeadService {

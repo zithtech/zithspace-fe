@@ -7,6 +7,7 @@ const { Text } = Typography;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+const PLAIN_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_LEN = 60;
 
 const FIELD_LABEL: Record<string, string> = {
@@ -69,6 +70,44 @@ const FIELD_LABEL: Record<string, string> = {
   parent_entity_id: "Parent",
   user_id: "User",
   role: "Role",
+  // Leaves
+  leaveType: "Leave type",
+  fromDate: "From",
+  toDate: "To",
+  dayPortion: "Day portion",
+  totalUnits: "Total days",
+  paidUnits: "Paid days",
+  lopUnits: "LOP days",
+  reason: "Reason",
+  decisionNote: "Decision note",
+  unit: "Unit",
+  isPaid: "Paid",
+  requiresApproval: "Requires approval",
+  entryType: "Entry type",
+  effectiveDate: "Effective date",
+  units: "Units",
+  termCycle: "Term cycle",
+  lopOnExhaustion: "LOP on exhaustion",
+  assignmentCount: "Assignments",
+  lineCount: "Leave types",
+  country: "Country",
+  states: "States",
+  districts: "Districts",
+  rule: "Rule",
+  leaveYearStartMonth: "Leave-year start month",
+  employees: "Employees",
+  policies: "Policies",
+  credited: "Credited",
+  skipped: "Skipped",
+  employeeCode: "Employee code",
+  firstName: "First name",
+  lastName: "Last name",
+  workEmail: "Work email",
+  personalEmail: "Personal email",
+  sections: "Sections",
+  updatedSections: "Updated sections",
+  submittedSections: "Submitted sections",
+  inviteStatus: "Invite status",
 };
 
 function humanizeField(field: string): string {
@@ -148,7 +187,7 @@ function formatValue(v: unknown): string {
   }
   const s = String(v);
   if (UUID_RE.test(s)) return s.slice(0, 8) + "…";
-  if (ISO_DATE_RE.test(s)) return dayjs(s).format("MMM D, YYYY");
+  if (ISO_DATE_RE.test(s) || PLAIN_DATE_RE.test(s)) return dayjs(s).format("MMM D, YYYY");
   if (s.length > MAX_LEN) return s.slice(0, MAX_LEN) + "…";
   return s;
 }

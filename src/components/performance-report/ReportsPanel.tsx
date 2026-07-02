@@ -729,6 +729,12 @@ export default function ReportsPanel() {
         .prr-wrap *::before,
         .prr-wrap *::after { border-radius: 0 !important; }
         .prr-wrap .ant-avatar { border-radius: 50% !important; }
+        /* Rounded exceptions: date-range filter bar + module tab switcher */
+        .prr-wrap .prr-filters { border-radius: 14px !important; }
+        .prr-wrap .prr-filters .ant-picker { border-radius: 10px !important; }
+        .prr-wrap .prr-tabs { border-radius: 14px !important; }
+        .prr-wrap .prr-tab { border-radius: 10px !important; }
+        .prr-wrap .prr-tab-ic { border-radius: 8px !important; }
 
         .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .prr-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }

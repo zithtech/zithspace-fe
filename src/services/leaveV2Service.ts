@@ -110,7 +110,8 @@ export interface ScopeOption {
 
 // ── Leave Requests (self-service) ────────────────────────────────────────────
 export type DayPortion = 'full' | 'first_half' | 'second_half';
-export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'withdrawn';
+export type WithdrawalStatus = 'requested' | 'confirmed' | 'declined';
 
 export interface LeaveBalanceItem {
   leaveTypeId: string;
@@ -136,6 +137,7 @@ export interface LeaveRequest {
   lopUnits: number;
   reason: string | null;
   status: LeaveRequestStatus;
+  approverId?: string | null;
   decidedAt: string | null;
   decisionNote: string | null;
   createdAt: string;
@@ -143,6 +145,13 @@ export interface LeaveRequest {
   leaveTypeColor?: string | null;
   userName?: string;
   userEmail?: string;
+  approverName?: string | null;
+  // Withdrawal of an approved leave (release of unused days).
+  actualUnits?: number | null;
+  withdrawalStatus?: WithdrawalStatus | null;
+  withdrawalRequestedUnits?: number | null;
+  withdrawalNewToDate?: string | null;
+  withdrawalReason?: string | null;
 }
 
 export interface ApplyLeaveInput {
@@ -151,6 +160,29 @@ export interface ApplyLeaveInput {
   toDate: string;
   dayPortion?: DayPortion;
   reason?: string | null;
+}
+
+// Employee's withdrawal ask: release the whole leave, or shorten it to newToDate.
+export interface WithdrawLeaveInput {
+  releaseAll?: boolean;
+  newToDate?: string | null;
+  reason?: string | null;
+}
+
+export interface WithdrawalPlan {
+  mode: 'full' | 'shorten';
+  actualUnits: number;
+  newToDate: string | null;
+  releasedTotal: number;
+  releasedPaid: number;
+  releasedLop: number;
+  newPaid: number;
+  newLop: number;
+}
+
+export interface WithdrawalResult {
+  request: LeaveRequest;
+  plan: WithdrawalPlan | null;
 }
 
 // ── Government Holidays ──────────────────────────────────────────────────────
@@ -383,6 +415,12 @@ export const LeaveV2Service = {
     await apiClient.post(`${BASE}/requests/${id}/cancel`);
   },
 
+  // Ask to release unused days of an approved leave (awaits the manager's confirm).
+  async withdrawRequest(id: string, input: WithdrawLeaveInput): Promise<WithdrawalResult> {
+    const res = await apiClient.post(`${BASE}/requests/${id}/withdraw-request`, input);
+    return unwrap<WithdrawalResult>(res.data);
+  },
+
   // Active holiday dates (YYYY-MM-DD) — excluded from the apply-leave working-day count.
   async getLeaveHolidayDates(): Promise<string[]> {
     const res = await apiClient.get(`${BASE}/requests/holidays`);
@@ -471,6 +509,12 @@ export const LeaveV2Service = {
   async rejectRequest(id: string, note?: string): Promise<LeaveRequest> {
     const res = await apiClient.post(`${BASE}/approvals/${id}/reject`, { note: note ?? null });
     return unwrap<LeaveRequest>(res.data);
+  },
+
+  // Confirm or decline an employee's withdrawal request. Confirm credits the ledger.
+  async decideWithdrawal(id: string, approve: boolean, note?: string): Promise<WithdrawalResult> {
+    const res = await apiClient.post(`${BASE}/approvals/${id}/withdraw-decision`, { approve, note: note ?? null });
+    return unwrap<WithdrawalResult>(res.data);
   },
 
   // Scope target options for a given scope type (reuses existing org endpoints).

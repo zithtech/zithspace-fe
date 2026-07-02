@@ -229,12 +229,12 @@ export default function GovernmentHolidaysPanel() {
 
       <style jsx global>{`
         .lvgh { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvgh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvgh-header-about { display: flex; align-items: center; gap: 12px; }
-        .lvgh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lvgh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvgh-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lvgh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvgh-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvgh-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvgh-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvgh-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvgh-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
         .lvgh-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
         .lvgh-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -259,6 +259,13 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvgh-table .ant-table-tbody > tr.lvgh-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvgh-table .ant-pagination { margin: 12px 12px 8px !important; }
+
+        @media (max-width: 1024px) {
+          .lvgh-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvgh-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

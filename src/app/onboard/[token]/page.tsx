@@ -105,7 +105,7 @@ const stepBadgeStyle: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: "50%",
-  background: "#2563eb",
+  background: "var(--premium-blue)",
   color: "#fff",
   display: "flex",
   alignItems: "center",
@@ -119,8 +119,8 @@ const SectionHeader = ({ step, title, subtitle }: { step: number; title: string;
   <div style={sectionHeaderStyle}>
     <div style={stepBadgeStyle}>{step}</div>
     <div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{title}</div>
-      {subtitle && <div style={{ fontSize: 12, color: "#64748b" }}>{subtitle}</div>}
+      <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{subtitle}</div>}
     </div>
   </div>
 );
@@ -515,7 +515,7 @@ export default function PublicOnboardPage() {
 
     return (
       <>
-        <Divider style={{ margin: "12px 0", fontSize: 12, color: "#94a3b8" }} orientation="left" orientationMargin={0}>
+        <Divider style={{ margin: "12px 0", fontSize: 12, color: "var(--text-slate-400)" }} orientation="left" orientationMargin={0}>
           Documents
         </Divider>
         <Row gutter={16}>
@@ -566,11 +566,11 @@ export default function PublicOnboardPage() {
               <div
                 key={ci}
                 style={{
-                  border: "1px solid #eef2f7",
+                  border: "1px solid var(--border-slate-200)",
                   borderRadius: 8,
                   padding: "10px 12px",
                   marginBottom: 8,
-                  background: "#fcfdfe",
+                  background: "var(--bg-slate-50)",
                 }}
               >
                 <Row gutter={12} align="middle">
@@ -645,7 +645,7 @@ export default function PublicOnboardPage() {
     // even if an ancestor sets overflow:hidden.
     height: "100vh",
     overflowY: "auto",
-    background: "#f1f5f9",
+    background: "var(--bg-primary)",
     padding: "32px 16px",
     display: "flex",
     flexDirection: "column",
@@ -699,7 +699,7 @@ export default function PublicOnboardPage() {
 
   return (
     <div style={pageWrap}>
-      <div style={{ width: "100%", maxWidth: 760 }}>
+      <div style={{ width: "100%", maxWidth: 960 }}>
         {/* Brand / header */}
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div
@@ -707,28 +707,28 @@ export default function PublicOnboardPage() {
               fontSize: 22,
               fontWeight: 800,
               letterSpacing: "-0.02em",
-              color: "#2563eb",
+              color: "var(--premium-blue)",
               marginBottom: 4,
             }}
           >
             Zukvo
           </div>
-          <Text style={{ color: "#64748b", fontSize: 13 }}>New Hire Onboarding</Text>
+          <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>New Hire Onboarding</Text>
         </div>
 
         <Card style={{ borderRadius: 16, boxShadow: "0 4px 24px rgba(15,23,42,0.06)" }} styles={{ body: { padding: 28 } }}>
           {/* Greeting */}
           <div style={{ marginBottom: 8 }}>
-            <Title level={4} style={{ margin: 0, color: "#0f172a" }}>
+            <Title level={4} style={{ margin: 0, color: "var(--text-slate-900)" }}>
               {emp?.firstName ? `Welcome, ${emp.firstName}${emp?.lastName ? ` ${emp.lastName}` : ""}!` : "Welcome!"}
             </Title>
-            <Text style={{ color: "#64748b", fontSize: 13 }}>
+            <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
               Please review and complete your details below.
               {emp?.employeeCode ? ` (Employee Code: ${emp.employeeCode})` : ""}
             </Text>
             {expiresAt && (
               <div style={{ marginTop: 6 }}>
-                <Text style={{ color: "#b45309", fontSize: 12 }}>
+                <Text style={{ color: "var(--accounts-rose-text)", fontSize: 12 }}>
                   This link expires on {expiresAt.format("DD MMM YYYY")}.
                 </Text>
               </div>
@@ -741,22 +741,32 @@ export default function PublicOnboardPage() {
               <>
                 <SectionHeader step={1} title="Personal Details" subtitle="Your basic and identity information" />
                 <Row gutter={16}>
-                  <Col xs={24} sm={12}>
+                  <Col xs={24} sm={8}>
                     <Form.Item
                       name={["personal", "firstName"]}
                       label="First Name"
-                      rules={[{ required: true, message: "First name is required" }]}
+                      rules={[
+                        { required: true, message: "First name is required" },
+                        { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
+                      ]}
                     >
-                      <Input style={inputStyle} placeholder="First name" />
+                      <Input style={inputStyle} placeholder="First name" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={12}>
+                  <Col xs={24} sm={8}>
                     <Form.Item
                       name={["personal", "lastName"]}
                       label="Last Name"
-                      rules={[{ required: true, message: "Last name is required" }]}
+                      rules={[
+                        { required: true, message: "Last name is required" },
+                        { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
+                      ]}
                     >
-                      <Input style={inputStyle} placeholder="Last name" />
+                      <Input style={inputStyle} placeholder="Last name" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
@@ -786,12 +796,17 @@ export default function PublicOnboardPage() {
                     <Form.Item
                       name={["personal", "mobile"]}
                       label="Mobile"
-                      rules={[{ required: true, message: "Mobile is required" }]}
+                      rules={[
+                        { required: true, message: "Mobile is required" },
+                        { pattern: /^[0-9]{10,15}$/, message: "Must be 10-15 digits" }
+                      ]}
                     >
-                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} />
+                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name={["personal", "workEmail"]}
                       label="Work Email"
@@ -800,7 +815,7 @@ export default function PublicOnboardPage() {
                       <Input style={inputStyle} placeholder="name@company.com" />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name={["personal", "personalEmail"]}
                       label="Personal Email"
@@ -811,7 +826,7 @@ export default function PublicOnboardPage() {
                   </Col>
                 </Row>
 
-                <Divider style={{ margin: "12px 0", color: "#94a3b8", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
                   Current Address
                 </Divider>
                 <Row gutter={16}>
@@ -826,23 +841,31 @@ export default function PublicOnboardPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_city"]} label="City">
-                      <Input style={inputStyle} placeholder="City" />
+                    <Form.Item name={["personal", "address", "current", "c_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_state"]} label="State">
-                      <Input style={inputStyle} placeholder="State" />
+                    <Form.Item name={["personal", "address", "current", "c_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_country"]} label="Country">
-                      <Input style={inputStyle} placeholder="Country" />
+                    <Form.Item name={["personal", "address", "current", "c_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_pincode"]} label="Pincode">
-                      <Input style={inputStyle} placeholder="Pincode" maxLength={10} />
+                    <Form.Item name={["personal", "address", "current", "c_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
+                      <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -855,10 +878,10 @@ export default function PublicOnboardPage() {
                     gap: 12,
                     margin: "16px 0 12px",
                     paddingBottom: 6,
-                    borderBottom: "1px solid #f1f5f9",
+                    borderBottom: "1px solid var(--border-slate-200)",
                   }}
                 >
-                  <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500 }}>Permanent Address</span>
+                  <span style={{ color: "var(--text-slate-400)", fontSize: 13, fontWeight: 500 }}>Permanent Address</span>
                   <Checkbox
                     checked={sameAsCurrent}
                     onChange={(e) => handleSameAsCurrent(e.target.checked)}
@@ -879,65 +902,92 @@ export default function PublicOnboardPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_city"]} label="City">
-                      <Input style={inputStyle} placeholder="City" />
+                    <Form.Item name={["personal", "address", "permanent", "p_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_state"]} label="State">
-                      <Input style={inputStyle} placeholder="State" />
+                    <Form.Item name={["personal", "address", "permanent", "p_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_country"]} label="Country">
-                      <Input style={inputStyle} placeholder="Country" />
+                    <Form.Item name={["personal", "address", "permanent", "p_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_pincode"]} label="Pincode">
-                      <Input style={inputStyle} placeholder="Pincode" maxLength={10} />
+                    <Form.Item name={["personal", "address", "permanent", "p_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
+                      <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider style={{ margin: "12px 0", color: "#94a3b8", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
                   Emergency Contact
                 </Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={8}>
                     <Form.Item name={["personal", "relationship"]} label="Relationship">
-                      <Input style={inputStyle} placeholder="e.g. Father / Spouse" />
+                      <Select style={inputStyle} placeholder="Select Relationship" allowClear options={[
+                        { value: "father", label: "Father" },
+                        { value: "mother", label: "Mother" },
+                        { value: "spouse", label: "Spouse" },
+                        { value: "guardian", label: "Guardian" },
+                      ]} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "relationName"]} label="Contact Name">
-                      <Input style={inputStyle} placeholder="Name" />
+                    <Form.Item name={["personal", "relationName"]} label="Contact Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="Name" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "relationMobile"]} label="Contact Mobile">
-                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} />
+                    <Form.Item name={["personal", "relationMobile"]} label="Contact Mobile" rules={[
+                      { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" }
+                    ]}>
+                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider style={{ margin: "12px 0", color: "#94a3b8", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
                   Identity Documents
                 </Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "aadhaar"]} label="Aadhaar Number">
-                      <Input style={inputStyle} placeholder="Aadhaar" maxLength={12} />
+                    <Form.Item name={["personal", "aadhaar"]} label="Aadhaar Number" rules={[
+                      { pattern: /^[0-9]{12}$/, message: "Must be exactly 12 digits" }
+                    ]}>
+                      <Input style={inputStyle} placeholder="Aadhaar" maxLength={12} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "pan"]} label="PAN">
-                      <Input style={inputStyle} placeholder="PAN" maxLength={10} />
+                    <Form.Item name={["personal", "pan"]} label="PAN" rules={[
+                      { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
+                    ]}>
+                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PAN" maxLength={10} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "passport"]} label="Passport Number">
-                      <Input style={inputStyle} placeholder="Passport (optional)" />
+                    <Form.Item name={["personal", "passport"]} label="Passport Number" rules={[
+                      { pattern: /^[A-Z]{1}[0-9]{7}$/, message: "Invalid Passport format (e.g. A1234567)" }
+                    ]}>
+                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="Passport (optional)" maxLength={8} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -950,28 +1000,40 @@ export default function PublicOnboardPage() {
                 <SectionHeader step={2} title="Bank & Payroll" subtitle="Salary account and statutory details" />
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "bankName"]} label="Bank Name">
-                      <Input style={inputStyle} placeholder="Bank name" />
+                    <Form.Item name={["bank", "bankName"]} label="Bank Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="Bank name" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "accountHolderName"]} label="Account Holder Name">
-                      <Input style={inputStyle} placeholder="As per bank records" />
+                    <Form.Item name={["bank", "accountHolderName"]} label="Account Holder Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="As per bank records" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "accountNumber"]} label="Account Number">
-                      <Input style={inputStyle} placeholder="Account number" />
+                    <Form.Item name={["bank", "accountNumber"]} label="Account Number" rules={[
+                      { pattern: /^[0-9]{9,18}$/, message: "Account number must be 9-18 digits" }
+                    ]}>
+                      <Input style={inputStyle} placeholder="Account number" maxLength={18} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "ifscCode"]} label="IFSC Code">
-                      <Input style={inputStyle} placeholder="IFSC" />
+                    <Form.Item name={["bank", "ifscCode"]} label="IFSC Code" rules={[
+                      { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: "Invalid IFSC Code format" }
+                    ]}>
+                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="IFSC" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "branchName"]} label="Branch Name">
-                      <Input style={inputStyle} placeholder="Branch" />
+                    <Form.Item name={["bank", "branchName"]} label="Branch Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                      <Input style={inputStyle} placeholder="Branch" onKeyPress={(e) => {
+                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
@@ -985,18 +1047,28 @@ export default function PublicOnboardPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "uanNumber"]} label="UAN Number">
-                      <Input style={inputStyle} placeholder="UAN (optional)" />
+                    <Form.Item name={["bank", "uanNumber"]} label="UAN Number" rules={[
+                      { pattern: /^[0-9]{12}$/, message: "UAN must be 12 digits" }
+                    ]}>
+                      <Input style={inputStyle} placeholder="UAN (optional)" maxLength={12} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "pfNumber"]} label="PF Number">
-                      <Input style={inputStyle} placeholder="PF (optional)" />
+                    <Form.Item name={["bank", "pfNumber"]} label="PF Number" rules={[
+                      { pattern: /^[A-Za-z]{5}[0-9]{17}$/, message: "Invalid PF format (e.g. MHBAN00000640000000123)" }
+                    ]}>
+                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PF (optional)" maxLength={22} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "esiNumber"]} label="ESI Number">
-                      <Input style={inputStyle} placeholder="ESI (optional)" />
+                    <Form.Item name={["bank", "esiNumber"]} label="ESI Number" rules={[
+                      { pattern: /^[0-9]{17}$/, message: "ESI must be 17 digits" }
+                    ]}>
+                      <Input style={inputStyle} placeholder="ESI (optional)" maxLength={17} onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
@@ -1039,7 +1111,7 @@ export default function PublicOnboardPage() {
                         <Card
                           key={field.key}
                           size="small"
-                          style={{ marginBottom: 16, borderRadius: 12, background: "#f8fafc", borderColor: "#e2e8f0" }}
+                          style={{ marginBottom: 16, borderRadius: 12, background: "var(--bg-slate-50)", borderColor: "var(--border-slate-200)" }}
                           title={`Previous Company #${idx + 1}`}
                           extra={
                             <Button
@@ -1055,8 +1127,10 @@ export default function PublicOnboardPage() {
                         >
                           <Row gutter={16}>
                             <Col xs={24} sm={12}>
-                              <Form.Item name={[field.name, "companyName"]} label="Company Name">
-                                <Input style={inputStyle} placeholder="Company name" />
+                              <Form.Item name={[field.name, "companyName"]} label="Company Name" rules={[{ pattern: /^[A-Za-z0-9\s.,&-]+$/, message: "Invalid characters" }]}>
+                                <Input style={inputStyle} placeholder="Company name" onKeyPress={(e) => {
+                                  if (!/^[A-Za-z0-9\s.,&-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                                }} />
                               </Form.Item>
                             </Col>
                             <Col xs={24} sm={12}>
@@ -1102,7 +1176,7 @@ export default function PublicOnboardPage() {
                             </Col>
                           </Row>
 
-                          <Divider style={{ margin: "4px 0 12px", fontSize: 12, color: "#94a3b8" }} orientation="left" orientationMargin={0}>
+                          <Divider style={{ margin: "4px 0 12px", fontSize: 12, color: "var(--text-slate-400)" }} orientation="left" orientationMargin={0}>
                             Reference Contacts
                           </Divider>
                           <Form.List name={[field.name, "contacts"]}>
@@ -1112,11 +1186,11 @@ export default function PublicOnboardPage() {
                                   <div
                                     key={cField.key}
                                     style={{
-                                      border: "1px solid #eef2f7",
+                                      border: "1px solid var(--border-slate-200)",
                                       borderRadius: 8,
                                       padding: "10px 12px 2px",
                                       marginBottom: 8,
-                                      background: "#fcfdfe",
+                                      background: "var(--bg-slate-50)",
                                     }}
                                   >
                                     <div
@@ -1127,7 +1201,7 @@ export default function PublicOnboardPage() {
                                         marginBottom: 4,
                                       }}
                                     >
-                                      <span style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500)" }}>
                                         Contact {ci + 1}
                                       </span>
                                       <Button
@@ -1153,16 +1227,22 @@ export default function PublicOnboardPage() {
                                         </Form.Item>
                                       </Col>
                                       <Col xs={24} sm={12}>
-                                        <Form.Item name={[cField.name, "name"]} label="Name" style={{ marginBottom: 8 }}>
-                                          <Input style={inputStyle} placeholder="Name" />
+                                        <Form.Item name={[cField.name, "name"]} label="Name" style={{ marginBottom: 8 }} rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                                          <Input style={inputStyle} placeholder="Name" onKeyPress={(e) => {
+                                            if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                                          }} />
                                         </Form.Item>
                                       </Col>
                                     </Row>
                                     {/* Row 2 — mobile, email */}
                                     <Row gutter={12}>
                                       <Col xs={24} sm={12}>
-                                        <Form.Item name={[cField.name, "mobile"]} label="Mobile" style={{ marginBottom: 8 }}>
-                                          <Input style={inputStyle} placeholder="Mobile" maxLength={15} />
+                                        <Form.Item name={[cField.name, "mobile"]} label="Mobile" style={{ marginBottom: 8 }} rules={[
+                                          { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" }
+                                        ]}>
+                                          <Input style={inputStyle} placeholder="Mobile" maxLength={15} onKeyPress={(e) => {
+                                            if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                                          }} />
                                         </Form.Item>
                                       </Col>
                                       <Col xs={24} sm={12}>
@@ -1218,12 +1298,12 @@ export default function PublicOnboardPage() {
               block
               loading={submitting}
               onClick={handleSubmit}
-              style={{ borderRadius: 10, height: 48, fontWeight: 600, background: "#2563eb" }}
+              style={{ borderRadius: 10, height: 48, fontWeight: 600, background: "var(--premium-blue)" }}
             >
               Submit My Details
             </Button>
             <div style={{ textAlign: "center", marginTop: 12 }}>
-              <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+              <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
                 Your information is securely transmitted to your employer's HR team.
               </Text>
             </div>
@@ -1231,7 +1311,7 @@ export default function PublicOnboardPage() {
         </Card>
 
         <div style={{ textAlign: "center", marginTop: 20 }}>
-          <Text style={{ fontSize: 11, color: "#94a3b8" }}>Powered by Zukvo</Text>
+          <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>Powered by Zukvo</Text>
         </div>
       </div>
     </div>

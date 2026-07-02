@@ -415,12 +415,12 @@ export default function AddHolidaysPanel() {
 
       <style jsx global>{`
         .lvh { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvh-header-about { display: flex; align-items: center; gap: 12px; }
-        .lvh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lvh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvh-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lvh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvh-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvh-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvh-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvh-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvh-search-wrap { display: flex; align-items: center; height: 34px; width: 220px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lvh-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .lvh-search-icon { color: var(--text-slate-400); font-size: 14px; }
@@ -462,6 +462,13 @@ export default function AddHolidaysPanel() {
         .lvh-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 2px; }
         .lvh-toggle-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
         .lvh-toggle-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
+
+        @media (max-width: 1024px) {
+          .lvh-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvh-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

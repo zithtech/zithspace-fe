@@ -16,6 +16,7 @@ interface TimeTrackingHeaderProps {
   searchPlaceholder?: string;
   extra?: React.ReactNode;
   style?: React.CSSProperties;
+  className?: string;
   showIconBox?: boolean;
 }
 
@@ -29,11 +30,12 @@ export function TimeTrackingHeader({
   searchPlaceholder,
   extra,
   style,
+  className,
   showIconBox = true,
 }: TimeTrackingHeaderProps) {
   return (
     <>
-      <div className="saas-header-container" style={{
+      <div className={`saas-header-container${className ? ` ${className}` : ''}`} style={{
         backdropFilter: 'blur(12px)',
         padding: '8px 32px',
         flexShrink: 0,

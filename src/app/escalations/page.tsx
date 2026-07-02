@@ -854,7 +854,7 @@ export default function EscalationListPage() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-                <span className="es-kbd">⌘K</span>
+
               </div>
             </div>
 
@@ -1278,7 +1278,7 @@ export default function EscalationListPage() {
                       "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
                     );
                   }
-                  
+
                   if (fileUrl.includes(".r2.dev") && !fileUrl.includes(".r2.dev/")) {
                     fileUrl = fileUrl.replace(".r2.dev", ".r2.dev/");
                   }
@@ -1770,13 +1770,7 @@ export default function EscalationListPage() {
         .es-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
         .es-action-pop .ant-dropdown-menu-item-danger .es-menu-title { color: #ef4444; }
 
-        @media (max-width: 700px) {
-          .es-grid { grid-template-columns: 1fr; }
-        }
 
-        @media (max-width: 1100px) {
-          .es-stats { grid-template-columns: repeat(2, 1fr); }
-        }
         [data-theme='dark'] .es-shell {
           background:
             radial-gradient(1200px 400px at 0% -100px, rgba(59, 130, 246, 0.08), transparent 60%),
@@ -1906,15 +1900,22 @@ export default function EscalationListPage() {
 
         .es-mobile-menu-btn { display: none !important; }
 
+        @media (max-width: 1100px) {
+          .es-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
         @media (max-width: 820px) {
-          .es-shell { flex-direction: column; }
+          .es-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .es-main { height: auto; overflow: visible; }
+          .es-body { overflow: visible; }
+
           .es-mobile-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
           }
           .es-sidebar {
             position: fixed; top: 0; left: -320px; bottom: 0;
-            z-index: 999; height: 100%; max-height: none;
+            z-index: 1100; height: 100%; max-height: none;
             border-right: 1px solid var(--border-slate-200); border-bottom: 0;
             display: flex; flex-direction: column; align-items: stretch;
             background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
@@ -1927,6 +1928,11 @@ export default function EscalationListPage() {
           .es-topbar-actions { width: 100%; justify-content: flex-start; }
           .es-topbar-meta { display: none; }
           .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+        }
+
+        @media (max-width: 700px) {
+          .es-grid { grid-template-columns: 1fr; }
+          .es-stats { grid-template-columns: 1fr; }
         }
       `}</style>
 

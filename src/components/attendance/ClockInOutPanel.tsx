@@ -533,9 +533,9 @@ export default function ClockInOutPanel() {
         /* 1) Header */
         .cio-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200);
+          padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap;
         }
-        .cio-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .cio-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .cio-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -695,6 +695,10 @@ export default function ClockInOutPanel() {
           .cio-band-action { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--border-slate-100); }
           .cio-band-stats { flex: 1 1 100%; }
           .cio-insights { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .cio-insights { grid-template-columns: 1fr; }
+          .cio-band-stats { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>
     </div>

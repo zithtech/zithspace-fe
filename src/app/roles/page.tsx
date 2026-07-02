@@ -55,6 +55,7 @@ import {
   EllipsisOutlined,
   CloseOutlined,
   BarsOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -554,6 +555,7 @@ export default function RolesPage() {
   const [assigningMemberId, setAssigningMemberId] = useState<string | undefined>(undefined);
   const [assignLoading, setAssignLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState<string>('');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // ── Permissions drawer ─────────────────────────────────────────────────────
   const [drawerRole, setDrawerRole] = useState<RBACRole | null>(null);
@@ -962,7 +964,10 @@ export default function RolesPage() {
     <MainLayout>
       <div className="rp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="rp-sidebar">
+        {isMobileOpen && (
+          <div className="rp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`rp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="rp-side-head">
             <div className="rp-side-logo">
               <SafetyOutlined />
@@ -1024,16 +1029,22 @@ export default function RolesPage() {
         <main className="rp-main">
           {/* Topbar */}
           <div className="rp-main-topbar">
-            <Input
-              className="rp-search"
-              prefix={
-                <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
-              }
-              placeholder="Search by role name, slug, or description…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              allowClear
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 520 }}>
+              <button className="rp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+                <MenuOutlined style={{ fontSize: 16 }} />
+              </button>
+              <Input
+                className="rp-search"
+                prefix={
+                  <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+                }
+                placeholder="Search by role name, slug, or description…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+                style={{ flex: 1 }}
+              />
+            </div>
             {hasActiveFilter && (
               <Tooltip title="Clear all filters">
                 <Button
@@ -1047,9 +1058,6 @@ export default function RolesPage() {
               </Tooltip>
             )}
             <div className="rp-main-meta">
-              <span>
-                <strong>{filteredRoles.length}</strong> of {roleStats.total} roles
-              </span>
               <div className="rp-segmented">
                 <button
                   type="button"
@@ -1328,6 +1336,12 @@ export default function RolesPage() {
               )}
             </div>
           )}
+
+          <div className="rp-footer rp-footer--sticky">
+            <div className="rp-footer-info">
+              Showing <strong>{filteredRoles.length}</strong> of <strong>{roleStats.total}</strong> roles
+            </div>
+          </div>
         </main>
 
         {/* ── Create Role Modal (premium) ── */}

@@ -14,9 +14,26 @@ import {
   X,
   Check,
   RefreshCw,
+  Menu,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+
+const PALETTE = {
+  blue: '#2563eb',
+  green: '#16a34a',
+  red: '#dc2626',
+  grey: '#64748b'
+};
+
+const TINT = {
+  blue: '#eff6ff',
+  green: '#f0fdf4',
+  red: '#fef2f2',
+  grey: '#f8fafc'
+};
+
 import { useEmployeeSetting } from "@/hooks/use-employee-settings";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -606,6 +623,7 @@ function DocumentsNeededTab() {
           columns={columns}
           dataSource={rows}
           pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
+          scroll={{ x: 'max-content' }}
           locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
         />
       </div>
@@ -693,15 +711,25 @@ const Settings = () => {
 
   return (
     <OnboardingGuard itemKey="settings">
-      <div style={{ width: "100%", padding: "24px 24px 40px" }}>
+      <div className="onbs">
         {/* 1 — Header + subtitle + divider (full width) */}
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "var(--text-slate-900)", letterSpacing: "-0.02em" }}>
-          Settings
-        </h1>
-        <p style={{ color: "var(--text-slate-500)", marginTop: 4, marginBottom: 0, fontSize: 13 }}>
-          Manage your employee onboarding configuration
-        </p>
-        <div style={{ height: 1, background: "var(--border-slate-200)", margin: "16px 0 4px" }} />
+        <div className="onbs-header">
+          <div className="onbs-header-about">
+            <button
+              className="ob-mobile-menu-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-ob-sidebar'))}
+            >
+              <Menu size={20} />
+            </button>
+            <div className="onbs-header-icon">
+              <SettingsIcon size={20} />
+            </div>
+            <div>
+              <h1 className="onbs-header-title">Settings</h1>
+              <p className="onbs-header-sub">Manage your employee onboarding configuration</p>
+            </div>
+          </div>
+        </div>
 
         {/* 2 — Tabs (extensible)   ·   3 — Content (no card, full width) */}
         <Tabs
@@ -731,11 +759,45 @@ const Settings = () => {
       </div>
 
       <style jsx global>{`
+        .onbs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        
+        .onbs-header {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
+        }
+        .onbs-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .onbs-header-icon {
+          width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+          background: ${TINT.blue}; color: ${PALETTE.blue};
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .onbs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+        .onbs-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
+
         .onb-settings-tabs .ant-tabs-nav { margin-bottom: 22px; }
         .onb-settings-tabs .ant-tabs-tab { padding: 12px 2px !important; font-weight: 600; color: var(--text-slate-500); }
         .onb-settings-tabs .ant-tabs-tab + .ant-tabs-tab { margin-left: 28px !important; }
         .onb-settings-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563eb !important; }
         .onb-settings-tabs .ant-tabs-ink-bar { background: #2563eb !important; height: 3px !important; border-radius: 3px 3px 0 0; }
+
+        @media (max-width: 900px) {
+          .onbs-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 16px;
+            gap: 12px;
+          }
+          .empc-structure {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .empc-dash { display: none; }
+          .docn-table-wrap {
+            overflow-x: auto;
+          }
+        }
       `}</style>
     </OnboardingGuard>
   );

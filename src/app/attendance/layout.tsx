@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +18,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
     () => ATTENDANCE_NAV_ITEMS.filter((item) => canAccessAttendanceItem(perms, item)),
@@ -41,14 +42,25 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
     <ProtectedRoute>
       <MainLayout>
         <div className="att-shell">
+          {/* ============================ MOBILE BACKDROP ============================ */}
+          {isMobileOpen && (
+            <div
+              className="att-sidebar-backdrop"
+              onClick={() => setIsMobileOpen(false)}
+            />
+          )}
+
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="att-sidebar">
+          <aside className={`att-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="att-side-head">
               <div className="att-side-logo"><CalendarCheck size={22} /></div>
               <div className="att-side-head-text">
                 <div className="att-side-title">Attendance</div>
                 <div className="att-side-subtitle">Time · presence</div>
               </div>
+              <button className="att-sidebar-close" onClick={() => setIsMobileOpen(false)}>
+                <X size={20} />
+              </button>
             </div>
 
             <div className="att-side-scroll">
@@ -61,6 +73,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
                       key={item.key}
                       href={item.href}
                       className={`att-view-item ${active ? 'is-active' : ''}`}
+                      onClick={() => setIsMobileOpen(false)}
                     >
                       <span
                         className="att-view-icon"
@@ -78,6 +91,15 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
 
           {/* ============================ MAIN ============================ */}
           <main className="att-main">
+            <div className="att-mobile-header">
+              <button
+                className="att-mobile-toggle"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <Menu size={20} />
+              </button>
+              <div className="att-mobile-title">Attendance</div>
+            </div>
             <div className="att-content">{children}</div>
           </main>
         </div>
@@ -86,8 +108,9 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
           .att-shell {
             display: flex;
             margin: 0 -8px;
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 64px);
             background: var(--bg-pure-white);
+            overflow: hidden;
           }
           /* ---------------- Sidebar ---------------- */
           .att-sidebar {
@@ -134,8 +157,106 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
           .att-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .att-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .att-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .att-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+          .att-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+          .att-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; }
+          
+          /* Stretch panel headers to the edges (overriding content padding) */
+          .adb-header,
+          .cio-header,
+          .att-header {
+            margin-left: -32px !important;
+            margin-right: -32px !important;
+            padding-left: 32px !important;
+            padding-right: 32px !important;
+            padding-top: 4px !important;
+            position: sticky !important;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-pure-white) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+          }
+
+          /* ---------------- Responsive Styles ---------------- */
+          .att-sidebar-backdrop {
+            display: none;
+          }
+          .att-sidebar-close {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto;
+          }
+          .att-mobile-header {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0 10px 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .att-mobile-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-slate-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+          }
+          .att-mobile-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-slate-900);
+          }
+
+          @media (max-width: 1024px) {
+            .att-sidebar {
+              position: fixed;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
+            }
+            .att-sidebar.is-open {
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            }
+            .att-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              z-index: 999;
+              backdrop-filter: blur(2px);
+            }
+            .att-sidebar-close {
+              display: flex;
+            }
+            .att-mobile-header {
+              display: flex;
+            }
+            .att-main {
+              padding: 4px 0 0;
+            }
+            .att-content {
+              padding: 4px 16px 0;
+            }
+            .adb-header,
+            .cio-header,
+            .att-header {
+              margin-left: -16px !important;
+              margin-right: -16px !important;
+              padding-left: 16px !important;
+              padding-right: 16px !important;
+            }
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

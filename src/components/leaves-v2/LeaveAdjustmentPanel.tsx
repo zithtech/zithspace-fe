@@ -404,12 +404,12 @@ export default function LeaveAdjustmentPanel() {
 
       <style jsx global>{`
         .lvadj { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvadj-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvadj-header-about { display: flex; align-items: center; gap: 12px; }
-        .lvadj-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lvadj-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvadj-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lvadj-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvadj-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvadj-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvadj-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvadj-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvadj-search-wrap { display: flex; align-items: center; height: 34px; width: 240px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lvadj-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .lvadj-search-icon { color: var(--text-slate-400); font-size: 14px; }
@@ -452,6 +452,13 @@ export default function LeaveAdjustmentPanel() {
         .lvadj-preview-row strong { font-size: 15px; color: var(--text-slate-900); }
         .lvadj-preview-net { border-top: 1px dashed var(--border-slate-200); padding-top: 8px; }
         .lvadj-preview-net strong { font-size: 17px; color: ${PALETTE.blue}; }
+
+        @media (max-width: 1024px) {
+          .lvadj-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvadj-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

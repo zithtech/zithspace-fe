@@ -816,8 +816,9 @@ export default function LeaveTypePanel() {
         .lvt-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
           padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          flex-wrap: wrap;
         }
-        .lvt-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .lvt-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lvt-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -825,7 +826,7 @@ export default function LeaveTypePanel() {
         }
         .lvt-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .lvt-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvt-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .lvt-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
         .lvt-search-wrap {
           position: relative; display: flex; align-items: center; height: 34px; width: 240px;
           border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px;
@@ -964,6 +965,13 @@ export default function LeaveTypePanel() {
         .lvt-toggle-row:last-child { border-bottom: none; padding-bottom: 2px; }
         .lvt-toggle-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
         .lvt-toggle-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
+
+        @media (max-width: 1024px) {
+          .lvt-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvt-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

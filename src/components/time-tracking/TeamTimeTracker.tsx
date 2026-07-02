@@ -929,7 +929,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-2">
         {teamCards.map((s) => (
           <div
             key={s.key}

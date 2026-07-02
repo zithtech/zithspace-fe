@@ -579,10 +579,10 @@ export default function SettingsPanel() {
 
       <style jsx global>{`
         .prs-wrap { display: flex; flex-direction: column; gap: 18px; padding-bottom: 32px; max-width: 1080px; }
-        .prs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+        .prs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
         .prs-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .prs-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 560px; line-height: 1.5; }
-        .prs-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .prs-head-actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
 
         .prs-card { border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); }
         .prs-auto { padding: 16px 18px; }

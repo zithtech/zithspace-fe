@@ -14,6 +14,8 @@ import {
   Building,
   Building2,
   Briefcase,
+  Menu,
+  X,
 } from "lucide-react";
 
 /**
@@ -84,6 +86,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
   const router = useRouter();
   const pathname = usePathname();
   const { hasAnyPermission } = useAuth();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
   const visibleItems = ORG_NAV_ITEMS.filter((item) => hasAnyPermission(...item.anyPermission));
 
@@ -92,13 +95,22 @@ export default function OrgStructureLayout({ children }: { children: React.React
       <MainLayout>
         <div className="osx-shell">
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="osx-sidebar">
+          {mobileSidebarOpen && (
+            <div className="osx-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
+          )}
+          <aside className={`osx-sidebar ${mobileSidebarOpen ? "is-open" : ""}`}>
             <div className="osx-side-head">
               <div className="osx-side-logo"><Network size={22} strokeWidth={1.9} /></div>
               <div className="osx-side-head-text">
                 <div className="osx-side-title">Org Structure</div>
                 <div className="osx-side-subtitle">Company hierarchy</div>
               </div>
+              <button
+                className="osx-sidebar-close"
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <div className="osx-side-scroll">
@@ -123,7 +135,18 @@ export default function OrgStructureLayout({ children }: { children: React.React
           </aside>
 
           {/* ============================ MAIN ============================ */}
-          <main className="osx-main">{children}</main>
+          <main className="osx-main">
+            <div className="osx-mobile-header">
+              <button
+                className="osx-mobile-toggle"
+                onClick={() => setMobileSidebarOpen(true)}
+              >
+                <Menu size={20} />
+              </button>
+              <div className="osx-mobile-title">Org Structure</div>
+            </div>
+            {children}
+          </main>
         </div>
 
         <style jsx global>{`
@@ -255,6 +278,10 @@ export default function OrgStructureLayout({ children }: { children: React.React
             z-index: 100 !important;
             background: var(--bg-pure-white) !important;
             border-bottom: 1px solid var(--border-slate-200) !important;
+            padding: 9.5px 32px !important;
+          }
+          .osx-main .saas-header-container .ant-row {
+            flex-wrap: wrap !important;
           }
           [data-theme='dark'] .osx-main .saas-header-container {
             background: var(--bg-pure-white) !important;
@@ -269,6 +296,78 @@ export default function OrgStructureLayout({ children }: { children: React.React
           [data-theme="dark"] .osx-nav-item:hover {
             background: rgba(59, 130, 246, 0.14);
             color: #e2e8f0;
+          }
+
+          /* ---------------- Responsive Styles ---------------- */
+          .osx-sidebar-backdrop {
+            display: none;
+          }
+          .osx-sidebar-close {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto;
+          }
+          .osx-mobile-header {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px 10px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .osx-mobile-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-slate-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            margin-left: -4px;
+          }
+          .osx-mobile-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-slate-900);
+          }
+
+          @media (max-width: 1024px) {
+            .osx-sidebar {
+              position: fixed;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
+            }
+            .osx-sidebar.is-open {
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            }
+            .osx-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              z-index: 999;
+              backdrop-filter: blur(2px);
+            }
+            .osx-sidebar-close {
+              display: flex;
+            }
+            .osx-mobile-header {
+              display: flex;
+            }
+            .osx-main .saas-header-container {
+              padding: 9px 16px !important;
+            }
           }
         `}</style>
       </MainLayout>

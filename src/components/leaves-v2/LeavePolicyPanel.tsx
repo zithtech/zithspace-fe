@@ -801,12 +801,12 @@ export default function LeavePolicyPanel() {
 
       <style jsx global>{`
         .lvp { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvp-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvp-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .lvp-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvp-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lvp-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .lvp-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .lvp-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvp-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .lvp-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
         .lvp-search-wrap { display: flex; align-items: center; height: 34px; width: 240px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lvp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .lvp-search-icon { color: var(--text-slate-400); font-size: 14px; }
@@ -884,6 +884,13 @@ export default function LeavePolicyPanel() {
         .lvp-alloc-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
         .lvp-alloc-grand { font-size: 12.5px; color: var(--text-slate-600); }
         .lvp-alloc-grand strong { color: var(--text-slate-900); font-size: 15px; }
+
+        @media (max-width: 1024px) {
+          .lvp-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvp-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

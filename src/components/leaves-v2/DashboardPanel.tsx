@@ -234,10 +234,10 @@ export default function DashboardPanel() {
 
       <style jsx global>{`
         .lvd { display: flex; flex-direction: column; }
-        .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); }
+        .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .lvd-header-title { font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvd-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvd-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvd-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvd-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
         .lvd-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
         .lvd-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
@@ -279,6 +279,13 @@ export default function DashboardPanel() {
         .lvd-date-d { font-size: 14px; font-weight: 800; color: ${PALETTE.blue}; }
         .lvd-date-m { font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${PALETTE.blue}; opacity: 0.8; }
         .lvd-req-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+        
+        @media (max-width: 1024px) {
+          .lvd-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvd-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

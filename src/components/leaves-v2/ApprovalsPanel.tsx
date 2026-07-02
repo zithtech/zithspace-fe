@@ -407,12 +407,12 @@ export default function ApprovalsPanel() {
 
       <style jsx global>{`
         .lvap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvap-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvap-header-about { display: flex; align-items: center; gap: 12px; }
-        .lvap-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lvap-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvap-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lvap-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvap-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvap-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvap-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvap-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvap-search-wrap { display: flex; align-items: center; height: 34px; width: 240px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lvap-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .lvap-search-icon { color: var(--text-slate-400); font-size: 14px; }
@@ -433,7 +433,7 @@ export default function ApprovalsPanel() {
         .lvap-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvap-filter-range { height: 34px; border-radius: 8px; }
         .lvap-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
+        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow-x: auto; }
         .lvap-table .ant-table { background: transparent; font-size: 12px; }
         .lvap-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
         .lvap-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
@@ -452,6 +452,13 @@ export default function ApprovalsPanel() {
         .lvap-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .lvap-pager-num.is-active { background: ${PALETTE.blue}; border-color: ${PALETTE.blue}; color: #fff; }
         .lvap-pagesize { margin-left: 5px; }
+
+        @media (max-width: 1024px) {
+          .lvap-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvap-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

@@ -8,7 +8,7 @@ import type { MenuProps } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EllipsisOutlined, EditOutlined, CopyOutlined,
   InboxOutlined, DeleteOutlined, RollbackOutlined, AppstoreOutlined, UnorderedListOutlined,
-  GlobalOutlined, BlockOutlined, FolderOpenOutlined, LayoutOutlined,
+  GlobalOutlined, BlockOutlined, FolderOpenOutlined, LayoutOutlined, MenuOutlined,
 } from '@ant-design/icons';
 import { Blocks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -107,6 +107,7 @@ function SectionsContent() {
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<LibrarySection | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // ── Counts ──────────────────────────────────────────────────────────
   const activeCount = sections.filter((s) => !s.archived).length;
@@ -230,7 +231,8 @@ function SectionsContent() {
   return (
     <>
       {holder}
-      <div className="pp-shell">
+      <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+        <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
         {/* ============================ SIDEBAR ============================ */}
         <aside className="pp-sidebar">
           <div className="pp-side-head">
@@ -306,6 +308,13 @@ function SectionsContent() {
         {/* ============================ MAIN ============================ */}
         <main className="pp-main">
           <div className="pp-topbar">
+            <button 
+              type="button" 
+              className="pp-mobile-toggle"
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <MenuOutlined />
+            </button>
             <div className="pp-search-wrap">
               <SearchOutlined className="pp-search-icon" />
               <input

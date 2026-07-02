@@ -1229,24 +1229,24 @@ export default function SquadManagement() {
           .sc-status-tag .anticon { font-size: 9px; }
           .sc-mail-val { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; }
 
-          @media (max-width: 700px) {
-            .sq-grid { grid-template-columns: 1fr; }
-          }
-
           @media (max-width: 1100px) {
             .sq-stats { grid-template-columns: repeat(2, 1fr); }
           }
+          
           .sq-mobile-menu-btn { display: none !important; }
-
+          
           @media (max-width: 820px) {
-            .sq-shell { flex-direction: column; }
+            .sq-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+            .sq-main { height: auto; overflow: visible; }
+            .sq-body { overflow: visible; }
+            
             .sq-mobile-overlay {
               position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
             }
             .sq-sidebar {
               position: fixed; top: 0; left: -320px; bottom: 0;
-              z-index: 999; height: 100%; max-height: none;
+              z-index: 1100; height: 100%; max-height: none;
               border-right: 1px solid var(--border-slate-200); border-bottom: 0;
               display: flex; flex-direction: column; align-items: stretch;
               background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
@@ -1259,6 +1259,11 @@ export default function SquadManagement() {
             .sq-topbar-actions { width: 100%; justify-content: flex-start; }
             .sq-topbar-meta { display: none; }
             .sq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+          }
+
+          @media (max-width: 700px) {
+            .sq-grid { grid-template-columns: 1fr; }
+            .sq-stats { grid-template-columns: 1fr; }
           }
         
           /* ===================== Dark Theme Overrides ===================== */

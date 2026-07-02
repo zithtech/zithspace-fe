@@ -29,6 +29,7 @@ import {
   CheckSquareOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
+import { Menu } from "lucide-react";
 import dayjs from "dayjs";
 
 type ViewKey = "overview" | "sprint" | "timeline" | "team";
@@ -54,6 +55,7 @@ const ProjectOverviewPage = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeView, setActiveView] = useState<ViewKey>("overview");
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { canReadActivityLog } = usePermission();
 
   // Timeline tickets are loaded on demand — only once the Timeline tab is opened.
@@ -176,7 +178,10 @@ const ProjectOverviewPage = () => {
     <MainLayout>
       <div className="po-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="po-sidebar">
+        {isMobileSidebarOpen && (
+          <div className="po-sidebar-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
+        )}
+        <aside className={`po-sidebar ${isMobileSidebarOpen ? "is-open" : ""}`}>
           <div className="po-side-head">
             <Tooltip title="Back to projects">
               <button className="po-back" onClick={() => router.push("/projects/manage")}>
@@ -258,6 +263,12 @@ const ProjectOverviewPage = () => {
 
         {/* ============================ MAIN ============================ */}
         <main className="po-main">
+          <div className="po-mobile-header">
+            <button className="po-mobile-toggle" onClick={() => setIsMobileSidebarOpen(true)}>
+              <Menu size={20} />
+            </button>
+            <div className="po-mobile-title">{project.name}</div>
+          </div>
           {/* Stat cards */}
           <div className="po-stats">
             {statCards.map((s) => (
@@ -339,6 +350,9 @@ const ProjectOverviewPage = () => {
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
+
+        .po-mobile-header { display: none; }
+        .po-sidebar-backdrop { display: none; }
 
         /* ---------------- Sidebar ---------------- */
         .po-sidebar {
@@ -432,7 +446,7 @@ const ProjectOverviewPage = () => {
         .po-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
         .po-stat-card {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 9px; padding: 11px 13px; display: flex; flex-direction: column; gap: 7px;
+          border-radius: 0px !important; padding: 11px 13px; display: flex; flex-direction: column; gap: 7px;
           box-shadow: 0 1px 2px rgba(15,23,42,0.04);
         }
         .po-stat-top { display: flex; align-items: center; gap: 8px; }
@@ -454,10 +468,58 @@ const ProjectOverviewPage = () => {
         @media (max-width: 1200px) { .po-stats { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 1100px) { .po-grid-15-9, .po-grid-2 { grid-template-columns: 1fr; } }
         @media (max-width: 820px) {
-          .po-sidebar { display: none; }
+          .po-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: none;
+          }
+          .po-sidebar.is-open {
+            transform: translateX(0);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+          }
+          .po-sidebar-backdrop {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            z-index: 999;
+            backdrop-filter: blur(2px);
+          }
+          .po-mobile-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .po-mobile-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-slate-700);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+          }
+          .po-mobile-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-slate-900);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
           .po-topbar-meta { display: none; }
         }
         @media (max-width: 600px) { .po-stats { grid-template-columns: 1fr; } }
+
+        .po-content .ant-card {
+          border-radius: 0px !important;
+        }
       `}</style>
     </MainLayout>
   );

@@ -54,7 +54,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { History, Sparkles } from "lucide-react";
+import { History, Sparkles, Menu, X } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
@@ -196,6 +196,7 @@ export default function AccountsPage() {
   // Layout states
   const [savedView, setSavedView] = useState<'all' | 'mine' | 'credit' | 'debit'>('all');
   const [view, setView] = useState<'list' | 'grid'>('list');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const searchRef = useRef<any>(null);
 
@@ -793,7 +794,10 @@ export default function AccountsPage() {
     <MainLayout>
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><BankOutlined /></div>
             <div className="pp-side-head-text">
@@ -941,6 +945,9 @@ export default function AccountsPage() {
         <main className="pp-main">
           {/* Top search & views bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <Menu size={20} />
+            </button>
             <div className="pp-search-wrap">
               <SearchOutlined className="pp-search-icon" />
               <input
@@ -1713,9 +1720,9 @@ export default function AccountsPage() {
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
         .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -1929,15 +1936,44 @@ export default function AccountsPage() {
           .pp-grid { grid-template-columns: 1fr; }
         }
 
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+
         @media (max-width: 1250px) {
           .pp-stats { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (max-width: 600px) {
+        @media (max-width: 1024px) {
           .pp-stats { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
         }
 
         /* Accounts breakdown components (Drawers styles preserved with Blue, Green, Grey theme) */

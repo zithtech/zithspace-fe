@@ -25,8 +25,9 @@ import {
   LayoutGrid,
   List as ListIcon,
   Snowflake,
+  Menu,
 } from "lucide-react";
-import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select } from "antd";
+import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -109,6 +110,7 @@ export default function BidIqPage() {
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Route guard — gated by the dedicated BidIq read permission.
   useEffect(() => {
@@ -365,8 +367,9 @@ export default function BidIqPage() {
       <MainLayout>
         <div className="biq-page">
           <div className="biq-shell">
+            {mobileSidebarOpen && <div className="biq-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
             {/* ─── Sidebar ─────────────────────────────── */}
-            <aside className="biq-sidebar">
+            <aside className={`biq-sidebar ${mobileSidebarOpen ? "is-open" : ""}`}>
               <div className="biq-sidebar-top">
                 <div className="biq-side-head">
                   <div className="biq-side-logo">
@@ -443,15 +446,23 @@ export default function BidIqPage() {
             <div className="biq-main">
               {/* Topbar */}
               <div className="biq-topbar">
-                <div className="biq-topbar-search-wrap">
-                  <Input
-                    allowClear
-                    prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                    placeholder="Search lead, client, or platform…"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="biq-search-input"
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, maxWidth: 400, width: "100%" }}>
+                  <Button
+                    className="biq-mobile-menu-btn"
+                    type="text"
+                    icon={<Menu size={18} />}
+                    onClick={() => setMobileSidebarOpen(true)}
                   />
+                  <div className="biq-topbar-search-wrap" style={{ flex: 1, margin: 0, maxWidth: "none" }}>
+                    <Input
+                      allowClear
+                      prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                      placeholder="Search lead, client, or platform…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      className="biq-search-input"
+                    />
+                  </div>
                 </div>
                 <div className="biq-topbar-actions">
                   <RangePicker
@@ -968,6 +979,36 @@ export default function BidIqPage() {
           }
           .biq-empty-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); }
           .biq-empty-text { font-size: 13px; color: var(--text-slate-500); margin-top: 4px; }
+
+          .biq-mobile-menu-btn { display: none !important; }
+
+          @media (max-width: 700px) {
+            .biq-grid { grid-template-columns: 1fr; }
+            .biq-stats { grid-template-columns: 1fr !important; }
+          }
+          @media (max-width: 1100px) {
+            .biq-stats { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 820px) {
+            .biq-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+            .biq-main { height: auto; overflow: visible; }
+            .biq-body { overflow: visible; }
+            .biq-sidebar {
+              position: fixed; top: 0; left: -320px; bottom: 0; z-index: 1100;
+              height: 100%; max-height: none; display: flex; flex-direction: column;
+              align-items: stretch; background: var(--bg-pure-white); width: 280px;
+              box-sizing: border-box; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 4px 0 24px rgba(0,0,0,0.08); display: flex !important;
+            }
+            .biq-sidebar.is-open { left: 0; }
+            .biq-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .biq-topbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+            .biq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+            .biq-mobile-overlay {
+              position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            }
+          }
 
           /* ---------- Dark theme — mirrors Leads page ---------- */
           /* Surfaces (page/shell/sidebar/grid-card/bottom-bar) use --bg-pure-white,

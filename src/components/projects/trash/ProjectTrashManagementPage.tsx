@@ -31,6 +31,7 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import { FolderKanban, Trash2, AlertTriangle, Clock } from "lucide-react";
 import {
@@ -102,6 +103,7 @@ export default function ProjectTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
@@ -255,8 +257,9 @@ export default function ProjectTrashManagementPage() {
   ];
 
   return (
-    <div className="pm2-page">
+    <div className={`pm2-page ${isMobileOpen ? 'is-mobile-open' : ''}`}>
       <div className="pm2-shell-wrap">
+        <div className="pm2-backdrop" onClick={() => setIsMobileOpen(false)} />
         <div className="pm2-shell">
           {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="pm2-sidebar">
@@ -377,6 +380,13 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
+              <button 
+                type="button" 
+                className="pm2-mobile-toggle"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <MenuOutlined />
+              </button>
               <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
                 <SearchOutlined className="pp-search-icon" />
                 <input

@@ -71,14 +71,13 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
   toolbar,
   children,
 }) => {
-  // Sidebar drawer state (mobile/tablet)
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 1100px)").matches;
+    return window.matchMedia("(min-width: 1024px)").matches;
   });
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(min-width: 1100px)");
+    const mql = window.matchMedia("(min-width: 1024px)");
     const handler = (e: MediaQueryListEvent) => setIsSidebarOpen(e.matches);
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
@@ -301,6 +300,9 @@ const TICKET_LIFECYCLE_CSS = `
   padding: 10px 24px;
   background: var(--bg-pure-white);
   border-bottom: 1px solid var(--border-slate-200);
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 56px;
 }
 [data-theme='dark'] .tlc-header {
   background: #0B0F1A !important;
@@ -646,8 +648,8 @@ const TICKET_LIFECYCLE_CSS = `
   min-height: 0;
 }
 
-/* ── Desktop ≥ 1100px ────────────────────────────────── */
-@media (min-width: 1100px) {
+/* ── Desktop ≥ 1024px ────────────────────────────────── */
+@media (min-width: 1024.01px) {
   .tlc-toggle-btn { display: none !important; }
   .tlc-shell-wrap.is-sidebar-closed .tlc-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -657,20 +659,20 @@ const TICKET_LIFECYCLE_CSS = `
   }
 }
 
-/* ── Tablet / Mobile < 1100px ────────────────────────── */
-@media (max-width: 1099.98px) {
+/* ── Tablet / Mobile < 1024px ────────────────────────── */
+@media (max-width: 1024px) {
   .tlc-toggle-btn { display: inline-flex; }
   .tlc-shell { grid-template-columns: minmax(0, 1fr); }
   .tlc-shell > aside.tlc-sidebar {
     position: fixed;
-    top: 56px;
+    top: 0;
     left: 0;
     width: 280px;
-    height: calc(100vh - 54px - 56px);
-    z-index: 60;
+    height: 100vh;
+    z-index: 1000;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    box-shadow: 1px 0 0 var(--border-slate-200);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
   }
   .tlc-shell-wrap.is-sidebar-open > .tlc-shell > aside.tlc-sidebar {
     transform: translateX(0);
@@ -678,12 +680,13 @@ const TICKET_LIFECYCLE_CSS = `
   .tlc-shell-wrap.is-sidebar-open > .tlc-sidebar-backdrop {
     display: block;
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 23, 42, 0.35);
-    z-index: 55;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
   }
 }
 `;

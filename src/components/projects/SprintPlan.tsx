@@ -58,6 +58,7 @@ import {
   AppstoreOutlined,
   CloseCircleOutlined,
   TableOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -165,6 +166,7 @@ export default function SprintPlanComponent() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [, setSearchLoading] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const ticketOptions = useMemo(() => {
     const optionsMap = new Map<string, { label: string; value: string; item: any }>();
@@ -799,7 +801,10 @@ export default function SprintPlanComponent() {
       <div className="sp-shell-wrap">
         <div className="sp-shell">
           {/* ── Sidebar ──────────────────────────────────────────── */}
-          <aside className="sp-sidebar">
+          {isMobileOpen && (
+            <div className="sp-backdrop" onClick={() => setIsMobileOpen(false)} />
+          )}
+          <aside className={`sp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="sp-sidebar-top">
               <div className="sp-sidebar-brand">
                 <div className="sp-hero-icon-box">
@@ -946,15 +951,20 @@ export default function SprintPlanComponent() {
           <main className="sp-main">
             {/* Top bar: search · live stats · view controls */}
             <div className="sp-main-topbar">
-              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
-                <SearchOutlined className="pp-search-icon" />
-                <input
-                  className="pp-search"
-                  placeholder="Search by name, goal, or description..."
-                  value={tableFilters.search}
-                  onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
-                />
-                {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 320 }}>
+                <button className="sp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+                  <MenuOutlined style={{ fontSize: 16 }} />
+                </button>
+                <div className="pp-search-wrap" style={{ flex: 1 }}>
+                  <SearchOutlined className="pp-search-icon" />
+                  <input
+                    className="pp-search"
+                    placeholder="Search by name, goal, or description..."
+                    value={tableFilters.search}
+                    onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+                  />
+                  {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
+                </div>
               </div>
 
               <div className="sp-main-stats" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
@@ -5044,6 +5054,18 @@ export default function SprintPlanComponent() {
           align-self: flex-start;
           z-index: 10;
         }
+        .sp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+        .sp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+        @media (max-width: 1024px) {
+          .sp-shell { display: flex; flex-direction: column; }
+          .sp-sidebar {
+            position: fixed !important; left: -280px !important; top: 0 !important; bottom: 0 !important; height: 100vh !important; width: 280px !important;
+            transition: left 0.3s ease; z-index: 1000 !important; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .sp-sidebar.is-open { left: 0 !important; }
+          .sp-backdrop { display: block; }
+          .sp-mobile-toggle { display: flex; }
+        }
         .sp-sidebar-top {
           padding: 14px 14px 12px 18px;
         }
@@ -5391,6 +5413,7 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
           gap: 16px;
           padding: 6px 20px;
           position: sticky;

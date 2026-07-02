@@ -8,7 +8,7 @@ import type { MenuProps } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EllipsisOutlined, EditOutlined, CopyOutlined,
   InboxOutlined, DeleteOutlined, RollbackOutlined, EyeOutlined, ArrowRightOutlined,
-  AppstoreOutlined, UnorderedListOutlined,
+  AppstoreOutlined, UnorderedListOutlined, MenuOutlined,
   BlockOutlined, FolderOpenOutlined, FileDoneOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 import { LayoutTemplate } from 'lucide-react';
@@ -105,6 +105,7 @@ function TemplatesContent() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
 
@@ -216,7 +217,8 @@ function TemplatesContent() {
   return (
     <>
       {holder}
-      <div className="pp-shell">
+      <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+        <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
         {/* ============================ SIDEBAR ============================ */}
         <aside className="pp-sidebar">
           <div className="pp-side-head">
@@ -270,6 +272,13 @@ function TemplatesContent() {
         {/* ============================ MAIN ============================ */}
         <main className="pp-main">
           <div className="pp-topbar">
+            <button 
+              type="button" 
+              className="pp-mobile-toggle"
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <MenuOutlined />
+            </button>
             <div className="pp-search-wrap">
               <SearchOutlined className="pp-search-icon" />
               <input className="pp-search" placeholder="Search templates…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />

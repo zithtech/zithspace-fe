@@ -50,7 +50,7 @@ import {
   AlertOutlined,
   RiseOutlined,
   UnorderedListOutlined,
-  EllipsisOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -592,6 +592,7 @@ export default function EscalationSettingsPage() {
   const [form] = Form.useForm();
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     setSearchQuery('');
@@ -1005,8 +1006,11 @@ export default function EscalationSettingsPage() {
   return (
     <MainLayout>
       <div className="es-shell">
+        {mobileSidebarOpen && (
+          <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />
+        )}
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="es-sidebar">
+        <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="es-sidebar-top">
             <div className="es-side-head">
               <div className="es-side-logo"><SettingOutlined style={{ color: BLUE_PRIMARY }} /></div>
@@ -1066,6 +1070,13 @@ export default function EscalationSettingsPage() {
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
           <div className="es-topbar">
+            <Button
+              className="es-mobile-menu-btn"
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setMobileSidebarOpen(true)}
+              style={{ marginRight: 8 }}
+            />
             <div className="es-search-wrap">
               <SearchOutlined className="es-search-icon" />
               <input
@@ -1621,8 +1632,40 @@ export default function EscalationSettingsPage() {
         .ec-card { max-width: 100%; }
         .es-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
+        .es-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 1100px) {
+          .es-stats { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+
+        @media (max-width: 820px) {
+          .es-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .es-main { height: auto; overflow: visible; }
+          .es-body { overflow: visible; }
+
+          .es-mobile-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+          }
+          .es-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .es-sidebar.is-open { left: 0; }
+          .es-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .es-topbar-actions { width: 100%; justify-content: flex-start; }
+          .es-topbar-meta { display: none; }
+          .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+        }
+
         @media (max-width: 700px) {
           .es-grid { grid-template-columns: 1fr; }
+          .es-stats { grid-template-columns: 1fr !important; }
         }
 
         /* Card view rules */

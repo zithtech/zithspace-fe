@@ -51,6 +51,7 @@ import {
   RiseOutlined,
   UnorderedListOutlined,
   MenuOutlined,
+  EllipsisOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import ConfirmDialog from '@/components/common/ConfirmDialog';

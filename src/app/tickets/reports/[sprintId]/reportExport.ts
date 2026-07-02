@@ -15,6 +15,8 @@ import { saveAs } from "file-saver";
 const A4_MM = { w: 210, h: 297 };
 const A4_PX = { w: 794, h: 1123 };
 
+import { api } from "@/lib/axios";
+
 function baseOptions(el: HTMLElement, filename: string) {
   const bg = getComputedStyle(el).backgroundColor || "#ffffff";
   return {
@@ -29,29 +31,45 @@ function baseOptions(el: HTMLElement, filename: string) {
       windowWidth: el.scrollWidth,
     },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css", "legacy"] },
+    pagebreak: { mode: ["css"], avoid: ['tr', '.break-inside-avoid', 'section', 'li'] },
   };
 }
 
-export async function downloadReportPdf(el: HTMLElement, filename: string): Promise<void> {
-  const blob = await reportToPdfBlob(el, filename);
-  // Force the browser to download the file instead of opening it in the built-in PDF viewer
-  // by masking its MIME type as a generic binary stream.
-  const forceDownloadBlob = new Blob([blob], { type: 'application/octet-stream' });
-  saveAs(forceDownloadBlob, filename);
-}
+export async function downloadReportPdf(sprintId: string, el: HTMLElement, filename: string): Promise<void> {
+  // Extract the HTML payload
+  const htmlPayload = el.outerHTML;
 
-/** Same render as downloadReportPdf, but returns the PDF as a Blob (no download). */
-export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
-  const clone = el.cloneNode(true) as HTMLElement;
-  el.parentNode?.appendChild(clone);
+  // Send to backend Puppeteer service with a longer timeout
+  const response = await api.post(
+    `/api/sprint-report/${sprintId}/export-pdf`,
+    { htmlPayload },
+    { 
+      responseType: "blob",
+      timeout: 60000 // 60 seconds to allow for Puppeteer rendering
+    }
+  );
 
+  // Ensure we have a Blob
+  let blob = response.data;
+  if (!(blob instanceof Blob)) {
+    blob = new Blob([blob], { type: 'application/pdf' });
+  }
+
+  // Attempt saveAs
   try {
-    paginateTables(clone);
-    const html2pdf = (await import("html2pdf.js")).default;
-    return (await (html2pdf() as any).set(baseOptions(clone, filename)).from(clone).outputPdf("blob")) as Blob;
-  } finally {
-    clone.remove();
+    saveAs(blob, filename);
+  } catch (err) {
+    console.error("file-saver failed, using fallback:", err);
+    // Fallback to native anchor tag
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 }
 
@@ -60,106 +78,47 @@ export async function downloadReportDocx(el: HTMLElement, filename: string): Pro
   el.parentNode?.appendChild(clone);
 
   try {
-    paginateTables(clone);
     const html2pdf = (await import("html2pdf.js")).default;
     // Render once to a single tall canvas, then paginate it into A4-sized slices.
     const worker = (html2pdf() as any).set(baseOptions(clone, filename)).from(clone).toCanvas();
     const canvas: HTMLCanvasElement = await worker.get("canvas");
 
     const pages = sliceCanvasToPages(canvas);
-  const children: Paragraph[] = pages.map(
-    (p) =>
-      new Paragraph({
-        children: [
-          new ImageRun({
-            type: "jpg",
-            data: p.bytes,
-            transformation: { width: p.width, height: p.height },
-          }),
-        ],
-      })
-  );
+    const children: Paragraph[] = pages.map(
+      (p) =>
+        new Paragraph({
+          children: [
+            new ImageRun({
+              type: "jpg",
+              data: p.bytes,
+              transformation: { width: p.width, height: p.height },
+            }),
+          ],
+        })
+    );
 
-  const doc = new Document({
-    sections: [
-      {
-        properties: {
-          page: {
-            size: { orientation: PageOrientation.PORTRAIT },
-            margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: {
+              size: { orientation: PageOrientation.PORTRAIT },
+              margin: { top: 0, right: 0, bottom: 0, left: 0 },
+            },
           },
+          children,
         },
-        children,
-      },
-    ],
-  });
+      ],
+    });
 
-  const blob = await Packer.toBlob(doc);
-  saveAs(blob, filename);
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, filename);
   } finally {
     clone.remove();
   }
 }
 
-function paginateTables(el: HTMLElement) {
-  const PAGE_HEIGHT = 1122.94;
-  
-  const tables = Array.from(el.querySelectorAll('table'));
-  let t = 0;
-  
-  while (t < tables.length) {
-    const table = tables[t];
-    t++;
-    
-    const tbody = table.querySelector('tbody');
-    const thead = table.querySelector('thead');
-    if (!tbody || !thead) continue;
-    
-    // Ignore atomic blocks
-    if (table.closest('.avoid-split') || table.style.pageBreakInside === 'avoid') continue;
-    
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    if (rows.length === 0) continue;
-    
-    const elTop = el.getBoundingClientRect().top;
-    
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rect = row.getBoundingClientRect();
-      const rowTop = rect.top - elTop;
-      const rowBottom = rect.bottom - elTop;
-      
-      const pageIndexTop = Math.floor(rowTop / PAGE_HEIGHT);
-      const pageIndexBottom = Math.floor(rowBottom / PAGE_HEIGHT);
-      
-      if (pageIndexBottom > pageIndexTop) {
-        const newTable = table.cloneNode(false) as HTMLTableElement;
-        const newThead = thead.cloneNode(true) as HTMLTableSectionElement;
-        const newTbody = document.createElement('tbody');
-        newTable.appendChild(newThead);
-        newTable.appendChild(newTbody);
 
-        const wrapper = document.createElement('div');
-        wrapper.style.pageBreakBefore = 'always';
-        
-        const topSpacer = document.createElement('div');
-        topSpacer.style.height = '32px';
-        
-        for (let j = i; j < rows.length; j++) {
-          newTbody.appendChild(rows[j]);
-        }
-        
-        wrapper.appendChild(topSpacer);
-        wrapper.appendChild(newTable);
-        
-        table.parentNode?.insertBefore(wrapper, table.nextSibling);
-        
-        tables.splice(t, 0, newTable);
-        break;
-      }
-    }
-  }
-}
 
 type PageImage = { bytes: Uint8Array; width: number; height: number };
 

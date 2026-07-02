@@ -168,7 +168,7 @@ export default function ScopeChangeSection({ sprintId }: { sprintId: string }) {
         )}
       </Panel>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-1 gap-4">
         <Panel title="Top Scope Adders" hint="Who introduced mid-sprint work">
           {scopeAdders.length === 0 ? (
             <EmptyChart message="No scope added after sprint start" />
@@ -191,7 +191,7 @@ export default function ScopeChangeSection({ sprintId }: { sprintId: string }) {
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
                           <Avatar name={r.userName} />
-                          <span className="text-zinc-800 dark:text-zinc-200 truncate">
+                          <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">
                             {r.userName}
                           </span>
                         </div>
@@ -262,7 +262,7 @@ function TypeBars({ rows }: { rows: { type: string; count: number }[] }) {
   return (
     <div className="space-y-2.5">
       {rows.map((r) => (
-        <div key={r.type} className="space-y-1">
+        <div key={r.type} className="space-y-1 break-inside-avoid">
           <div className="flex items-baseline justify-between text-sm">
             <span className="text-zinc-700 dark:text-zinc-300 capitalize">
               {r.type || "Unknown"}

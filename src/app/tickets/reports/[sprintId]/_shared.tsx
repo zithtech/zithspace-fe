@@ -112,14 +112,16 @@ export function Panel({
   children,
   hint,
   padded = true,
+  allowBreak,
 }: {
   title: string;
   children: React.ReactNode;
   hint?: string;
   padded?: boolean;
+  allowBreak?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60">
+    <div className={`rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 ${allowBreak ? '' : 'break-inside-avoid'}`}>
       <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-5 py-3">
         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{title}</span>
         {hint ? (
@@ -162,7 +164,7 @@ export function InsightCard({
 }) {
   if (insights.length === 0) return null;
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5 break-inside-avoid">
       {title ? (
         <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400 mb-2">
           {title}

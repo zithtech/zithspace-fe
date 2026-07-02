@@ -37,7 +37,7 @@ interface VelocityData {
   insights: string[];
 }
 
-export default function VelocitySection({ sprintId }: { sprintId: string }) {
+export default function VelocitySection({ sprintId, printMode }: { sprintId: string; printMode?: boolean }) {
   const snapshot = useSnapshotSection<VelocityData>("velocity");
   const [data, setData] = useState<VelocityData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,8 +117,8 @@ export default function VelocitySection({ sprintId }: { sprintId: string }) {
         <BurndownChart data={data} />
       </Panel>
 
-      <Panel title="Daily Detail">
-        <DailyTable rows={data.days} cumulative={data.cumulative} />
+      <Panel title="Daily Detail" allowBreak>
+        <DailyTable rows={data.days} cumulative={data.cumulative} printMode={printMode} />
       </Panel>
     </section>
   );
@@ -209,6 +209,7 @@ function BurndownChart({ data }: { data: VelocityData }) {
             fill={ACCENT}
             radius={[3, 3, 0, 0]}
             barSize={20}
+            isAnimationActive={false}
           />
           <Line
             yAxisId="right"
@@ -219,6 +220,7 @@ function BurndownChart({ data }: { data: VelocityData }) {
             strokeWidth={2}
             dot={{ r: 2 }}
             activeDot={{ r: 4 }}
+            isAnimationActive={false}
           />
           {data.ideal.length > 0 ? (
             <Line
@@ -230,6 +232,7 @@ function BurndownChart({ data }: { data: VelocityData }) {
               strokeWidth={1.5}
               strokeDasharray="4 4"
               dot={false}
+              isAnimationActive={false}
             />
           ) : null}
         </ComposedChart>
@@ -243,22 +246,24 @@ const PAGE_SIZE = 14;
 function DailyTable({
   rows,
   cumulative,
+  printMode,
 }: {
   rows: VelocityData["days"];
   cumulative: VelocityData["cumulative"];
+  printMode?: boolean;
 }) {
   const [page, setPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
-  const start = safePage * PAGE_SIZE;
-  const end = Math.min(start + PAGE_SIZE, rows.length);
+  const start = printMode ? 0 : safePage * PAGE_SIZE;
+  const end = printMode ? rows.length : Math.min(start + PAGE_SIZE, rows.length);
   const slice = rows.slice(start, end);
 
   if (rows.length === 0) return <EmptyChart message="No days to show" />;
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto -mx-5">
+      <div className="overflow-x-auto print:overflow-visible -mx-5">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
@@ -283,20 +288,18 @@ function DailyTable({
                     {fmtDayShort(r.day)}
                   </td>
                   <td
-                    className={`px-5 py-2.5 text-right tabular-nums ${
-                      isQuiet
-                        ? "text-zinc-400 dark:text-zinc-600"
-                        : "text-zinc-700 dark:text-zinc-300"
-                    }`}
+                    className={`px-5 py-2.5 text-right tabular-nums ${isQuiet
+                      ? "text-zinc-400 dark:text-zinc-600"
+                      : "text-zinc-700 dark:text-zinc-300"
+                      }`}
                   >
                     {r.tickets}
                   </td>
                   <td
-                    className={`px-5 py-2.5 text-right tabular-nums ${
-                      isQuiet
-                        ? "text-zinc-400 dark:text-zinc-600"
-                        : "text-zinc-700 dark:text-zinc-300"
-                    }`}
+                    className={`px-5 py-2.5 text-right tabular-nums ${isQuiet
+                      ? "text-zinc-400 dark:text-zinc-600"
+                      : "text-zinc-700 dark:text-zinc-300"
+                      }`}
                   >
                     {r.points}
                   </td>
@@ -313,7 +316,7 @@ function DailyTable({
         </table>
       </div>
 
-      {rows.length > PAGE_SIZE ? (
+      {!printMode && rows.length > PAGE_SIZE ? (
         <DailyPagination
           page={safePage}
           totalPages={totalPages}
@@ -366,11 +369,10 @@ function DailyPagination({
               key={i}
               type="button"
               onClick={() => onChange(i)}
-              className={`inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md text-xs font-medium tabular-nums transition-colors ${
-                isActive
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
-                  : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
+              className={`inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md text-xs font-medium tabular-nums transition-colors ${isActive
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+                : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
             >
               {i + 1}
             </button>

@@ -177,7 +177,9 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
             {/* Project picker (SearchableDropdown for fast typeahead) */}
             <div className="tlc-sidebar-section">
               <div className="tlc-sidebar-section-head">
-                <ProjectOutlined style={{ fontSize: 10 }} />
+                <span className="tlc-sidebar-icon" style={{ background: 'transparent', border: 'none', color: 'inherit' }}>
+                  <ProjectOutlined style={{ fontSize: 10 }} />
+                </span>
                 <span>Project</span>
               </div>
               <div className="tlc-sidebar-picker">
@@ -199,7 +201,9 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
             {/* Project list */}
             <div className="tlc-sidebar-section">
               <div className="tlc-sidebar-section-head">
-                <AppstoreOutlined style={{ fontSize: 10 }} />
+                <span className="tlc-sidebar-icon" style={{ background: 'transparent', border: 'none', color: 'inherit' }}>
+                  <AppstoreOutlined style={{ fontSize: 10 }} />
+                </span>
                 <span>Browse</span>
                 <span className="tlc-sidebar-section-count">{totalCount}</span>
               </div>
@@ -213,7 +217,7 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
                     <AppstoreOutlined style={{ fontSize: 11 }} />
                   </span>
                   <span className="tlc-sidebar-label">All projects</span>
-                  <span className="tlc-sidebar-count">{projects.length}</span>
+                  <span className="tlc-sidebar-count">{totalCount}</span>
                 </button>
                 {projects.map((p) => {
                   const active = selectedProjectId === p.value;
@@ -440,8 +444,8 @@ const TICKET_LIFECYCLE_CSS = `
 .tlc-sidebar-section-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 4px 8px;
+  gap: 9px;
+  padding: 6px 10px 8px;
   font-size: 10px;
   font-weight: 800;
   color: var(--text-slate-500);
@@ -497,7 +501,7 @@ const TICKET_LIFECYCLE_CSS = `
 }
 [data-theme='dark'] .tlc-sidebar-item.active {
   background: rgba(59, 130, 246, 0.15) !important;
-  border: none !important;
+  border-color: transparent !important;
   color: #FFFFFF !important;
 }
 .tlc-sidebar-icon {

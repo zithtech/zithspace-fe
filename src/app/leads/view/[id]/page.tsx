@@ -59,6 +59,10 @@ import {
   FolderPlus,
   FileEdit,
   Send,
+  Building2,
+  Linkedin,
+  MapPin,
+  Users,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -375,6 +379,51 @@ export default function LeadProfilePage() {
   const matchPercentage = lead.skill_analysis?.matchPercentage || 0;
   const winProb = Math.round(lead.ai_score || 0);
 
+  // Lead Intake leads get an entirely different detail structure (company
+  // profile + decision makers) instead of the freelance-job layout.
+  const isIntake = lead.lead_source_kind === "intake";
+  const fd: any = (lead.form_data && typeof lead.form_data === "object") ? lead.form_data : {};
+  const decisionMakers: any[] = Array.isArray(fd.decisionMakers) ? fd.decisionMakers : [];
+  const intakeCompanyName = lead.company || lead.client_name || "Unnamed company";
+
+  // Shared meta card — status, ownership, proposal & mail signals. Used in
+  // both the platform and intake right rails.
+  const renderKeyFacts = () => (
+    <section className="lv-side-card">
+      <header className="lv-side-head">Key facts</header>
+      <div className="lv-facts">
+        <div className="lv-fact">
+          <span className="lv-fact-key"><Activity size={13} /> Status</span>
+          {lead.status ? (
+            <span className="lv-fact-badge" style={{ color: statusColor, background: `${statusColor}18` }}>
+              <span className="lv-status-dot" style={{ background: statusColor }} />{lead.status}
+            </span>
+          ) : <span className="lv-fact-val">—</span>}
+        </div>
+        <div className="lv-fact">
+          <span className="lv-fact-key"><UserCheck size={13} /> Created by</span>
+          <span className="lv-fact-val">{(lead as any).created_by_name || "—"}</span>
+        </div>
+        <div className="lv-fact">
+          <span className="lv-fact-key"><Calendar size={13} /> Created</span>
+          <span className="lv-fact-val">{lead.created_at ? dayjs(lead.created_at).format("MMM D, YYYY") : "—"}</span>
+        </div>
+        <div className="lv-fact">
+          <span className="lv-fact-key"><Clock size={13} /> Updated</span>
+          <span className="lv-fact-val">{lead.updated_at ? dayjs(lead.updated_at).fromNow() : "—"}</span>
+        </div>
+        <div className="lv-fact">
+          <span className="lv-fact-key"><FileText size={13} /> Proposal</span>
+          <span className={`lv-fact-badge ${lead.proposal_id ? "ok" : "off"}`}>{lead.proposal_id ? "Created" : "None"}</span>
+        </div>
+        <div className="lv-fact">
+          <span className="lv-fact-key"><Mail size={13} /> Last email</span>
+          <span className="lv-fact-val">{lead.last_mail_at ? dayjs(lead.last_mail_at).format("MMM D, YYYY") : "None"}</span>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <ProtectedRoute>
       <MainLayout>
@@ -607,6 +656,214 @@ export default function LeadProfilePage() {
           </Drawer>
 
           <div className="lv-body">
+            {isIntake ? (
+              /* ==================== INTAKE detail body ==================== */
+              <>
+                <div className="lv-grid">
+                  {/* LEFT — Company · Contacts · Notes */}
+                  <main className="lv-main">
+                    {/* 1. Company info */}
+                    <section className="lv-section lv-cinfo">
+                      <div className="lv-cinfo-head">
+                        <div className="lv-avatar lv-avatar-sq lv-avatar-lg">{getInitials(intakeCompanyName)}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="lv-cinfo-titlerow">
+                            <h2 className="lv-cinfo-name">{intakeCompanyName}</h2>
+                            {fd.companyType && <span className="lv-cinfo-badge"><Briefcase size={11} />{fd.companyType}</span>}
+                          </div>
+                          <div className="lv-cinfo-sub">
+                            <span className="lv-cinfo-kind"><Building2 size={11} /> Lead Intake</span>
+                            <span className="lv-dot" />
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                              <Clock size={11} /> Added {lead.created_at ? dayjs(lead.created_at).fromNow() : (lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="lv-cinfo-grid">
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><Mail size={12} /> Email</span>
+                          {lead.client_mail ? <a className="lv-cinfo-val lv-cinfo-link" href={`mailto:${lead.client_mail}`} title={lead.client_mail}>{lead.client_mail}</a> : <span className="lv-cinfo-val">—</span>}
+                        </div>
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><Phone size={12} /> Phone</span>
+                          <span className="lv-cinfo-val">{lead.client_phone || "—"}</span>
+                        </div>
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><Globe size={12} /> Website</span>
+                          {fd.website ? <a className="lv-cinfo-val lv-cinfo-link" href={/^https?:\/\//.test(fd.website) ? fd.website : `https://${fd.website}`} target="_blank" rel="noreferrer" title={fd.website}>{fd.website}</a> : <span className="lv-cinfo-val">—</span>}
+                        </div>
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><Linkedin size={12} /> LinkedIn</span>
+                          {fd.linkedin ? <a className="lv-cinfo-val lv-cinfo-link" href={/^https?:\/\//.test(fd.linkedin) ? fd.linkedin : `https://${fd.linkedin}`} target="_blank" rel="noreferrer" title={fd.linkedin}>{fd.linkedin}</a> : <span className="lv-cinfo-val">—</span>}
+                        </div>
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><MapPin size={12} /> Location</span>
+                          <span className="lv-cinfo-val">{fd.location || lead.client_location || "—"}</span>
+                        </div>
+                        <div className="lv-cinfo-item">
+                          <span className="lv-cinfo-key"><Users size={12} /> Team size</span>
+                          <span className="lv-cinfo-val">{fd.teamSize || lead.company_size || "—"}</span>
+                        </div>
+                      </div>
+
+                      <div className="lv-cinfo-details">
+                        <span className="lv-meta-label">Company details</span>
+                        {fd.coreBusiness && (
+                          <div className="lv-cinfo-core"><Briefcase size={12} /> {fd.coreBusiness}</div>
+                        )}
+                        <div className="lv-prose" style={{ marginTop: fd.coreBusiness ? 10 : 6 }}>
+                          {fd.companyDescription || lead.summary || "No company description provided."}
+                        </div>
+                        {fd.reviews && (
+                          <div className="lv-cinfo-reviews">
+                            <span className="lv-meta-label" style={{ display: "flex", alignItems: "center", gap: 6 }}><Star size={12} /> Reviews & research</span>
+                            <div className="lv-prose" style={{ marginTop: 6 }}>{fd.reviews}</div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    {/* 2. Contacts (decision makers) */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#10b981" }}><Users size={14} /></div>
+                        <h3 className="lv-section-title">Contacts</h3>
+                        {decisionMakers.length > 0 && <span className="lv-section-count">{decisionMakers.length}</span>}
+                      </header>
+                      <div className="lv-section-body">
+                        {decisionMakers.length > 0 ? (
+                          <div className="lv-dm-list">
+                            {decisionMakers.map((c, i) => (
+                              <div key={i} className="lv-dm-card">
+                                <div className="lv-dm-card-head">
+                                  <div className="lv-dm-avatar">{getInitials(c.name)}</div>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div className="lv-dm-name">{c.name || "Unnamed contact"}</div>
+                                    {c.designation && <div className="lv-dm-role-sub">{c.designation}</div>}
+                                  </div>
+                                </div>
+                                <div className="lv-dm-fields">
+                                  <div className="lv-dm-field">
+                                    <span className="lv-dm-k">Designation</span>
+                                    <span className="lv-dm-v">{c.designation || "—"}</span>
+                                  </div>
+                                  <div className="lv-dm-field">
+                                    <span className="lv-dm-k">Phone</span>
+                                    {c.phone ? <a className="lv-dm-v lv-dm-vlink" href={`tel:${c.phone}`}>{c.phone}</a> : <span className="lv-dm-v">—</span>}
+                                  </div>
+                                  <div className="lv-dm-field">
+                                    <span className="lv-dm-k">Mail</span>
+                                    {c.email ? <a className="lv-dm-v lv-dm-vlink" href={`mailto:${c.email}`} title={c.email}>{c.email}</a> : <span className="lv-dm-v">—</span>}
+                                  </div>
+                                  <div className="lv-dm-field">
+                                    <span className="lv-dm-k">LinkedIn URL</span>
+                                    {c.linkedin ? <a className="lv-dm-v lv-dm-vlink" href={/^https?:\/\//.test(c.linkedin) ? c.linkedin : `https://${c.linkedin}`} target="_blank" rel="noreferrer" title={c.linkedin}>{c.linkedin}</a> : <span className="lv-dm-v">—</span>}
+                                  </div>
+                                  {c.notes && (
+                                    <div className="lv-dm-field">
+                                      <span className="lv-dm-k">Notes</span>
+                                      <span className="lv-dm-v" title={c.notes}>{c.notes}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="lv-empty-state">
+                            <Users size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
+                            <Text className="lv-muted">No contacts added yet.</Text>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    {/* 3. Notes */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}><Edit2 size={13} /></div>
+                        <h3 className="lv-section-title">Notes</h3>
+                      </header>
+                      <div className="lv-section-body">
+                        <div className="lv-notes">
+                          {(fd.internalNotes || lead.internal_notes) ? (
+                            <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{fd.internalNotes || lead.internal_notes}</Paragraph>
+                          ) : (
+                            <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Mailing history */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#ec4899" }}><Mail size={14} /></div>
+                        <h3 className="lv-section-title">Mailing History</h3>
+                        {mails.length > 0 && <span className="lv-section-count">{mails.length}</span>}
+                      </header>
+                      <div className="lv-section-body">
+                        {mailsLoading ? (
+                          <Skeleton active paragraph={{ rows: 2 }} />
+                        ) : mails.length > 0 ? (
+                          <div className="lv-mailing-history">
+                            {mails.map((mail) => (
+                              <div key={mail.id} className="lv-mail-item">
+                                <div className="lv-mail-item-head">
+                                  <span className="lv-mail-subject">{mail.subject}</span>
+                                  <span className="lv-mail-date">{dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A")}</span>
+                                </div>
+                                <div className="lv-mail-recipient">To: {mail.recipient_email}</div>
+                                <div className="lv-mail-excerpt">{mail.body.replace(/<[^>]*>?/gm, '').slice(0, 120)}...</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="lv-empty-state">
+                            <Mail size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
+                            <Text className="lv-muted">No emails sent yet.</Text>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </main>
+
+                  {/* RIGHT — Key facts · Documents */}
+                  <aside className="lv-side">
+                    {/* 4. Key facts */}
+                    {renderKeyFacts()}
+
+                    {/* 5. Documents */}
+                    <section className="lv-side-card">
+                      <header className="lv-side-head">Documents</header>
+                      <div className="lv-docs">
+                        {lead.documents && lead.documents.length > 0 ? (
+                          lead.documents.map((doc: any, i: number) => {
+                            const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
+                            return (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                <button type="button" onClick={() => handleDownload(d.url, d.name, 'inline')} className="lv-doc-row" style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                                  <FileText size={13} />
+                                  <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
+                                  <ExternalLink size={11} className="lv-doc-ext" />
+                                </button>
+                                <Button type="text" size="small" icon={<Download size={14} />} onClick={() => handleDownload(d.url, d.name, 'attachment')} style={{ color: '#3b82f6', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <Text className="lv-muted">No documents attached.</Text>
+                        )}
+                      </div>
+                    </section>
+                  </aside>
+                </div>
+              </>
+            ) : (
+              /* ==================== PLATFORM detail body ==================== */
+              <>
             {/* Hero section */}
             <section className="lv-hero">
               <div className="lv-hero-top">
@@ -707,6 +964,7 @@ export default function LeadProfilePage() {
 
             {/* 2-column grid */}
             <div className="lv-grid">
+              {/* ==================== LEFT — Work ==================== */}
               <main className="lv-main">
                 {/* ------- Job description ------- */}
                 <section className="lv-section">
@@ -902,27 +1160,6 @@ export default function LeadProfilePage() {
                   </section>
                 </div>
 
-                {/* ------- Internal notes ------- */}
-                <section className="lv-section">
-                  <header className="lv-section-head">
-                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}>
-                      <Edit2 size={13} />
-                    </div>
-                    <h3 className="lv-section-title">Internal notes</h3>
-                  </header>
-                  <div className="lv-section-body">
-                    <div className="lv-notes">
-                      {lead.internal_notes ? (
-                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>
-                          {lead.internal_notes}
-                        </Paragraph>
-                      ) : (
-                        <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
                 {/* ------- Mailing History ------- */}
                 <section className="lv-section">
                   <header className="lv-section-head">
@@ -958,11 +1195,29 @@ export default function LeadProfilePage() {
                     )}
                   </div>
                 </section>
+                {/* ------- Internal notes ------- */}
+                <section className="lv-section">
+                  <header className="lv-section-head">
+                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}>
+                      <Edit2 size={13} />
+                    </div>
+                    <h3 className="lv-section-title">Internal notes</h3>
+                  </header>
+                  <div className="lv-section-body">
+                    <div className="lv-notes">
+                      {lead.internal_notes ? (
+                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{lead.internal_notes}</Paragraph>
+                      ) : (
+                        <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
+                      )}
+                    </div>
+                  </div>
+                </section>
               </main>
 
-              {/* ------- Sidebar ------- */}
+              {/* ==================== RIGHT rail — Meta ==================== */}
               <aside className="lv-side">
-                {/* Client card */}
+                {/* Client */}
                 <section className="lv-side-card">
                   <header className="lv-side-head">About the client</header>
                   <div className="lv-client-id">
@@ -982,7 +1237,6 @@ export default function LeadProfilePage() {
                       </div>
                     </div>
                   </div>
-
                   <div className="lv-client-contact">
                     <div className="lv-contact-row">
                       <Mail size={13} />
@@ -993,7 +1247,6 @@ export default function LeadProfilePage() {
                       <span>{lead.client_phone || "—"}</span>
                     </div>
                   </div>
-
                   <div className="lv-verify-row">
                     <div className={`lv-verify ${lead.client_payment_verified ? "ok" : "off"}`}>
                       {lead.client_payment_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
@@ -1005,6 +1258,9 @@ export default function LeadProfilePage() {
                     </div>
                   </div>
                 </section>
+
+                {/* Key facts */}
+                {renderKeyFacts()}
 
                 {/* Win probability */}
                 <section className="lv-side-card">
@@ -1132,6 +1388,8 @@ export default function LeadProfilePage() {
                 </section>
               </aside>
             </div>
+              </>
+            )}
           </div>
 
           {/* ----------------------- Initialize Project modal ----------------------- */}
@@ -1486,7 +1744,7 @@ const leadViewStyles = (
         z-index: 20;
         background: var(--bg-pure-white);
         border-bottom: 1px solid var(--border-slate-100);
-        padding: 12px 32px;
+        padding: 10px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1499,7 +1757,7 @@ const leadViewStyles = (
         width: 34px !important;
         height: 34px !important;
         padding: 0 !important;
-        border-radius: 4px !important;
+        border-radius: 9px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
         color: var(--text-slate-700) !important;
@@ -1587,7 +1845,7 @@ const leadViewStyles = (
       /* Buttons */
       .lv-secondary-btn.ant-btn {
         height: 34px !important;
-        border-radius: 4px !important;
+        border-radius: 9px !important;
         padding: 0 14px !important;
         border: 1px solid var(--border-slate-100) !important;
         background: var(--bg-pure-white) !important;
@@ -1603,7 +1861,7 @@ const leadViewStyles = (
       }
       .lv-primary-btn.ant-btn {
         height: 34px !important;
-        border-radius: 0px !important;
+        border-radius: 9px !important;
         padding: 0 16px !important;
         background: #3B82F6 !important;
         border: 0 !important;
@@ -1625,140 +1883,116 @@ const leadViewStyles = (
 
       /* ===================== Body ===================== */
       .lv-body {
-        padding: 24px 32px 60px;
+        padding: 12px 24px 48px;
+        max-width: 1680px;
+        margin: 0 auto;
       }
 
-      /* Hero */
+      /* Compact header (replaces the tall hero) */
       .lv-hero {
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-100);
-        border-radius: 4px;
-        padding: 22px 24px;
-        margin-bottom: 16px;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
       }
       .lv-hero-top {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-slate-500);
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        margin-bottom: 8px;
+        font-size: 12px; font-weight: 600; color: var(--text-slate-500);
       }
-      .lv-hero-divider {
-        width: 3px; height: 3px; border-radius: 50%;
-        background: var(--border-slate-200);
-      }
+      .lv-hero-divider { width: 3px; height: 3px; border-radius: 50%; background: var(--border-slate-200); }
       .lv-hero-platform {
         display: inline-flex; align-items: center; gap: 5px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        border: 1px solid;
+        padding: 3px 9px; border-radius: 999px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.02em; border: 1px solid;
       }
-      .lv-hero-meta {
-        display: inline-flex; align-items: center; gap: 5px;
-        font-size: 12px;
-        color: var(--text-slate-500);
-        font-weight: 500;
-      }
-      .lv-hero-score {
-        display: inline-flex; align-items: center; gap: 5px;
-        padding: 3px 9px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-        border: 1px solid;
-      }
-      .lv-hero-score-val {
-        opacity: 0.6;
-        font-variant-numeric: tabular-nums;
-      }
+      .lv-hero-meta { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
+      .lv-hero-score { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid; }
+      .lv-hero-score-val { opacity: 0.6; font-variant-numeric: tabular-nums; }
 
       .lv-hero-title {
-        margin: 0 0 8px;
-        font-size: 24px;
-        font-weight: 800;
-        line-height: 1.25;
-        color: var(--text-slate-900);
-        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        font-size: 19px; font-weight: 800; line-height: 1.25;
+        color: var(--text-slate-900); letter-spacing: -0.02em;
       }
       .lv-hero-sub {
-        margin: 0 0 18px;
-        font-size: 13.5px;
-        color: var(--text-slate-600);
-        line-height: 1.55;
-        max-width: 820px;
+        margin: 0 0 12px;
+        font-size: 13px; color: var(--text-slate-600); line-height: 1.5; max-width: 900px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
       }
 
-      /* KPI strip */
-      .lv-kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-      }
-      @media (max-width: 900px) {
-        .lv-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      }
-      @media (max-width: 520px) {
-        .lv-kpi-grid { grid-template-columns: 1fr; }
-      }
+      /* KPI strip → slim inline pill chips (was 4 big cards) */
+      .lv-kpi-grid { display: flex; flex-wrap: wrap; gap: 8px; }
       .lv-kpi {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 14px;
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 12px 6px 8px;
         background: var(--bg-slate-50);
         border: 1px solid var(--border-slate-100);
-        border-radius: 4px;
+        border-radius: 999px;
       }
       .lv-kpi-icon {
-        width: 32px; height: 32px;
-        border-radius: 4px;
+        width: 24px; height: 24px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         background: color-mix(in oklab, var(--lv-kpi-accent) 14%, transparent);
-        color: var(--lv-kpi-accent);
-        flex-shrink: 0;
+        color: var(--lv-kpi-accent); flex-shrink: 0;
       }
-      .lv-kpi-body { display: flex; flex-direction: column; min-width: 0; }
+      .lv-kpi-icon svg { width: 13px; height: 13px; }
+      .lv-kpi-body { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
       .lv-kpi-label {
-        font-size: 10.5px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
         color: var(--text-slate-500);
       }
       .lv-kpi-value {
-        font-size: 16px;
-        font-weight: 800;
-        color: var(--text-slate-900);
-        letter-spacing: -0.01em;
-        line-height: 1.2;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 13px; font-weight: 800; color: var(--text-slate-900);
+        letter-spacing: -0.01em; line-height: 1.2; font-variant-numeric: tabular-nums;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;
       }
 
+      /* Key facts card (created by / updated / proposal / mail …) */
+      .lv-facts { display: flex; flex-direction: column; }
+      .lv-fact {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-fact:last-child { border-bottom: none; }
+      .lv-fact-key {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: 12px; font-weight: 600; color: var(--text-slate-500);
+      }
+      .lv-fact-key svg { color: var(--text-slate-400); flex-shrink: 0; }
+      .lv-fact-val {
+        font-size: 12.5px; font-weight: 700; color: var(--text-slate-800);
+        text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;
+      }
+      .lv-fact-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      }
+      .lv-fact-badge.ok { color: #10b981; background: rgba(16,185,129,0.1); }
+      .lv-fact-badge.off { color: #94a3b8; background: rgba(100,116,139,0.1); }
+      a.lv-fact-val { text-decoration: none; }
+      a.lv-fact-val:hover { color: #4f46e5; }
+
       /* ===================== Grid ===================== */
+      /* 2-column: Work (flex) · Meta rail */
       .lv-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 360px;
-        gap: 20px;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 16px;
         align-items: start;
       }
       @media (max-width: 1100px) {
         .lv-grid { grid-template-columns: 1fr; }
       }
       .lv-main {
-        display: flex; flex-direction: column; gap: 16px;
+        display: flex; flex-direction: column; gap: 14px;
         min-width: 0;
       }
       .lv-side {
-        display: flex; flex-direction: column; gap: 16px;
+        display: flex; flex-direction: column; gap: 14px;
+        min-width: 0;
       }
 
       /* Skills (60%) + Timeline (40%) row */
@@ -2043,6 +2277,139 @@ const leadViewStyles = (
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       .lv-contact-row svg { color: var(--text-slate-400); flex-shrink: 0; }
+
+      /* ---------- Lead Intake additions ---------- */
+      .lv-avatar-sq { border-radius: 10px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+      .lv-avatar-lg { width: 54px; height: 54px; font-size: 18px; border-radius: 12px; }
+
+      /* Company info card */
+      .lv-cinfo { padding: 20px; }
+      .lv-cinfo-head { display: flex; align-items: center; gap: 14px; }
+      .lv-cinfo-titlerow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .lv-cinfo-name {
+        margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+        color: var(--text-slate-900); line-height: 1.2;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+      }
+      .lv-cinfo-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.01em;
+        color: #4f46e5; background: rgba(99,102,241,0.09); border: 1px solid rgba(99,102,241,0.2);
+      }
+      .lv-cinfo-sub {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--text-slate-500);
+      }
+      .lv-cinfo-kind {
+        display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #4f46e5;
+      }
+      .lv-cinfo-sub svg { flex-shrink: 0; }
+
+      .lv-cinfo-grid {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px 24px;
+        margin-top: 18px; padding-top: 16px;
+        border-top: 1px solid var(--border-slate-100);
+      }
+      @media (max-width: 640px) { .lv-cinfo-grid { grid-template-columns: 1fr; } }
+      .lv-cinfo-item {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 8px 0; min-width: 0;
+      }
+      .lv-cinfo-key {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: 12px; font-weight: 600; color: var(--text-slate-500); flex-shrink: 0;
+      }
+      .lv-cinfo-key svg { color: var(--text-slate-400); }
+      .lv-cinfo-val {
+        font-size: 12.5px; font-weight: 700; color: var(--text-slate-800);
+        text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      a.lv-cinfo-link { text-decoration: none; cursor: pointer; }
+      a.lv-cinfo-link:hover { color: #4f46e5; }
+
+      .lv-cinfo-details {
+        margin-top: 16px; padding-top: 16px;
+        border-top: 1px solid var(--border-slate-100);
+      }
+      .lv-cinfo-core {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 10px; padding: 9px 12px;
+        background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.12); border-radius: 10px;
+        font-size: 13.5px; font-weight: 700; color: var(--text-slate-900);
+      }
+      .lv-cinfo-core svg { color: #6366f1; flex-shrink: 0; }
+      .lv-cinfo-reviews { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-slate-100); }
+      [data-theme='dark'] .lv-cinfo-core { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25); }
+      a.lv-contact-link { text-decoration: none; cursor: pointer; transition: color .15s ease; }
+      a.lv-contact-link:hover { color: #4f46e5; }
+      a.lv-contact-link:hover svg { color: #4f46e5; }
+      a.lv-contact-link svg:last-child { margin-left: auto; opacity: .55; }
+
+      .lv-overview-line {
+        display: flex; flex-direction: column; gap: 3px;
+        padding: 10px 12px;
+        background: rgba(99, 102, 241, 0.04);
+        border: 1px solid rgba(99, 102, 241, 0.12);
+        border-radius: 10px;
+      }
+      .lv-overview-line .lv-meta-value { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); }
+
+      /* Contacts — 2-up grid; a lone contact spans full width */
+      .lv-dm-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .lv-dm-card:only-child { grid-column: 1 / -1; }
+      @media (max-width: 720px) { .lv-dm-list { grid-template-columns: 1fr; } }
+
+      .lv-dm-card {
+        border: 1px solid var(--border-slate-100);
+        border-radius: 12px;
+        background: var(--bg-pure-white);
+        padding: 14px 16px;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+      .lv-dm-card:hover {
+        border-color: #dbe3ee;
+        box-shadow: 0 6px 18px -8px rgba(15, 23, 42, 0.14);
+      }
+      .lv-dm-card-head {
+        display: flex; align-items: center; gap: 11px;
+        padding-bottom: 12px; margin-bottom: 6px;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-dm-avatar {
+        width: 38px; height: 38px; flex-shrink: 0;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff; font-weight: 800; font-size: 13px;
+      }
+      .lv-dm-name {
+        font-size: 14.5px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.01em;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .lv-dm-role-sub { font-size: 11.5px; font-weight: 700; color: #4f46e5; margin-top: 1px; }
+
+      .lv-dm-fields { display: flex; flex-direction: column; }
+      .lv-dm-field {
+        display: flex; align-items: center; justify-content: space-between; gap: 14px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-dm-field:last-child { border-bottom: none; }
+      .lv-dm-k { font-size: 12px; font-weight: 600; color: var(--text-slate-500); flex-shrink: 0; }
+      .lv-dm-v {
+        font-size: 12.5px; font-weight: 700; color: var(--text-slate-800);
+        text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      a.lv-dm-v.lv-dm-vlink { text-decoration: none; cursor: pointer; }
+      a.lv-dm-v.lv-dm-vlink:hover { color: #4f46e5; }
+      [data-theme='dark'] .lv-dm-card { background: #161b22; border-color: #30363d; }
+      [data-theme='dark'] .lv-dm-card:hover { border-color: #3d444d; }
 
       .lv-verify-row { display: flex; gap: 8px; }
       .lv-verify {

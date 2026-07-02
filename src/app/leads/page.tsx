@@ -70,7 +70,9 @@ import {
   Award,
   Star,
   Menu,
-  Maximize2
+  Maximize2,
+  Building2,
+  MapPin
 } from "lucide-react";
 import {
   Card,
@@ -360,13 +362,13 @@ const FiverrGlyph = ({ size = 13 }: { size?: number }) => (
 const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
   const sectionCard: React.CSSProperties = {
     marginBottom: 20,
-    padding: '20px',
-    borderRadius: 0,
+    padding: '22px',
+    borderRadius: 14,
     border: '1px solid var(--border-slate-100)',
   };
   const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
   const stepBadge = (color: string, n: string): React.CSSProperties => ({
-    width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
+    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     background: `${color}14`, color, border: `1px solid ${color}33`,
   });
@@ -549,6 +551,270 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
   );
 };
 
+// Lead Intake — capture a full company profile plus a repeatable list of
+// decision-maker contacts. Company-level fields map onto the shared lead
+// columns at save time; the intake-only extras + decisionMakers[] array are
+// persisted in leads.form_data (JSONB).
+const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
+  const sectionCard: React.CSSProperties = {
+    marginBottom: 20,
+    padding: '22px',
+    borderRadius: 14,
+    border: '1px solid var(--border-slate-100)',
+  };
+  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
+  const stepBadge = (color: string): React.CSSProperties => ({
+    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: `${color}14`, color, border: `1px solid ${color}33`,
+  });
+  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
+  const label = (t: string) => <Text strong style={labelStyle}>{t}</Text>;
+
+  return (
+    <>
+      {/* 01 — Company Information */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#6366f1')}>01</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Building2 size={15} color="#6366f1" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company Information</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>The organisation you're building a relationship with</Text>
+          </div>
+        </div>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
+              <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
+              <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item name="intakeCoreBusiness" label={label('Core Business')}>
+          <Input placeholder="What the company primarily does" style={{ borderRadius: 0 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
+          <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 0 }} autoComplete="off" />
+        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]}>
+              <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="intakeCompanyPhone"
+              label={label('Company Phone Number')}
+              getValueFromEvent={sanitizePhone}
+              rules={[phoneRule]}
+            >
+              <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="intakeWebsite" label={label('Website URL')}>
+              <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
+              <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="intakeLocation" label={label('Company Location')}>
+              <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
+              <Select placeholder="Select range" style={{ borderRadius: 0 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
+                <Select.Option value="1-10">1 – 10</Select.Option>
+                <Select.Option value="11-50">11 – 50</Select.Option>
+                <Select.Option value="51-200">51 – 200</Select.Option>
+                <Select.Option value="201-500">201 – 500</Select.Option>
+                <Select.Option value="501-1000">501 – 1,000</Select.Option>
+                <Select.Option value="1000+">1,000+</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 02 — Research */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#f59e0b')}>02</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Star size={15} color="#f59e0b" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Research</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Reputation signals and your own working notes</Text>
+          </div>
+        </div>
+        <Form.Item name="intakeReviews" label={label('Company Reviews / Notes')}>
+          <TextArea rows={3} placeholder="Glassdoor / Clutch ratings, reputation, press — anything that helps qualify the account." style={{ borderRadius: 0 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeInternalNotes" label={
+          <Space size={6}>
+            {label('Internal Notes')}
+            <span style={{ padding: '1px 7px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+          </Space>
+        }>
+          <TextArea rows={2} placeholder="Private notes for your team — never shown to the client." style={{ borderRadius: 0 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeStatus" label={label('Pipeline')}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 0 }} allowClear>
+            {configStatuses.map((s: any) => (
+              <Select.Option key={s.id} value={s.name}>
+                <Space>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                  {s.name}
+                </Space>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </div>
+
+      {/* 03 — Decision Makers (repeatable) */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#10b981')}>03</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={15} color="#10b981" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Decision Makers</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>One company, many contacts — add everyone worth knowing</Text>
+          </div>
+        </div>
+        <Form.List name="decisionMakers">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field, idx) => (
+                <div key={field.key} className="dm-card">
+                  <div className="dm-card-head">
+                    <span className="dm-card-index">
+                      <User size={13} />
+                      Decision Maker {idx + 1}
+                    </span>
+                    <Tooltip title="Remove contact">
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<Trash2 size={15} />}
+                        onClick={() => remove(field.name)}
+                        className="dm-remove-btn"
+                      />
+                    </Tooltip>
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]} style={{ marginBottom: 12 }}>
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')} style={{ marginBottom: 12 }}>
+                        <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} style={{ marginBottom: 12 }}>
+                        <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]} style={{ marginBottom: 12 }}>
+                        <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')} style={{ marginBottom: 12 }}>
+                        <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
+                        <Space size={6}>
+                          {label('Remarks / Notes')}
+                          <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+                        </Space>
+                      } style={{ marginBottom: 0 }}>
+                        <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 0 }} autoComplete="off" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              ))}
+              <Button
+                type="dashed"
+                onClick={() => add({})}
+                block
+                icon={<UserPlus size={16} />}
+                className="dm-add-btn"
+              >
+                Add Decision Maker
+              </Button>
+            </>
+          )}
+        </Form.List>
+      </div>
+    </>
+  );
+};
+
+// Shared phone helpers — keep the intake fields consistent with the platform /
+// website forms (digits, spaces, dashes, parens, optional leading +; 7–15 digits).
+const sanitizePhone = (e: any) => {
+  const value = e.target.value as string;
+  let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+  if (sanitized.includes('+')) {
+    const hasPlusAtStart = sanitized.startsWith('+');
+    sanitized = sanitized.replace(/\+/g, '');
+    if (hasPlusAtStart) sanitized = '+' + sanitized;
+  }
+  let digitsCount = 0;
+  let limited = '';
+  for (let i = 0; i < sanitized.length; i++) {
+    const char = sanitized[i];
+    if (/\d/.test(char)) {
+      if (digitsCount < 15) { digitsCount++; limited += char; }
+    } else {
+      limited += char;
+    }
+  }
+  return limited;
+};
+
+const phoneRule = {
+  validator: (_: any, value: string) => {
+    if (!value || value.trim() === '') return Promise.resolve();
+    const digits = value.replace(/\D/g, '');
+    if (digits.length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+    return Promise.resolve();
+  },
+};
+
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
   const w = 96;
   const h = 26;
@@ -593,6 +859,9 @@ export default function LeadsPage() {
   } = usePermission();
 
   const [form] = Form.useForm();
+  // Watch the lead-kind picker once, at the top level — calling Form.useWatch
+  // inside the render ternary would run the hook a variable number of times.
+  const leadSourceKindWatch = Form.useWatch('leadSourceKind', form) || 'platform';
   const { message: messageApi, modal } = App.useApp();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -1694,6 +1963,10 @@ export default function LeadsPage() {
 
   const handleEdit = (record: Lead) => {
     setEditingKey(record.id);
+    // form_data arrives as parsed JSON from pg, but guard against a raw string.
+    const fd: any = typeof record.form_data === 'string'
+      ? (() => { try { return JSON.parse(record.form_data as any); } catch { return {}; } })()
+      : (record.form_data || {});
     form.setFieldsValue({
       clientName: record.client_name,
       clientMail: record.client_mail,
@@ -1735,6 +2008,23 @@ export default function LeadsPage() {
       companySize: record.company_size,
       inquiryMessage: record.inquiry_message,
       websiteSource: record.website_source,
+
+      // Lead Intake — rehydrate the company profile + decision makers from
+      // the mapped columns and the form_data JSONB blob.
+      intakeCompanyName: record.company || record.client_name,
+      intakeCompanyType: fd.companyType,
+      intakeCoreBusiness: fd.coreBusiness,
+      intakeCompanyDescription: fd.companyDescription ?? record.summary,
+      intakeCompanyEmail: record.client_mail,
+      intakeCompanyPhone: record.client_phone,
+      intakeWebsite: fd.website,
+      intakeLinkedin: fd.linkedin,
+      intakeLocation: fd.location ?? record.client_location,
+      intakeTeamSize: fd.teamSize ?? record.company_size,
+      intakeReviews: fd.reviews,
+      intakeInternalNotes: fd.internalNotes,
+      intakeStatus: record.status,
+      decisionMakers: Array.isArray(fd.decisionMakers) ? fd.decisionMakers : [],
     });
     setIsDrawerVisible(true);
   };
@@ -1768,8 +2058,60 @@ export default function LeadsPage() {
     });
   };
 
+  // Pull a bare domain out of a website URL for the company_domain column.
+  const deriveDomain = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    return url.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[/?#]/)[0] || undefined;
+  };
+
   const handleSaveLead = async (values: any) => {
     try {
+      // Lead Intake mode: the "client" is the company itself. Map the company
+      // fields onto the required lead columns so the row renders in the table,
+      // and stash the intake-only extras + decisionMakers[] in form_data.
+      if (values.leadSourceKind === 'intake') {
+        const decisionMakers = (values.decisionMakers || [])
+          .filter((c: any) => c && (c.name || c.email || c.phone || c.designation || c.linkedin));
+        const intakePayload = {
+          leadSourceKind: 'intake',
+          clientName: values.intakeCompanyName,
+          clientMail: values.intakeCompanyEmail,
+          clientPhone: values.intakeCompanyPhone,
+          clientLocation: values.intakeLocation,
+          title: values.intakeCompanyName,
+          summary: values.intakeCompanyDescription,
+          company: values.intakeCompanyName,
+          companyDomain: deriveDomain(values.intakeWebsite),
+          companySize: values.intakeTeamSize,
+          status: values.intakeStatus,
+          platform: 'Direct',
+          internalNotes: values.intakeInternalNotes,
+          formData: {
+            companyType: values.intakeCompanyType,
+            teamSize: values.intakeTeamSize,
+            coreBusiness: values.intakeCoreBusiness,
+            companyDescription: values.intakeCompanyDescription,
+            website: values.intakeWebsite,
+            linkedin: values.intakeLinkedin,
+            location: values.intakeLocation,
+            reviews: values.intakeReviews,
+            internalNotes: values.intakeInternalNotes,
+            decisionMakers,
+          },
+        };
+        if (editingKey) {
+          await updateLead(editingKey, intakePayload);
+          messageApi.success("Lead Updated");
+        } else {
+          await createLead(intakePayload);
+          messageApi.success("Lead Created");
+        }
+        setIsDrawerVisible(false);
+        form.resetFields();
+        setEditingKey(null);
+        return;
+      }
+
       // Map custom platform if 'Other' is selected
       const finalValues = { ...values };
       if (values.platform === 'Other') {
@@ -4042,29 +4384,29 @@ export default function LeadsPage() {
         {/* Lead Form Drawer */}
         <Drawer
           title={
-            <div className="lead-drawer-header" style={{ position: "relative", overflow: "hidden", margin: "-16px -24px", padding: "20px 24px" }}>
+            <div className="lead-drawer-header" style={{ position: "relative", overflow: "hidden", margin: "-16px -24px", padding: "22px 24px" }}>
               <div
                 aria-hidden
                 style={{
                   position: "absolute",
                   inset: 0,
                   background:
-                    "transparent",
+                    "linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.04) 45%, rgba(255,255,255,0) 100%)",
                   pointerEvents: "none",
                 }}
               />
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 0,
-                    background: "#3b82f6",
+                    width: 46,
+                    height: 46,
+                    borderRadius: 13,
+                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "none",
+                    boxShadow: "0 8px 20px -6px rgba(59,130,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25)",
                     flexShrink: 0,
                   }}
                 >
@@ -4104,13 +4446,15 @@ export default function LeadsPage() {
               </div>
             </div>
           }
-          width={540}
+          width={680}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
           className="premium-drawer lead-drawer"
-          headerStyle={{ borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
-          bodyStyle={{ padding: '24px', background: 'var(--bg-pure-white)' }}
-          footerStyle={{ borderTop: '1px solid var(--border-slate-100)', padding: '14px 24px', background: 'var(--bg-pure-white)' }}
+          styles={{
+            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: '24px', background: 'var(--bg-pure-white)' },
+            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '14px 24px', background: 'var(--bg-pure-white)' },
+          }}
           footer={
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
@@ -4148,7 +4492,7 @@ export default function LeadsPage() {
         >
           <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
+            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 14 }}>
               <Segmented
                 block
                 size="large"
@@ -4156,12 +4500,12 @@ export default function LeadsPage() {
                   {
                     value: 'platform',
                     label: (
-                      <div style={{ padding: '4px 0' }}>
+                      <div style={{ padding: '1px 0' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
                           <Briefcase size={14} />
                           Online Platform
                         </div>
-                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
                           Upwork · LinkedIn · Freelancer · Fiverr
                         </div>
                       </div>
@@ -4170,13 +4514,27 @@ export default function LeadsPage() {
                   {
                     value: 'website',
                     label: (
-                      <div style={{ padding: '4px 0' }}>
+                      <div style={{ padding: '1px 0' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
                           <Globe size={14} />
                           Website Inquiry
                         </div>
-                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
                           Zukvo · Zithtech contact forms
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: 'intake',
+                    label: (
+                      <div style={{ padding: '1px 0' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+                          <Building2 size={14} />
+                          Lead Intake
+                        </div>
+                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
+                          Company profile · decision makers
                         </div>
                       </div>
                     ),
@@ -4185,7 +4543,9 @@ export default function LeadsPage() {
               />
             </Form.Item>
 
-            {(Form.useWatch('leadSourceKind', form) || 'platform') === 'website' ? (
+            {leadSourceKindWatch === 'intake' ? (
+              <LeadIntakeFields configStatuses={configStatuses} />
+            ) : leadSourceKindWatch === 'website' ? (
               <WebsiteLeadFields configStatuses={configStatuses} />
             ) : (
               <>
@@ -4503,7 +4863,7 @@ export default function LeadsPage() {
                         <FileText size={15} color="#ec4899" />
                         <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
                         <span style={{
-                          padding: "1px 7px", borderRadius: 0, background: "#f1f5f9",
+                          padding: "1px 7px", borderRadius: 6, background: "#f1f5f9",
                           color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
                           textTransform: "uppercase",
                         }}>Optional</span>
@@ -6546,12 +6906,18 @@ export default function LeadsPage() {
 
             .lead-section-card {
               background: var(--bg-pure-white);
-              transition: border-color 0.18s ease, box-shadow 0.18s ease;
+              border-radius: 14px !important;
+              box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+              transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
             }
             .lead-section-card:hover {
-              border-color: #e2e8f0 !important;
-              box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+              border-color: #dbe3ee !important;
+              box-shadow: 0 6px 20px -8px rgba(15, 23, 42, 0.12), 0 1px 3px 0 rgba(15, 23, 42, 0.05);
             }
+            /* rounded step badges & chips inside the drawer */
+            .lead-drawer .lead-section-step { border-radius: 10px !important; }
+            .lead-drawer .lead-drawer-badge,
+            .lead-drawer .lead-ai-chip { border-radius: 7px !important; }
 
             .lead-drawer-form .ant-form-item-label > label {
               font-weight: 700 !important;
@@ -6565,9 +6931,21 @@ export default function LeadsPage() {
             .lead-drawer-form .ant-input-affix-wrapper,
             .lead-drawer-form .ant-select-selector,
             .lead-drawer-form .ant-picker {
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid #e2e8f0 !important;
               transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            }
+            /* keep the inner number input flush with its rounded wrapper */
+            .lead-drawer-form .ant-input-number .ant-input-number-input { border-radius: 10px !important; }
+            .lead-drawer-form .ant-input-number-group-addon { border-radius: 10px !important; }
+            /* icon-prefixed inputs: the affix wrapper owns the border — the inner
+               input must stay borderless, else it renders a box-inside-a-box */
+            .lead-drawer-form .ant-input-affix-wrapper > .ant-input,
+            .lead-drawer-form .ant-input-affix-wrapper > input.ant-input {
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              background: transparent !important;
             }
             .lead-drawer-form .ant-input:hover,
             .lead-drawer-form .ant-input-number:hover,
@@ -6611,7 +6989,131 @@ export default function LeadsPage() {
               box-shadow: 0 10px 24px -6px rgba(99, 102, 241, 0.55) !important;
             }
             .lead-drawer-submit {
+              border-radius: 10px !important;
+              background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+              box-shadow: 0 6px 16px -6px rgba(99, 102, 241, 0.5) !important;
               transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+
+            /* ---- Premium rounding pass: everything inside the Lead drawer ---- */
+            .lead-drawer .premium-btn-cancel,
+            .lead-drawer .ant-btn { border-radius: 10px !important; }
+            .lead-drawer .premium-btn-cancel {
+              border: 1px solid #e2e8f0 !important;
+              transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+            }
+            .lead-drawer .premium-btn-cancel:hover {
+              border-color: #c7d2fe !important;
+              color: #4f46e5 !important;
+            }
+            /* rounded segmented (lead-kind picker + doc file/link toggle) */
+            .lead-drawer .ant-segmented {
+              border-radius: 12px !important;
+              padding: 3px !important;
+              background: var(--bg-slate-100, #f1f5f9) !important;
+              border: 1px solid var(--border-slate-100, #e2e8f0) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item,
+            .lead-drawer .ant-segmented .ant-segmented-thumb { border-radius: 10px !important; }
+            /* lead-kind picker: compact single-row options */
+            .lead-drawer .ant-segmented .ant-segmented-item .ant-segmented-item-label {
+              padding: 2px 10px !important;
+              min-height: 32px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+            }
+            /* unselected option — quiet slate text + subtle hover lift */
+            .lead-drawer .ant-segmented .ant-segmented-item:not(.ant-segmented-item-selected) {
+              color: var(--text-slate-600, #475569) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item:not(.ant-segmented-item-selected):hover {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            /* selected option — light blue highlight with blue text */
+            .lead-drawer .ant-segmented .ant-segmented-item-selected,
+            .lead-drawer .ant-segmented .ant-segmented-thumb {
+              background: #dbeafe !important;
+              box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.35) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item-selected,
+            .lead-drawer .ant-segmented .ant-segmented-item-selected *,
+            .lead-drawer .ant-segmented .ant-segmented-thumb,
+            .lead-drawer .ant-segmented .ant-segmented-thumb * {
+              color: #1d4ed8 !important;
+            }
+            /* soften the subtitle so the title stays dominant */
+            .lead-drawer .ant-segmented .ant-segmented-item-selected .lead-kind-sub,
+            .lead-drawer .ant-segmented .ant-segmented-thumb .lead-kind-sub {
+              color: #3b82f6 !important;
+            }
+            /* drawer close button */
+            .lead-drawer .ant-drawer-close { border-radius: 9px !important; }
+            /* AI intelligence textarea keeps rounded corners too */
+            .lead-drawer .lead-ai-textarea { border-radius: 10px !important; }
+            /* rounded tag/skill pills already 999px, doc rows already rounded — leave as-is */
+
+            /* ---- Lead Intake: Decision Maker cards ---- */
+            .lead-drawer .dm-card {
+              position: relative;
+              padding: 16px 16px 14px;
+              margin-bottom: 14px;
+              border: 1px solid #e6ebf2;
+              border-radius: 13px;
+              background: linear-gradient(180deg, #fbfcfe 0%, #ffffff 42%);
+              box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+              transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            }
+            .lead-drawer .dm-card:hover {
+              border-color: #dbe3ee;
+              box-shadow: 0 6px 18px -8px rgba(15,23,42,0.14);
+            }
+            .lead-drawer .dm-card-head {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 12px;
+            }
+            .lead-drawer .dm-card-index {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              color: #10b981;
+              background: rgba(16,185,129,0.08);
+              border: 1px solid rgba(16,185,129,0.2);
+              padding: 3px 10px;
+              border-radius: 999px;
+            }
+            .lead-drawer .dm-remove-btn { border-radius: 8px !important; }
+            .lead-drawer .dm-add-btn {
+              margin-top: 2px !important;
+              height: 44px !important;
+              border-radius: 11px !important;
+              color: #10b981 !important;
+              border-color: #bbf7d0 !important;
+              background: #f6fefb !important;
+              font-weight: 700 !important;
+              transition: all 0.18s ease !important;
+            }
+            .lead-drawer .dm-add-btn:hover {
+              color: #059669 !important;
+              border-color: #86efac !important;
+              background: #ecfdf5 !important;
+              transform: translateY(-1px);
+            }
+            /* Dark theme for Decision Maker cards */
+            [data-theme='dark'] .lead-drawer .dm-card {
+              background: #0d1117;
+              border-color: #30363d;
+            }
+            [data-theme='dark'] .lead-drawer .dm-card:hover { border-color: #3d444d; }
+            [data-theme='dark'] .lead-drawer .dm-add-btn {
+              background: rgba(16,185,129,0.06) !important;
+              border-color: rgba(16,185,129,0.35) !important;
             }
 
             /* DARK DRAWER ENHANCEMENTS */
@@ -6742,7 +7244,7 @@ export default function LeadsPage() {
             .doc-type-segmented.ant-segmented {
               background: var(--bg-slate-50) !important;
               padding: 3px !important;
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all 0.2s ease;
             }
@@ -6895,7 +7397,7 @@ export default function LeadsPage() {
             }
 
             .premium-input {
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid #e2e8f0 !important;
             }
 

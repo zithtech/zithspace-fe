@@ -126,7 +126,8 @@ export default function ArchivedTicketsPage() {
           count: archivedCount,
           color: PROJECT_PALETTE[i % PROJECT_PALETTE.length],
         };
-      });
+      })
+      .sort((a, b) => b.count - a.count);
   }, [dashboardStats, projects]);
 
   const totalAcrossProjects = useMemo(

@@ -71,6 +71,14 @@ const ACTION_COLOR: Record<string, string> = {
   start: "green",
   complete: "blue",
   generate_ai: "purple",
+  apply: "blue",
+  approve: "green",
+  reject: "red",
+  cancel: "orange",
+  run: "purple",
+  revoke: "red",
+  activate: "green",
+  submit: "blue",
 };
 
 function actionColor(action: string): string {

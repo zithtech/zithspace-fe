@@ -43,7 +43,7 @@ import {
   RefreshCw,
   FileText,
 } from "lucide-react";
-import { ReloadOutlined } from "@ant-design/icons";
+import { ReloadOutlined, MenuOutlined } from "@ant-design/icons";
 
 import CustomerDrawer from "@/components/customer/CustomerDrawer";
 import CustomerViewDrawer from "@/components/invoice/CustomerViewDrawer";
@@ -101,6 +101,7 @@ export default function InvoiceproCustomerPage() {
   const [editingCustomer, setEditingCustomer] = useState<ServiceCustomer | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -523,7 +524,10 @@ export default function InvoiceproCustomerPage() {
       {contextHolder}
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><Users size={20} /></div>
             <div className="pp-side-head-text">
@@ -601,6 +605,9 @@ export default function InvoiceproCustomerPage() {
         <main className="pp-main">
           {/* Top search bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <MenuOutlined style={{ fontSize: 16 }} />
+            </button>
             <div className="pp-search-wrap">
               <Search className="pp-search-icon" size={14} />
               <input
@@ -983,8 +990,7 @@ export default function InvoiceproCustomerPage() {
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          height: calc(100vh - 54px);
-          overflow: hidden;
+          min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -1094,10 +1100,10 @@ export default function InvoiceproCustomerPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -1247,9 +1253,44 @@ export default function InvoiceproCustomerPage() {
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        @media (max-width: 1024px) {
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+            display: flex;
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
+          .pp-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .pp-stats { grid-template-columns: 1fr; }
         }
 
         .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }

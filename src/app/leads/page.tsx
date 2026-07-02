@@ -2471,21 +2471,23 @@ export default function LeadsPage() {
 
             <div className="lm-main">
               <div className="lm-topbar">
-                <div className="pp-search-wrap">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, maxWidth: 400 }}>
                   <Button
                     className="lm-mobile-menu-btn"
                     type="text"
-                    icon={<Menu size={18} style={{ marginRight: 6 }} />}
+                    icon={<Menu size={18} />}
                     onClick={() => setMobileSidebarOpen(true)}
                   />
-                  <SearchOutlined className="pp-search-icon" />
-                  <input
-                    ref={searchRef}
-                    className="pp-search"
-                    placeholder="Search subject, target…"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
+                  <div className="pp-search-wrap" style={{ flex: 1, margin: 0, maxWidth: 'none' }}>
+                    <SearchOutlined className="pp-search-icon" />
+                    <input
+                      ref={searchRef}
+                      className="pp-search"
+                      placeholder="Search subject, target…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Space.Compact className="ticket-filter-group">
@@ -4837,6 +4839,11 @@ export default function LeadsPage() {
               flex: 1;
               min-height: 0;
               overflow-y: auto;
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+            .lm-body::-webkit-scrollbar {
+              display: none;
             }
 
             .lm-sidebar {
@@ -6958,20 +6965,31 @@ export default function LeadsPage() {
             .lm-topbar-search-wrap { display: flex; align-items: center; width: 600px; gap: 8px; }
 
             @media (max-width: 820px) {
+              .lm-page {
+                height: auto;
+                min-height: calc(100vh - 64px);
+                overflow: visible;
+              }
               .lm-shell {
                 flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 64px);
+                overflow: visible;
               }
+              .lm-main { height: auto; overflow: visible; }
+              .lm-body { overflow: visible; }
+
               .lm-mobile-overlay {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(15, 23, 42, 0.4);
                 backdrop-filter: blur(2px);
-                z-index: 998;
+                z-index: 1099;
               }
               .lm-sidebar {
                 position: fixed;
                 top: 0; left: -320px; bottom: 0;
-                z-index: 999;
+                z-index: 1100;
                 height: 100%;
                 max-height: none;
                 border-right: 1px solid var(--border-slate-200);

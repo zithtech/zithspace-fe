@@ -31,7 +31,7 @@ import {
   DownloadOutlined,
 } from "@ant-design/icons";
 import { SprintReportExportRunner } from "./[sprintId]/SprintReportView";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProjectService } from "@/services/projectService";
 import {
@@ -123,6 +123,8 @@ export default function ReportsHub() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [searchText, setSearchText] = useState("");
   const [view, setView] = useState<"list" | "grid">("list");
@@ -410,7 +412,6 @@ export default function ReportsHub() {
       dataIndex: "sprintName",
       key: "sprintName",
       width: 360,
-      fixed: "left" as const,
       render: (_: any, r) => (
         <div className="pp-name-cell">
           <div className="pp-name-icon"><FileTextOutlined style={{ fontSize: 14 }} /></div>
@@ -470,7 +471,6 @@ export default function ReportsHub() {
       key: "actions",
       align: "right" as const,
       width: 160,
-      fixed: "right" as const,
       render: (_: any, r) =>
         r.hasReport ? (
           <div className="rh-actions">
@@ -542,7 +542,10 @@ export default function ReportsHub() {
         />
       ) : null}
       {/* ============================ SIDEBAR ============================ */}
-      <aside className="pp-sidebar">
+      {isMobileOpen && (
+        <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+      )}
+      <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
         <div className="pp-side-head">
           <div className="pp-side-logo"><FileDoneOutlined /></div>
           <div className="pp-side-head-text">
@@ -603,6 +606,9 @@ export default function ReportsHub() {
         {/* Project context header */}
         <div className="rh-main-head">
           <div className="rh-main-title-row">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <Menu size={20} />
+            </button>
             <h1 className="rh-main-title">{selectedProject?.label ?? "Select a project"}</h1>
             {selectedProject?.code ? <span className="rh-main-code">{selectedProject.code}</span> : null}
           </div>
@@ -623,7 +629,6 @@ export default function ReportsHub() {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
-            <span className="pp-kbd">⌘K</span>
           </div>
 
           <div className="pp-topbar-meta">
@@ -899,8 +904,8 @@ export default function ReportsHub() {
         .pp-trash .anticon { font-size: 15px; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100%; }
-        .pp-body { flex: 1 0 auto; }
+        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+        .pp-body { flex: 1 0 auto; min-width: 0; }
         .rh-main-head { padding: 6px 0 10px; }
         .rh-main-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .rh-main-title { font-size: 22px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-slate-900); line-height: 1.1; margin: 0; }
@@ -911,9 +916,9 @@ export default function ReportsHub() {
         }
         .rh-main-desc { margin: 6px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 820px; }
 
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -1095,9 +1100,41 @@ export default function ReportsHub() {
 
         @media (max-width: 700px) { .pp-grid { grid-template-columns: 1fr; } }
         @media (max-width: 1100px) { .pp-stats { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+
+        @media (max-width: 1024px) {
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
         }
       `}</style>
     </div>

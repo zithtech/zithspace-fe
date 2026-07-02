@@ -815,12 +815,17 @@ export default function ReportsPanel() {
           border: 1px dashed var(--border-slate-200); border-radius: 14px; background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
         }
         .prr-statbar {
-          display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;
         }
         .prr-stat {
-          flex: 1; min-width: 150px;
           border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px;
-          display: flex; flex-direction: column; gap: 4px;
+          display: flex; flex-direction: column; gap: 4px; min-width: 0;
+        }
+        @media (max-width: 640px) {
+          .prr-statbar { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+          .prr-statbar { grid-template-columns: 1fr; }
         }
         .prr-stat--points { border-color: #c7d2fe; background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 60%); }
         .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }

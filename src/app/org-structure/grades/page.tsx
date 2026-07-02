@@ -349,7 +349,6 @@ export default function GradesPage() {
             description="Define and manage organization grade levels and reporting tiers."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
               marginBottom: 8,
               position: 'sticky',
               top: 0,
@@ -539,6 +538,17 @@ export default function GradesPage() {
           onClose={() => setHistoryOpen(false)}
           module="OrgStructure"
         />
+        <style jsx global>{`
+          .orgx-shell .saas-header-container {
+            padding: 9.5px 32px !important;
+          }
+
+          @media (max-width: 1024px) {
+            .orgx-shell .saas-header-container {
+              padding: 9px 16px !important;
+            }
+          }
+        `}</style>
     </>
   );
 }

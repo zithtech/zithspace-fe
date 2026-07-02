@@ -32,6 +32,7 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
+  MenuOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
@@ -105,6 +106,7 @@ export default function ProjectTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
@@ -266,8 +268,9 @@ export default function ProjectTrashManagementPage() {
   ];
 
   return (
-    <div className="pm2-page">
+    <div className={`pm2-page ${isMobileOpen ? 'is-mobile-open' : ''}`}>
       <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        <div className="pm2-backdrop" onClick={() => setIsMobileOpen(false)} />
         <div
           className="pm2-sidebar-backdrop"
           onClick={() => setIsSidebarOpen(false)}
@@ -393,6 +396,14 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
+              <button 
+                type="button" 
+                className="pm2-mobile-toggle"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <MenuOutlined />
+              </button>
+
               <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
                 <button
                   type="button"
@@ -410,7 +421,6 @@ export default function ProjectTrashManagementPage() {
               </Tooltip>
 
               <Divider type="vertical" style={{ height: 24, margin: '0 12px 0 0', opacity: 0.5 }} className="pm2-sidebar-divider" />
-
               <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
                 <SearchOutlined className="pp-search-icon" />
                 <input

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LineChart } from 'lucide-react';
+import { LineChart, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +19,7 @@ export default function PerformanceReportLayout({ children }: { children: React.
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
     () => PR_NAV_ITEMS.filter((item) => canAccessPRItem(perms, item)),
@@ -38,14 +39,25 @@ export default function PerformanceReportLayout({ children }: { children: React.
     <ProtectedRoute>
       <MainLayout>
         <div className="pr-shell">
+          {/* ============================ MOBILE BACKDROP ============================ */}
+          {isMobileOpen && (
+            <div
+              className="pr-sidebar-backdrop"
+              onClick={() => setIsMobileOpen(false)}
+            />
+          )}
+
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="pr-sidebar">
+          <aside className={`pr-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="pr-side-head">
               <div className="pr-side-logo"><LineChart size={22} /></div>
               <div className="pr-side-head-text">
                 <div className="pr-side-title">Performance Report</div>
                 <div className="pr-side-subtitle">Scores · KPIs · monthly</div>
               </div>
+              <button className="pr-sidebar-close" onClick={() => setIsMobileOpen(false)}>
+                <X size={20} />
+              </button>
             </div>
 
             <div className="pr-side-scroll">
@@ -58,6 +70,7 @@ export default function PerformanceReportLayout({ children }: { children: React.
                       key={item.key}
                       href={item.href}
                       className={`pr-view-item ${active ? 'is-active' : ''}`}
+                      onClick={() => setIsMobileOpen(false)}
                     >
                       <span
                         className="pr-view-icon"
@@ -75,6 +88,15 @@ export default function PerformanceReportLayout({ children }: { children: React.
 
           {/* ============================ MAIN ============================ */}
           <main className="pr-main">
+            <div className="pr-mobile-header">
+              <button
+                className="pr-mobile-toggle"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <Menu size={20} />
+              </button>
+              <div className="pr-mobile-title">Performance Report</div>
+            </div>
             <div className="pr-content">{children}</div>
           </main>
         </div>
@@ -131,8 +153,96 @@ export default function PerformanceReportLayout({ children }: { children: React.
           .pr-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .pr-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .pr-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .pr-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+          .pr-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
+          .pr-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
+          
+          /* Stretch panel headers to the edges (overriding content padding) */
+          .pr-content > * > [class*="-header"] {
+            margin-left: -32px !important;
+            margin-right: -32px !important;
+            padding-left: 32px !important;
+            padding-right: 32px !important;
+          }
+
+          /* ---------------- Responsive Styles ---------------- */
+          .pr-sidebar-backdrop {
+            display: none;
+          }
+          .pr-sidebar-close {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto;
+          }
+          .pr-mobile-header {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0 10px 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .pr-mobile-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-slate-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+          }
+          .pr-mobile-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-slate-900);
+          }
+
+          @media (max-width: 1024px) {
+            .pr-sidebar {
+              position: fixed;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
+            }
+            .pr-sidebar.is-open {
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            }
+            .pr-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              z-index: 999;
+              backdrop-filter: blur(2px);
+            }
+            .pr-sidebar-close {
+              display: flex;
+            }
+            .pr-mobile-header {
+              display: flex;
+            }
+            .pr-main {
+              padding: 4px 0 0;
+            }
+            .pr-content {
+              padding: 4px 16px 0;
+            }
+            .pr-content > * > [class*="-header"] {
+              margin-left: -16px !important;
+              margin-right: -16px !important;
+              padding-left: 16px !important;
+              padding-right: 16px !important;
+            }
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

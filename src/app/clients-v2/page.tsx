@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import {
   Table,
   Button,
@@ -223,6 +223,7 @@ export default function ClientsV2ListPage() {
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [expandedLoading, setExpandedLoading] = useState<string | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Quick-filter dropdown state
   const [allClientsOpts, setAllClientsOpts] = useState<{ value: string; label: string; code?: string }[]>([]);
@@ -816,7 +817,10 @@ export default function ClientsV2ListPage() {
           <div className="bh2-shell-wrap">
             <div className="bh2-shell">
               {/* ── Sidebar ───────────────────────────────────────────── */}
-              <aside className="bh2-sidebar">
+              {isMobileOpen && (
+                <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+              )}
+              <aside className={`bh2-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
                 <div className="bh2-sidebar-top">
                   <div className="bh2-sidebar-brand">
                     <div className="bh2-hero-icon-box">
@@ -924,15 +928,20 @@ export default function ClientsV2ListPage() {
               <main className="bh2-main">
                 {/* Toolbar */}
                 <div className="bh2-toolbar">
-                  <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
-                    <SearchOutlined className="pp-search-icon" />
-                    <input
-                      className="pp-search"
-                      placeholder="Search by name or code…"
-                      value={searchText}
-                      onChange={(e) => handleSearch(e.target.value)}
-                    />
-                    {/* {!searchText && <span className="pp-kbd">⌘K</span>} */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 360 }}>
+                    <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+                      <MenuOutlined style={{ fontSize: 16 }} />
+                    </button>
+                    <div className="pp-search-wrap" style={{ flex: 1, minWidth: 0 }}>
+                      <SearchOutlined className="pp-search-icon" />
+                      <input
+                        className="pp-search"
+                        placeholder="Search by name or code…"
+                        value={searchText}
+                        onChange={(e) => handleSearch(e.target.value)}
+                      />
+                      {/* {!searchText && <span className="pp-kbd">⌘K</span>} */}
+                    </div>
                   </div>
 
                   <div className="bh2-main-stats">
@@ -4129,6 +4138,19 @@ export default function ClientsV2ListPage() {
             }
             [data-theme='dark'] .cm-delete-modal .ant-modal-header {
               border-bottom-color: var(--border-slate-800) !important;
+            }
+            .pp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+            .pp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+            @media (max-width: 1024px) {
+              .bh2-shell { grid-template-columns: minmax(0, 1fr); }
+              .bh2-sidebar { position: fixed; left: -280px; top: 54px; bottom: 0; height: calc(100vh - 54px); transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1); display: flex; }
+              .bh2-sidebar.is-open { left: 0; }
+              .pp-backdrop { display: block; }
+              .pp-mobile-toggle { display: flex; }
+              .pp-stats { grid-template-columns: repeat(2, 1fr) !important; }
+            }
+            @media (max-width: 600px) {
+              .pp-stats { grid-template-columns: 1fr !important; }
             }
           `}</style>
         </div>

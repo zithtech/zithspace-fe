@@ -433,7 +433,14 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
 
         @media (max-width: 1100px) { .omx-stats { grid-template-columns: repeat(2, 1fr); } .omx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 820px) { .omx-topbar-meta { display: none; } }
-        @media (max-width: 620px) { .omx-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 620px) {
+          .omx-grid { grid-template-columns: 1fr; }
+          .omx-stats { grid-template-columns: 1fr; }
+          .omx-topbar { flex-direction: column; align-items: stretch; }
+          .omx-search-wrap { max-width: none; flex: 1 1 auto; }
+          .omx-topbar-actions { justify-content: space-between; width: 100%; margin-left: 0; margin-top: 4px; }
+          .omx-footer { flex-direction: column; align-items: flex-start; margin: 24px -16px 0; padding: 12px 16px; }
+        }
       `}</style>
     </div>
   );

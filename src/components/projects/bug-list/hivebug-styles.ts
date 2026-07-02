@@ -4417,6 +4417,9 @@ thead .hb-col-actions {
   .hb-header {
     flex-wrap: wrap;
     align-items: flex-start;
+    height: auto;
+    min-height: 53px;
+    padding-bottom: 8px;
   }
   .hb-header-tools {
     display: flex;
@@ -4460,6 +4463,8 @@ thead .hb-col-actions {
   .hb-header {
     padding: 10px 12px;
     gap: 10px;
+    height: auto;
+    min-height: 53px;
   }
   .hb-bc-strong { font-size: 16px; }
   .hb-bc-soft { font-size: 13px; }
@@ -4536,7 +4541,7 @@ thead .hb-col-actions {
 @media (max-width: 480px) {
   .hb-root { padding: 6px; gap: 6px; }
   .hb-brand { padding: 14px 14px 12px 18px; }
-  .hb-header { padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
+  .hb-header { padding: 8px 10px; gap: 8px; flex-wrap: wrap; height: auto; min-height: 53px; }
   .hb-header-tools { width: 100%; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
   .hb-search { flex: 1 1 100%; width: 100%; }
   .hb-bc-strong { font-size: 15px; }

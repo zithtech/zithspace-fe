@@ -729,6 +729,12 @@ export default function ReportsPanel() {
         .prr-wrap *::before,
         .prr-wrap *::after { border-radius: 0 !important; }
         .prr-wrap .ant-avatar { border-radius: 50% !important; }
+        /* Rounded exceptions: date-range filter bar + module tab switcher */
+        .prr-wrap .prr-filters { border-radius: 14px !important; }
+        .prr-wrap .prr-filters .ant-picker { border-radius: 10px !important; }
+        .prr-wrap .prr-tabs { border-radius: 14px !important; }
+        .prr-wrap .prr-tab { border-radius: 10px !important; }
+        .prr-wrap .prr-tab-ic { border-radius: 8px !important; }
 
         .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .prr-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }
@@ -815,12 +821,17 @@ export default function ReportsPanel() {
           border: 1px dashed var(--border-slate-200); border-radius: 14px; background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
         }
         .prr-statbar {
-          display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;
         }
         .prr-stat {
-          flex: 1; min-width: 150px;
           border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px;
-          display: flex; flex-direction: column; gap: 4px;
+          display: flex; flex-direction: column; gap: 4px; min-width: 0;
+        }
+        @media (max-width: 640px) {
+          .prr-statbar { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+          .prr-statbar { grid-template-columns: 1fr; }
         }
         .prr-stat--points { border-color: #c7d2fe; background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 60%); }
         .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }

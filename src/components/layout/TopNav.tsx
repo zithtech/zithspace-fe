@@ -655,7 +655,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -676,7 +676,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -697,7 +697,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -719,7 +719,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -740,7 +740,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -761,7 +761,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -784,7 +784,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
                 open={shortcutPopoverVisible ? false : undefined}

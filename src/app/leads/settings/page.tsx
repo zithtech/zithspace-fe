@@ -42,7 +42,8 @@ import {
     Compass,
     Handshake,
     Megaphone,
-    Rocket
+    Rocket,
+    Menu
 } from "lucide-react";
 import {
     Typography,
@@ -537,6 +538,7 @@ export default function LeadSettingsPage() {
         }
     }, [user, isLoading, canManageLeads, router]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState<"1" | "2" | "3">("1");
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -1502,8 +1504,9 @@ export default function LeadSettingsPage() {
         <ProtectedRoute>
             <MainLayout>
                 <div className="pp-shell">
+                    {mobileSidebarOpen && <div className="pp-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
                     {/* ============================ SIDEBAR ============================ */}
-                    <aside className="pp-sidebar">
+                    <aside className={`pp-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
                         <div className="pp-side-head">
                             <div className="pp-side-logo"><Settings2 size={24} style={{ color: "var(--text-slate-900)" }} /></div>
                             <div className="pp-side-head-text">
@@ -1572,17 +1575,25 @@ export default function LeadSettingsPage() {
                     <main className="pp-main">
                         {/* Search / status / view toggle bar */}
                         <div className="pp-topbar">
-                            <div className="pp-search-wrap">
-                                <SearchOutlined className="pp-search-icon" />
-                                <input
-                                    className="pp-search"
-                                    placeholder={`Search ${activeLabel.toLowerCase()}…`}
-                                    value={searchText}
-                                    onChange={(e) => setSearchText(e.target.value)}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, maxWidth: 400, width: "100%" }}>
+                                <Button
+                                    className="pp-mobile-menu-btn"
+                                    type="text"
+                                    icon={<Menu size={18} />}
+                                    onClick={() => setMobileSidebarOpen(true)}
                                 />
-                                {searchText && (
-                                    <button type="button" className="lset-search-clear" onClick={() => setSearchText("")} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-slate-400)' }}>Clear</button>
-                                )}
+                                <div className="pp-search-wrap" style={{ flex: 1, margin: 0, maxWidth: 'none' }}>
+                                    <SearchOutlined className="pp-search-icon" />
+                                    <input
+                                        className="pp-search"
+                                        placeholder={`Search ${activeLabel.toLowerCase()}…`}
+                                        value={searchText}
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                    />
+                                    {searchText && (
+                                        <button type="button" className="lset-search-clear" onClick={() => setSearchText("")} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-slate-400)' }}>Clear</button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="pp-topbar-meta">
@@ -3092,15 +3103,35 @@ export default function LeadSettingsPage() {
           .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
           .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
 
+          .pp-mobile-menu-btn { display: none !important; }
+
           @media (max-width: 700px) {
             .pp-grid { grid-template-columns: 1fr; }
+            .pp-stats { grid-template-columns: 1fr !important; }
           }
           @media (max-width: 1100px) {
             .pp-stats { grid-template-columns: repeat(2, 1fr); }
           }
           @media (max-width: 820px) {
-            .pp-sidebar { display: none; }
+            .pp-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+            .pp-main { height: auto; overflow: visible; }
+            .pp-body { overflow: visible; }
+            .pp-sidebar {
+              position: fixed; top: 0; left: -320px; bottom: 0; z-index: 1100;
+              height: 100%; max-height: none; display: flex; flex-direction: column;
+              align-items: stretch; background: var(--bg-pure-white); width: 280px;
+              box-sizing: border-box; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 4px 0 24px rgba(0,0,0,0.08); display: flex !important;
+            }
+            .pp-sidebar.is-open { left: 0; }
+            .pp-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .pp-topbar-actions { width: 100%; justify-content: flex-start; }
             .pp-topbar-meta { display: none; }
+            .pp-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+            .pp-mobile-overlay {
+              position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            }
           }
 
           /* Dark Mode Refinements */

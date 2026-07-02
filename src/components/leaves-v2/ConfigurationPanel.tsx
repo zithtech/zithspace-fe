@@ -287,9 +287,9 @@ export default function ConfigurationPanel() {
 
       <style jsx global>{`
         .lvc { display: flex; flex-direction: column; }
-        .lvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); }
-        .lvc-header-about { display: flex; align-items: center; gap: 12px; }
-        .lvc-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.grey}; color: ${PALETTE.grey}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvc-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lvc-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.grey}; color: ${PALETTE.grey}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvc-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvc-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .lvc-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
@@ -321,7 +321,16 @@ export default function ConfigurationPanel() {
         .lvc-table .ant-table { font-size: 12px; }
         .lvc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important; }
         .lvc-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 7px 12px !important; }
-        @media (max-width: 900px) { .lvc-result-grid { grid-template-columns: 1fr; } .lvc-result-stats { grid-template-columns: repeat(2, 1fr); } }
+
+        @media (max-width: 1024px) {
+          .lvc-result-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 900px) {
+          .lvc-result-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+          .lvc-result-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

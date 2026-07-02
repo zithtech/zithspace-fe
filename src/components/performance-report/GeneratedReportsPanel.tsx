@@ -394,7 +394,7 @@ export default function GeneratedReportsPanel() {
   return (
     <div className="gr-wrap">
       {/* 1. Title */}
-      <div className="gr-head">
+      <div className="gr-header">
         <div className="gr-titlerow">
           <h2 className="gr-title">Generated Reports</h2>
           <Divider type="vertical" className="gr-hdivider" />
@@ -404,7 +404,6 @@ export default function GeneratedReportsPanel() {
 
       {/* 2. Count + search + generate */}
       <div className="gr-bar">
-        <span className="gr-bar-info">{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
         <div className="gr-bar-actions">
           <Input
             allowClear
@@ -556,6 +555,7 @@ export default function GeneratedReportsPanel() {
 
       {/* 4. Fixed bottom pagination */}
       <div className="gr-footer">
+        <span className="gr-bar-info" style={{ marginRight: 'auto' }}>{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
         <Pagination current={page} pageSize={PAGE_SIZE} total={total} showSizeChanger={false} onChange={setPage} />
       </div>
 
@@ -673,15 +673,18 @@ export default function GeneratedReportsPanel() {
         /* Box-shaped: square every corner on the page (avatars stay round). */
         .gr-wrap *, .gr-wrap *::before, .gr-wrap *::after { border-radius: 0 !important; }
         .gr-wrap .ant-avatar { border-radius: 50% !important; }
-        .gr-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-        .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .gr-header {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+        }
+        .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
         .gr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; white-space: nowrap; }
         .gr-hdivider { height: 20px; border-color: #cbd5e1; margin: 0; }
-        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; }
+        .gr-bar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
         .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
-        .gr-bar-actions { display: flex; align-items: center; gap: 10px; }
-        .gr-search { width: 320px; border-radius: 10px; }
+        .gr-bar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
+        .gr-search { width: 100%; max-width: 320px; border-radius: 10px; flex: 1; min-width: 200px; }
         .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); margin-bottom: 16px; }
         .gr-filters-label {
           display: inline-flex; align-items: center; gap: 7px;

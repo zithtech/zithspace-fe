@@ -30,6 +30,7 @@ import {
   CloseCircleOutlined,
   StopOutlined,
   EditOutlined,
+  RollbackOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -54,13 +55,14 @@ const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
   { value: 'second_half', label: 'Second half' },
 ];
 
-type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled';
+type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'withdrawn';
 
 const STATUS_TAG: Record<string, { color: string; label: string }> = {
   pending: { color: 'blue', label: 'Pending' },
   approved: { color: 'green', label: 'Approved' },
   rejected: { color: 'red', label: 'Rejected' },
   cancelled: { color: 'default', label: 'Cancelled' },
+  withdrawn: { color: 'orange', label: 'Withdrawn' },
 };
 
 // Working-day units (mirrors the server): excludes weekends AND holidays.
@@ -106,6 +108,14 @@ export default function ApplyLeavePanel() {
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [portion, setPortion] = useState<DayPortion>('full');
   const [reason, setReason] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null); // server-side reject shown inline in the drawer
+
+  // withdrawal drawer (release unused days of a multi-day approved leave)
+  const [wOpen, setWOpen] = useState(false);
+  const [wSaving, setWSaving] = useState(false);
+  const [wRequest, setWRequest] = useState<LeaveRequest | null>(null);
+  const [wRange, setWRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [wReason, setWReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,7 +125,7 @@ export default function ApplyLeavePanel() {
       setRequests(r);
       setHolidaySet(new Set(h));
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to load leave data');
+      message.error(err?.response?.data?.error || err?.message ||'Failed to load leave data');
     } finally {
       setLoading(false);
     }
@@ -124,6 +134,9 @@ export default function ApplyLeavePanel() {
   useEffect(() => {
     if (canReadLeave) load();
   }, [canReadLeave, load]);
+
+  // A server rejection (e.g. overlap) is stale once the type/dates change.
+  useEffect(() => { setSubmitError(null); }, [leaveTypeId, range, portion]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -195,6 +208,7 @@ export default function ApplyLeavePanel() {
     setRange(null);
     setPortion('full');
     setReason('');
+    setSubmitError(null);
     setOpen(true);
   };
 
@@ -204,6 +218,7 @@ export default function ApplyLeavePanel() {
     setRange([dayjs(r.fromDate), dayjs(r.toDate)]);
     setPortion(r.dayPortion);
     setReason(r.reason || '');
+    setSubmitError(null);
     setOpen(true);
   };
 
@@ -212,6 +227,7 @@ export default function ApplyLeavePanel() {
     if (!from || !to) return message.error('Pick the leave dates');
     if (units <= 0) return message.error('The selected range has no working days');
     setSaving(true);
+    setSubmitError(null);
     try {
       const payload: ApplyLeaveInput = {
         leaveTypeId,
@@ -230,7 +246,9 @@ export default function ApplyLeavePanel() {
       setOpen(false);
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || (editingRequest ? 'Failed to update leave' : 'Failed to submit leave'));
+      const msg = err?.response?.data?.error || err?.message || (editingRequest ? 'Failed to update leave' : 'Failed to submit leave');
+      setSubmitError(msg);
+      message.error(msg);
     } finally {
       setSaving(false);
     }
@@ -242,11 +260,106 @@ export default function ApplyLeavePanel() {
       message.success('Request cancelled');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to cancel');
+      message.error(err?.response?.data?.error || err?.message ||'Failed to cancel');
+    }
+  };
+
+  // ── Withdrawal (release unused days of an approved leave) ─────────────────────
+  // A single-day leave has nothing to split → a plain confirm releases it whole.
+  const isSingleDayReq = (r: LeaveRequest) => r.fromDate === r.toDate;
+
+  const openWithdraw = (r: LeaveRequest) => {
+    setWRequest(r);
+    setWRange(null);
+    setWReason('');
+    setWOpen(true);
+  };
+
+  // The employee picks the FIRST unused day; everything from there to the leave's
+  // end is released (a tail). So the effective withdraw range is [start, toDate].
+  const wStart = wRange?.[0] ?? null;
+
+  // Mirrors the server plan: release LOP days first (no balance impact), so only
+  // released PAID days are credited back to the balance.
+  const wPlan = useMemo(() => {
+    if (!wRequest || !wStart) return null;
+    const from = dayjs(wRequest.fromDate);
+    const to = dayjs(wRequest.toDate);
+    // Days actually kept = [from, dayBeforeStart]; 0 if withdrawing from day one.
+    const keptEnd = wStart.subtract(1, 'day');
+    const fullRelease = keptEnd.isBefore(from, 'day');
+    const actualUnits = fullRelease ? 0 : computeUnits(from, keptEnd, 'full', holidaySet);
+    const releasedTotal = Number((wRequest.totalUnits - actualUnits).toFixed(2));
+    const releasedLop = Math.min(Math.max(releasedTotal, 0), wRequest.lopUnits);
+    const releasedPaid = Number((Math.max(releasedTotal, 0) - releasedLop).toFixed(2));
+    return { fullRelease, actualUnits, releasedTotal, releasedLop, releasedPaid, withdrawFrom: wStart, withdrawTo: to };
+  }, [wRequest, wStart, holidaySet]);
+
+  const wBlockReason: string | null =
+    !wRequest
+      ? null
+      : !wStart
+      ? 'Select the days you want to withdraw'
+      : !wPlan || wPlan.releasedTotal <= 0
+      ? 'These dates release no leave days'
+      : null;
+
+  // Submit a withdrawal request. `full` = release the whole leave (single-day or
+  // withdrawing from day one); otherwise shorten to keep everything before wStart.
+  const submitWithdraw = async (r: LeaveRequest, full: boolean) => {
+    setWSaving(true);
+    try {
+      const payload =
+        full || !wStart
+          ? { releaseAll: true, reason: wReason.trim() || null }
+          : { newToDate: wStart.subtract(1, 'day').format('YYYY-MM-DD'), reason: wReason.trim() || null };
+      await LeaveV2Service.withdrawRequest(r.id, payload);
+      message.success('Withdrawal request sent to your manager');
+      setWOpen(false);
+      await load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || err?.message ||'Failed to submit withdrawal');
+    } finally {
+      setWSaving(false);
     }
   };
 
   const fmt = (d: string) => dayjs(d).format('MMM D, YYYY');
+
+  const WITHDRAWAL_LABEL: Record<string, string> = { requested: 'Awaiting manager', confirmed: 'Confirmed', declined: 'Declined' };
+
+  // Detail fields that don't fit the compact row live in the expandable child row.
+  const expandedRow = (r: LeaveRequest) => (
+    <div className="lva-detail">
+      <div className="lva-detail-item">
+        <span className="lva-detail-label">Paid / LOP</span>
+        <span>
+          <Tag color="green">{r.paidUnits} paid</Tag>
+          {r.lopUnits > 0 && <Tag color="red">{r.lopUnits} LOP</Tag>}
+        </span>
+      </div>
+      {typeof r.actualUnits === 'number' && (
+        <div className="lva-detail-item">
+          <span className="lva-detail-label">Actually taken</span>
+          <span style={{ fontSize: 12.5, color: 'var(--text-slate-700)', fontWeight: 600 }}>{r.actualUnits} day(s)</span>
+        </div>
+      )}
+      {r.withdrawalStatus && (
+        <div className="lva-detail-item">
+          <span className="lva-detail-label">Withdrawal</span>
+          <span style={{ fontSize: 12.5, color: 'var(--text-slate-600)' }}>
+            {WITHDRAWAL_LABEL[r.withdrawalStatus] ?? r.withdrawalStatus}
+            {r.withdrawalRequestedUnits != null && ` · ${r.withdrawalRequestedUnits} day(s)`}
+            {r.withdrawalNewToDate ? ` · shorten to ${fmt(r.withdrawalNewToDate)}` : ''}
+          </span>
+        </div>
+      )}
+      <div className="lva-detail-item" style={{ flex: 1 }}>
+        <span className="lva-detail-label">Reason</span>
+        <span style={{ fontSize: 12.5, color: r.reason ? 'var(--text-slate-600)' : 'var(--text-slate-400)' }}>{r.reason || 'No reason provided'}</span>
+      </div>
+    </div>
+  );
 
   const columns: ColumnsType<LeaveRequest> = [
     {
@@ -271,16 +384,19 @@ export default function ApplyLeavePanel() {
     },
     { title: 'Days', dataIndex: 'totalUnits', key: 'days', render: (v) => <strong>{v}</strong> },
     {
-      title: 'Paid / LOP',
-      key: 'split',
+      title: 'Status',
+      key: 'status',
       render: (_, r) => (
-        <span>
-          <Tag color="green">{r.paidUnits} paid</Tag>
-          {r.lopUnits > 0 && <Tag color="red">{r.lopUnits} LOP</Tag>}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Tag color={STATUS_TAG[r.status]?.color}>{STATUS_TAG[r.status]?.label ?? r.status}</Tag>
+          {r.withdrawalStatus === 'requested' && (
+            <Tooltip title={`Withdrawal of ${r.withdrawalRequestedUnits ?? ''} day(s) awaiting your manager`}>
+              <Tag color="orange" style={{ marginInlineEnd: 0 }}>Withdrawal pending</Tag>
+            </Tooltip>
+          )}
         </span>
       ),
     },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (v) => <Tag color={STATUS_TAG[v]?.color}>{STATUS_TAG[v]?.label ?? v}</Tag> },
     { title: 'Applied', dataIndex: 'createdAt', key: 'createdAt', render: (v) => <span style={{ color: 'var(--text-slate-500)' }}>{fmt(v)}</span> },
     {
       title: '',
@@ -308,6 +424,25 @@ export default function ApplyLeavePanel() {
               <Tooltip title="Cancel"><Button type="text" size="small" danger icon={<StopOutlined />} /></Tooltip>
             </ConfirmDialog>
           </Space>
+        ) : r.status === 'approved' && (!r.withdrawalStatus || r.withdrawalStatus === 'declined') ? (
+          isSingleDayReq(r) ? (
+            <ConfirmDialog
+              tone="primary"
+              icon={<RollbackOutlined />}
+              title="Withdraw this leave?"
+              description={`Your ${r.leaveTypeName} on ${fmt(r.fromDate)} will be released for your manager to confirm.`}
+              confirmText="Request withdrawal"
+              cancelText="Keep"
+              placement="bottomRight"
+              onConfirm={() => submitWithdraw(r, true)}
+            >
+              <Tooltip title="Withdraw leave"><Button type="text" size="small" icon={<RollbackOutlined />} style={{ color: PALETTE.blue }} /></Tooltip>
+            </ConfirmDialog>
+          ) : (
+            <Tooltip title="Withdraw / release unused days">
+              <Button type="text" size="small" icon={<RollbackOutlined />} style={{ color: PALETTE.blue }} onClick={() => openWithdraw(r)} />
+            </Tooltip>
+          )
         ) : null,
     },
   ];
@@ -381,6 +516,7 @@ export default function ApplyLeavePanel() {
             { value: 'approved', label: 'Approved' },
             { value: 'rejected', label: 'Rejected' },
             { value: 'cancelled', label: 'Cancelled' },
+            { value: 'withdrawn', label: 'Withdrawn' },
           ]}
           style={{ width: 160 }}
           width={210}
@@ -391,7 +527,17 @@ export default function ApplyLeavePanel() {
 
       {/* TABLE */}
       <div className="lva-table-wrap">
-        <Table rowKey="id" size="small" className="lva-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lva-row' })} />
+        <Table
+          rowKey="id"
+          size="small"
+          className="lva-table"
+          loading={loading}
+          columns={columns}
+          dataSource={paged}
+          pagination={false}
+          expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
+          onRow={() => ({ className: 'lva-row' })}
+        />
       </div>
 
       {total > 0 && (
@@ -433,6 +579,12 @@ export default function ApplyLeavePanel() {
           </div>
 
           <div className="lva-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
+            {submitError && (
+              <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: TINT.red, border: `1px solid ${PALETTE.red}44`, color: '#991b1b', padding: '10px 12px', marginBottom: 12, borderRadius: 6, fontSize: 12.5, lineHeight: 1.4 }}>
+                <WarningOutlined style={{ color: PALETTE.red, marginTop: 1, flexShrink: 0 }} />
+                <span>{submitError}</span>
+              </div>
+            )}
             <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', padding: '12px 22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                 <div style={{ width: 32, height: 32, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><InfoCircleOutlined /></div>
@@ -515,8 +667,8 @@ export default function ApplyLeavePanel() {
           </div>
 
           <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0 }}>
-            <span style={{ fontSize: 11.5, color: blockReason ? PALETTE.red : 'var(--text-slate-400)' }}>
-              {blockReason ? blockReason : lop > 0 ? `${lop} day(s) will be Loss of Pay` : 'Within your balance'}
+            <span style={{ fontSize: 11.5, color: (submitError || blockReason) ? PALETTE.red : 'var(--text-slate-400)' }}>
+              {submitError ? submitError : blockReason ? blockReason : lop > 0 ? `${lop} day(s) will be Loss of Pay` : 'Within your balance'}
             </span>
             <Space size={10}>
               <Button onClick={() => setOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
@@ -528,14 +680,113 @@ export default function ApplyLeavePanel() {
         </div>
       </Drawer>
 
+      {/* WITHDRAWAL DRAWER */}
+      <Drawer
+        title={null}
+        open={wOpen}
+        onClose={() => setWOpen(false)}
+        width={480}
+        closable={false}
+        destroyOnClose
+        styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' }, mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' } }}
+      >
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                <RollbackOutlined />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>Withdraw Leave</div>
+                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
+                  {wRequest ? `${wRequest.leaveTypeName} · ${fmt(wRequest.fromDate)}${wRequest.toDate !== wRequest.fromDate ? ` → ${fmt(wRequest.toDate)}` : ''}` : ''}
+                </div>
+              </div>
+            </div>
+            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setWOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
+          </div>
+
+          <div className="lva-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
+            <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', padding: '12px 22px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ width: 32, height: 32, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><InfoCircleOutlined /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)' }}>Days to withdraw</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)' }}>Pick the unused days — released through the end of the leave</div>
+                </div>
+              </div>
+
+              <Row gutter={16}>
+                <Col span={24} style={{ marginBottom: 14 }}>
+                  <span className="lva-label">
+                    Days to withdraw
+                    {wRequest && <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}> · leave is {fmt(wRequest.fromDate)} → {fmt(wRequest.toDate)}</span>}
+                  </span>
+                  <div style={{ marginTop: 6 }}>
+                    <RangePicker
+                      style={{ width: '100%' }}
+                      value={wRange as any}
+                      onChange={(v) => setWRange(v as [Dayjs | null, Dayjs | null] | null)}
+                      format="MMM D, YYYY"
+                      allowEmpty={[false, true]}
+                      placeholder={['First day to withdraw', 'End of leave']}
+                      disabledDate={(d) => {
+                        if (!wRequest) return true;
+                        // Only within the leave. Picking day one releases the whole leave.
+                        return d.isBefore(dayjs(wRequest.fromDate), 'day') || d.isAfter(dayjs(wRequest.toDate), 'day');
+                      }}
+                    />
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <span className="lva-label">Reason</span>
+                  <TextArea rows={2} style={{ marginTop: 6 }} value={wReason} maxLength={500} placeholder="Optional note for your manager" onChange={(e) => setWReason(e.target.value)} />
+                </Col>
+              </Row>
+            </div>
+
+            {wRequest && wPlan && wPlan.releasedTotal > 0 && (
+              <div className="lva-preview">
+                <div className="lva-preview-row" style={{ fontSize: 13.5 }}>
+                  <span style={{ color: PALETTE.blue, fontWeight: 600 }}>
+                    <InfoCircleOutlined /> {fmt(wPlan.withdrawFrom.format('YYYY-MM-DD'))} → {fmt(wPlan.withdrawTo.format('YYYY-MM-DD'))}
+                  </span>
+                  <strong style={{ color: PALETTE.blue }}>Total {wPlan.releasedTotal} day(s)</strong>
+                </div>
+                <div className="lva-preview-row"><span>You are going to withdraw these days.</span><span /></div>
+                <div className="lva-preview-row lva-preview-lop" style={{ borderTopStyle: 'dashed' }}>
+                  <span style={{ color: PALETTE.green }}><WalletOutlined /> Credited back to balance</span>
+                  <strong style={{ color: PALETTE.green }}>{wPlan.releasedPaid}</strong>
+                </div>
+                {wPlan.releasedLop > 0 && (
+                  <div className="lva-preview-row"><span style={{ color: 'var(--text-slate-400)' }}>Loss-of-Pay days removed (no balance impact)</span><strong style={{ color: 'var(--text-slate-400)' }}>{wPlan.releasedLop}</strong></div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0 }}>
+            <span style={{ fontSize: 11.5, color: wBlockReason ? PALETTE.red : 'var(--text-slate-400)' }}>
+              {wBlockReason ? wBlockReason : 'Sent to your manager for confirmation'}
+            </span>
+            <Space size={10}>
+              <Button onClick={() => setWOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
+              <Button type="primary" loading={wSaving} disabled={!!wBlockReason} icon={<RollbackOutlined />} onClick={() => wRequest && submitWithdraw(wRequest, false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
+                Request Withdrawal
+              </Button>
+            </Space>
+          </div>
+        </div>
+      </Drawer>
+
       <style jsx global>{`
         .lva { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .lva-header-about { display: flex; align-items: center; gap: 12px; }
-        .lva-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lva-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .lva-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lva-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lva-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lva-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lva-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lva-search-wrap { display: flex; align-items: center; height: 34px; width: 220px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lva-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .lva-search-icon { color: var(--text-slate-400); font-size: 14px; }
@@ -567,6 +818,10 @@ export default function ApplyLeavePanel() {
         .lva-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .lva-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lva-table .ant-table-tbody > tr.lva-row:hover > td { background: var(--bg-slate-50) !important; }
+        .lva-table .ant-table-expanded-row > td { background: var(--bg-slate-50) !important; padding: 0 !important; }
+        .lva-detail { display: flex; flex-wrap: wrap; gap: 10px 40px; padding: 12px 16px 12px 46px; }
+        .lva-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+        .lva-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
         .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
         .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
@@ -585,6 +840,13 @@ export default function ApplyLeavePanel() {
         .lva-preview-row strong { font-size: 15px; color: var(--text-slate-900); }
         .lva-preview-lop { border-top: 1px dashed var(--border-slate-200); padding-top: 8px; }
         .lva-preview-lop span { color: ${PALETTE.red}; display: inline-flex; align-items: center; gap: 6px; }
+
+        @media (max-width: 1024px) {
+          .lva-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lva-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

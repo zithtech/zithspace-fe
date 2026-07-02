@@ -1385,9 +1385,9 @@ export default function ManageAttendancePanel() {
         /* 1) Header */
         .att-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap;
         }
-        .att-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .att-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .att-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -1395,7 +1395,7 @@ export default function ManageAttendancePanel() {
         }
         .att-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .att-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .att-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .att-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; max-width: 100%; }
         .att-search-wrap {
           position: relative; display: flex; align-items: center; height: 34px; width: 240px;
           border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px;
@@ -1506,6 +1506,13 @@ export default function ManageAttendancePanel() {
         }
         .att-drawer-form .att-dd-flat.sd-trigger { display: flex; align-items: center; }
         .att-tp-popup .ant-picker-footer { display: none !important; }
+
+        @media (max-width: 1024px) {
+          .att-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .att-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

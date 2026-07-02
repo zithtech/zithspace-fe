@@ -605,13 +605,7 @@ export default function ProfilePage() {
                 requiredMark={false}
               >
                 <SectionLabel hint="Editable by you">Personal Information</SectionLabel>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "8px 16px",
-                  }}
-                >
+                <div className="pp-info-grid">
                   <Form.Item
                     name="name"
                     label="Full name"
@@ -660,13 +654,7 @@ export default function ProfilePage() {
                   Work Information
                 </SectionLabel>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "8px 16px",
-                  }}
-                >
+                <div className="pp-info-grid">
                   <div className="pp-readonly-field">
                     <span className="pp-readonly-label">Work email</span>
                     <span className="pp-readonly-value">
@@ -1262,12 +1250,18 @@ export default function ProfilePage() {
           .ant-slider-handle::after {
             box-shadow: 0 0 0 2px #8b5cf6 !important;
           }
+          .pp-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+          }
           @media (max-width: 900px) {
             .pp-identity-inner { padding: 22px; }
             .pp-completion { width: 100%; }
             .pp-content-card > div[style*="grid-template-columns: 1.4fr 1fr"] {
               grid-template-columns: 1fr !important;
             }
+            .pp-info-grid { grid-template-columns: 1fr; }
           }
         `}</style>
       </div>

@@ -113,7 +113,7 @@ export default function ViewDailyUpdatesPage() {
 
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
+  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog, canReadDailyUpdate } = usePermission();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -217,9 +217,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const pageStart = totalCards === 0 ? 0 : (cardPage - 1) * cardPageSize + 1;
   const pageEnd = Math.min(cardPage * cardPageSize, totalCards);
   const currentCardUpdates = updates.slice((cardPage - 1) * cardPageSize, cardPage * cardPageSize);
-
-  const canViewTeam = canManageDailyUpdateTime || user?.position === "Project Manager";
-
+  const canViewTeam = canReadDailyUpdate;
   useEffect(() => {
     fetchProjects();
     fetchUpdates();
@@ -776,7 +774,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             </div>
           </div>
 
-          {canViewTeam && (
+          {canManageDailyUpdateTime && (
             <Button type="primary" icon={<Clock size={16} />} className="du-side-create" onClick={() => setManageTimeOpen(true)} block>
               Manage Time
             </Button>

@@ -825,7 +825,8 @@ export default function ReportsHub() {
         .pp-shell {
           display: flex;
           margin: 0 -8px;
-          min-height: calc(100vh - 64px);
+          height: 100%;
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
 
@@ -838,9 +839,10 @@ export default function ReportsHub() {
           display: flex;
           flex-direction: column;
           padding: 14px 14px 0;
-          position: sticky;
-          top: 0;
-          height: calc(100vh - 54px);
+          position: relative;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         .pp-side-head {
           display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;

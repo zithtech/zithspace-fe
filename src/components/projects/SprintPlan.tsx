@@ -5036,6 +5036,7 @@ export default function SprintPlanComponent() {
           background: #f8fafc;
           display: flex;
           flex-direction: column;
+          grid-column: 2;
         }
         [data-theme='dark'] .sp-main {
           background: transparent !important;
@@ -5043,10 +5044,12 @@ export default function SprintPlanComponent() {
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
         .sp-sidebar {
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200) !important;
-          position: sticky;
-          top: 0;
+          position: fixed;
+          top: 54px;
+          bottom: 0;
           height: calc(100vh - 54px);
           display: flex;
           flex-direction: column;

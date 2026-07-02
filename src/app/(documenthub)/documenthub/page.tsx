@@ -466,7 +466,7 @@ const ColumnTitle: React.FC<{
 };
 
 // Inline preview shown when a row is expanded. Lists top-level tree nodes (#B).
-const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string) => void }> = ({ hub, onOpen }) => {
+const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string, nodeId?: string) => void }> = ({ hub, onOpen }) => {
   const tops = (hub.treeNodes || [])
     .filter((n) => !n.parentId)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -519,7 +519,7 @@ const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string) => voi
                 <button
                   key={node.id}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onOpen(hub.id); }}
+                  onClick={(e) => { e.stopPropagation(); onOpen(hub.id, node.id); }}
                   className="dh-preview-chip inline-flex items-center gap-1.5"
                   style={{
                     padding: '4px 10px',
@@ -933,9 +933,13 @@ const DocumentHubPage = () => {
     });
   };
 
-  const openHub = (id: string) => {
+  const openHub = (id: string, nodeId?: string) => {
     trackRecent(id);
-    router.push(`/documenthub/${id}`);
+    if (nodeId) {
+      router.push(`/documenthub/${id}?nodeId=${nodeId}`);
+    } else {
+      router.push(`/documenthub/${id}`);
+    }
   };
 
   const updateHub = async (id: string, data: any) => {

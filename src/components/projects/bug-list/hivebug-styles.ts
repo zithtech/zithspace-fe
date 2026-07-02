@@ -22,7 +22,7 @@ export const hivebugStyles = `
   --hb-accent-rgb: 59, 130, 246;
 
   display: flex;
-  height: calc(100vh - 54px);
+  height: 100%;
   background: var(--hb-bg);
   color: var(--hb-text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
@@ -30,8 +30,7 @@ export const hivebugStyles = `
   letter-spacing: -0.01em;
   padding-left: 0;
   gap: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   width: 100%;
   max-width: 100vw;
   min-width: 0;
@@ -638,7 +637,8 @@ export const hivebugStyles = `
 .hb-main {
   flex: 1;
   display: flex; flex-direction: column;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
   max-width: 100%;
   background: var(--hb-bg);
@@ -4455,8 +4455,10 @@ thead .hb-col-actions {
     padding-left: 0;
     padding: 8px;
     gap: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
-  .hb-main { flex: 1 1 auto; overflow: visible; }
+  .hb-main { flex: 1 1 auto; }
   .hb-content { overflow: hidden; padding: 8px 10px 12px; }
   .hb-header {
     padding: 10px 12px;

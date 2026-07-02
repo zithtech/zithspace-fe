@@ -131,18 +131,28 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRemove }: any) => {
   const form = Form.useFormInstance();
+  const currentValue = Form.useWatch(name, form);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [uploadDate, setUploadDate] = useState<string>("");
 
   useEffect(() => {
-    const currentValue = form.getFieldValue(name);
-    if (currentValue && currentValue.base64) {
-      setFileUrl(currentValue.base64);
-      setFileName(currentValue.fileName || "");
-      setUploadDate(dayjs().format("MMM DD, YYYY"));
+    if (currentValue) {
+      if (currentValue.base64) {
+        setFileUrl(currentValue.base64);
+        setFileName(currentValue.fileName || "");
+        setUploadDate(dayjs().format("MMM DD, YYYY"));
+      } else if (currentValue.url) {
+        setFileUrl(currentValue.url);
+        setFileName(currentValue.fileName || currentValue.url.split("/").pop() || "Document");
+        setUploadDate(dayjs().format("MMM DD, YYYY"));
+      } else if (typeof currentValue === 'string' && currentValue.startsWith('http')) {
+        setFileUrl(currentValue);
+        setFileName(currentValue.split("/").pop() || "Document");
+        setUploadDate(dayjs().format("MMM DD, YYYY"));
+      }
     }
-  }, [form, name]);
+  }, [currentValue]);
 
   const handleFileSelect = async (file: File) => {
     if (file.size > MAX_SIZE) {
@@ -276,7 +286,7 @@ const AdditionalDocItem = ({ field, companyIndex, adIdx, remove, form }: any) =>
   const docLabel = Form.useWatch(["previousCompanies", companyIndex, "additionalDocuments", field.name, "docLabel"], form);
 
   return (
-    <Col span={8} key={field.key}>
+    <Col xs={24} md={8} key={field.key}>
       <div style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-slate-100)",
@@ -324,9 +334,9 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
   return (
     <div style={{ background: "transparent", padding: "16px 40px", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "12px" }}>
       <Row gutter={16}>
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <CustomSelectField
-            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactRole"]}
+            name={[contactIndex, "contactRole"]}
             label="Contact Person Type"
             rules={[{ required: false }]}
             placeholder="Select role"
@@ -337,11 +347,16 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             <Select.Option value="reportingManager">Reporting Manager</Select.Option>
           </CustomSelectField>
         </Col>
-        <Col span={12}>
+        <Col xs={24} md={12}>
           <CustomInputField
             label={`${label} Name`}
-            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactName"]}
+            name={[contactIndex, "contactName"]}
             placeholder="Enter name"
+            rules={[
+              { required: true, message: 'Contact name is required' },
+              { min: 3, message: 'Name must be at least 3 characters' },
+              { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+            ]}
             onKeyDown={(e: any) => {
               if (e.key.length > 1) return;
               if (!/^[A-Za-z\s-]$/.test(e.key)) {
@@ -350,17 +365,17 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             }}
           />
         </Col>
-        <Col span={12}>
+        <Col xs={24} md={12}>
           <CustomInputField
             label={`${label} Email`}
-            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactEmail"]}
+            name={[contactIndex, "contactEmail"]}
             placeholder="Enter email"
           />
         </Col>
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <CustomInputField
             label={`${label} Contact Number`}
-            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactNumber"]}
+            name={[contactIndex, "contactNumber"]}
             placeholder="Enter phone number"
             maxLength={10}
             onKeyPress={(e: any) => {
@@ -405,21 +420,29 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
       </div>
 
       <Row gutter={24}>
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <div style={{ marginBottom: "24px" }}>
             <SectionHeader icon={Building2} title="Company Details" subtitle="Information about your previous employer" />
             <Row gutter={16}>
-              <Col span={6}>
-                <CustomInputField name={["previousCompanies", index, "companyName"]} label="Previous Company" placeholder="e.g. Google India" />
+              <Col xs={24} md={6}>
+                <CustomInputField
+                  name={[index, "companyName"]}
+                  label="Previous Company"
+                  placeholder="e.g. Google India"
+                  rules={[{ pattern: /^[A-Za-z0-9\s.,&-]+$/, message: "Invalid characters" }]}
+                  onKeyPress={(e: any) => {
+                    if (!/^[A-Za-z0-9\s.,&-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                  }}
+                />
               </Col>
-              <Col span={6}>
-                <CustomInputField name={["previousCompanies", index, "location"]} label="Location" placeholder="e.g. Bangalore, India" />
+              <Col xs={24} md={6}>
+                <CustomInputField name={[index, "location"]} label="Location" placeholder="e.g. Bangalore, India" />
               </Col>
-              <Col span={6}>
-                <CustomInputField name={["previousCompanies", index, "industry"]} label="Industry / Domain" placeholder="e.g. Fintech" />
+              <Col xs={24} md={6}>
+                <CustomInputField name={[index, "industry"]} label="Industry / Domain" placeholder="e.g. Fintech" />
               </Col>
-              <Col span={6}>
-                <CustomInputField name={["previousCompanies", index, "address"]} label="Company Address" placeholder="Full address" />
+              <Col xs={24} md={6}>
+                <CustomInputField name={[index, "address"]} label="Company Address" placeholder="Full address" />
               </Col>
             </Row>
           </div>
@@ -427,27 +450,27 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
           <div style={{ marginBottom: "24px" }}>
             <SectionHeader icon={Calendar} title="Tenure Details" subtitle="Duration and role at the company" />
             <Row gutter={16}>
-              <Col span={6}>
+              <Col xs={24} md={6}>
                 <Form.Item
-                  name={["previousCompanies", index, "doj"]}
+                  name={[index, "doj"]}
                   label={<span style={labelStyle}>Date of Joining</span>}
                 >
                   <DatePicker style={{ width: "100%", height: "38px", borderRadius: "8px" }} />
                 </Form.Item>
               </Col>
-              <Col span={6}>
+              <Col xs={24} md={6}>
                 <Form.Item
-                  name={["previousCompanies", index, "lwd"]}
+                  name={[index, "lwd"]}
                   label={<span style={labelStyle}>Last Working Day</span>}
                 >
                   <DatePicker style={{ width: "100%", height: "38px", borderRadius: "8px" }} />
                 </Form.Item>
               </Col>
-              <Col span={6}>
-                <CustomInputField name={["previousCompanies", index, "designation"]} label="Designation" placeholder="e.g. SDE II" />
+              <Col xs={24} md={6}>
+                <CustomInputField name={[index, "designation"]} label="Designation" placeholder="e.g. SDE II" />
               </Col>
-              <Col span={6}>
-                <CustomSelectField name={["previousCompanies", index, "employmentType"]} label="Employment Type" placeholder="Select">
+              <Col xs={24} md={6}>
+                <CustomSelectField name={[index, "employmentType"]} label="Employment Type" placeholder="Select">
                   <Select.Option value="Full Time">Full Time</Select.Option>
                   <Select.Option value="Contract">Contract</Select.Option>
                   <Select.Option value="Internship">Intern</Select.Option>
@@ -458,30 +481,30 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
         </Col>
 
         {/* Documents Section - Moved Below */}
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <div style={{ padding: "20px 40px", background: "transparent", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "20px" }}>
             <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
 
             <Row gutter={[12, 12]}>
-              <Col span={8}>
+              <Col xs={24} md={8}>
                 <DocumentBox name={["previousCompanies", index, "experienceLetter"]} label="Experience Letter" />
               </Col>
-              <Col span={8}>
+              <Col xs={24} md={8}>
                 <DocumentBox name={["previousCompanies", index, "offerLetter"]} label="Offer Letter" />
               </Col>
-              <Col span={8}>
+              <Col xs={24} md={8}>
                 <DocumentBox name={["previousCompanies", index, "serviceLetter"]} label="Service Letter" />
               </Col>
-              <Col span={8}>
+              <Col xs={24} md={8}>
                 <DocumentBox name={["previousCompanies", index, "relievingLetter"]} label="Relieving Letter" />
               </Col>
 
               {/* Form 16 List */}
-              <Form.List name={["previousCompanies", index, "form16"]}>
+              <Form.List name={[index, "form16"]}>
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map((field, f16Idx) => (
-                      <Col span={8} key={field.key}>
+                      <Col xs={24} md={8} key={field.key}>
                         <DocumentBox
                           name={["previousCompanies", index, "form16", field.name]}
                           label={`Form 16 (${getLetter(f16Idx)})`}
@@ -489,7 +512,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         />
                       </Col>
                     ))}
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                       <div
                         onClick={() => add(null)}
                         style={{
@@ -517,11 +540,11 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
               </Form.List>
 
               {/* Payslips List */}
-              <Form.List name={["previousCompanies", index, "payslips"]}>
+              <Form.List name={[index, "payslips"]}>
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map((field, pIdx) => (
-                      <Col span={8} key={field.key}>
+                      <Col xs={24} md={8} key={field.key}>
                         <DocumentBox
                           name={["previousCompanies", index, "payslips", field.name]}
                           label={`Payslip (${getLetter(pIdx)})`}
@@ -529,7 +552,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         />
                       </Col>
                     ))}
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                       <div
                         onClick={() => add(null)}
                         style={{
@@ -557,7 +580,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
               </Form.List>
 
               {/* Additional Documents List - NEW FEATURE */}
-              <Form.List name={["previousCompanies", index, "additionalDocuments"]}>
+              <Form.List name={[index, "additionalDocuments"]}>
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map((field, adIdx) => (
@@ -570,7 +593,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         form={form}
                       />
                     ))}
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                       <div
                         onClick={() => add({})}
                         style={{
@@ -601,14 +624,14 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
         </Col>
 
         {/* Contact Details Section */}
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <div style={{ padding: "24px", borderTop: "1px solid var(--border-slate-100)" }}>
             <SectionHeader icon={User} title="Verification Contacts" subtitle="Professional references from this tenure" />
-            <Form.List name={["previousCompanies", index, "contacts"]}>
+            <Form.List name={[index, "contacts"]}>
               {(fields, { add, remove }) => (
                 <Row gutter={[16, 16]}>
                   {fields.map((field, contactIndex) => (
-                    <Col span={8} key={field.key}>
+                    <Col xs={24} md={8} key={field.key}>
                       <div style={{ position: "relative" }}>
                         <ContactDetails contactIndex={field.name} companyIndex={index} form={form} />
                         {fields.length > 1 && (
@@ -624,7 +647,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                       </div>
                     </Col>
                   ))}
-                  <Col span={8}>
+                  <Col xs={24} md={8}>
                     <div
                       onClick={() => add({})}
                       style={{
@@ -653,7 +676,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
           </div>
         </Col>
         {/* Declaration */}
-        <Col span={24}>
+        <Col xs={24} md={24}>
           <div style={{ marginTop: "16px", padding: "16px", borderTop: "1px solid var(--border-slate-100)" }}>
             <Checkbox style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
               I declare that the information provided above for this company is correct and verifiable.

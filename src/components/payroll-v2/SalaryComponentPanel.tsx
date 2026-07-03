@@ -211,14 +211,16 @@ function ToggleRow({
 
 // Salary Component panel — header + stat cards + filters + table + create/edit drawer.
 export default function SalaryComponentPanel() {
-  const {
-    canReadPayrollComponents,
-    canCreatePayrollComponents,
-    canUpdatePayrollComponents,
-    canDeletePayrollComponents,
-  } = usePermission();
+    const {
+      canReadPayrollComponents,
+      canCreatePayrollComponents,
+      canUpdatePayrollComponents,
+      canDeletePayrollComponents,
+    } = usePermission();
 
-  const [rows, setRows] = useState<PayComponent[]>([]);
+    console.log("Forcing HMR update for SalaryComponentPanel...");
+
+    const [rows, setRows] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(false);
 
   // filters
@@ -780,8 +782,15 @@ export default function SalaryComponentPanel() {
         .pvc-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
 
         .pvc-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pvc-table .ant-table { background: transparent; font-size: 12px; }
-        .pvc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvc-table, .pvc-table.ant-table-wrapper, .pvc-table .ant-table, .pvc-table .ant-table-container, .pvc-table .ant-table-content, .pvc-table .ant-table-header, .pvc-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pvc-table .ant-table-thead > tr > th,
+        .pvc-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .pvc-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .pvc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvc-table .ant-table-tbody > tr.pvc-row:hover > td { background: var(--bg-slate-50) !important; }

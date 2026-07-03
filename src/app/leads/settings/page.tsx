@@ -521,6 +521,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 };
 
 export default function LeadSettingsPage() {
+  console.log("Forcing HMR reload for LeadSettingsPage");
     useActivitySource({ section: "WORK", module: "Leads", page: "LeadSettings" });
     const { user, isLoading } = useAuth();
     const {
@@ -2799,13 +2800,27 @@ export default function LeadSettingsPage() {
 
           /* Table */
           .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .pp-table .ant-table { background: transparent; font-size: 12px; }
-          .pp-table .ant-table-thead > tr > th {
-            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-            white-space: nowrap !important;
+          .pp-table,
+          .pp-table.ant-table-wrapper,
+          .pp-table .ant-table,
+          .pp-table .ant-table-wrapper,
+          .pp-table .ant-table-container,
+          .pp-table .ant-table-content,
+          .pp-table .ant-table-header,
+          .pp-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
           }
+          .pp-table .ant-table-thead > tr > th, .pp-table .ant-table-thead > tr > td {
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .pp-table .ant-table-thead > tr > th::before { display: none !important; }
           .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
           .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
           .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
@@ -3193,9 +3208,10 @@ export default function LeadSettingsPage() {
             background: #0B0F1A !important;
             border-color: #1F2937 !important;
           }
-          [data-theme='dark'] .pp-table .ant-table-thead > tr > th {
-            background: #0B0F1A !important;
-            border-bottom-color: #1F2937 !important;
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            border-bottom-color: #374151 !important;
             color: #94A3B8 !important;
           }
           [data-theme='dark'] .pp-table .ant-table-tbody > tr > td {

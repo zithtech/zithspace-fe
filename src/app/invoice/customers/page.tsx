@@ -1215,12 +1215,14 @@ export default function InvoiceproCustomerPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .customers-table .ant-table { background: transparent; font-size: 12px; }
-        .customers-table .ant-table-thead > tr > th {
+        .customers-table, .customers-table.ant-table-wrapper, .customers-table .ant-table, .customers-table .ant-table-container, .customers-table .ant-table-content, .customers-table .ant-table-header, .customers-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .customers-table .ant-table-thead > tr > th,
+        .customers-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .customers-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .customers-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

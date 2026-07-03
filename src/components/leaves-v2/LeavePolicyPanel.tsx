@@ -132,6 +132,7 @@ const newLine = (): DraftLine => ({ key: uid(), accrualMethod: 'monthly', countP
 
 export default function LeavePolicyPanel() {
   const { canReadLeavePolicy, canCreateLeavePolicy, canUpdateLeavePolicy, canDeleteLeavePolicy } = usePermission();
+  console.log("Forcing HMR reload for LeavePolicyPanel");
 
   const [rows, setRows] = useState<LeavePolicyListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -830,8 +831,15 @@ export default function LeavePolicyPanel() {
         .lvp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: 2px; }
         .lvp-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
         .lvp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .lvp-table .ant-table { background: transparent; font-size: 12px; }
-        .lvp-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvp-table, .lvp-table.ant-table-wrapper, .lvp-table .ant-table, .lvp-table .ant-table-container, .lvp-table .ant-table-content, .lvp-table .ant-table-header, .lvp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvp-table .ant-table-thead > tr > th,
+        .lvp-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .lvp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvp-table .ant-table-tbody > tr.lvp-row:hover > td { background: var(--bg-slate-50) !important; }
@@ -840,8 +848,15 @@ export default function LeavePolicyPanel() {
         .lvp-child-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--text-slate-600); }
         .lvp-child-meta b { color: var(--text-slate-700); font-weight: 700; }
         .lvp-child-dot { color: var(--text-slate-300); }
-        .lvp-child-table .ant-table { background: var(--bg-pure-white) !important; font-size: 12px; border: 1px solid var(--border-slate-200); }
-        .lvp-child-table .ant-table-thead > tr > th { background: var(--bg-pure-white) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important; }
+        .lvp-child-table, .lvp-child-table.ant-table-wrapper, .lvp-child-table .ant-table, .lvp-child-table .ant-table-container, .lvp-child-table .ant-table-content, .lvp-child-table .ant-table-header, .lvp-child-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvp-child-table .ant-table { background: var(--bg-pure-white) !important; font-size: 12px; border: 1px solid var(--border-slate-200); border-radius: 0 !important; }
+        .lvp-child-table .ant-table-thead > tr > th,
+        .lvp-child-table .ant-table-thead > tr > td {
+          background: var(--bg-pure-white) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important;
+          border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvp-child-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 7px 12px !important; }
         .lvp-child-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvp-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }

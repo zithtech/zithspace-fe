@@ -44,7 +44,8 @@ const PROJECT_PALETTE = [
   '#6366f1', '#ec4899', '#14b8a6', '#a855f7', '#84cc16',
 ];
 
-export default function ArchivedTicketsPage() {
+export default function TicketsArchivedPage() {
+  console.log("Forcing HMR reload for TicketsArchivedPage");
   const { message } = App.useApp();
   const { data: projects } = useUserProjects();
   const { isLoading: authLoading } = useAuth();
@@ -525,29 +526,38 @@ export default function ArchivedTicketsPage() {
           .ar2-table {
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-200);
-            border-radius: 12px;
+            border-radius: 0;
             overflow: hidden;
+          }
+          .ar2-table .ant-table, .ar2-table .ant-table-wrapper, .ar2-table .ant-table-container, .ar2-table .ant-table-content, .ar2-table .ant-table-header, .ar2-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0 !important;
           }
           [data-theme='dark'] .ar2-table {
             background: #0B0F1A !important;
             border-color: #1F2937 !important;
           }
-          .ar2-table .ant-table-thead > tr > th {
+          .ar2-table .ant-table-thead > tr > th,
+          .ar2-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important;
             color: var(--text-slate-500) !important;
             font-size: 11px !important;
             font-weight: 800 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 9px 14px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 5px 14px !important;
             border-bottom: 1px solid var(--border-slate-200) !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
           }
-          [data-theme='dark'] .ar2-table .ant-table-thead > tr > th {
-            background: #0B0F1A !important;
+          [data-theme='dark'] .ar2-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .ar2-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
             color: #94A3B8 !important;
-            border-bottom-color: #1F2937 !important;
+            border-bottom-color: #374151 !important;
           }
-          .ar2-table .ant-table-thead > tr > th::before { display: none; }
+          .ar2-table .ant-table-thead > tr > th::before { display: none !important; }
           .ar2-table .ant-table-tbody > tr > td {
             padding: 8px 14px !important;
             border-bottom: 1px solid var(--border-slate-100) !important;

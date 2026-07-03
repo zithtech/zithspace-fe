@@ -225,6 +225,7 @@ export default function LeaveTypePanel() {
     canUpdateLeaveType,
     canDeleteLeaveType,
   } = usePermission();
+  console.log("Forcing HMR reload for LeaveTypePanel");
 
   const [rows, setRows] = useState<LeaveTypeV2[]>([]);
   const [loading, setLoading] = useState(false);
@@ -876,12 +877,14 @@ export default function LeaveTypePanel() {
 
         /* 4) Table — exact Proposal pp-table */
         .lvt-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .lvt-table .ant-table { background: transparent; font-size: 12px; }
-        .lvt-table .ant-table-thead > tr > th {
+        .lvt-table, .lvt-table.ant-table-wrapper, .lvt-table .ant-table, .lvt-table .ant-table-container, .lvt-table .ant-table-content, .lvt-table .ant-table-header, .lvt-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvt-table .ant-table-thead > tr > th,
+        .lvt-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .lvt-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .lvt-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

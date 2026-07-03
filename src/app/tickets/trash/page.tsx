@@ -64,7 +64,8 @@ const calculatePurgeProgress = (deletedAt: string) => {
   return Math.min(100, Math.max(0, (elapsedHours / totalHours) * 100));
 };
 
-export default function TrashPage() {
+export default function TicketsTrashPage() {
+  console.log("Forcing HMR reload for TicketsTrashPage 2");
   const { isLoading: authLoading } = useAuth();
   const { canReadTicketTrash, canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
   const router = useRouter();
@@ -535,26 +536,35 @@ export default function TrashPage() {
             border-radius: 0;
             overflow: hidden;
           }
+          .trs2-table .ant-table, .trs2-table .ant-table-wrapper, .trs2-table .ant-table-container, .trs2-table .ant-table-content, .trs2-table .ant-table-header, .trs2-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0 !important;
+          }
           [data-theme='dark'] .trs2-table {
             background: #0B0F1A !important;
             border-color: #1F2937 !important;
           }
-          .trs2-table .ant-table-thead > tr > th {
+          .trs2-table .ant-table-thead > tr > th,
+          .trs2-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important;
             color: var(--text-slate-500) !important;
             font-size: 11px !important;
             font-weight: 800 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 9px 14px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 5px 14px !important;
             border-bottom: 1px solid var(--border-slate-200) !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
           }
-          [data-theme='dark'] .trs2-table .ant-table-thead > tr > th {
-            background: #0B0F1A !important;
+          [data-theme='dark'] .trs2-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .trs2-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
             color: #94a3b8 !important;
-            border-bottom-color: #1F2937 !important;
+            border-bottom-color: #374151 !important;
           }
-          .trs2-table .ant-table-thead > tr > th::before { display: none; }
+          .trs2-table .ant-table-thead > tr > th::before { display: none !important; }
           .trs2-table .ant-table-tbody > tr > td {
             padding: 8px 14px !important;
             border-bottom: 1px solid var(--border-slate-100) !important;

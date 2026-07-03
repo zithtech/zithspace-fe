@@ -127,6 +127,7 @@ const stringToHash = (str: string) => {
 };
 
 export default function BugListPage() {
+  console.log("Forcing HMR reload for BugListPage");
   const { message } = App.useApp();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {

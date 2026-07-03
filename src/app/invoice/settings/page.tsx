@@ -730,6 +730,7 @@ export default function InvoiceSettingPage() {
                     }}
                   >
                     <Table
+                      className="profiles-table"
                       rowKey="id"
                       dataSource={pagedSettings}
                       pagination={false}
@@ -2139,8 +2140,15 @@ export default function InvoiceSettingPage() {
         .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
-        .profiles-table .ant-table { background: transparent; font-size: 12px; }
-        .profiles-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important; white-space: nowrap !important; }
+        .profiles-table, .profiles-table.ant-table-wrapper, .profiles-table .ant-table, .profiles-table .ant-table-container, .profiles-table .ant-table-content, .profiles-table .ant-table-header, .profiles-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .profiles-table .ant-table-thead > tr > th,
+        .profiles-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .profiles-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .profiles-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .profiles-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }

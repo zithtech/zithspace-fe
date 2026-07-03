@@ -1306,26 +1306,29 @@ export const hivebugStyles = `
 
 
 /* ── Sticky right-pinned columns (Ticket + Actions) ── */
-.hb-col-ticket,
-.hb-col-actions {
+.hb-table th.hb-col-ticket,
+.hb-table td.hb-col-ticket,
+.hb-table th.hb-col-actions,
+.hb-table td.hb-col-actions {
   position: sticky;
   right: 0;
   z-index: 2;
-  background: var(--hb-bg-elev);
+  background: var(--hb-bg) !important; /* Use app bg so it matches row bg */
 }
-.hb-col-ticket {
+.hb-table th.hb-col-ticket,
+.hb-table td.hb-col-ticket {
   right: 40px;
 }
 /* keep hover row bg on sticky cells */
-.hb-tr:hover .hb-col-ticket,
-.hb-tr:hover .hb-col-actions {
-  background: var(--hb-bg-soft);
+.hb-table tbody .hb-tr:hover td.hb-col-ticket,
+.hb-table tbody .hb-tr:hover td.hb-col-actions {
+  background: var(--hb-bg-soft) !important;
 }
 /* thead sticky cells need higher z-index so they sit above body stickies */
-thead .hb-col-ticket,
-thead .hb-col-actions {
+.hb-table thead th.hb-col-ticket,
+.hb-table thead th.hb-col-actions {
   z-index: 3;
-  background: var(--hb-bg-elev);
+  background: var(--hb-bg-elev) !important;
 }
 
 .hb-main .pp-footer {

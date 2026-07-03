@@ -855,7 +855,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: I(Wallet),
-    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/payouts"],
+    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts"],
     defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,
@@ -867,6 +867,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.INVOICE_TRASH_READ,
       Permissions.INVOICE_MANAGE,
       Permissions.SALARY_READ,
+      Permissions.REIMBURSEMENT_READ,
+      Permissions.REIMBURSEMENT_CONFIG_READ,
+      Permissions.REIMBURSEMENT_DASHBOARD_READ,
+      Permissions.REIMBURSEMENT_APPROVE,
+      Permissions.REIMBURSEMENT_PAY,
+      Permissions.REIMBURSEMENT_MANAGE,
     ],
     items: [
       {
@@ -974,13 +980,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-      // {
-      //   key: "/reimbursement",
-      //   label: "Reimbursement",
-      //   icon: I(HandCoins),
-      //   path: "/reimbursement",
-      //   requiredPermission: Permissions.REIMBURSEMENT_READ,
-      // },
+      {
+        key: "/reimbursement-v2",
+        label: "Reimbursement 2.0",
+        icon: I(HandCoins),
+        path: "/reimbursement-v2",
+        requiredAnyPermission: [
+          Permissions.REIMBURSEMENT_READ,
+          Permissions.REIMBURSEMENT_CONFIG_READ,
+          Permissions.REIMBURSEMENT_DASHBOARD_READ,
+          Permissions.REIMBURSEMENT_APPROVE,
+          Permissions.REIMBURSEMENT_PAY,
+          Permissions.REIMBURSEMENT_MANAGE,
+        ],
+      },
       {
         key: "/payroll-v2",
         label: "Payroll 2.0",

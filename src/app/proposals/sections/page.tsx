@@ -204,7 +204,9 @@ function SectionsContent() {
                 }
               }}
             >
-              <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
+              <div onClick={(e) => e.stopPropagation()}>
+                <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
+              </div>
             </ConfirmDialog>
           ),
         } : null,

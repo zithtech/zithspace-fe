@@ -15,6 +15,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import { parseDecimal } from "@/services/ticketService";
+import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
 
 const { Text } = Typography;
 
@@ -35,6 +36,7 @@ export function MyTimeTracker({
   const { stopAllTimers, pauseAllTimers, resumeAllTimers, pauseTimerById, resumeTimerById, activeEntry, refreshTrigger } = useTimeTrackerStore();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { canCreateTimeTracking, canDeleteTimeTracking, canManageTimeTrackingTime } = usePermission();
+  const { withAttendanceGuard, AttendanceGuardModal } = useAttendanceGuard();
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
@@ -107,9 +109,11 @@ export function MyTimeTracker({
   const handleResumeAll = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
-      await resumeAllTimers();
-      message.success("All timers resumed");
-      fetchEntries();
+      await withAttendanceGuard(async () => {
+        await resumeAllTimers();
+        message.success("All timers resumed");
+        fetchEntries();
+      });
     } catch (error: any) {
       message.error(error.message || "Error resuming timers");
     }
@@ -129,9 +133,11 @@ export function MyTimeTracker({
   const handleResume = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      await resumeTimerById(id);
-      message.success("Timer resumed");
-      fetchEntries();
+      await withAttendanceGuard(async () => {
+        await resumeTimerById(id);
+        message.success("Timer resumed");
+        fetchEntries();
+      });
     } catch (error: any) {
       message.error(error.message || "Error resuming timer");
     }
@@ -744,6 +750,7 @@ export function MyTimeTracker({
         [data-theme='dark'] .mtt-footer-info { color: #94A3B8; }
         [data-theme='dark'] .mtt-footer-info strong { color: #CBD5E1; }
       `}</style>
+      {AttendanceGuardModal}
     </div>
   );
 }

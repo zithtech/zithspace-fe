@@ -18,6 +18,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -253,6 +254,14 @@ export default function LeaveAdjustmentPanel() {
     <div className="lvadj">
       <div className="lvadj-header">
         <div className="lvadj-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvadj-header-icon"><CalculatorOutlined /></div>
           <div>
             <div className="lvadj-header-title">Leave Adjustment</div>
@@ -302,7 +311,7 @@ export default function LeaveAdjustmentPanel() {
       </div>
 
       <div className="lvadj-table-wrap">
-        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lvadj-row' })} />
+        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
       </div>
 
       {total > 0 && (

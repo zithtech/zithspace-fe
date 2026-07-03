@@ -17,6 +17,7 @@ import {
   Space,
   Spin,
 } from 'antd';
+import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -521,7 +522,7 @@ export default function LeavePolicyPanel() {
           <span className="lvp-child-dot">·</span>
           <span><b>Applies to:</b> {targetSummary(d)}</span>
         </div>
-        <Table rowKey={(l) => l.id ?? l.leaveTypeId} size="small" className="lvp-child-table" columns={childCols} dataSource={d.lines} pagination={false} />
+        <Table rowKey={(l) => l.id ?? l.leaveTypeId} size="small" className="lvp-child-table" columns={childCols} dataSource={d.lines} pagination={false} scroll={{ x: 'max-content' }} />
       </div>
     );
   };
@@ -531,6 +532,14 @@ export default function LeavePolicyPanel() {
       {/* 1) HEADER */}
       <div className="lvp-header">
         <div className="lvp-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvp-header-icon"><BookOutlined /></div>
           <div>
             <div className="lvp-header-title">Leave Policy</div>
@@ -600,6 +609,7 @@ export default function LeavePolicyPanel() {
           columns={columns}
           dataSource={pagedRows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'lvp-row' })}
           expandable={{
             expandedRowRender,

@@ -77,7 +77,7 @@ interface TimelineData {
   };
 }
 
-export default function TimelineSection({ sprintId }: { sprintId: string }) {
+export default function TimelineSection({ sprintId, printMode }: { sprintId: string; printMode?: boolean }) {
   const snapshot = useSnapshotSection<TimelineData>("timeline");
   const [data, setData] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,12 +132,15 @@ export default function TimelineSection({ sprintId }: { sprintId: string }) {
   const cycleByAssignee = aggregates.cycleByAssignee ?? [];
 
   // Slowest tickets: prefer delay when due dates exist, otherwise rank by cycle time.
-  const slowest = hasDelays
-    ? tickets.filter((t) => (t.delayDays ?? 0) > 0).slice(0, 10)
+  let slowest = hasDelays
+    ? tickets.filter((t) => (t.delayDays ?? 0) > 0)
     : [...tickets]
         .filter((t) => t.cycleDays != null)
-        .sort((a, b) => (b.cycleDays ?? 0) - (a.cycleDays ?? 0))
-        .slice(0, 10);
+        .sort((a, b) => (b.cycleDays ?? 0) - (a.cycleDays ?? 0));
+        
+  if (!printMode) {
+    slowest = slowest.slice(0, 10);
+  }
 
   const useCycleBars = cycleByAssignee.length > 0;
 
@@ -200,21 +203,21 @@ export default function TimelineSection({ sprintId }: { sprintId: string }) {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-1 gap-4">
         <Panel title={useCycleBars ? "Avg Cycle Time by Assignee" : "Avg Delay by Assignee"}>
           <DelayBars
             rows={
               useCycleBars
                 ? cycleByAssignee.map((r) => ({
-                    label: r.assigneeName,
-                    value: r.avgCycle,
-                    count: r.count,
-                  }))
+                  label: r.assigneeName,
+                  value: r.avgCycle,
+                  count: r.count,
+                }))
                 : aggregates.delayByAssignee.map((r) => ({
-                    label: r.assigneeName,
-                    value: r.avgDelay,
-                    count: r.count,
-                  }))
+                  label: r.assigneeName,
+                  value: r.avgDelay,
+                  count: r.count,
+                }))
             }
             unit="d"
             emptyMessage={useCycleBars ? "No completed tickets yet" : "No delayed tickets"}
@@ -266,7 +269,7 @@ function DelayBars({
         return (
           <div key={r.label} className="space-y-1">
             <div className="flex items-baseline justify-between text-sm">
-              <span className="text-zinc-700 dark:text-zinc-300 truncate flex-1 mr-3 capitalize">
+              <span className="text-zinc-700 dark:text-zinc-300 whitespace-normal break-words flex-1 mr-3 capitalize">
                 {r.label}
               </span>
               <span className="text-zinc-500 dark:text-zinc-400 tabular-nums whitespace-nowrap">
@@ -290,34 +293,44 @@ function DelayBars({
   );
 }
 
+function fmtShortDate(d: string | null | undefined): string {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "—";
+  }
+}
+
 function SlowTicketsTable({ rows }: { rows: TimelineTicket[] }) {
   if (rows.length === 0) return <EmptyChart message="No completed tickets in this sprint" />;
   return (
     <div className="overflow-x-auto -mx-5">
-      <table className="min-w-full text-sm">
+      <table className="min-w-full text-sm" style={{ borderCollapse: "collapse" }}>
         <thead>
-          <tr className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
-            <th className="px-5 py-2.5 text-left">Ticket</th>
-            <th className="px-5 py-2.5 text-left">Assignee</th>
-            <th className="px-5 py-2.5 text-right">Cycle</th>
-            <th className="px-5 py-2.5 text-right">Delay</th>
-            <th className="px-5 py-2.5 text-right">Trans</th>
-            <th className="px-5 py-2.5 text-right">Reopens</th>
-            <th className="px-5 py-2.5 text-left">Status</th>
+          <tr className="text-[11px] uppercase tracking-[0.12em] font-semibold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+            <th className="px-5 py-2.5 text-left whitespace-nowrap">Ticket</th>
+            <th className="px-5 py-2.5 text-left whitespace-nowrap">Assignee</th>
+            <th className="px-5 py-2.5 text-right whitespace-nowrap">Cycle</th>
+            <th className="px-5 py-2.5 text-right whitespace-nowrap">Delay</th>
+            <th className="px-5 py-2.5 text-right whitespace-nowrap">Trans</th>
+            <th className="px-5 py-2.5 text-right whitespace-nowrap">Reopens</th>
+            <th className="px-5 py-2.5 text-left whitespace-nowrap">Status</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-          {rows.map((t) => (
+        <tbody>
+          {rows.map((t, idx) => (
             <tr
               key={t.ticketId}
-              className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
+              className={idx % 2 !== 0 ? "bg-zinc-50/60 dark:bg-zinc-800/20" : ""}
+              style={{ borderBottom: "1px solid #f0f0f0" }}
             >
               <td className="px-5 py-3">
                 <div className="flex flex-col">
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
                     {t.ticketNumber ?? "—"}
                   </span>
-                  <span className="text-zinc-800 dark:text-zinc-200 truncate max-w-md">
+                  <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words max-w-md">
                     {t.title}
                   </span>
                 </div>
@@ -325,7 +338,7 @@ function SlowTicketsTable({ rows }: { rows: TimelineTicket[] }) {
               <td className="px-5 py-3">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={t.assigneeName ?? "Unassigned"} />
-                  <span className="text-zinc-800 dark:text-zinc-200 truncate">
+                  <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">
                     {t.assigneeName ?? "Unassigned"}
                   </span>
                 </div>
@@ -368,3 +381,4 @@ function SlowTicketsTable({ rows }: { rows: TimelineTicket[] }) {
     </div>
   );
 }
+

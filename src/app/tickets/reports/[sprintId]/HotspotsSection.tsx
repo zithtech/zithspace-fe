@@ -143,7 +143,7 @@ function ModuleList({ rows }: { rows: NonNullable<HotspotsData["modules"]> }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <RankPill rank={idx + 1} />
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 capitalize truncate">
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 capitalize whitespace-normal break-words">
                     {m.module}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ function EpicList({ rows }: { rows: HotspotsData["epics"] }) {
                     </span>
                   ) : null}
                 </div>
-                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50 whitespace-normal break-words">
                   {e.epicTitle}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">

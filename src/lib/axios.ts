@@ -321,6 +321,9 @@ export const api = {
   // GET request
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.get(url, config);
+    if (config?.responseType === 'blob' || config?.responseType === 'arraybuffer') {
+      return response as any; // Return full response for blobs to access headers/data
+    }
     if (response.data.success) {
       return response.data.data;
     }
@@ -330,6 +333,10 @@ export const api = {
   // POST request
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.post(url, data, config);
+
+    if (config?.responseType === 'blob' || config?.responseType === 'arraybuffer') {
+      return response as any;
+    }
 
     // For file uploads, the response structure is different
     // Backend returns: { success: true, filename: "...", url: "..." }
@@ -342,11 +349,12 @@ export const api = {
     throw new ApiError(response.data.error || 'Request failed', response.status);
   },
 
-
-
   // PUT request
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.put(url, data, config);
+    if (config?.responseType === 'blob' || config?.responseType === 'arraybuffer') {
+      return response as any;
+    }
     if (response.data.success) {
       return response.data.data;
     }
@@ -356,6 +364,9 @@ export const api = {
   // PATCH request
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.patch(url, data, config);
+    if (config?.responseType === 'blob' || config?.responseType === 'arraybuffer') {
+      return response as any;
+    }
     if (response.data.success) {
       return response.data.data;
     }

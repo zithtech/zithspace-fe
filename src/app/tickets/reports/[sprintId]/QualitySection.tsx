@@ -209,7 +209,7 @@ function ComplexityTable({ rows }: { rows: QualityTicket[] }) {
                     <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
                       {t.ticketNumber ?? "—"}
                     </span>
-                    <span className="text-zinc-800 dark:text-zinc-200 truncate">{t.title}</span>
+                    <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">{t.title}</span>
                   </div>
                 </td>
                 <td className="px-5 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
@@ -289,7 +289,7 @@ function RewordByAssigneeTable({
               <td className="px-5 py-3">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={r.assigneeName} />
-                  <span className="text-zinc-800 dark:text-zinc-200 truncate">
+                  <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">
                     {r.assigneeName}
                   </span>
                 </div>

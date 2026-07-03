@@ -182,7 +182,7 @@ export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
         </Panel>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-1 gap-4">
         {data.oversized.length > 0 ? (
           <Panel title="Oversized In-Flight" hint="≥13 story points">
             <div className="overflow-x-auto -mx-5">
@@ -205,7 +205,7 @@ export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
                           <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
                             {t.ticketNumber ?? "—"}
                           </span>
-                          <span className="text-zinc-800 dark:text-zinc-200 truncate max-w-xs">
+                          <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words max-w-xs">
                             {t.title}
                           </span>
                         </div>
@@ -215,7 +215,7 @@ export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
                           {t.storyPoint}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-zinc-700 dark:text-zinc-300 truncate">
+                      <td className="px-5 py-3 text-zinc-700 dark:text-zinc-300 whitespace-normal break-words">
                         {t.assigneeName ?? "Unassigned"}
                       </td>
                     </tr>
@@ -234,7 +234,7 @@ export default function BottlenecksSection({ sprintId }: { sprintId: string }) {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar name={c.assigneeName} />
-                      <span className="text-zinc-800 dark:text-zinc-200 truncate">
+                      <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">
                         {c.assigneeName}
                       </span>
                     </div>
@@ -305,7 +305,7 @@ function StuckTable({
                     <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
                       {t.ticketNumber ?? "—"}
                     </span>
-                    <span className="text-zinc-800 dark:text-zinc-200 truncate max-w-md">
+                    <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words max-w-md">
                       {t.title}
                     </span>
                   </div>
@@ -313,7 +313,7 @@ function StuckTable({
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2.5">
                     <Avatar name={t.assigneeName ?? "Unassigned"} />
-                    <span className="text-zinc-700 dark:text-zinc-300 truncate">
+                    <span className="text-zinc-700 dark:text-zinc-300 whitespace-normal break-words">
                       {t.assigneeName ?? "Unassigned"}
                     </span>
                   </div>

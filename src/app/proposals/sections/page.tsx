@@ -79,6 +79,7 @@ function SectionsContent() {
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'SectionLibrary' });
   const router = useRouter();
   const [messageApi, holder] = message.useMessage();
+  const [modal, modalHolder] = Modal.useModal();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
   const sections = useProposalLibraryStore((s) => s.sections);
@@ -316,6 +317,7 @@ function SectionsContent() {
   return (
     <>
       {holder}
+      {modalHolder}
       <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
         <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
         {/* ============================ SIDEBAR ============================ */}

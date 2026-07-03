@@ -18,6 +18,9 @@ import {
   App,
   theme as antdTheme,
   ConfigProvider,
+  Tabs,
+  Badge,
+  Grid,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -102,6 +105,8 @@ export default function BugListConfigManager() {
   const updateType = useUpdateBugType();
   const deleteType = useDeleteBugType();
   const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
+  const { useBreakpoint } = Grid;
+  const screens = useBreakpoint();
 
   const [editing, setEditing] = useState<EditState>(null);
   const [activeKey, setActiveKey] = useState<SectionKey>("severity");
@@ -122,92 +127,89 @@ export default function BugListConfigManager() {
       <BcmStyles />
       <div
         className={`bcm-root ${isDark ? "bcm-dark" : "bcm-light"}`}
-        style={{ flex: 1, minHeight: 0 }}
+        style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
-        <div className="bcm-shell">
-          <aside className="bcm-nav">
-            <div className="bcm-nav-head">
-              <div className="bcm-nav-title">Configuration</div>
-              <div className="bcm-nav-sub">
-                Manage tenant-level dropdowns surfaced across the Bug List module.
+        <Tabs
+          activeKey={activeKey}
+          onChange={(key) => setActiveKey(key as SectionKey)}
+          tabPosition={!screens.lg ? 'top' : 'left'}
+          className="bcm-manager-tabs"
+          style={{ flex: 1, height: '100%' }}
+          items={SECTIONS.map((s) => ({
+            key: s.key,
+            label: (
+              <div className="tab-label-container bcm-tab-item">
+                <div className={`tab-icon-box ${activeKey === s.key ? 'active' : ''}`} style={{ color: s.accent }}>
+                  {s.icon}
+                </div>
+                <div className="tab-text-box">
+                  <div className="tab-title">{s.title}</div>
+                  <div className="tab-subtitle-count">
+                    <Badge
+                      count={counts[s.key]}
+                      size="small"
+                      style={{
+                        backgroundColor: activeKey === s.key ? s.accent : 'rgba(0,0,0,0.06)',
+                        color: activeKey === s.key ? '#fff' : 'var(--text-secondary)',
+                        fontSize: 10,
+                        boxShadow: "none",
+                        border: 'none'
+                      }}
+                    />
+                    <span className="tab-subtitle-text" style={{ marginLeft: 6 }}>Definitions</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bcm-nav-list">
-              {SECTIONS.map((s) => {
-                const isActive = activeKey === s.key;
-                return (
-                  <button
-                    key={s.key}
-                    className={`bcm-nav-item ${isActive ? "active" : ""}`}
-                    onClick={() => setActiveKey(s.key)}
-                    style={
-                      {
-                        ["--bcm-accent" as string]: s.accent,
-                        ["--bcm-accent-bg" as string]: s.accentBg,
-                        ["--bcm-accent-fg" as string]: s.accentFg,
-                      } as React.CSSProperties
+            ),
+            children: (
+              <div className="bcm-pane">
+                <ConfigSection
+                  key={s.key}
+                  accent={s.accent}
+                  accentBg={s.accentBg}
+                  accentFg={s.accentFg}
+                  icon={s.icon}
+                  eyebrow="Bug List"
+                  title={s.title}
+                  description={s.description}
+                  loading={loadingMap[s.key]}
+                  options={
+                    s.key === "severity"
+                      ? severities.data || []
+                      : types.data || []
+                  }
+                  showColor={s.key === "severity"}
+                  onCreate={() => setEditing({ kind: s.key, option: null })}
+                  onEdit={(o) => setEditing({ kind: s.key, option: o })}
+                  onDelete={async (id) => {
+                    try {
+                      if (s.key === "severity") {
+                        await deleteSeverity.mutateAsync(id);
+                      } else {
+                        await deleteType.mutateAsync(id);
+                      }
+                    } catch {
+                      /* hook surfaces toast */
                     }
-                  >
-                    <span className="bcm-nav-icon">{s.icon}</span>
-                    <span className="bcm-nav-text">
-                      <span className="bcm-nav-name">{s.title}</span>
-                      <span className="bcm-nav-desc">{s.shortDescription}</span>
-                    </span>
-                    <span className="bcm-nav-count">{counts[s.key]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
-
-          <main className="bcm-pane">
-            {SECTIONS.filter((s) => s.key === activeKey).map((s) => (
-              <ConfigSection
-                key={s.key}
-                accent={s.accent}
-                accentBg={s.accentBg}
-                accentFg={s.accentFg}
-                icon={s.icon}
-                eyebrow="Bug List"
-                title={s.title}
-                description={s.description}
-                loading={loadingMap[s.key]}
-                options={
-                  s.key === "severity"
-                    ? severities.data || []
-                    : types.data || []
-                }
-                showColor={s.key === "severity"}
-                onCreate={() => setEditing({ kind: s.key, option: null })}
-                onEdit={(o) => setEditing({ kind: s.key, option: o })}
-                onDelete={async (id) => {
-                  try {
+                  }}
+                  onToggleActive={(o) => {
                     if (s.key === "severity") {
-                      await deleteSeverity.mutateAsync(id);
+                      updateSeverity.mutate({
+                        id: o.id,
+                        input: { isActive: !o.isActive },
+                      });
                     } else {
-                      await deleteType.mutateAsync(id);
+                      updateType.mutate({
+                        id: o.id,
+                        input: { isActive: !o.isActive },
+                      });
                     }
-                  } catch {
-                    /* hook surfaces toast */
-                  }
-                }}
-                onToggleActive={(o) => {
-                  if (s.key === "severity") {
-                    updateSeverity.mutate({
-                      id: o.id,
-                      input: { isActive: !o.isActive },
-                    });
-                  } else {
-                    updateType.mutate({
-                      id: o.id,
-                      input: { isActive: !o.isActive },
-                    });
-                  }
-                }}
-              />
-            ))}
-          </main>
-        </div>
+                  }}
+                />
+              </div>
+            )
+          }))}
+        />
       </div>
 
       <OptionEditor
@@ -765,121 +767,167 @@ function BcmStyles() {
         --bcm-default-border: rgba(252,211,77,0.4);
       }
 
-      /* ============ Two-pane shell ============ */
+      /* ============ Tabs styling (Matching DropdownManager) ============ */
       .bcm-root { height: 100%; min-height: 0; }
-      .bcm-shell {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 24px;
-        padding: 16px 24px 32px;
-        height: 100%;
-        min-height: 0;
-        align-items: stretch;
-      }
-      @media (max-width: 960px) {
-        .bcm-shell { grid-template-columns: 1fr; }
+      
+      .bcm-manager-tabs, 
+      .bcm-manager-tabs .ant-tabs-content, 
+      .bcm-manager-tabs .ant-tabs-content-holder,
+      .bcm-manager-tabs .ant-tabs-tabpane {
+        height: 100% !important;
       }
 
-      .bcm-nav {
-        background: var(--bcm-bg-elev);
-        border: 1px solid var(--bcm-border);
-        border-radius: 16px;
-        box-shadow: var(--bcm-shadow);
-        padding: 18px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        align-self: start;
-        position: sticky;
-        top: 0;
+      /* ── Desktop Left Sidebar Nav ──────────────────────────────────────── */
+      .bcm-manager-tabs.ant-tabs-left > .ant-tabs-nav {
+        width: 264px;
+        background: transparent;
+        margin-bottom: 0 !important;
+        border-right: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 20px 10px;
       }
-      .bcm-nav-head { padding: 4px 8px 6px; }
-      .bcm-nav-title {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        color: var(--bcm-text-muted);
-        text-transform: uppercase;
-        margin-bottom: 6px;
+      .bcm-dark .bcm-manager-tabs.ant-tabs-left > .ant-tabs-nav {
+        background: transparent !important;
+        border-right-color: #1f2937 !important;
       }
-      .bcm-nav-sub {
-        font-size: 12.5px;
-        color: var(--bcm-text-soft);
-        line-height: 1.5;
+      
+      /* ── Mobile/Tablet Top Nav ─────────────────────────────────────────── */
+      .bcm-manager-tabs.ant-tabs-top > .ant-tabs-nav {
+        width: 100%;
+        background: transparent;
+        margin-bottom: 0 !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 10px 16px 0;
       }
-      .bcm-nav-list { display: flex; flex-direction: column; gap: 4px; }
-      .bcm-nav-item {
+      .bcm-dark .bcm-manager-tabs.ant-tabs-top > .ant-tabs-nav {
+        background: transparent !important;
+        border-bottom-color: #1f2937 !important;
+      }
+      .bcm-manager-tabs.ant-tabs-top .tab-label-container {
+        width: auto;
+      }
+      .bcm-manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child,
+      .bcm-manager-tabs.ant-tabs-top .tab-subtitle-text {
+        display: none !important;
+      }
+      .bcm-manager-tabs.ant-tabs-top .bcm-tab-item {
+        gap: 8px !important;
+      }
+      .bcm-manager-tabs.ant-tabs-top .tab-icon-box {
+        display: none !important;
+      }
+      .bcm-manager-tabs.ant-tabs-top .tab-text-box {
+        align-items: center;
+        text-align: center;
+      }
+      .bcm-manager-tabs.ant-tabs-top .tab-title {
+        font-size: 13px !important;
+      }
+      .bcm-manager-tabs.ant-tabs-top .ant-tabs-tab {
+        padding: 8px 10px !important;
+        margin: 0 4px !important;
+      }
+
+      .bcm-manager-tabs .ant-tabs-tab {
+        margin: 4px 0 !important;
+        padding: 10px 12px !important;
+        border-radius: 12px !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent !important;
+        position: relative;
+      }
+      .bcm-manager-tabs.ant-tabs-left .ant-tabs-tab:hover {
+        background: rgba(15, 23, 42, 0.03) !important;
+        transform: translateX(2px);
+      }
+      .bcm-manager-tabs.ant-tabs-top .ant-tabs-tab:hover {
+        background: rgba(15, 23, 42, 0.03) !important;
+        transform: translateY(-2px);
+      }
+      .bcm-dark .bcm-manager-tabs .ant-tabs-tab:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+      }
+      .bcm-manager-tabs .ant-tabs-tab-active {
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none;
+      }
+      .bcm-manager-tabs.ant-tabs-left .ant-tabs-tab-active::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 24px;
+        background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+        border-radius: 2px;
+        box-shadow: none;
+      }
+      .bcm-manager-tabs .ant-tabs-ink-bar {
+        display: none;
+      }
+
+      /* ── Tab labels ───────────────────────────────────────────── */
+      .tab-label-container {
+        width: 100%;
+        text-align: left;
+      }
+      .bcm-tab-item {
         display: flex;
         align-items: center;
         gap: 12px;
-        width: 100%;
-        padding: 12px 12px;
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 12px;
-        cursor: pointer;
-        text-align: left;
-        color: var(--bcm-text-soft);
-        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
       }
-      .bcm-nav-item:hover {
-        background: var(--bcm-bg-soft);
-        color: var(--bcm-text);
+      .tab-text-box {
+        display: flex;
+        flex-direction: column;
       }
-      .bcm-nav-item.active {
-        background: var(--bcm-accent-bg);
-        border-color: color-mix(in srgb, var(--bcm-accent) 30%, transparent);
-        color: var(--bcm-text);
-      }
-      .bcm-nav-item.active::before {
-        content: "";
-        position: absolute;
-      }
-      .bcm-nav-icon {
-        width: 36px; height: 36px;
+      .tab-icon-box {
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
-        display: inline-flex; align-items: center; justify-content: center;
-        background: var(--bcm-bg-soft);
-        color: var(--bcm-text-muted);
-        font-size: 16px;
-        flex-shrink: 0;
-        transition: background 120ms ease, color 120ms ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--border-slate-100);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .bcm-nav-item.active .bcm-nav-icon {
-        background: var(--bcm-accent-bg);
-        color: var(--bcm-accent-fg);
-        box-shadow: 0 0 0 1px color-mix(in srgb, var(--bcm-accent) 30%, transparent) inset;
+      .bcm-dark .tab-icon-box {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.05) !important;
       }
-      .bcm-nav-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-      .bcm-nav-name {
-        font-size: 13.5px; font-weight: 600;
+      .tab-icon-box.active {
+        background: var(--bg-pure-white);
+        box-shadow: none;
+        transform: scale(1.05);
       }
-      .bcm-nav-desc {
-        font-size: 11.5px; color: var(--bcm-text-muted);
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      .bcm-dark .tab-icon-box.active {
+        background: #1a2035 !important;
+        box-shadow: none;
+        border-color: rgba(255, 255, 255, 0.08) !important;
       }
-      .bcm-nav-count {
-        min-width: 26px;
-        padding: 2px 8px;
-        background: var(--bcm-bg-soft);
-        border: 1px solid var(--bcm-border-strong);
-        border-radius: 999px;
-        font-size: 11px;
+      .tab-title {
         font-weight: 600;
-        font-variant-numeric: tabular-nums;
-        color: var(--bcm-text-soft);
-        text-align: center;
+        font-size: 14px;
+        color: var(--bcm-text);
+        line-height: 1.2;
+        transition: color 0.3s;
       }
-      .bcm-nav-item.active .bcm-nav-count {
-        background: var(--bcm-accent-bg);
-        border-color: color-mix(in srgb, var(--bcm-accent) 35%, transparent);
-        color: var(--bcm-accent-fg);
+      .tab-subtitle-count {
+        display: flex;
+        align-items: center;
+        color: var(--bcm-text-soft);
+      }
+      .tab-subtitle-text {
+        font-size: 12px;
+        font-weight: 500;
       }
 
       .bcm-pane {
         min-width: 0;
         overflow-y: auto;
-        padding-right: 4px;
+        padding: 16px 24px 32px;
       }
       .bcm-pane::-webkit-scrollbar {
         display: none;
@@ -899,6 +947,7 @@ function BcmStyles() {
       }
       .bcm-card-head {
         display: flex; align-items: center; gap: 16px;
+        flex-wrap: wrap;
         padding: 20px 24px;
         position: relative;
         border-bottom: 1px solid var(--bcm-border);
@@ -918,7 +967,7 @@ function BcmStyles() {
         font-size: 20px;
         flex-shrink: 0;
       }
-      .bcm-card-text { flex: 1; min-width: 0; }
+      .bcm-card-text { flex: 1 1 200px; min-width: 0; }
       .bcm-card-eyebrow {
         display: inline-flex; align-items: center; gap: 6px;
         font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
@@ -936,7 +985,11 @@ function BcmStyles() {
         font-size: 11px; font-weight: 600; color: var(--bcm-text-soft);
         font-variant-numeric: tabular-nums;
       }
-      .bcm-card-body { padding: 12px 16px 18px; }
+      .bcm-card-body { 
+        padding: 12px 16px 18px; 
+        overflow-x: auto;
+        max-width: 100%;
+      }
 
       .bcm-table .ant-table { background: transparent !important; }
       .bcm-table .ant-table-thead > tr > th {

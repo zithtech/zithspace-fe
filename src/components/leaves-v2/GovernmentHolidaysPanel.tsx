@@ -16,6 +16,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -166,6 +167,14 @@ export default function GovernmentHolidaysPanel() {
     <div className="lvgh">
       <div className="lvgh-header">
         <div className="lvgh-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvgh-header-icon"><GlobalOutlined /></div>
           <div>
             <div className="lvgh-header-title">Government Holidays</div>
@@ -218,6 +227,7 @@ export default function GovernmentHolidaysPanel() {
           columns={columns}
           dataSource={filtered}
           pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 25, 50, 100] }}
+          scroll={{ x: 'max-content' }}
           rowSelection={canCreateLeaveHoliday ? {
             selectedRowKeys: selected,
             onChange: setSelected,

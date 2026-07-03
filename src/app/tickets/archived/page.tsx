@@ -127,7 +127,8 @@ export default function TicketsArchivedPage() {
           count: archivedCount,
           color: PROJECT_PALETTE[i % PROJECT_PALETTE.length],
         };
-      });
+      })
+      .sort((a, b) => b.count - a.count);
   }, [dashboardStats, projects]);
 
   const totalAcrossProjects = useMemo(
@@ -469,7 +470,7 @@ export default function TicketsArchivedPage() {
             ),
           }}
           pagination={false}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
         />
 
         {totalArchived > 0 && (

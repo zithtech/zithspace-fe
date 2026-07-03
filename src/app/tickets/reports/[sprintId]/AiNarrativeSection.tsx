@@ -30,7 +30,7 @@ interface ApiShape {
   generatedById?: string | null;
 }
 
-export default function AiNarrativeSection({ sprintId }: { sprintId: string }) {
+export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: string; printMode?: boolean }) {
   const [data, setData] = useState<ApiShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,23 +127,25 @@ export default function AiNarrativeSection({ sprintId }: { sprintId: string }) {
       <section className="space-y-4">
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <SectionTitle title="AI Sprint Narrative" />
-          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-            {data.generatedAt ? (
-              <span>
-                Generated {formatRelative(data.generatedAt)}
-                {data.model ? <span className="ml-1.5 text-zinc-400 dark:text-zinc-500">· {data.model}</span> : null}
-              </span>
-            ) : null}
-            <button
-              type="button"
-              onClick={generate}
-              disabled={generating}
-              className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
-            >
-              {generating ? <Spinner small /> : <RefreshIcon />}
-              {generating ? "Regenerating…" : "Regenerate"}
-            </button>
-          </div>
+          {!printMode && (
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+              {data.generatedAt ? (
+                <span>
+                  Generated {formatRelative(data.generatedAt)}
+                  {data.model ? <span className="ml-1.5 text-zinc-400 dark:text-zinc-500">· {data.model}</span> : null}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={generate}
+                disabled={generating}
+                className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
+              >
+                {generating ? <Spinner small /> : <RefreshIcon />}
+                {generating ? "Regenerating…" : "Regenerate"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden">

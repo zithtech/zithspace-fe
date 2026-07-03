@@ -261,7 +261,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
-            marginLeft: collapsed ? 50 : 200,
+            marginLeft: collapsed ? 52 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 60px)",
             overflowY: "auto",

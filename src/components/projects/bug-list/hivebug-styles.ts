@@ -637,9 +637,8 @@ export const hivebugStyles = `
 .hb-main {
   flex: 1;
   display: flex; flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-width: 0;
+  overflow: hidden;
+  min-height: 0;
   max-width: 100%;
   background: var(--hb-bg);
 }
@@ -1280,22 +1279,20 @@ export const hivebugStyles = `
 /* ============ Table ============ */
 .hb-content {
   flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 0;
   overflow: hidden;
-  overflow-y: auto;
-  overflow-x: hidden;
   padding: 6px 14px 8px 14px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
-.hb-content::-webkit-scrollbar {
-  display: none;
-}
+
 .hb-table-wrapper {
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
   border-radius: 0;
-  overflow: hidden;
+  overflow: auto;
   overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -1307,32 +1304,31 @@ export const hivebugStyles = `
   display: none;
 }
 
+
 /* ── Sticky right-pinned columns (Ticket + Actions) ── */
-.hb-col-ticket,
-.hb-col-actions {
+.hb-table th.hb-col-ticket,
+.hb-table td.hb-col-ticket,
+.hb-table th.hb-col-actions,
+.hb-table td.hb-col-actions {
   position: sticky;
   right: 0;
   z-index: 2;
-  background: var(--hb-bg-elev);
-  /* GPU compositing — prevents repaint flicker during horizontal scroll */
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  background: var(--hb-bg) !important; /* Use app bg so it matches row bg */
 }
-.hb-col-ticket {
+.hb-table th.hb-col-ticket,
+.hb-table td.hb-col-ticket {
   right: 40px;
 }
 /* keep hover row bg on sticky cells */
-.hb-tr:hover .hb-col-ticket,
-.hb-tr:hover .hb-col-actions {
-  background: var(--hb-bg-soft);
+.hb-table tbody .hb-tr:hover td.hb-col-ticket,
+.hb-table tbody .hb-tr:hover td.hb-col-actions {
+  background: var(--hb-bg-soft) !important;
 }
 /* thead sticky cells need higher z-index so they sit above body stickies */
-thead .hb-col-ticket,
-thead .hb-col-actions {
+.hb-table thead th.hb-col-ticket,
+.hb-table thead th.hb-col-actions {
   z-index: 3;
-  background: var(--hb-bg-elev);
+  background: var(--hb-bg-elev) !important;
 }
 
 .hb-main .pp-footer {
@@ -4445,6 +4441,9 @@ thead .hb-col-actions {
     width: auto !important;
     min-width: 0;
   }
+  .hb-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
   /* AI review wizard */
   .hb-aim-twocol { grid-template-columns: 1fr; }
   .hb-aim-checklist { grid-template-columns: 1fr; }
@@ -4456,13 +4455,12 @@ thead .hb-col-actions {
 @media (max-width: 1024px) {
   .hb-root {
     flex-direction: column;
-    height: auto;
+    height: 100%;
     min-height: calc(100vh - 54px);
     padding-left: 0;
     padding: 8px;
     gap: 8px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
   }
   .hb-main { flex: 1 1 auto; }
   .hb-content { overflow: hidden; padding: 8px 10px 12px; }
@@ -4556,7 +4554,7 @@ thead .hb-col-actions {
   .hb-filter-toggle span:not(.hb-filter-badge) { display: none; }
   .hb-stats-row {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     margin: 8px;
     gap: 8px;
   }
@@ -5294,5 +5292,16 @@ thead .hb-col-actions {
 
 .ant-tooltip .ant-tooltip-arrow {
   display: none !important;
+}
+/* Mirror Leaves dashboard responsiveness */
+@media (max-width: 640px) {
+  .hb-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* Prevent native browser ellipsis from ghosting on buttons */
+.hb-table tbody td.hb-col-ticket,
+.hb-table tbody td.hb-col-actions {
+  text-overflow: clip;
 }
 `;

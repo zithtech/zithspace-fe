@@ -34,6 +34,7 @@ import {
 } from '@/services/attendanceService';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { getDeviceLocation } from '@/lib/geolocation';
+import { useSocket } from '@/providers/SocketProvider';
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
 const PALETTE = {
@@ -86,6 +87,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 //   4) Current-month table   5) Sticky bottom pager
 export default function ClockInOutPanel() {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const { canClockInOut, canReadAttendance } = usePermission();
   console.log("Forcing HMR reload for ClockInOutPanel");
 
@@ -152,17 +154,31 @@ export default function ClockInOutPanel() {
     if (canClockInOut || canReadAttendance) loadMonth();
   }, [canClockInOut, canReadAttendance, loadMonth]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     loadTop();
     loadMonth();
-  };
+  }, [loadTop, loadMonth]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('attendance:updated', refresh);
+    return () => {
+      socket.off('attendance:updated', refresh);
+    };
+  }, [socket, refresh]);
+
+  useEffect(() => {
+    window.addEventListener('attendance:refresh', refresh);
+    return () => window.removeEventListener('attendance:refresh', refresh);
+  }, [refresh]);
 
   const runAction = async (fn: () => Promise<unknown>, okMsg: string) => {
     setActing(true);
     try {
       await fn();
       message.success(okMsg);
-      await refresh();
+      // Wait for socket to trigger refresh, or trigger it manually
+      refresh();
     } catch (err: any) {
       message.error(err?.message || 'Action failed');
     } finally {

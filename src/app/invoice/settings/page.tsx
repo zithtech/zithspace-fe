@@ -742,7 +742,6 @@ export default function InvoiceSettingPage() {
                         },
                         className: "cursor-pointer",
                       })}
-                      className="profiles-table"
                       columns={[
                         {
                           title: "PROFILE",

@@ -18,6 +18,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
+import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
 import { ProjectService } from "@/services/projectService";
 import TicketService from "@/services/ticketService";
 import { useRouter } from "next/navigation";
@@ -46,6 +47,11 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     resumeTimer,
     stopTimer,
   } = useTimeTrackerStore();
+
+  const { 
+    withAttendanceGuard, 
+    AttendanceGuardModal 
+  } = useAttendanceGuard();
 
   const [form] = Form.useForm();
   const router = useRouter();
@@ -185,8 +191,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         };
       });
 
-      await startMultipleTimers(entriesToCreate);
-      message.success("Timer started");
+      await withAttendanceGuard(async () => {
+        await startMultipleTimers(entriesToCreate);
+        message.success("Timer started");
+      });
     } catch (error: any) {
       message.error(`Failed to start timer: ${error.message}`);
     }
@@ -296,10 +304,13 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
               <button
                 type="button"
                 className="ttp-btn ttp-btn-primary"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   try {
-                    await resumeTimer();
-                    message.success("Timer resumed");
+                    await withAttendanceGuard(async () => {
+                      await resumeTimer();
+                      message.success("Timer resumed");
+                    });
                   } catch (e: any) {
                     message.error(e.message || "Error resuming timer");
                   }
@@ -688,6 +699,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
 
   return (
+    <>
     <Popover
       content={renderContent()}
       title={
@@ -726,5 +738,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         <span>{formatTime(elapsedTime)}</span>
       </button>
     </Popover>
+    {AttendanceGuardModal}
+    </>
   );
 };

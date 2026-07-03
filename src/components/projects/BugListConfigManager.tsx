@@ -777,7 +777,28 @@ function BcmStyles() {
         align-items: stretch;
       }
       @media (max-width: 960px) {
-        .bcm-shell { grid-template-columns: 1fr; }
+        .bcm-shell { 
+          grid-template-columns: 1fr; 
+          grid-template-rows: auto 1fr;
+          height: 100%;
+          min-height: 0;
+        }
+        .bcm-nav {
+          position: static;
+          flex-direction: column;
+        }
+        .bcm-nav-list {
+          flex-direction: row;
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+        .bcm-nav-item {
+          width: auto;
+          flex: 1;
+        }
+        .bcm-nav-desc {
+          display: none;
+        }
       }
 
       .bcm-nav {
@@ -899,6 +920,7 @@ function BcmStyles() {
       }
       .bcm-card-head {
         display: flex; align-items: center; gap: 16px;
+        flex-wrap: wrap;
         padding: 20px 24px;
         position: relative;
         border-bottom: 1px solid var(--bcm-border);
@@ -918,7 +940,7 @@ function BcmStyles() {
         font-size: 20px;
         flex-shrink: 0;
       }
-      .bcm-card-text { flex: 1; min-width: 0; }
+      .bcm-card-text { flex: 1 1 200px; min-width: 0; }
       .bcm-card-eyebrow {
         display: inline-flex; align-items: center; gap: 6px;
         font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
@@ -936,7 +958,11 @@ function BcmStyles() {
         font-size: 11px; font-weight: 600; color: var(--bcm-text-soft);
         font-variant-numeric: tabular-nums;
       }
-      .bcm-card-body { padding: 12px 16px 18px; }
+      .bcm-card-body { 
+        padding: 12px 16px 18px; 
+        overflow-x: auto;
+        max-width: 100%;
+      }
 
       .bcm-table .ant-table { background: transparent !important; }
       .bcm-table .ant-table-thead > tr > th {

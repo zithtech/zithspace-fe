@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Tag, Tooltip, message, Empty } from 'antd';
+import { Menu } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
   ReloadOutlined,
@@ -108,9 +109,19 @@ export default function DashboardPanel() {
     <div className="lvd">
       {/* HEADER */}
       <div className="lvd-header">
-        <div>
-          <div className="lvd-header-title">{firstName ? `Welcome back, ${firstName}` : 'Leave Dashboard'}</div>
-          <div className="lvd-header-sub">Your time off at a glance</div>
+        <div className="lvd-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div>
+            <div className="lvd-header-title">{firstName ? `Welcome back, ${firstName}` : 'Leave Dashboard'}</div>
+            <div className="lvd-header-sub">Your time off at a glance</div>
+          </div>
         </div>
         <div className="lvd-header-actions">
           <Tooltip title="Refresh"><button type="button" className="lvd-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
@@ -235,6 +246,7 @@ export default function DashboardPanel() {
       <style jsx global>{`
         .lvd { display: flex; flex-direction: column; }
         .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvd-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .lvd-header-title { font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvd-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .lvd-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

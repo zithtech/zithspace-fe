@@ -25,6 +25,17 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
     [perms]
   );
 
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleOpenSidebar = () => setIsMobileOpen(true);
+    window.addEventListener('open-lv-sidebar', handleOpenSidebar);
+    return () => window.removeEventListener('open-lv-sidebar', handleOpenSidebar);
+  }, []);
+
   // Base guard: must be able to read or manage leaves at all.
   useEffect(() => {
     if (!isLoading && !perms.canReadLeave && !perms.canManageLeaves) {
@@ -85,15 +96,6 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
 
           {/* ============================ MAIN ============================ */}
           <main className="lv-main">
-            <div className="lv-mobile-header">
-              <button
-                className="lv-mobile-toggle"
-                onClick={() => setIsMobileOpen(true)}
-              >
-                <Menu size={20} />
-              </button>
-              <div className="lv-mobile-title">Leaves</div>
-            </div>
             <div className="lv-content">{children}</div>
           </main>
         </div>
@@ -150,15 +152,27 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
           .lv-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .lv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .lv-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
-          .lv-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
+          .lv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .lv-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; position: relative; }
           
-          /* Stretch panel headers to the edges (overriding content padding) */
+          /* Stretch panel headers to the edges and make them sticky */
           .lv-content > * > [class*="-header"] {
             margin-left: -32px !important;
             margin-right: -32px !important;
             padding-left: 32px !important;
             padding-right: 32px !important;
+            position: sticky;
+            top: 0;
+            z-index: 98;
+            background: var(--bg-pure-white);
+            padding-top: 12px !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+
+          /* Restore the gap below the header that was removed by margin-bottom: 0 */
+          .lv-content > * > [class*="-header"] + * {
+            margin-top: 16px !important;
           }
 
           /* ---------------- Responsive Styles ---------------- */
@@ -174,28 +188,8 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
             padding: 4px;
             margin-left: auto;
           }
-          .lv-mobile-header {
+          .lv-mobile-menu-btn {
             display: none;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 0 10px 0;
-            margin-bottom: 8px;
-            border-bottom: 1px solid var(--border-slate-100);
-          }
-          .lv-mobile-toggle {
-            background: transparent;
-            border: none;
-            color: var(--text-slate-700);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px;
-          }
-          .lv-mobile-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-slate-900);
           }
 
           @media (max-width: 1024px) {
@@ -224,20 +218,34 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
             .lv-sidebar-close {
               display: flex;
             }
-            .lv-mobile-header {
-              display: flex;
+            .lv-mobile-menu-btn {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-200);
+              color: var(--text-slate-700);
+              cursor: pointer;
+              margin-right: 12px;
+            }
+            .lv-mobile-menu-btn:hover {
+              background: var(--bg-slate-100);
             }
             .lv-main {
-              padding: 4px 0 0;
+              padding: 0;
             }
             .lv-content {
-              padding: 4px 16px 0;
+              padding: 0 16px;
             }
             .lv-content > * > [class*="-header"] {
               margin-left: -16px !important;
               margin-right: -16px !important;
               padding-left: 16px !important;
               padding-right: 16px !important;
+              padding-top: 8px !important;
             }
           }
         `}</style>

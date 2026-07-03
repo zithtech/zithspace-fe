@@ -18,6 +18,7 @@ import {
   Col,
   Space,
 } from 'antd';
+import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -450,6 +451,14 @@ export default function LeaveTypePanel() {
       {/* ── 1) HEADER: about + search + add ─────────────────────────────────── */}
       <div className="lvt-header">
         <div className="lvt-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvt-header-icon"><TagsOutlined /></div>
           <div>
             <div className="lvt-header-title">Leave Type</div>
@@ -550,6 +559,7 @@ export default function LeaveTypePanel() {
           columns={columns}
           dataSource={pagedRows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'lvt-row' })}
         />
       </div>

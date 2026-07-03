@@ -16,6 +16,7 @@ import {
   CloseCircleOutlined,
   RollbackOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -305,6 +306,14 @@ export default function ApprovalsPanel() {
     <div className="lvap">
       <div className="lvap-header">
         <div className="lvap-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvap-header-icon"><CheckCircleOutlined /></div>
           <div>
             <div className="lvap-header-title">Approvals</div>

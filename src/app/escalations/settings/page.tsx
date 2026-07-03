@@ -354,8 +354,8 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               rules={[
                 { required: true, message: 'Enter a name' },
                 { 
-                  pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
-                  message: 'Name can only contain letters, numbers, and basic punctuation' 
+                  pattern: /^[a-zA-Z0-9\s]+$/, 
+                  message: 'Name can only contain letters, numbers, and spaces' 
                 }
               ]}
             >
@@ -371,8 +371,14 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                 maxLength={64}
                 showCount
                 onKeyPress={(e) => {
-                  if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                  if (!/^[a-zA-Z0-9\s]+$/.test(e.key)) {
                     e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                  if (val !== e.target.value) {
+                    form.setFieldValue('name', val);
                   }
                 }}
               />

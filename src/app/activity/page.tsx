@@ -1017,6 +1017,11 @@ function ActivityStyles() {
         z-index: 1000 !important;
         margin: 0 -8px 14px -8px !important;
         padding: 8.5px 32px !important;
+        background: var(--bg-pure-white, #ffffff) !important;
+        backdrop-filter: none !important;
+      }
+      [data-theme='dark'] .saas-header-container.saas-header-container {
+        background: var(--bg-primary, #0B0F1A) !important;
       }
 
       .ax-shell {

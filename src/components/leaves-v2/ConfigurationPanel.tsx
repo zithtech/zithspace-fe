@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Spin } from 'antd';
+import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ReloadOutlined,
@@ -152,6 +153,7 @@ export default function ConfigurationPanel() {
           size="small"
           pagination={false}
           dataSource={d.lines}
+          scroll={{ x: 'max-content' }}
           columns={[
             { title: 'Leave Type', key: 'lt', render: (_, l) => ltName(l.leaveTypeId) },
             { title: 'Accrual', key: 'm', render: (_, l) => (l.accrualMethod === 'monthly' ? 'Monthly' : 'Whole term') },
@@ -168,6 +170,14 @@ export default function ConfigurationPanel() {
     <div className="lvc">
       <div className="lvc-header">
         <div className="lvc-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvc-header-icon"><SettingOutlined /></div>
           <div>
             <div className="lvc-header-title">Configuration</div>
@@ -252,12 +262,12 @@ export default function ConfigurationPanel() {
               <div>
                 <div className="lvc-mini-head">By Leave Type</div>
                 {result.byLeaveType.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing credited" /> :
-                  <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" />}
+                  <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} />}
               </div>
               <div>
                 <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
                 {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
-                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" />}
+                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} />}
               </div>
             </div>
           </div>
@@ -279,6 +289,7 @@ export default function ConfigurationPanel() {
             columns={policyCols}
             dataSource={policies}
             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
+            scroll={{ x: 'max-content' }}
             expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
             locale={{ emptyText: 'No active policies' }}
           />

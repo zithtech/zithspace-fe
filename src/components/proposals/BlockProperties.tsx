@@ -218,7 +218,7 @@ export const BlockProperties = () => {
                   placeholder="Agency Name"
                   value={coverBlock?.data?.senderCompany}
                   onChange={(e) => {
-                    const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                    const cleanVal = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                     handleUpdateBranding({ senderCompany: cleanVal });
                   }}
                 />
@@ -248,7 +248,7 @@ export const BlockProperties = () => {
                     placeholder="Name"
                     value={coverBlock?.data?.senderName}
                     onChange={(e) => {
-                      const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                      const cleanVal = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                       handleUpdateBranding({ senderName: cleanVal });
                     }}
                   />
@@ -259,7 +259,7 @@ export const BlockProperties = () => {
                     placeholder="Position/Role"
                     value={coverBlock?.data?.senderPosition}
                     onChange={(e) => {
-                      const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                      const cleanVal = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                       handleUpdateBranding({ senderPosition: cleanVal });
                     }}
                   />

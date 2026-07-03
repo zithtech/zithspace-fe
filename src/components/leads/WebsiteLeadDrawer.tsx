@@ -172,7 +172,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
     <Drawer
       open={open}
       onClose={onClose}
-      width={540}
+      width={720}
       closable={false}
       placement="right"
       className="wld-drawer"
@@ -469,36 +469,37 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           background: var(--bg-secondary);
         }
         .wld-header {
-          padding: 18px 22px 14px;
+          padding: 32px 32px 24px;
           border-bottom: 1px solid var(--border-slate-100);
-          background: var(--bg-secondary);
+          background: var(--bg-pure-white);
         }
         .wld-header-top {
           display: flex;
           align-items: flex-start;
-          gap: 14px;
+          gap: 20px;
         }
         .wld-avatar {
-          width: 44px; height: 44px;
-          border-radius: 4px;
-          background: #3b82f6;
+          width: 56px; height: 56px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
           color: #fff;
           font-weight: 800;
-          font-size: 14px;
+          font-size: 18px;
           letter-spacing: 0.04em;
           display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
         }
         .wld-id-block { flex: 1; min-width: 0; }
         .wld-eyebrow {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          font-size: 11px;
+          font-size: 11.5px;
           font-weight: 800;
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
         .wld-eyebrow strong { font-weight: 800; }
         .wld-eyebrow-icon { display: inline-flex; }
@@ -506,10 +507,10 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
         }
         .wld-name {
-          font-size: 22px;
+          font-size: 26px;
           font-weight: 800;
           color: var(--text-slate-900);
-          letter-spacing: -0.015em;
+          letter-spacing: -0.02em;
           line-height: 1.2;
         }
         .wld-id-sub {
@@ -543,12 +544,17 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           background: transparent;
           color: var(--text-slate-400);
           cursor: pointer;
-          padding: 4px;
-          margin: -4px;
-          border-radius: 4px;
+          padding: 6px;
+          margin: -6px;
+          border-radius: 6px;
           flex-shrink: 0;
+          transition: all 0.2s ease;
         }
-        .wld-close:hover { color: var(--text-slate-700); background: var(--bg-slate-50); }
+        .wld-close:hover { 
+          color: var(--text-slate-900); 
+          background: var(--bg-slate-100); 
+          transform: rotate(90deg);
+        }
 
         .wld-meta {
           display: flex;
@@ -575,24 +581,27 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           border-bottom: 1px solid var(--border-slate-100);
+          background: var(--bg-pure-white);
         }
         .wld-stat {
-          padding: 14px 22px;
+          padding: 20px 32px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
           border-right: 1px solid var(--border-slate-100);
+          transition: background-color 0.2s ease;
         }
+        .wld-stat:hover { background-color: var(--bg-slate-50); }
         .wld-stat:last-child { border-right: 0; }
         .wld-stat-label {
-          font-size: 10.5px;
+          font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.06em;
           text-transform: uppercase;
           color: var(--text-slate-400);
         }
         .wld-stat-value {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 800;
           color: var(--text-slate-900);
           letter-spacing: -0.01em;
@@ -604,9 +613,9 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           align-items: center;
           gap: 6px;
           align-self: flex-start;
-          padding: 4px 10px;
+          padding: 5px 12px;
           border-radius: 999px;
-          font-size: 11.5px;
+          font-size: 12px;
           font-weight: 700;
         }
         .wld-stat-dot {
@@ -616,30 +625,32 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-tabs {
           display: flex;
           gap: 8px;
-          padding: 0 22px;
+          padding: 0 24px;
           border-bottom: 1px solid var(--border-slate-100);
+          background: var(--bg-pure-white);
         }
         .wld-tab {
           border: none;
           background: transparent;
-          padding: 12px 4px;
-          margin: 0 8px;
-          font-size: 13px;
+          padding: 16px 16px;
+          margin: 0 4px;
+          font-size: 14px;
           font-weight: 600;
           color: var(--text-slate-500);
           cursor: pointer;
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
+          transition: all 0.2s ease;
+          border-radius: 6px 6px 0 0;
         }
-        .wld-tab:first-child { margin-left: 0; }
-        .wld-tab:hover { color: var(--text-slate-700); }
+        .wld-tab:hover { color: var(--text-slate-800); background: var(--bg-slate-50); }
         .wld-tab.is-active {
           color: var(--text-slate-900);
           border-bottom-color: var(--text-slate-900);
         }
 
         .wld-body {
-          padding: 16px 22px 22px;
+          padding: 24px 32px 32px;
           min-height: 320px;
         }
 
@@ -781,8 +792,14 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-details-col {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 4px;
-          padding: 14px 16px;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .wld-details-col:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
         .wld-details-section-head {
           display: flex;
@@ -855,15 +872,21 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           gap: 0;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 4px;
+          border-radius: 8px;
           overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .wld-details-meta-row:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
         .wld-details-meta-item {
           flex: 1;
           display: flex;
           align-items: center;
-          gap: 7px;
-          padding: 10px 16px;
+          gap: 8px;
+          padding: 12px 20px;
           min-width: 0;
         }
         .wld-details-meta-item svg { color: var(--text-slate-400); flex-shrink: 0; }
@@ -874,7 +897,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           flex-shrink: 0;
         }
         .wld-details-meta-label {
-          font-size: 10.5px;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -882,8 +905,8 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           white-space: nowrap;
         }
         .wld-details-meta-value {
-          font-size: 12.5px;
-          font-weight: 600;
+          font-size: 13px;
+          font-weight: 700;
           color: var(--text-slate-800);
           white-space: nowrap;
           overflow: hidden;
@@ -893,8 +916,14 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         .wld-details-msg-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
-          border-radius: 4px;
-          padding: 14px 16px;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .wld-details-msg-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
         .wld-details-msg-head {
           display: flex;

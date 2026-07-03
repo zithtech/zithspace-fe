@@ -469,7 +469,7 @@ export default function ArchivedTicketsPage() {
             ),
           }}
           pagination={false}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
         />
 
         {totalArchived > 0 && (

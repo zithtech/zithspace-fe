@@ -476,7 +476,7 @@ export default function TrashPage() {
             ),
           }}
           pagination={false}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
         />
 
         {/* ── Sticky pagination footer ── */}

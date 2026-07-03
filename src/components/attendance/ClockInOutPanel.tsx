@@ -89,6 +89,7 @@ export default function ClockInOutPanel() {
   const { user } = useAuth();
   const { socket } = useSocket();
   const { canClockInOut, canReadAttendance } = usePermission();
+  console.log("Forcing HMR reload for ClockInOutPanel");
 
   const [today, setToday] = useState<TodayStatus | null>(null);
   const [summary, setSummary] = useState<any>(null);
@@ -670,12 +671,14 @@ export default function ClockInOutPanel() {
 
         /* 4) Table */
         .cio-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .cio-table .ant-table { background: transparent; font-size: 12px; }
-        .cio-table .ant-table-thead > tr > th {
+        .cio-table, .cio-table.ant-table-wrapper, .cio-table .ant-table, .cio-table .ant-table-container, .cio-table .ant-table-content, .cio-table .ant-table-header, .cio-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .cio-table .ant-table-thead > tr > th,
+        .cio-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .cio-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .cio-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

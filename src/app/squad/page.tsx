@@ -114,6 +114,7 @@ const accentFor = (key: string): [string, string] => {
 };
 
 export default function SquadManagement() {
+  console.log("Forcing HMR reload for SquadManagement");
   useActivitySource({ section: "WORK", module: "Squad", page: "SquadView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadSquad, canCreateSquad, canUpdateSquad, canDeleteSquad } = usePermission();
@@ -1050,12 +1051,32 @@ export default function SquadManagement() {
 
           /* Table */
           .sq-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .sq-table .ant-table { background: transparent; font-size: 12px; }
-          .sq-table .ant-table-thead > tr > th {
+          .sq-table,
+          .sq-table.ant-table-wrapper,
+          .sq-table .ant-table,
+          .sq-table .ant-table-wrapper,
+          .sq-table .ant-table-container,
+          .sq-table .ant-table-content,
+          .sq-table .ant-table-header,
+          .sq-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
+          }
+          .sq-table .ant-table-thead > tr > th, .sq-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
             white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .sq-table .ant-table-thead > tr > th::before { display: none !important; }
+          [data-theme='dark'] .sq-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .sq-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #374151 !important;
           }
           .sq-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
           .sq-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

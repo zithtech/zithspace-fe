@@ -1409,14 +1409,20 @@ export const hivebugStyles = `
 }
 .hb-pagination-page strong { color: var(--hb-text); font-weight: 600; }
 .hb-table { width: 100%; max-width: 100%; min-width: 1200px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
-.hb-table thead th {
+.hb-table thead th, .hb-table thead td {
   position: sticky; top: 0; z-index: 1;
-  background: var(--hb-bg-elev);
-  color: var(--hb-text-muted);
+  background: #161B22 !important;
+  color: #94a3b8 !important;
   font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
   text-align: left;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--hb-border);
+  border-bottom: 1px solid #374151 !important;
+  border-radius: 0 !important;
+}
+.hb-light .hb-table thead th, .hb-light .hb-table thead td {
+  background: var(--bg-slate-50, #f8fafc) !important;
+  color: var(--text-slate-500, #64748b) !important;
+  border-bottom-color: var(--border-slate-200, #e2e8f0) !important;
 }
 .hb-table tbody td {
   padding: 5px 10px;

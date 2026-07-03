@@ -41,6 +41,7 @@ const TERM_LABEL: Record<string, string> = { monthly: 'Monthly', quarterly: 'Qua
 export default function ConfigurationPanel() {
   const router = useRouter();
   const { canReadLeavePolicy } = usePermission();
+  console.log("Forcing HMR reload for ConfigurationPanel");
 
   // settings
   const [settings, setSettings] = useState<AccrualSettings | null>(null);
@@ -328,9 +329,16 @@ export default function ConfigurationPanel() {
         .lvc-rstat-label { font-size: 11px; color: var(--text-slate-400); margin-top: 3px; }
         .lvc-result-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; padding: 16px; }
         .lvc-mini-head { font-size: 12px; font-weight: 700; color: var(--text-slate-600); margin-bottom: 8px; }
-        .lvc-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); }
-        .lvc-table .ant-table { font-size: 12px; }
-        .lvc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important; }
+        .lvc-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvc-table, .lvc-table.ant-table-wrapper, .lvc-table .ant-table, .lvc-table .ant-table-container, .lvc-table .ant-table-content, .lvc-table .ant-table-header, .lvc-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvc-table .ant-table-thead > tr > th,
+        .lvc-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvc-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 7px 12px !important; }
 
         @media (max-width: 1024px) {

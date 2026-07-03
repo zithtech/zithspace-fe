@@ -225,6 +225,7 @@ export default function ManageAttendancePanel() {
     canUpdateAttendance,
     canDeleteAttendance,
   } = usePermission();
+  console.log("Forcing HMR reload for ManageAttendancePanel");
 
   const [rows, setRows] = useState<ExtendedAttendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -1446,12 +1447,14 @@ export default function ManageAttendancePanel() {
 
         /* 4) Table */
         .att-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .att-table .ant-table { background: transparent; font-size: 12px; }
-        .att-table .ant-table-thead > tr > th {
+        .att-table, .att-table.ant-table-wrapper, .att-table .ant-table, .att-table .ant-table-container, .att-table .ant-table-content, .att-table .ant-table-header, .att-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .att-table .ant-table-thead > tr > th,
+        .att-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

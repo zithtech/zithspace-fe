@@ -88,6 +88,7 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
 
 export default function ApplyLeavePanel() {
   const { canReadLeave, canCreateLeave, canUpdateLeave } = usePermission();
+  console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
@@ -821,9 +822,16 @@ export default function ApplyLeavePanel() {
         .lva-filter-label .anticon { color: var(--text-slate-400); }
         .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lva-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .lva-table .ant-table { background: transparent; font-size: 12px; }
-        .lva-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lva-table, .lva-table.ant-table-wrapper, .lva-table .ant-table, .lva-table .ant-table-container, .lva-table .ant-table-content, .lva-table .ant-table-header, .lva-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lva-table .ant-table-thead > tr > th,
+        .lva-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lva-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .lva-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lva-table .ant-table-tbody > tr.lva-row:hover > td { background: var(--bg-slate-50) !important; }

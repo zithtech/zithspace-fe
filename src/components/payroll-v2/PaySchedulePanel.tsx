@@ -69,6 +69,7 @@ function DrawerCard({ icon, tint, color, title, subtitle, children }: {
 
 export default function PaySchedulePanel() {
   const { canReadPayrollSchedules, canCreatePayrollSchedules, canUpdatePayrollSchedules, canDeletePayrollSchedules } = usePermission();
+  console.log("Forcing HMR reload for PaySchedulePanel");
 
   const [view, setView] = useState<View>('schedules');
   const [schedules, setSchedules] = useState<PayScheduleListItem[]>([]);
@@ -422,9 +423,16 @@ export default function PaySchedulePanel() {
         .pvg-tab:hover { color: var(--text-slate-800); }
         .pvg-tab.is-active { background: var(--bg-pure-white); color: var(--text-slate-900); box-shadow: 0 1px 2px rgba(15,23,42,0.10), 0 0 0 1px rgba(15,23,42,0.05); }
 
-        .pvg-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .pvg-table .ant-table { background: transparent; font-size: 12px; }
-        .pvg-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvg-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pvg-table, .pvg-table.ant-table-wrapper, .pvg-table .ant-table, .pvg-table .ant-table-container, .pvg-table .ant-table-content, .pvg-table .ant-table-header, .pvg-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pvg-table .ant-table-thead > tr > th,
+        .pvg-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .pvg-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .pvg-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvg-table .ant-table-tbody > tr.pvg-row:hover > td { background: var(--bg-slate-50) !important; }

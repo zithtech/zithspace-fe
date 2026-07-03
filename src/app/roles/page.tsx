@@ -521,6 +521,7 @@ export default function RolesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
+  console.log("Forcing HMR reload for roles page 2");
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);

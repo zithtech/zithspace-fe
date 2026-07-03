@@ -125,6 +125,7 @@ export default function SalaryStructurePanel() {
   const [rows, setRows] = useState<PayStructureListItem[]>([]);
   const [components, setComponents] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(false);
+  console.log("Forcing HMR reload for SalaryStructurePanel");
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
@@ -602,9 +603,16 @@ export default function SalaryStructurePanel() {
         .pvs-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .pvs-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
 
-        .pvs-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .pvs-table .ant-table { background: transparent; font-size: 12px; }
-        .pvs-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvs-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pvs-table, .pvs-table.ant-table-wrapper, .pvs-table .ant-table, .pvs-table .ant-table-container, .pvs-table .ant-table-content, .pvs-table .ant-table-header, .pvs-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pvs-table .ant-table-thead > tr > th,
+        .pvs-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .pvs-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .pvs-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvs-table .ant-table-tbody > tr.pvs-row:hover > td { background: var(--bg-slate-50) !important; }

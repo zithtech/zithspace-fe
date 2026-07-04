@@ -94,6 +94,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 
 const { Text, Title } = Typography;
 
@@ -2076,79 +2077,87 @@ export default function LeadSettingsPage() {
 
                 {/* DRAWER */}
                 <Drawer
-                    title={
-                        <div className="lset-drawer-head" style={{ margin: "-16px -24px", padding: "20px 24px", position: "relative", overflow: "hidden" }}>
-                            <div className="lset-drawer-bg" aria-hidden />
-                            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
-                                <div className="lset-drawer-icon">
-                                    {activeTab === "1" ? <TagIcon size={20} /> : activeTab === "2" ? <Zap size={20} /> : <Globe size={20} />}
+                    {...commonDrawerProps}
+                    open={isDrawerOpen}
+                    onClose={handleCancel}
+                >
+                    <style>{drawerFormStyles}</style>
+                    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                        <div
+                            className="customer-drawer-header"
+                            style={{
+                                padding: "16px 14px 12px 14px",
+                                borderBottom: "1px solid var(--border-color)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                position: "sticky",
+                                top: 0,
+                                zIndex: 10,
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <div
+                                    style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 8,
+                                        background: "rgba(59,130,246,0.1)",
+                                        color: "#3b82f6",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    {activeTab === "1" ? <TagIcon size={16} /> : activeTab === "2" ? <Zap size={16} /> : <Globe size={16} />}
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="lset-drawer-title">
+                                <div>
+                                    <div
+                                        style={{
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            color: "var(--text-primary)",
+                                            lineHeight: 1.2,
+                                        }}
+                                    >
                                         {editingId
                                             ? `Edit ${activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}`
                                             : `New ${activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}`}
                                     </div>
-                                    <div className="lset-drawer-sub">
+                                    <div
+                                        style={{
+                                            fontSize: 11.5,
+                                            color: "var(--text-secondary)",
+                                            marginTop: 2,
+                                        }}
+                                    >
                                         Configure properties and appearance
                                     </div>
                                 </div>
-                                <span className="lset-drawer-badge">
-                                    <Sparkles size={10} />
-                                    {activeTab === "1" ? "Pipeline" : activeTab === "2" ? "Workflow" : "Source"}
-                                </span>
                             </div>
+                            <Button
+                                type="text"
+                                icon={<XIcon size={16} />}
+                                onClick={handleCancel}
+                                style={{ color: "var(--text-slate-500)" }}
+                            />
                         </div>
-                    }
-                    width={570}
-                    open={isDrawerOpen}
-                    onClose={handleCancel}
-                    className="lset-drawer"
-                    closable={!loading}
-                    footer={
-                        <div className="lset-drawer-footer">
-                            <span className="lset-drawer-footer-hint">
-                                <ShieldCheck size={12} /> Changes apply instantly across all leads
-                            </span>
-                            <div style={{ display: "flex", gap: 10 }}>
-                                <Button htmlType="button" onClick={() => handleCancel()} className="lset-btn-cancel">Cancel</Button>
-                                {((editingId && canUpdateLeadSetting) || (!editingId && canCreateLeadSetting)) && (
-                                    <Button
-                                        type="primary"
-                                        loading={loading}
-                                        onClick={handleSave}
-                                        className="lset-cta-btn"
-                                        style={{ minWidth: 180 }}
-                                    >
-                                        {editingId ? "Update" : "Create"} {activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}
-                                        <ArrowUpRight size={13} />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    }
-                >
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        initialValues={{ isDefault: false, isFinalStage: false, isActive: true }}
-                        requiredMark={false}
-                        className="lset-drawer-form"
-                    >
+
+                        <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }}>
+                            <Form
+                                form={form}
+                                layout="horizontal"
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
+                                labelAlign="left"
+                                colon={false}
+                                className="customer-drawer-form"
+                                initialValues={{ isDefault: false, isFinalStage: false, isActive: true }}
+                            >
                         {activeTab === "1" ? (
                             <>
                                 {/* SECTION 1 */}
-                                <div className="lset-section-card">
-                                    <div className="lset-section-head">
-                                        <span className="lset-section-step" style={{ background: "rgba(99,102,241,0.08)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.2)" }}>01</span>
-                                        <div>
-                                            <div className="lset-section-row">
-                                                <Palette size={13} color="#6366f1" />
-                                                <span className="lset-section-title">Identity & Appearance</span>
-                                            </div>
-                                            <span className="lset-section-sub">How this status looks across the app</span>
-                                        </div>
-                                    </div>
+                                <SectionCard step="STEP 1" icon={<Palette size={13} color="#6366f1" />} title="Identity & Appearance" subtitle="How this status looks across the app">
                                     <Form.Item name="category" label={<span className="lset-form-label">Internal Category</span>} rules={[{ required: true, message: "Required" }]}>
                                         <SearchableDropdown
                                             placeholder="Pick or type — e.g. negotiation"
@@ -2177,66 +2186,50 @@ export default function LeadSettingsPage() {
                                             }}
                                         />
                                     </Form.Item>
-                                    <Row gutter={12}>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="color"
-                                                label={<span className="lset-form-label">Brand Color</span>}
-                                                rules={[{ required: true, message: "Required" }]}
-                                            >
-                                                <Select
-                                                    options={[
-                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
-                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
-                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
-                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
-                                                    ]}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="statusIcon"
-                                                label={<span className="lset-form-label">Icon</span>}
-                                            >
-                                                <SearchableDropdown
-                                                    placeholder="Pick a status icon"
-                                                    searchPlaceholder="Search icons…"
-                                                    itemNoun="icons"
-                                                    options={STATUS_ICON_OPTIONS.map(icon => ({
-                                                        value: icon.key,
-                                                        label: icon.label,
-                                                        description: icon.key,
-                                                        badge: (
-                                                            <span style={{
-                                                                width: "100%", height: "100%",
-                                                                display: "inline-flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                color: "var(--text-slate-700, #475569)",
-                                                            }}>
-                                                                {icon.render(14)}
-                                                            </span>
-                                                        ),
-                                                    }))}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-                                </div>
+                                    <Form.Item
+                                        name="color"
+                                        label={<span className="lset-form-label">Brand Color</span>}
+                                        rules={[{ required: true, message: "Required" }]}
+                                    >
+                                        <Select
+                                            options={[
+                                                { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                            ]}
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        name="statusIcon"
+                                        label={<span className="lset-form-label">Icon</span>}
+                                    >
+                                        <SearchableDropdown
+                                            placeholder="Pick a status icon"
+                                            searchPlaceholder="Search icons…"
+                                            itemNoun="icons"
+                                            options={STATUS_ICON_OPTIONS.map(icon => ({
+                                                value: icon.key,
+                                                label: icon.label,
+                                                description: icon.key,
+                                                badge: (
+                                                    <span style={{
+                                                        width: "100%", height: "100%",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        color: "var(--text-slate-700, #475569)",
+                                                    }}>
+                                                        {icon.render(14)}
+                                                    </span>
+                                                ),
+                                            }))}
+                                        />
+                                    </Form.Item>
+                                </SectionCard>
 
                                 {/* SECTION 2 */}
-                                <div className="lset-section-card">
-                                    <div className="lset-section-head">
-                                        <span className="lset-section-step" style={{ background: "rgba(245,158,11,0.08)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }}>02</span>
-                                        <div>
-                                            <div className="lset-section-row">
-                                                <Activity size={13} color="#f59e0b" />
-                                                <span className="lset-section-title">Behavioral Rules</span>
-                                            </div>
-                                            <span className="lset-section-sub">Lifecycle behavior for new and closing leads</span>
-                                        </div>
-                                    </div>
+                                <SectionCard step="STEP 2" icon={<Activity size={13} color="#f59e0b" />} title="Behavioral Rules" subtitle="Lifecycle behavior for new and closing leads">
 
                                     <div className="lset-toggle-row">
                                         <div className="lset-toggle-text">
@@ -2280,22 +2273,12 @@ export default function LeadSettingsPage() {
                                             <Switch />
                                         </Form.Item>
                                     </div>
-                                </div>
+                                </SectionCard>
                             </>
                         ) : activeTab === "2" ? (
                             <>
                                 {/* SECTION 1 */}
-                                <div className="lset-section-card">
-                                    <div className="lset-section-head">
-                                        <span className="lset-section-step" style={{ background: "rgba(236,72,153,0.08)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.2)" }}>01</span>
-                                        <div>
-                                            <div className="lset-section-row">
-                                                <Workflow size={13} color="#ec4899" />
-                                                <span className="lset-section-title">Action Configuration</span>
-                                            </div>
-                                            <span className="lset-section-sub">Identity, type, and visual appearance</span>
-                                        </div>
-                                    </div>
+                                <SectionCard step="STEP 1" icon={<Workflow size={13} color="#ec4899" />} title="Action Configuration" subtitle="Identity, type, and visual appearance">
                                     <Form.Item name="actionType" label={<span className="lset-form-label">Category</span>} rules={[{ required: true, message: "Required" }]}>
                                         <SearchableDropdown
                                             placeholder="Pick or type — e.g. Communication"
@@ -2332,50 +2315,34 @@ export default function LeadSettingsPage() {
                                             }}
                                         />
                                     </Form.Item>
-                                    <Row gutter={12}>
-                                        <Col span={14}>
-                                            <Form.Item name="icon" label={<span className="lset-form-label">Icon</span>} rules={[{ required: true, message: "Required" }]}>
-                                                <Select
-                                                    showSearch
-                                                    placeholder="Search icon"
-                                                    options={iconOptions}
-                                                    filterOption={(input, option) =>
-                                                        (option?.value as string).toLowerCase().includes(input.toLowerCase())
-                                                    }
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={10}>
-                                            <Form.Item
-                                                name="color"
-                                                label={<span className="lset-form-label">Color</span>}
-                                                rules={[{ required: true, message: "Required" }]}
-                                            >
-                                                <Select
-                                                    options={[
-                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
-                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
-                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
-                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
-                                                    ]}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-                                </div>
+                                    <Form.Item name="icon" label={<span className="lset-form-label">Icon</span>} rules={[{ required: true, message: "Required" }]}>
+                                        <Select
+                                            showSearch
+                                            placeholder="Search icon"
+                                            options={iconOptions}
+                                            filterOption={(input, option) =>
+                                                (option?.value as string).toLowerCase().includes(input.toLowerCase())
+                                            }
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        name="color"
+                                        label={<span className="lset-form-label">Color</span>}
+                                        rules={[{ required: true, message: "Required" }]}
+                                    >
+                                        <Select
+                                            options={[
+                                                { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                            ]}
+                                        />
+                                    </Form.Item>
+                                </SectionCard>
 
                                 {/* SECTION 2 */}
-                                <div className="lset-section-card">
-                                    <div className="lset-section-head">
-                                        <span className="lset-section-step" style={{ background: "rgba(16,185,129,0.08)", color: "#10b981", border: "1px solid rgba(16,185,129,0.2)" }}>02</span>
-                                        <div>
-                                            <div className="lset-section-row">
-                                                <ShieldCheck size={13} color="#10b981" />
-                                                <span className="lset-section-title">Availability</span>
-                                            </div>
-                                            <span className="lset-section-sub">Control whether this action shows up in workflows</span>
-                                        </div>
-                                    </div>
+                                <SectionCard step="STEP 2" icon={<ShieldCheck size={13} color="#10b981" />} title="Availability" subtitle="Control whether this action shows up in workflows">
                                     <div className="lset-toggle-row">
                                         <div className="lset-toggle-text">
                                             <span className="lset-toggle-title">
@@ -2388,22 +2355,12 @@ export default function LeadSettingsPage() {
                                             <Switch />
                                         </Form.Item>
                                     </div>
-                                </div>
+                                </SectionCard>
                             </>
                         ) : (
                             <>
                                 {/* PLATFORM SECTION 1 — Type */}
-                                <div className="lset-section-card">
-                                    <div className="lset-section-head">
-                                        <span className="lset-section-step" style={{ background: "rgba(6,182,212,0.08)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>01</span>
-                                        <div>
-                                            <div className="lset-section-row">
-                                                <Globe size={13} color="#06b6d4" />
-                                                <span className="lset-section-title">Source kind</span>
-                                            </div>
-                                            <span className="lset-section-sub">Pick where leads come from. The next step adapts to your choice.</span>
-                                        </div>
-                                    </div>
+                                <SectionCard step="STEP 1" icon={<Globe size={13} color="#06b6d4" />} title="Source kind" subtitle="Pick where leads come from. The next step adapts to your choice.">
                                     <Form.Item
                                         name="platformType"
                                         rules={[{ required: true, message: "Pick a type" }]}
@@ -2438,27 +2395,11 @@ export default function LeadSettingsPage() {
                                             }}
                                         />
                                     </Form.Item>
-                                </div>
+                                </SectionCard>
 
                                 {/* PLATFORM SECTION 2 — Identity (depends on type) */}
                                 {platformTypeWatch && (
-                                    <div className="lset-section-card">
-                                        <div className="lset-section-head">
-                                            <span className="lset-section-step" style={{ background: "rgba(99,102,241,0.08)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.2)" }}>02</span>
-                                            <div>
-                                                <div className="lset-section-row">
-                                                    <TagIcon size={13} color="#6366f1" />
-                                                    <span className="lset-section-title">
-                                                        {platformTypeWatch === "online" ? "Pick a platform" : "Website identity"}
-                                                    </span>
-                                                </div>
-                                                <span className="lset-section-sub">
-                                                    {platformTypeWatch === "online"
-                                                        ? "Choose from the curated list — name, code and URL are auto-filled."
-                                                        : "Give your website a label leads will be grouped under."}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    <SectionCard step="STEP 2" icon={<TagIcon size={13} color="#6366f1" />} title={platformTypeWatch === "online" ? "Pick a platform" : "Website identity"} subtitle={platformTypeWatch === "online" ? "Choose from the curated list — name, code and URL are auto-filled." : "Give your website a label leads will be grouped under."}>
 
                                         {platformTypeWatch === "online" ? (
                                             <Form.Item
@@ -2568,22 +2509,12 @@ export default function LeadSettingsPage() {
                                                 style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.04em" }}
                                             />
                                         </Form.Item>
-                                    </div>
+                                    </SectionCard>
                                 )}
 
                                 {/* PLATFORM SECTION 3 — Branding & URL */}
                                 {platformTypeWatch && (
-                                    <div className="lset-section-card">
-                                        <div className="lset-section-head">
-                                            <span className="lset-section-step" style={{ background: "rgba(245,158,11,0.08)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }}>03</span>
-                                            <div>
-                                                <div className="lset-section-row">
-                                                    <ImageIcon size={13} color="#f59e0b" />
-                                                    <span className="lset-section-title">Branding & URL</span>
-                                                </div>
-                                                <span className="lset-section-sub">How this source looks in the leads table and where it lives.</span>
-                                            </div>
-                                        </div>
+                                    <SectionCard step="STEP 3" icon={<ImageIcon size={13} color="#f59e0b" />} title="Branding & URL" subtitle="How this source looks in the leads table and where it lives.">
                                         <Form.Item name="platformUrl" label={<span className="lset-form-label">URL</span>}>
                                             <Input prefix={<Link2 size={13} style={{ color: "var(--text-slate-400)" }} />} placeholder="https://…" />
                                         </Form.Item>
@@ -2600,22 +2531,12 @@ export default function LeadSettingsPage() {
                                         <Form.Item name="platformDescription" label={<span className="lset-form-label">Description</span>}>
                                             <Input.TextArea rows={3} placeholder="Short note about how this source feeds leads in." />
                                         </Form.Item>
-                                    </div>
+                                    </SectionCard>
                                 )}
 
                                 {/* PLATFORM SECTION 4 — Visibility */}
                                 {platformTypeWatch && (
-                                    <div className="lset-section-card">
-                                        <div className="lset-section-head">
-                                            <span className="lset-section-step" style={{ background: "rgba(16,185,129,0.08)", color: "#10b981", border: "1px solid rgba(16,185,129,0.2)" }}>04</span>
-                                            <div>
-                                                <div className="lset-section-row">
-                                                    <ShieldCheck size={13} color="#10b981" />
-                                                    <span className="lset-section-title">Status</span>
-                                                </div>
-                                                <span className="lset-section-sub">Hidden platforms won't appear in the lead source picker.</span>
-                                            </div>
-                                        </div>
+                                    <SectionCard step="STEP 4" icon={<ShieldCheck size={13} color="#10b981" />} title="Status" subtitle="Hidden platforms won't appear in the lead source picker.">
                                         <div className="lset-toggle-row">
                                             <div className="lset-toggle-text">
                                                 <span className="lset-toggle-title">
@@ -2628,7 +2549,7 @@ export default function LeadSettingsPage() {
                                                 <Switch />
                                             </Form.Item>
                                         </div>
-                                    </div>
+                                    </SectionCard>
                                 )}
                             </>
                         )}
@@ -2641,7 +2562,39 @@ export default function LeadSettingsPage() {
                                 Saved settings sync to every lead view and the public pipeline immediately.
                             </div>
                         </div>
-                    </Form>
+                            </Form>
+                        </div>
+                        <div
+                            className="customer-drawer-footer"
+                            style={{
+                                padding: "12px 16px",
+                                borderTop: "1px solid var(--border-color)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                background: "var(--bg-secondary)",
+                                position: "sticky",
+                                bottom: 0,
+                                zIndex: 10,
+                            }}
+                        >
+                            <span className="lset-drawer-footer-hint" style={{ fontSize: 11, color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <ShieldCheck size={12} /> Changes apply instantly
+                            </span>
+                            <div style={{ display: "flex", gap: 10 }}>
+                                <Button htmlType="button" onClick={() => handleCancel()}>Cancel</Button>
+                                {((editingId && canUpdateLeadSetting) || (!editingId && canCreateLeadSetting)) && (
+                                    <Button
+                                        type="primary"
+                                        loading={loading}
+                                        onClick={handleSave}
+                                    >
+                                        {editingId ? "Update" : "Create"} {activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </Drawer>
 
                 <style dangerouslySetInnerHTML={{

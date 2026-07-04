@@ -715,7 +715,7 @@ export default function AccountsSettingsPage() {
             </div>
           </div>
         }
-        width={420}
+        width={720}
         open={drawerVisible}
         onClose={() => {
           setDrawerVisible(false);
@@ -762,7 +762,11 @@ export default function AccountsSettingsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           initialValues={{ isActive: true, color: "#3b82f6" }}
           requiredMark={false}
@@ -1149,7 +1153,7 @@ export default function AccountsSettingsPage() {
 
         .settings-section {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 16px; padding: 12px 14px 4px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+          border-radius: 0 !important; padding: 16px 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
         .settings-section__head {
           display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px;

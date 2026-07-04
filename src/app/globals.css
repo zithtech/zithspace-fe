@@ -19365,7 +19365,7 @@ select:-webkit-autofill:focus {
 .ced-input.ant-input,
 .ced-input.ant-input-affix-wrapper,
 .ced-textarea.ant-input {
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   transition: all 0.2s ease !important;
@@ -19395,7 +19395,7 @@ select:-webkit-autofill:focus {
 }
 
 .ced-select.ant-select .ant-select-selector {
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   min-height: 42px !important;
   background: var(--bg-slate-50) !important;
   border: 1px solid var(--border-slate-200) !important;
@@ -19429,7 +19429,7 @@ select:-webkit-autofill:focus {
 .ced-select.ant-select-single .ant-select-selection-item {
   background: transparent !important;
   border: none !important;
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   color: var(--text-slate-800) !important;
   font-size: 13.5px !important;
   font-weight: 500 !important;
@@ -19441,7 +19441,7 @@ select:-webkit-autofill:focus {
 .ced-select.ant-select-multiple .ant-select-selection-item {
   background: rgba(59, 130, 246, 0.08) !important;
   border: 1px solid rgba(59, 130, 246, 0.20) !important;
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   color: var(--text-slate-800) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -19450,7 +19450,7 @@ select:-webkit-autofill:focus {
 
 /* ---------- Dragger ---------- */
 .ced-dragger.ant-upload-wrapper .ant-upload-drag {
-  border-radius: 0 !important;
+  border-radius: 6px !important;
   border: 2px dashed var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   padding: 20px !important;
@@ -20756,7 +20756,7 @@ select:-webkit-autofill:focus {
 .es-input.ant-input,
 .es-input.ant-input-affix-wrapper,
 .es-textarea.ant-input {
-  border-radius: 0px !important;
+  border-radius: 6px !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   transition: all 0.2s ease !important;
@@ -20783,7 +20783,7 @@ select:-webkit-autofill:focus {
 }
 
 .es-number.ant-input-number {
-  border-radius: 0px !important;
+  border-radius: 6px !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   height: 42px;
@@ -20809,7 +20809,7 @@ select:-webkit-autofill:focus {
 
 .es-colorpicker.ant-color-picker-trigger {
   height: 42px !important;
-  border-radius: 0px !important;
+  border-radius: 6px !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   padding: 4px 8px !important;

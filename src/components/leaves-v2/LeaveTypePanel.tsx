@@ -19,6 +19,7 @@ import {
   Space,
 } from 'antd';
 import { Menu } from 'lucide-react';
+import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -59,6 +60,8 @@ const TINT = {
   red: 'rgba(239,68,68,0.10)',
   grey: 'rgba(148,163,184,0.12)',
 } as const;
+
+
 
 type UnitFilter = 'all' | 'day' | 'hour';
 type PaidFilter = 'all' | 'paid' | 'unpaid';
@@ -103,80 +106,7 @@ const slugifyCode = (name: string): string =>
     .replace(/^_+|_+$/g, '')
     .slice(0, 40);
 
-const fieldLabel = (t: string) => (
-  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{t}</span>
-);
 
-// Section card — matches the ProjectFormDrawer pattern (icon chip + title +
-// subtitle + STEP pill, wrapping its fields in a square white card).
-function SectionCard({
-  icon,
-  tint,
-  color,
-  title,
-  subtitle,
-  step,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  step: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 0,
-        padding: '12px 22px',
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 0,
-            background: tint,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 999,
-            background: 'var(--bg-secondary, #f1f5f9)',
-            color: 'var(--text-slate-500)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {step}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 // Smooth area sparkline — identical to the Proposals stat cards.
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
@@ -592,69 +522,103 @@ export default function LeaveTypePanel() {
 
       {/* ── Create / Edit DRAWER (ProjectFormDrawer-style sections) ──────────── */}
       <Drawer
+        rootClassName="leave-drawer-root"
         title={null}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={480}
+        width={720}
         closable={false}
         destroyOnClose
         styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
           header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
         }}
-      >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          {/* Header */}
+        footer={
           <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
             style={{
-              padding: '16px 18px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-pure-white)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              Fields marked required must be filled
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={editing ? <EditOutlined /> : <PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editing ? 'Save Changes' : 'Create Leave Type'}
+            </Button>
+          </div>
+        }
+      >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editing ? TINT.green : TINT.blue,
+                color: editing ? PALETTE.green : PALETTE.blue,
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              {editing ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
               <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 0,
-                  background: editing ? TINT.green : TINT.blue,
-                  color: editing ? PALETTE.green : PALETTE.blue,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
               >
-                {editing ? <EditOutlined /> : <PlusOutlined />}
+                {editing ? 'Edit Leave Type' : 'New Leave Type'}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  {editing ? 'Edit Leave Type' : 'New Leave Type'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                  {editing ? `Update details for ${editing.name}` : 'Define a type of leave employees can request'}
-                </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {editing ? `Update details for ${editing.name}` : 'Define a type of leave employees can request'}
               </div>
             </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setDrawerOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
           </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
 
           {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
+          <div className="px-6 py-6 space-y-5 pb-24">
             <Form
               form={form}
-              layout="vertical"
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
               requiredMark="optional"
-              className="lvt-drawer-form"
+              className="customer-drawer-form lvt-drawer-form"
               onValuesChange={(changed) => {
                 if (!editing && 'name' in changed && !codeTouched) {
                   form.setFieldValue('code', slugifyCode(changed.name || ''));
@@ -664,99 +628,85 @@ export default function LeaveTypePanel() {
               {/* STEP 1 — Basic Details */}
               <SectionCard
                 icon={<InfoCircleOutlined />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
-                title="Basic Details"
-                subtitle="The essentials that identify this leave type"
+                title="Basic Information"
+                subtitle="Provide the leave type name, short code, and unit."
                 step="STEP 1"
               >
-                <Row gutter={16} align="top">
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="name"
-                      label={fieldLabel('Leave name')}
-                      tooltip="Pick a common type or type your own"
-                      rules={[{ required: true, message: 'Name is required' }]}
+                <div className="space-y-4">
+                  <Form.Item
+                    style={{ marginBottom: 0 }}
+                    name="name"
+                    label="Leave name"
+                    tooltip="Pick a common type or type your own"
+                    rules={[{ required: true, message: 'Name is required' }]}
+                  >
+                    <AutoComplete
+                      options={suggestionOptions}
+                      onSelect={applySuggestion}
+                      filterOption={(input, option) =>
+                        (option?.value as string).toLowerCase().includes(input.toLowerCase())
+                      }
+                      allowClear
                     >
-                      <AutoComplete
-                        options={suggestionOptions}
-                        onSelect={applySuggestion}
-                        filterOption={(input, option) =>
-                          (option?.value as string).toLowerCase().includes(input.toLowerCase())
-                        }
-                        allowClear
-                      >
-                        <Input size="large" maxLength={120} placeholder="e.g. Sick Leave" />
-                      </AutoComplete>
-                    </Form.Item>
-                  </Col>
+                      <Input size="large" maxLength={120} placeholder="e.g. Sick Leave" />
+                    </AutoComplete>
+                  </Form.Item>
 
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="code"
-                      label={fieldLabel('Code')}
-                      tooltip="Auto-generated from the name. You can override it."
-                      rules={[
-                        { required: true, message: 'Code is required' },
-                        { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' },
-                      ]}
-                    >
-                      <Input
+                  <Form.Item
+                    style={{ marginBottom: 0 }}
+                    name="code"
+                    label="Code"
+                    tooltip="Auto-generated from the name. You can override it."
+                    rules={[
+                      { required: true, message: 'Code is required' },
+                      { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' },
+                    ]}
+                  >
+                    <Input
+                      size="large"
+                      placeholder="SICK_LEAVE"
+                      maxLength={40}
+                      disabled={!!editing}
+                      onChange={() => setCodeTouched(true)}
+                      style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item style={{ marginBottom: 0 }} name="unit" label="Unit">
+                    <SearchableDropdown
+                      className="lvt-dd-flat"
+                      placeholder="Select unit"
+                      searchPlaceholder="Search units"
+                      itemNoun="units"
+                      allowClear={false}
+                      options={[{ value: 'day', label: 'Daily' }, { value: 'hour', label: 'Hourly' }]}
+                      style={{ width: '100%', height: 40 }}
+                      width={210}
+                    />
+                  </Form.Item>
+                  <Form.Item style={{ marginBottom: 0 }} label="Color">
+                    <div className="lvt-color-field">
+                      <ColorPicker
+                        value={color}
+                        onChange={(_, hex) => setColor(hex)}
+                        presets={[{ label: 'Leaves palette', colors: [PALETTE.blue, PALETTE.green, PALETTE.red, PALETTE.grey] }]}
+                        showText={(c) => <span className="lvt-color-hex">{c.toHexString().toUpperCase()}</span>}
                         size="large"
-                        placeholder="SICK_LEAVE"
-                        maxLength={40}
-                        disabled={!!editing}
-                        onChange={() => setCodeTouched(true)}
-                        style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
                       />
-                    </Form.Item>
-                  </Col>
+                    </div>
+                  </Form.Item>
 
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 14 }} name="unit" label={fieldLabel('Unit')}>
-                      <SearchableDropdown
-                        className="lvt-dd-flat"
-                        placeholder="Select unit"
-                        searchPlaceholder="Search units"
-                        itemNoun="units"
-                        allowClear={false}
-                        options={[{ value: 'day', label: 'Daily' }, { value: 'hour', label: 'Hourly' }]}
-                        style={{ width: '100%', height: 40 }}
-                        width={210}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 14 }} label={fieldLabel('Color')}>
-                      <div className="lvt-color-field">
-                        <ColorPicker
-                          value={color}
-                          onChange={(_, hex) => setColor(hex)}
-                          presets={[{ label: 'Leaves palette', colors: [PALETTE.blue, PALETTE.green, PALETTE.red, PALETTE.grey] }]}
-                          showText={(c) => <span className="lvt-color-hex">{c.toHexString().toUpperCase()}</span>}
-                          size="large"
-                        />
-                      </div>
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={24}>
-                    <Form.Item style={{ marginBottom: 0 }} name="description" label={fieldLabel('Description')}>
-                      <TextArea rows={2} maxLength={500} placeholder="What is this leave for?" />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                  <Form.Item style={{ marginBottom: 0 }} name="description" label="Description">
+                    <TextArea rows={2} maxLength={500} placeholder="What is this leave for?" />
+                  </Form.Item>
+                </div>
               </SectionCard>
 
               {/* STEP 2 — Policy & Settings */}
               <SectionCard
                 icon={<SettingOutlined />}
-                tint={TINT.green}
-                color={PALETTE.green}
-                title="Policy & Settings"
-                subtitle="How this leave behaves"
+                title="Rules & Behavior"
+                subtitle="Define how this leave behaves when applied."
                 step="STEP 2"
               >
                 <div className="lvt-toggles">
@@ -785,39 +735,6 @@ export default function LeaveTypePanel() {
               </SectionCard>
             </Form>
           </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '14px 22px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-pure-white)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              bottom: 0,
-            }}
-          >
-            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
-              Fields marked required must be filled
-            </span>
-            <Space size={10}>
-              <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={submit}
-                loading={saving}
-                icon={editing ? <EditOutlined /> : <PlusOutlined />}
-                style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
-              >
-                {editing ? 'Save Changes' : 'Create Leave Type'}
-              </Button>
-            </Space>
-          </div>
-        </div>
       </Drawer>
 
       <style jsx global>{`

@@ -35,6 +35,7 @@ import {
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
 import { useTheme } from "@/context/ThemeContext";
+import { drawerFormStyles as formStyles, SectionCard, commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
@@ -200,35 +201,28 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
 
   return (
     <Drawer
-      title={null}
+      {...commonDrawerProps}
       open={visible}
       onClose={onClose}
-      width={580}
-      closable={false}
       maskClosable={true}
-      styles={{
-        body: { padding: 0, background: "var(--bg-pure-white)" },
-        header: { display: "none" },
-        mask: { backdropFilter: "blur(2px)", background: "rgba(15, 23, 42, 0.45)" },
-      }}
     >
+      <style>{formStyles}</style>
       <div
         style={{
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "var(--bg-pure-white)",
         }}
       >
         {/* Drawer Header */}
         <div
+          className="customer-drawer-header"
           style={{
             padding: "16px 14px 12px 14px",
             borderBottom: "1px solid var(--border-color)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "var(--bg-pure-white)",
             position: "sticky",
             top: 0,
             zIndex: 10,
@@ -289,7 +283,6 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
             padding: "16px 16px",
             flex: 1,
             overflowY: "auto",
-            background: "var(--bg-secondary, #f8fafc)",
           }}
         >
           <ConfigProvider
@@ -304,7 +297,12 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
           >
             <Form
               form={form}
-              layout="vertical"
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              className="customer-drawer-form"
               onFinish={handleSubmit}
               initialValues={{
                 status: "planning",
@@ -313,409 +311,172 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
               requiredMark="optional"
             >
               {/* Section: Basic Information */}
-              <div
-                style={{
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: 0,
-                  padding: "12px 22px",
-                  marginBottom: 16,
-                }}
+              <SectionCard
+                icon={<InfoCircleOutlined />}
+                title="Basic Information"
+                subtitle="The essential details that identify this project"
+                step="STEP 1"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 0,
-                      background: "rgba(59, 130, 246, 0.10)",
-                      color: "var(--premium-blue)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <InfoCircleOutlined />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Title
-                      level={5}
-                      style={{
-                        margin: 0,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "var(--text-slate-900)",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      Basic Information
-                    </Title>
-                    <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                      The essential details that identify this project
-                    </Text>
-                  </div>
-                  <span
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      background: "var(--bg-secondary, #f1f5f9)",
-                      color: "var(--text-slate-500)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    STEP 1
-                  </span>
-                </div>
-
-                <Row gutter={16}>
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="name"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Name
-                        </span>
-                      }
-                      rules={[
-                        { required: true, message: "Please enter project name" },
-                        { min: 2, message: "Name must be at least 2 characters" },
-                      ]}
-                    >
-                      <Input
-                        placeholder="e.g. Website Redesign"
-                        size="large"
-                        style={{ borderRadius: 6 }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="code"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Code
-                        </span>
-                      }
-                    >
-                      <Input
-                        placeholder="e.g. WEB"
-                        size="large"
-                        style={{ borderRadius: 6, textTransform: "uppercase" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="status"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Status
-                        </span>
-                      }
-                      rules={[{ required: true, message: "Please select status" }]}
-                    >
-                      <SearchableDropdown
-                        placeholder="Select status"
-                        style={{ borderRadius: 6 }}
-                        width="100%"
-                        options={[
-                          { label: "Planning", value: "planning" },
-                          { label: "Active", value: "active" },
-                          { label: "On Hold", value: "on-hold" },
-                          { label: "Completed", value: "completed" },
-                          { label: "Cancelled", value: "cancelled" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="description"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Description
-                        </span>
-                      }
-                      rules={[{ required: true, message: "Please enter description" }]}
-                    >
-                      <Input.TextArea
-                        rows={4}
-                        placeholder="What is this project about?"
-                        style={{ borderRadius: 6 }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="name"
+                  label="Project Name"
+                  rules={[
+                    { required: true, message: "Please enter project name" },
+                    { min: 2, message: "Name must be at least 2 characters" },
+                  ]}
+                >
+                  <Input placeholder="e.g. Website Redesign" size="large" style={{ borderRadius: 6 }} />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="code"
+                  label="Project Code"
+                >
+                  <Input placeholder="e.g. WEB" size="large" style={{ borderRadius: 6, textTransform: "uppercase" }} />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="status"
+                  label="Project Status"
+                  rules={[{ required: true, message: "Please select status" }]}
+                >
+                  <SearchableDropdown
+                    placeholder="Select status"
+                    style={{ borderRadius: 6 }}
+                    width="100%"
+                    options={[
+                      { label: "Planning", value: "planning" },
+                      { label: "Active", value: "active" },
+                      { label: "On Hold", value: "on-hold" },
+                      { label: "Completed", value: "completed" },
+                      { label: "Cancelled", value: "cancelled" },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="description"
+                  label="Project Description"
+                  rules={[{ required: true, message: "Please enter description" }]}
+                >
+                  <Input.TextArea rows={4} placeholder="What is this project about?" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </SectionCard>
 
               {/* Section: Team & Responsibility */}
-              <div
-                style={{
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: 0,
-                  padding: "16px 22px",
-                  marginBottom: 16,
-                }}
+              <SectionCard
+                icon={<TeamOutlined />}
+                title="Team & Responsibility"
+                subtitle="Assign a lead and the people who will contribute"
+                step="STEP 2"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 0,
-                      background: "rgba(16, 185, 129, 0.10)",
-                      color: "#10b981",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <TeamOutlined />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Title
-                      level={5}
-                      style={{
-                        margin: 0,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "var(--text-slate-900)",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      Team & Responsibility
-                    </Title>
-                    <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                      Assign a lead and the people who will contribute
-                    </Text>
-                  </div>
-                  <span
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      background: "var(--bg-secondary, #f1f5f9)",
-                      color: "var(--text-slate-500)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    STEP 2
-                  </span>
-                </div>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="projectManagerId"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Manager
-                        </span>
-                      }
-                      rules={[{ required: true, message: "Please select manager" }]}
-                    >
-                      <SearchableDropdown
-                        placeholder="Select lead"
-                        style={{ borderRadius: 6 }}
-                        width="100%"
-                        onChange={handleProjectManagerChange}
-                        options={members.map((member) => ({
-                          label: member.label,
-                          value: member.value,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="defaultPriority"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Default Priority
-                        </span>
-                      }
-                      rules={[{ required: true, message: "Please select priority" }]}
-                    >
-                      <SearchableDropdown
-                        placeholder="Priority"
-                        style={{ borderRadius: 6 }}
-                        width="100%"
-                        options={[
-                          { label: "High", value: "high" },
-                          { label: "Medium", value: "medium" },
-                          { label: "Low", value: "low" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="teamMemberIds"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Team Members
-                        </span>
-                      }
-                      help={
-                        <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
-                          The Project Manager is automatically included
-                        </span>
-                      }
-                    >
-                      <SearchableDropdown
-                        mode="multiple"
-                        placeholder="Add contributors"
-                        style={{ borderRadius: 6 }}
-                        width="100%"
-                        onChange={handleTeamMembersChange}
-                        options={members.map((member) => ({
-                          label: member.label,
-                          value: member.value,
-                        }))}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="projectManagerId"
+                  label="Project Manager"
+                  rules={[{ required: true, message: "Please select manager" }]}
+                >
+                  <SearchableDropdown
+                    placeholder="Select lead"
+                    style={{ borderRadius: 6 }}
+                    width="100%"
+                    onChange={handleProjectManagerChange}
+                    options={members.map((member) => ({
+                      label: member.label,
+                      value: member.value,
+                    }))}
+                  />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="defaultPriority"
+                  label="Default Priority"
+                  rules={[{ required: true, message: "Please select priority" }]}
+                >
+                  <SearchableDropdown
+                    placeholder="Priority"
+                    style={{ borderRadius: 6 }}
+                    width="100%"
+                    options={[
+                      { label: "High", value: "high" },
+                      { label: "Medium", value: "medium" },
+                      { label: "Low", value: "low" },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="teamMemberIds"
+                  label="Team Members"
+                  help={<span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>The Project Manager is automatically included</span>}
+                >
+                  <SearchableDropdown
+                    mode="multiple"
+                    placeholder="Add contributors"
+                    style={{ borderRadius: 6 }}
+                    width="100%"
+                    onChange={handleTeamMembersChange}
+                    options={members.map((member) => ({
+                      label: member.label,
+                      value: member.value,
+                    }))}
+                  />
+                </Form.Item>
+              </SectionCard>
 
               {/* Section: Timeline & Resources */}
-              <div
-                style={{
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: 0,
-                  padding: "12px 22px",
-                }}
+              <SectionCard
+                icon={<CalendarOutlined />}
+                title="Timeline & Resources"
+                subtitle="Set the schedule and link any external resources"
+                step="STEP 3"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 0,
-                      background: "rgba(139, 92, 246, 0.10)",
-                      color: "#8b5cf6",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <CalendarOutlined />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Title
-                      level={5}
-                      style={{
-                        margin: 0,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "var(--text-slate-900)",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      Timeline & Resources
-                    </Title>
-                    <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                      Set the schedule and link any external resources
-                    </Text>
-                  </div>
-                  <span
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      background: "var(--bg-secondary, #f1f5f9)",
-                      color: "var(--text-slate-500)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    STEP 3
-                  </span>
-                </div>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="startDate"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Estimated Start
-                        </span>
-                      }
-                      rules={[{ required: true, message: "Required" }]}
-                    >
-                      <DatePicker 
-                        size="large" 
-                        style={{ width: "100%", borderRadius: 6 }} 
-                        disabledDate={(current) => current && current < dayjs().startOf('day')}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="endDate"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Estimated Completion
-                        </span>
-                      }
-                    >
-                      <DatePicker 
-                        size="large" 
-                        style={{ width: "100%", borderRadius: 6 }} 
-                        disabledDate={(current) => current && current < dayjs().startOf('day')}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="repositories"
-                      label={
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Repository URL
-                        </span>
-                      }
-                    >
-                      <Input
-                        placeholder="e.g. https://github.com/org/repo"
-                        size="large"
-                        style={{ borderRadius: 6 }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="startDate"
+                  label="Estimated Start"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <DatePicker 
+                    size="large" 
+                    style={{ width: "100%", borderRadius: 6 }} 
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="endDate"
+                  label="Estimated Completion"
+                >
+                  <DatePicker 
+                    size="large" 
+                    style={{ width: "100%", borderRadius: 6 }} 
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  />
+                </Form.Item>
+                <Form.Item
+                  style={{ marginBottom: 14 }}
+                  name="repositories"
+                  label="Repository URL"
+                >
+                  <Input
+                    placeholder="e.g. https://github.com/org/repo"
+                    size="large"
+                    style={{ borderRadius: 6 }}
+                  />
+                </Form.Item>
+              </SectionCard>
             </Form>
           </ConfigProvider>
         </div>
 
         {/* Drawer Footer */}
         <div
+          className="customer-drawer-footer"
           style={{
             padding: "14px 28px",
             borderTop: "1px solid var(--border-color)",
-            background: "var(--bg-pure-white)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",

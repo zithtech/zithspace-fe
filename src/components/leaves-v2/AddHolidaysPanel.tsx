@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Drawer, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
+import { Button, Table, Tag, Drawer, Form, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -29,6 +29,9 @@ const { RangePicker } = DatePicker;
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+
+
 
 const TYPE_OPTIONS: { value: HolidayType; label: string }[] = [
   { value: 'National', label: 'National' },
@@ -336,90 +339,136 @@ export default function AddHolidaysPanel() {
       )}
 
       {/* DRAWER */}
-      <Drawer title={null} open={open} onClose={() => setOpen(false)} width={480} closable={false} destroyOnClose
-        styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' }, mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' } }}>
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 40, height: 40, background: editing ? TINT.green : TINT.blue, color: editing ? PALETTE.green : PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{editing ? <EditOutlined /> : <PlusOutlined />}</div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{editing ? 'Edit Holiday' : 'Add Holiday'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Official holiday for the calendar</div>
+      <Drawer
+        rootClassName="leave-drawer-root"
+        title={null}
+        open={open}
+        onClose={() => setOpen(false)}
+        width={720}
+        closable={false}
+        destroyOnClose
+        styles={{
+          header: { display: 'none' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+        }}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <Button onClick={() => setOpen(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
+            <Button
+              type="primary"
+              loading={saving}
+              onClick={submit}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editing ? 'Save Changes' : 'Add Holiday'}
+            </Button>
+          </div>
+        }
+      >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editing ? TINT.green : TINT.blue,
+                color: editing ? PALETTE.green : PALETTE.blue,
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              {editing ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editing ? 'Edit Holiday' : 'Add Holiday'}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Official holiday for the calendar
               </div>
             </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
           </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
 
-          <div className="lvh-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', padding: '12px 22px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 32, height: 32, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><InfoCircleOutlined /></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)' }}>Holiday Details</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)' }}>Name, date and coverage</div>
-                </div>
-              </div>
-
-              <Row gutter={16}>
-                <Col span={24} style={{ marginBottom: 14 }}>
-                  <span className="lvh-label">Holiday name</span>
-                  <Input size="large" style={{ marginTop: 6 }} value={name} maxLength={160} placeholder="e.g. Republic Day" onChange={(e) => setName(e.target.value)} />
-                </Col>
-                <Col span={24} style={{ marginBottom: 14 }}>
-                  <span className="lvh-label">Date(s)</span>
-                  <div style={{ marginTop: 6 }}>
-                    <RangePicker style={{ width: '100%' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" allowClear />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvh-label">Country</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={COUNTRY_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvh-label">Type</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Type" itemNoun="types" allowClear={false} value={type} onChange={(v) => setType(v as HolidayType)} options={TYPE_OPTIONS} style={{ width: '100%', height: 38 }} width={200} />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvh-label">Recurrence</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Rule" itemNoun="rules" allowClear={false} value={rule} onChange={(v) => setRule(v as HolidayRule)} options={RULE_OPTIONS} style={{ width: '100%', height: 38 }} width={180} />
-                  </div>
-                </Col>
+        <Form
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
+          className="customer-drawer-form"
+        >
+          <div className="px-6 py-6 space-y-5 pb-24 lvh-drawer-form">
+            <SectionCard
+              icon={<InfoCircleOutlined />}
+              title="Holiday Details"
+              subtitle="Name, date and coverage"
+              step="STEP 1"
+            >
+                <Form.Item label="Holiday name" style={{ marginBottom: 0 }}>
+                  <Input size="large" style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={name} maxLength={160} placeholder="e.g. Republic Day" onChange={(e) => setName(e.target.value)} />
+                </Form.Item>
+                <Form.Item label="Date(s)" style={{ marginBottom: 0 }}>
+                  <RangePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" allowClear />
+                </Form.Item>
+                <Form.Item label="Country" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={COUNTRY_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
+                </Form.Item>
+                <Form.Item label="Type" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Type" itemNoun="types" allowClear={false} value={type} onChange={(v) => setType(v as HolidayType)} options={TYPE_OPTIONS} style={{ width: '100%', height: 38 }} width={200} />
+                </Form.Item>
+                <Form.Item label="Recurrence" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Rule" itemNoun="rules" allowClear={false} value={rule} onChange={(v) => setRule(v as HolidayRule)} options={RULE_OPTIONS} style={{ width: '100%', height: 38 }} width={180} />
+                </Form.Item>
                 {(type === 'State' || type === 'Local') && (
-                  <Col span={24} style={{ marginBottom: 14 }}>
-                    <span className="lvh-label">State{type === 'Local' ? '(s)' : 's'}</span>
-                    <Select mode="multiple" style={{ marginTop: 6, width: '100%' }} placeholder="Select states" value={states} onChange={setStates}
+                  <Form.Item label={<span>State{type === 'Local' ? '(s)' : 's'}</span>} style={{ marginBottom: 0 }}>
+                    <Select mode="multiple" style={{ width: '100%' }} placeholder="Select states" value={states} onChange={setStates}
                       options={INDIAN_STATES.map((s) => ({ value: s.code, label: `${s.name} (${s.code})` }))}
                       filterOption={(i, o) => (o?.label as string).toLowerCase().includes(i.toLowerCase())} maxTagCount="responsive" />
-                  </Col>
+                  </Form.Item>
                 )}
                 {type === 'Local' && (
-                  <Col span={24} style={{ marginBottom: 14 }}>
-                    <span className="lvh-label">Districts <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}>(type a name & press enter)</span></span>
-                    <Select mode="tags" style={{ marginTop: 6, width: '100%' }} placeholder="Add districts" value={districts} onChange={setDistricts} tokenSeparators={[',']} maxTagCount="responsive" open={false} suffixIcon={null} />
-                  </Col>
+                  <Form.Item label={<span>Districts <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}>(type a name & press enter)</span></span>} style={{ marginBottom: 0 }}>
+                    <Select mode="tags" style={{ width: '100%' }} placeholder="Add districts" value={districts} onChange={setDistricts} tokenSeparators={[',']} maxTagCount="responsive" open={false} suffixIcon={null} />
+                  </Form.Item>
                 )}
-                <Col span={24}>
-                  <div className="lvh-toggle-row">
-                    <div><div className="lvh-toggle-title">Active</div><div className="lvh-toggle-desc">Counts on the holiday calendar</div></div>
-                    <Switch checked={isActive} onChange={setIsActive} />
-                  </div>
-                </Col>
-              </Row>
-            </div>
+                <div className="lvh-toggle-row mt-2 border-t border-slate-100 pt-4" style={{ borderColor: 'var(--border-color)' }}>
+                  <div><div className="lvh-toggle-title">Active</div><div className="lvh-toggle-desc">Counts on the holiday calendar</div></div>
+                  <Switch checked={isActive} onChange={setIsActive} />
+                </div>
+              </SectionCard>
           </div>
-
-          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Space size={10}>
-              <Button onClick={() => setOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
-              <Button type="primary" loading={saving} icon={editing ? <EditOutlined /> : <PlusOutlined />} onClick={submit} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>{editing ? 'Save Changes' : 'Add Holiday'}</Button>
-            </Space>
-          </div>
-        </div>
+        </Form>
       </Drawer>
 
       <style jsx global>{`

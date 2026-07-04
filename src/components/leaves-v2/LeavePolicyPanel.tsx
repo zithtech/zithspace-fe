@@ -16,6 +16,7 @@ import {
   Col,
   Space,
   Spin,
+  Form,
 } from 'antd';
 import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
@@ -49,6 +50,7 @@ import LeaveV2Service, {
   AccrualMethod,
   TERM_MONTHS,
 } from '@/services/leaveV2Service';
+import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = {
@@ -57,6 +59,15 @@ const TINT = {
   red: 'rgba(239,68,68,0.10)',
   grey: 'rgba(148,163,184,0.12)',
 } as const;
+
+const localLvpStyles = `
+  /* Fix layout for drawer form row alignment */
+  .lvp-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 2px; }
+  .lvp-toggle-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
+  .lvp-toggle-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
+`;
+
+
 
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
@@ -634,89 +645,147 @@ export default function LeavePolicyPanel() {
 
       {/* DRAWER */}
       <Drawer
+        rootClassName="leave-drawer-root"
         title={null}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={720}
         closable={false}
         destroyOnClose
-        styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' }, mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' } }}
+        styles={{
+          header: { display: 'none' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+        }}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              At least one target and one allocation are required
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={editingId ? <EditOutlined /> : <PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editingId ? 'Save Changes' : 'Create Policy'}
+            </Button>
+          </div>
+        }
       >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          {/* header */}
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 0, background: editingId ? TINT.green : TINT.blue, color: editingId ? PALETTE.green : PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                {editingId ? <EditOutlined /> : <PlusOutlined />}
+        <style>{formStyles}</style>
+        <style>{localLvpStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editingId ? TINT.green : TINT.blue,
+                color: editingId ? PALETTE.green : PALETTE.blue,
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              {editingId ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editingId ? 'Edit Leave Policy' : 'New Leave Policy'}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{editingId ? 'Edit Leave Policy' : 'New Leave Policy'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>Map leave entitlements to a group of employees</div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Map leave entitlements to a group of employees
               </div>
             </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setDrawerOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
           </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
 
-          {/* content */}
-          <div className="lvp-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
+        <Form
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
+          className="customer-drawer-form"
+        >
+          <div className="px-6 py-6 space-y-5 pb-24 lvp-drawer-form">
             <Spin spinning={detailLoading}>
               {/* STEP 1 — Basic Details */}
-              <Section icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Basic Details" subtitle="Identify this policy" step="STEP 1">
-                <Row gutter={16}>
-                  <Col span={24} style={{ marginBottom: 14 }}>
-                    {fieldLabel('Policy name')}
-                    <Input size="large" style={{ marginTop: 6 }} value={name} maxLength={160} placeholder="e.g. Standard Full-time Policy" onChange={(e) => onNameChange(e.target.value)} />
-                  </Col>
-                  <Col span={24} style={{ marginBottom: 14 }}>
-                    {fieldLabel('Code')}
-                    <Input size="large" style={{ marginTop: 6, fontFamily: 'monospace', color: 'var(--text-slate-600)' }} value={code} maxLength={40} placeholder="STANDARD_FULLTIME" disabled={!!editingId} onChange={(e) => { setCode(e.target.value); setCodeTouched(true); }} />
-                  </Col>
-                  <Col span={24} style={{ marginBottom: 14 }}>
-                    {fieldLabel('Description')}
-                    <Input.TextArea rows={2} style={{ marginTop: 6 }} value={description} maxLength={500} placeholder="What this policy is for" onChange={(e) => setDescription(e.target.value)} />
-                  </Col>
-                </Row>
+              <SectionCard icon={<InfoCircleOutlined />} title="Basic Details" subtitle="Identify this policy" step="STEP 1">
+                <Form.Item label="Policy name" style={{ marginBottom: 14 }}>
+                  <Input size="large" value={name} maxLength={160} placeholder="e.g. Standard Full-time Policy" onChange={(e) => onNameChange(e.target.value)} />
+                </Form.Item>
+                <Form.Item label="Code" style={{ marginBottom: 14 }}>
+                  <Input size="large" style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }} value={code} maxLength={40} placeholder="STANDARD_FULLTIME" disabled={!!editingId} onChange={(e) => { setCode(e.target.value); setCodeTouched(true); }} />
+                </Form.Item>
+                <Form.Item label="Description" style={{ marginBottom: 14 }}>
+                  <Input.TextArea rows={2} value={description} maxLength={500} placeholder="What this policy is for" onChange={(e) => setDescription(e.target.value)} />
+                </Form.Item>
                 <div className="lvp-toggle-row">
                   <div><div className="lvp-toggle-title">Active</div><div className="lvp-toggle-desc">Available to assign to employees</div></div>
                   <Switch checked={isActive} onChange={setIsActive} />
                 </div>
-              </Section>
+              </SectionCard>
 
               {/* STEP 2 — Applies To */}
-              <Section icon={<UsergroupAddOutlined />} tint={TINT.green} color={PALETTE.green} title="Applies To" subtitle="Who this policy covers (add one or more targets)" step="STEP 2">
-                <Row gutter={12} align="top">
-                  <Col span={10}>
-                    {fieldLabel('Scope')}
-                    <div style={{ marginTop: 6 }}>
-                      <SearchableDropdown placeholder="Pick scope" itemNoun="scopes" allowClear={false} value={scopeTypePick} onChange={(v) => onScopeTypeChange(v as PolicyScopeType)} options={SCOPE_TYPES} style={{ width: '100%', height: 38 }} width={220} />
-                    </div>
-                  </Col>
-                  <Col span={14}>
-                    {scopeTypePick && scopeTypePick !== 'org' && (
-                      <>
-                        {fieldLabel(`Select ${scopeLabel(scopeTypePick).toLowerCase()}(s)`)}
-                        <Select
-                          mode="multiple"
-                          style={{ marginTop: 6, width: '100%' }}
-                          placeholder={`Select ${scopeLabel(scopeTypePick).toLowerCase()}`}
-                          loading={scopeLoading}
-                          value={scopeIdsFor(scopeTypePick)}
-                          onChange={(ids) => setScopeSelection(scopeTypePick, ids as string[])}
-                          options={(scopeCache[scopeTypePick] || []).map((o) => ({ value: o.value, label: o.label }))}
-                          filterOption={(i, o) => (o?.label as string).toLowerCase().includes(i.toLowerCase())}
-                          maxTagCount="responsive"
-                          notFoundContent={scopeLoading ? 'Loading…' : 'No options'}
-                        />
-                      </>
-                    )}
-                    {scopeTypePick === 'org' && (
-                      <div className="lvp-toggle-row" style={{ marginTop: 22 }}>
-                        <div><div className="lvp-toggle-title">Apply org-wide</div><div className="lvp-toggle-desc">Covers every employee</div></div>
-                        <Switch checked={assignments.some((a) => a.scopeType === 'org')} onChange={toggleOrg} />
-                      </div>
-                    )}
-                  </Col>
-                </Row>
+              <SectionCard icon={<UsergroupAddOutlined />} title="Applies To" subtitle="Who this policy covers (add one or more targets)" step="STEP 2">
+                <Form.Item label="Scope" style={{ marginBottom: 14 }}>
+                  <SearchableDropdown placeholder="Pick scope" itemNoun="scopes" allowClear={false} value={scopeTypePick} onChange={(v) => onScopeTypeChange(v as PolicyScopeType)} options={SCOPE_TYPES} style={{ width: '100%', height: 38 }} width={220} />
+                </Form.Item>
+                {scopeTypePick && scopeTypePick !== 'org' && (
+                  <Form.Item label={`Select ${scopeLabel(scopeTypePick).toLowerCase()}(s)`} style={{ marginBottom: 14 }}>
+                    <Select
+                      mode="multiple"
+                      style={{ width: '100%' }}
+                      placeholder={`Select ${scopeLabel(scopeTypePick).toLowerCase()}`}
+                      loading={scopeLoading}
+                      value={scopeIdsFor(scopeTypePick)}
+                      onChange={(ids) => setScopeSelection(scopeTypePick, ids as string[])}
+                      options={(scopeCache[scopeTypePick] || []).map((o) => ({ value: o.value, label: o.label }))}
+                      filterOption={(i, o) => (o?.label as string).toLowerCase().includes(i.toLowerCase())}
+                      maxTagCount="responsive"
+                      notFoundContent={scopeLoading ? 'Loading…' : 'No options'}
+                    />
+                  </Form.Item>
+                )}
+                {scopeTypePick === 'org' && (
+                  <div className="lvp-toggle-row" style={{ marginTop: 22 }}>
+                    <div><div className="lvp-toggle-title">Apply org-wide</div><div className="lvp-toggle-desc">Covers every employee</div></div>
+                    <Switch checked={assignments.some((a) => a.scopeType === 'org')} onChange={toggleOrg} />
+                  </div>
+                )}
 
                 <div className="lvp-chips">
                   {assignments.length === 0 ? (
@@ -730,25 +799,18 @@ export default function LeavePolicyPanel() {
                     ))
                   )}
                 </div>
-              </Section>
+              </SectionCard>
 
               {/* STEP 3 — Accrual & Allocations */}
-              <Section icon={<BookOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Accrual & Allocations" subtitle="Term, leave types, and Loss-of-Pay behaviour" step="STEP 3">
+              <SectionCard icon={<BookOutlined />} title="Accrual & Allocations" subtitle="Term, leave types, and Loss-of-Pay behaviour" step="STEP 3">
                 {/* Term + LOP */}
-                <Row gutter={12} align="top" style={{ marginBottom: 6 }}>
-                  <Col span={12}>
-                    {fieldLabel('Accrual term')}
-                    <div style={{ marginTop: 6 }}>
-                      <SearchableDropdown placeholder="Term" itemNoun="terms" allowClear={false} value={termCycle} onChange={(v) => setTermCycle(v as TermCycle)} options={TERM_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className="lvp-toggle-row" style={{ marginTop: 26 }}>
-                      <div><div className="lvp-toggle-title">Loss of Pay on exhaustion</div><div className="lvp-toggle-desc">Extra leave beyond balance = LOP</div></div>
-                      <Switch checked={lopOnExhaustion} onChange={setLopOnExhaustion} />
-                    </div>
-                  </Col>
-                </Row>
+                <Form.Item label="Accrual term" style={{ marginBottom: 14 }}>
+                  <SearchableDropdown placeholder="Term" itemNoun="terms" allowClear={false} value={termCycle} onChange={(v) => setTermCycle(v as TermCycle)} options={TERM_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
+                </Form.Item>
+                <div className="lvp-toggle-row">
+                  <div><div className="lvp-toggle-title">Loss of Pay on exhaustion</div><div className="lvp-toggle-desc">Extra leave beyond balance = LOP</div></div>
+                  <Switch checked={lopOnExhaustion} onChange={setLopOnExhaustion} />
+                </div>
 
                 <div className="lvp-alloc-list">
                   {lines.map((l) => {
@@ -794,19 +856,10 @@ export default function LeavePolicyPanel() {
                   <Button type="dashed" icon={<PlusOutlined />} onClick={addLine} style={{ borderRadius: 6 }}>Add leave type</Button>
                   <span className="lvp-alloc-grand">Total entitlement: <strong>{policyTotal}</strong> / {termLabel(termCycle).split(' ')[0].toLowerCase()}</span>
                 </div>
-              </Section>
+              </SectionCard>
             </Spin>
           </div>
-
-          {/* footer */}
-          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>At least one target and one allocation are required</span>
-            <Space size={10}>
-              <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
-              <Button type="primary" onClick={submit} loading={saving} icon={editingId ? <EditOutlined /> : <PlusOutlined />} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>{editingId ? 'Save Changes' : 'Create Policy'}</Button>
-            </Space>
-          </div>
-        </div>
+        </Form>
       </Drawer>
 
       <style jsx global>{`
@@ -871,9 +924,6 @@ export default function LeavePolicyPanel() {
         .lvp-drawer-form .ant-input:hover, .lvp-drawer-form .ant-input-number:hover, .lvp-drawer-form .ant-select-selector:hover { border-color: #93c5fd !important; }
         .lvp-drawer-form .ant-input:focus, .lvp-drawer-form .ant-input-focused { border-color: ${PALETTE.blue} !important; box-shadow: 0 0 0 3px rgba(59,130,246,0.10) !important; }
         .lvp-drawer-form .ant-input-number { width: 100%; }
-        .lvp-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 2px; }
-        .lvp-toggle-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
-        .lvp-toggle-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
         .lvp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .lvp-chips-empty { font-size: 12px; color: var(--text-slate-400); padding: 4px 2px; }
         .lvp-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 3px 8px; background: var(--bg-slate-50); border-color: var(--border-slate-200); }
@@ -906,19 +956,4 @@ export default function LeavePolicyPanel() {
   );
 }
 
-// Section card (ProjectFormDrawer style).
-function Section({ icon, tint, color, title, subtitle, step, children }: { icon: React.ReactNode; tint: string; color: string; title: string; subtitle: string; step: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', borderRadius: 0, padding: '12px 22px', marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 0, background: tint, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>{title}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-secondary, #f1f5f9)', color: 'var(--text-slate-500)', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>{step}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
+

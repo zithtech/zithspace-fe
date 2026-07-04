@@ -51,7 +51,7 @@ import {
 } from '@ant-design/icons';
 import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -126,6 +126,10 @@ export default function EscalationListPage() {
   console.log("Forcing HMR reload for EscalationListPage 2");
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
+  const pathname = usePathname();
+  // When rendered under /my-hub, this is the personal "escalations targeting me"
+  // view: locked to targeted-member, excluding ones I raised, with no switcher.
+  const isMyHub = pathname?.startsWith('/my-hub') ?? false;
   const { user, isLoading } = useAuth();
   const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
   const { theme } = useTheme();
@@ -375,7 +379,13 @@ export default function EscalationListPage() {
       list = list.filter((e) => set.has(e.category?.name || e.category_name));
     }
 
-    if (savedView === 'my-involvement') {
+    if (isMyHub) {
+      // My Hub: escalations where I'm a targeted member, excluding ones I raised.
+      list = list.filter((e) =>
+        (e.targetMembers || []).some((m: any) => m.user?.id === user?.id) &&
+        (e.createdBy?.id || e.created_by_id) !== user?.id
+      );
+    } else if (savedView === 'my-involvement') {
       list = list.filter((e) =>
         (e.targetMembers || []).some((m: any) => m.user?.id === user?.id)
       );
@@ -390,7 +400,7 @@ export default function EscalationListPage() {
     });
 
     return list;
-  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, savedView, user]);
+  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, savedView, user, isMyHub]);
 
   useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, priorityFilter, categoryFilter]);
 
@@ -730,7 +740,7 @@ export default function EscalationListPage() {
       <div className="es-empty-orb"><AlertOutlined style={{ fontSize: 26 }} /></div>
       <div className="es-empty-title">No escalations found</div>
       <div className="es-empty-sub">Monitor and resolve manual escalations related to quality and regressions.</div>
-      {canCreateEscalation && (
+      {canCreateEscalation && !isMyHub && (
         <Button type="primary" icon={<PlusOutlined />} className="es-btn-primary" onClick={() => setCreateDrawerOpen(true)} style={{ marginTop: 14 }}>
           Raise Escalation
         </Button>
@@ -742,6 +752,10 @@ export default function EscalationListPage() {
     <MainLayout>
       <div className="es-shell">
         {/* ============================ SIDEBAR ============================ */}
+        {/* My Hub uses a single "targeting me" view, so the left rail is dropped
+            and its header is moved into the main area (below). */}
+        {!isMyHub && (
+        <>
         {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
         <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="es-sidebar-top">
@@ -753,7 +767,7 @@ export default function EscalationListPage() {
               </div>
             </div>
 
-            {canCreateEscalation && (
+            {canCreateEscalation && !isMyHub && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -767,77 +781,52 @@ export default function EscalationListPage() {
           </div>
 
           <div className="es-side-scroll">
-            <div className="es-side-section-label">Views</div>
-            <div className="es-side-list">
-              {viewsList.map((v) => {
-                const active = savedView === v.key;
-                return (
-                  <button
-                    key={v.key}
-                    type="button"
-                    className={`es-view-item ${active ? 'is-active' : ''}`}
-                    onClick={() => {
-                      if (v.key === 'trash') {
-                        router.push('/escalations/trash');
-                      } else {
-                        setSavedView(v.key);
-                        router.replace(`/escalations?view=${v.key}`);
-                      }
-                    }}
-                  >
-                    <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
-                    <span className="es-view-label">{v.label}</span>
-                    <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="es-side-section-label">Filters</div>
-            <div className="es-side-filters">
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Category"
-                searchPlaceholder="Search category"
-                itemNoun="categories"
-                value={categoryFilter}
-                onChange={(v) => setCategoryFilter(v || [])}
-                options={categoryOptions}
-                width="100%"
-              />
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Priority"
-                searchPlaceholder="Search priority"
-                itemNoun="priorities"
-                value={priorityFilter}
-                onChange={(v) => setPriorityFilter(v || [])}
-                options={priorityOptions}
-                width="100%"
-              />
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Status"
-                searchPlaceholder="Search status"
-                itemNoun="statuses"
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v || [])}
-                options={statusOptions}
-                width="100%"
-              />
-              {hasActiveFilters && (
-                <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
-                  <CloseCircleOutlined /> Clear filters
-                </button>
-              )}
-            </div>
+            {!isMyHub && (
+              <>
+                <div className="es-side-section-label">Views</div>
+                <div className="es-side-list">
+                  {viewsList.map((v) => {
+                    const active = savedView === v.key;
+                    return (
+                      <button
+                        key={v.key}
+                        type="button"
+                        className={`es-view-item ${active ? 'is-active' : ''}`}
+                        onClick={() => {
+                          if (v.key === 'trash') {
+                            router.push('/escalations/trash');
+                          } else {
+                            setSavedView(v.key);
+                            router.replace(`/escalations?view=${v.key}`);
+                          }
+                        }}
+                      >
+                        <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                        <span className="es-view-label">{v.label}</span>
+                        <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </aside>
+        </>
+        )}
 
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
+          {/* My Hub: header moved here from the (removed) left rail */}
+          {isMyHub && (
+            <div className="es-mh-header">
+              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
+              <div className="es-side-head-text">
+                <div className="es-side-title">Escalations</div>
+                <div className="es-side-subtitle">Quality & Performance</div>
+              </div>
+            </div>
+          )}
           <div className="es-topbar">
             <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
               <Button
@@ -899,6 +888,48 @@ export default function EscalationListPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Filters (moved from the left sidebar to a bar above the table) */}
+          <div className="es-filter-bar">
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Category"
+              searchPlaceholder="Search category"
+              itemNoun="categories"
+              value={categoryFilter}
+              onChange={(v) => setCategoryFilter(v || [])}
+              options={categoryOptions}
+              width="180px"
+            />
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Priority"
+              searchPlaceholder="Search priority"
+              itemNoun="priorities"
+              value={priorityFilter}
+              onChange={(v) => setPriorityFilter(v || [])}
+              options={priorityOptions}
+              width="180px"
+            />
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Status"
+              searchPlaceholder="Search status"
+              itemNoun="statuses"
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v || [])}
+              options={statusOptions}
+              width="180px"
+            />
+            {hasActiveFilters && (
+              <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
+                <CloseCircleOutlined /> Clear filters
+              </button>
+            )}
           </div>
 
           {/* Table / grid */}
@@ -1555,6 +1586,12 @@ export default function EscalationListPage() {
         }
         .es-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
         .es-side-sd { border-radius: 8px !important; }
+        /* Filter bar above the table (moved from the left sidebar) */
+        .es-filter-bar {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .es-filter-bar .es-clear-filters { margin-left: 4px; }
         .es-side-select .ant-select-selector {
           border-radius: 8px !important; border-color: var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
@@ -1567,6 +1604,12 @@ export default function EscalationListPage() {
 
         /* ---------------- Main ---------------- */
         .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
+        /* My Hub header (moved here from the removed left rail) */
+        .es-mh-header {
+          display: flex; align-items: center; gap: 12px;
+          padding: 4px 0 12px; margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
         .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .es-search-wrap {

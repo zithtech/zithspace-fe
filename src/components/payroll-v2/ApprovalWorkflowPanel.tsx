@@ -59,6 +59,7 @@ function DrawerCard({ icon, tint, color, title, subtitle, action, children }: {
 
 export default function ApprovalWorkflowPanel() {
   const { canReadPayrollWorkflows, canCreatePayrollWorkflows, canUpdatePayrollWorkflows, canDeletePayrollWorkflows } = usePermission();
+  console.log("Forcing HMR reload for ApprovalWorkflowPanel");
 
   const [rows, setRows] = useState<ApprovalWorkflowListItem[]>([]);
   const [roles, setRoles] = useState<ApproverOption[]>([]);
@@ -323,9 +324,16 @@ export default function ApprovalWorkflowPanel() {
         .pvw-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
         .pvw-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .pvw-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .pvw-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .pvw-table .ant-table { background: transparent; font-size: 12px; }
-        .pvw-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvw-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pvw-table, .pvw-table.ant-table-wrapper, .pvw-table .ant-table, .pvw-table .ant-table-container, .pvw-table .ant-table-content, .pvw-table .ant-table-header, .pvw-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pvw-table .ant-table-thead > tr > th,
+        .pvw-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .pvw-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .pvw-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvw-table .ant-table-tbody > tr.pvw-row:hover > td { background: var(--bg-slate-50) !important; }

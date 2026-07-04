@@ -1059,13 +1059,19 @@ function InvitesContent() {
         .onbi-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
         /* Table */
-        .onbi-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .onbi-table .ant-table { background: transparent; font-size: 12px; }
+        .onbi-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px; overflow: hidden; }
+        .onbi-table .ant-table,
+        .onbi-table .ant-table-container { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .onbi-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+        }
+        [data-theme='dark'] .onbi-table .ant-table-thead > tr > th {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+          color: #94A3B8 !important;
         }
         .onbi-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .onbi-table .ant-table-tbody > tr > td { padding: 8px 12px !important; border-bottom: 1px solid var(--border-slate-100) !important; }

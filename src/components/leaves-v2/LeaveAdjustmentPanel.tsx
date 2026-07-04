@@ -58,6 +58,7 @@ const ENTRY_LABEL: Record<string, string> = {
 
 export default function LeaveAdjustmentPanel() {
   const { canReadLeaveAdjustment, canCreateLeaveAdjustment, canDeleteLeaveAdjustment } = usePermission();
+  console.log("Forcing HMR reload for LeaveAdjustmentPanel");
 
   const [rows, setRows] = useState<LeaveAdjustment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -492,9 +493,16 @@ export default function LeaveAdjustmentPanel() {
         .lvadj-filter-label .anticon { color: var(--text-slate-400); }
         .lvadj-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvadj-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvadj-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .lvadj-table .ant-table { background: transparent; font-size: 12px; }
-        .lvadj-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvadj-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvadj-table, .lvadj-table.ant-table-wrapper, .lvadj-table .ant-table, .lvadj-table .ant-table-container, .lvadj-table .ant-table-content, .lvadj-table .ant-table-header, .lvadj-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvadj-table .ant-table-thead > tr > th,
+        .lvadj-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvadj-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvadj-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvadj-table .ant-table-tbody > tr.lvadj-row:hover > td { background: var(--bg-slate-50) !important; }

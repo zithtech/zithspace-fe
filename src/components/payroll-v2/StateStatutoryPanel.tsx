@@ -71,6 +71,7 @@ function DrawerCard({ icon, tint, color, title, subtitle, action, children }: {
 
 export default function StateStatutoryPanel() {
   const { canReadPayrollStateStatutory, canCreatePayrollStateStatutory, canUpdatePayrollStateStatutory, canDeletePayrollStateStatutory } = usePermission();
+  console.log("Forcing HMR reload for StateStatutoryPanel");
 
   const [view, setView] = useState<View>('pt');
   const [ptStates, setPtStates] = useState<PtStateListItem[]>([]);
@@ -425,9 +426,16 @@ export default function StateStatutoryPanel() {
         .pvss-tab .anticon { font-size: 14px; }
         .pvss-tab:hover { color: var(--text-slate-800); }
         .pvss-tab.is-active { background: var(--bg-pure-white); color: var(--text-slate-900); box-shadow: 0 1px 2px rgba(15,23,42,0.10), 0 0 0 1px rgba(15,23,42,0.05); }
-        .pvss-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .pvss-table .ant-table { background: transparent; font-size: 12px; }
-        .pvss-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvss-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pvss-table, .pvss-table.ant-table-wrapper, .pvss-table .ant-table, .pvss-table .ant-table-container, .pvss-table .ant-table-content, .pvss-table .ant-table-header, .pvss-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pvss-table .ant-table-thead > tr > th,
+        .pvss-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .pvss-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .pvss-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvss-table .ant-table-tbody > tr.pvss-row:hover > td { background: var(--bg-slate-50) !important; }

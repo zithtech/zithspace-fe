@@ -2880,22 +2880,27 @@ const ProjectsManageContent: React.FC = () => {
         overflow: hidden;
         margin-top: 0px !important; 
         }
-        .premium-table .ant-table {
+        .premium-table .ant-table, .premium-table .ant-table-wrapper, .premium-table .ant-table-container, .premium-table .ant-table-content, .premium-table .ant-table-header, .premium-table .ant-table-body {
           background: transparent !important;
+          border-radius: 0 !important;
         }
-        .premium-table .ant-table-thead > tr > th {
+        .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
         .premium-table .ant-table-thead > tr > th::before {
-          display: none;
+          display: none !important;
         }
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #1e293b;
-          border-bottom-color: #334155;
-          color: #94a3b8;
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
+          color: #94a3b8 !important;
         }
         .premium-table .ant-table-tbody > tr > td {
           border-bottom: 1px solid var(--border-slate-100) !important; 
@@ -3199,6 +3204,7 @@ const ProjectsManageContent: React.FC = () => {
 };
 
 export default function ProjectsManagePage() {
+  console.log("Forcing HMR reload for ProjectsManagePage");
   return (
     <React.Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading projects...</div>}>
       <ProjectsManageContent />

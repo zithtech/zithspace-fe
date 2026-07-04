@@ -3835,9 +3835,14 @@ const DocumentHubPage = () => {
         .premium-table .ant-table-container {
           border: 1px solid var(--border-slate-200) !important;
         }
+        .premium-table,
+        .premium-table.ant-table-wrapper,
         .premium-table .ant-table,
         .premium-table .ant-table-wrapper,
-        .premium-table .ant-table-container {
+        .premium-table .ant-table-container,
+        .premium-table .ant-table-content,
+        .premium-table .ant-table-header,
+        .premium-table .ant-table-body {
           border-radius: 0px !important;
         }
 
@@ -3845,11 +3850,14 @@ const DocumentHubPage = () => {
           border-color: #374151 !important;
         }
 
-        .premium-table .ant-table-thead > tr > th {
+        .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
 
         .premium-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
@@ -3874,10 +3882,12 @@ const DocumentHubPage = () => {
           border-right: none !important;
         }
 
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
           background: #161B22 !important;
           border-top-color: #374151 !important;
           border-bottom-color: #374151 !important;
+          color: #94A3B8 !important;
         }
         
         .premium-table .ant-table-thead > tr > th:first-child {
@@ -4542,4 +4552,8 @@ const RailSection: React.FC<{
   </div>
 );
 
-export default DocumentHubPage;
+const ExportedDocumentHubPage = () => {
+  console.log("Forcing HMR reload for DocumentHubPage 3");
+  return <DocumentHubPage />;
+}
+export default ExportedDocumentHubPage;

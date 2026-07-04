@@ -70,6 +70,7 @@ type TypeFilter = 'all' | HolidayType;
 
 export default function AddHolidaysPanel() {
   const { canReadLeaveHoliday, canCreateLeaveHoliday, canUpdateLeaveHoliday, canDeleteLeaveHoliday } = usePermission();
+  console.log("Forcing HMR reload for AddHolidaysPanel");
 
   const [rows, setRows] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(false);
@@ -499,9 +500,16 @@ export default function AddHolidaysPanel() {
         .lvh-filter-label .anticon { color: var(--text-slate-400); }
         .lvh-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .lvh-table .ant-table { background: transparent; font-size: 12px; }
-        .lvh-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvh-table, .lvh-table.ant-table-wrapper, .lvh-table .ant-table, .lvh-table .ant-table-container, .lvh-table .ant-table-content, .lvh-table .ant-table-header, .lvh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvh-table .ant-table-thead > tr > th,
+        .lvh-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvh-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvh-table .ant-table-tbody > tr.lvh-row:hover > td { background: var(--bg-slate-50) !important; }

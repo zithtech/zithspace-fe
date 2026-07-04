@@ -42,6 +42,7 @@ type DateRange = [Dayjs | null, Dayjs | null] | null;
 
 export default function ApprovalsPanel() {
   const { canApproveLeave } = usePermission();
+  console.log("Forcing HMR reload for ApprovalsPanel");
 
   const [rows, setRows] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -442,9 +443,16 @@ export default function ApprovalsPanel() {
         .lvap-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvap-filter-range { height: 34px; border-radius: 8px; }
         .lvap-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow-x: auto; }
-        .lvap-table .ant-table { background: transparent; font-size: 12px; }
-        .lvap-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow-x: auto; }
+        .lvap-table, .lvap-table.ant-table-wrapper, .lvap-table .ant-table, .lvap-table .ant-table-container, .lvap-table .ant-table-content, .lvap-table .ant-table-header, .lvap-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvap-table .ant-table-thead > tr > th,
+        .lvap-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvap-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvap-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvap-table .ant-table-tbody > tr.lvap-row:hover > td { background: var(--bg-slate-50) !important; }

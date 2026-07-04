@@ -132,6 +132,7 @@ const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color })
 };
 
 export default function SprintPlanComponent() {
+  console.log("Forcing HMR reload for SprintPlanComponent 3");
   const { theme } = useTheme();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -3496,8 +3497,8 @@ export default function SprintPlanComponent() {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tbl-head {
-          background: #0B0F1A !important;
-          border-bottom-color: #243042 !important;
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
         }
         .sp-tbl-th {
           font-size: 10.5px;
@@ -3793,25 +3794,31 @@ export default function SprintPlanComponent() {
         .sp-premium-table {
           margin-bottom: 16px;
         }
-        .sp-premium-table .ant-table {
+        .sp-premium-table .ant-table, .sp-premium-table.ant-table-wrapper, .sp-premium-table .ant-table-container, .sp-premium-table .ant-table-content, .sp-premium-table .ant-table-header, .sp-premium-table .ant-table-body {
           background: transparent !important;
+          border-radius: 0 !important;
         }
-        .sp-premium-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-50);
-          font-weight: 700;
-          color: var(--text-slate-500);
-          font-size: 10.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 12px 16px;
-          white-space: nowrap;
-          border-bottom: 1px solid var(--border-slate-200);
+        .sp-premium-table .ant-table-thead > tr > th,
+        .sp-premium-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-500) !important;
+          font-size: 10.5px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.06em !important;
+          padding: 12px 16px !important;
+          white-space: nowrap !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
-        .sp-premium-table .ant-table-thead > tr > th::before { display: none; }
-        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > th {
-          background: #0f1419 !important;
+        .sp-premium-table .ant-table-thead > tr > th::before { display: none !important; }
+        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
           color: #94a3b8 !important;
-          border-bottom-color: #1f2937 !important;
+          border-bottom-color: #374151 !important;
         }
         .sp-premium-table .ant-table-tbody > tr > td {
           padding: 16px;

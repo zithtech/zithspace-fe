@@ -97,6 +97,7 @@ const fmtDate = (d?: string) => {
 };
 
 export default function BidIqPage() {
+  console.log("Forcing HMR reload for BidIqPage");
   useActivitySource({ section: "WORK", module: "BidIq", page: "BidIqList" });
   const { user, isLoading } = useAuth();
   const { canReadBidiq } = usePermission();
@@ -891,14 +892,27 @@ export default function BidIqPage() {
             position: relative; background: var(--bg-pure-white);
             border-radius: 0; border: 1px solid var(--border-slate-200); overflow: hidden;
           }
-          .biq-table.ant-table-wrapper .ant-table { background: transparent !important; font-size: 12px; }
-          .biq-table.ant-table-wrapper .ant-table-thead > tr > th {
-            background: var(--bg-slate-50) !important; color: var(--text-slate-400) !important;
-            font-weight: 700 !important; text-transform: uppercase !important; font-size: 10px !important;
-            letter-spacing: 0.04em !important; padding: 6px 10px !important;
-            border-bottom: 1px solid var(--border-slate-200) !important; white-space: nowrap !important;
+          .biq-table,
+          .biq-table.ant-table-wrapper,
+          .biq-table .ant-table,
+          .biq-table .ant-table-wrapper,
+          .biq-table .ant-table-container,
+          .biq-table .ant-table-content,
+          .biq-table .ant-table-header,
+          .biq-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
           }
-          .biq-table.ant-table-wrapper .ant-table-thead > tr > th::before { display: none !important; }
+          .biq-table .ant-table-thead > tr > th, .biq-table .ant-table-thead > tr > td {
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .biq-table .ant-table-thead > tr > th::before { display: none !important; }
           .biq-table.ant-table-wrapper .ant-table-tbody > tr > td {
             padding: 14px 10px !important; border-bottom: 1px solid var(--border-slate-100) !important;
             transition: background .15s ease; position: relative;
@@ -1017,7 +1031,8 @@ export default function BidIqPage() {
           [data-theme='dark'] .biq-stat-card,
           [data-theme='dark'] .biq-table-card { background: var(--bg-secondary); border-color: var(--border-slate-100); }
           [data-theme='dark'] .biq-search-input.ant-input-affix-wrapper { background: var(--bg-secondary) !important; }
-          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > th { background: var(--bg-primary) !important; border-bottom-color: var(--border-slate-100) !important; }
+          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > th,
+          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > td { background: #161B22 !important; color: #94A3B8 !important; border-bottom-color: #374151 !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-tbody > tr > td { border-bottom-color: var(--border-slate-100) !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .biq-row:hover > td { background: var(--bg-primary) !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right { background: var(--bg-pure-white) !important; }

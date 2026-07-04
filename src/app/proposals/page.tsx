@@ -144,6 +144,7 @@ const initialsOf = (name: string) =>
     .toUpperCase();
 
 export default function ProposalsListPage() {
+  console.log("Forcing HMR reload for ProposalsListPage");
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'ProposalList' });
   const { user, isLoading } = useAuth();
   const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
@@ -1347,12 +1348,32 @@ export default function ProposalsListPage() {
 
           /* Table */
           .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .pp-table .ant-table { background: transparent; font-size: 12px; }
-          .pp-table .ant-table-thead > tr > th {
+          .pp-table,
+          .pp-table.ant-table-wrapper,
+          .pp-table .ant-table,
+          .pp-table .ant-table-wrapper,
+          .pp-table .ant-table-container,
+          .pp-table .ant-table-content,
+          .pp-table .ant-table-header,
+          .pp-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
+          }
+          .pp-table .ant-table-thead > tr > th, .pp-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
             white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #374151 !important;
           }
           .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
           .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1491,7 +1512,8 @@ export default function ProposalsListPage() {
 
           /* Premium action dropdown */
           .pp-action-pop .ant-dropdown-menu {
-            padding: 6px; border-radius: 0; min-width: 236px;
+            padding: 6px; border-radius: 0 !important; min-width: 236px;
+            overflow: hidden !important;
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-100);
             box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
@@ -1515,6 +1537,27 @@ export default function ProposalsListPage() {
           .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
           .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
           .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+          /* Dark Theme Action Popup */
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+            background: #0B0F1A !important;
+            border-radius: 0 !important;
+            overflow: hidden !important;
+            border: 1px solid #1E293B !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider {
+            background: #1E293B !important;
+          }
+          [data-theme='dark'] .pp-menu-title {
+            color: #cbd5e1 !important;
+          }
+          [data-theme='dark'] .pp-menu-desc {
+            color: #64748b !important;
+          }
+
           .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
           .pc-status-tag .anticon { font-size: 9px; }
           .pc-mail-val { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; }

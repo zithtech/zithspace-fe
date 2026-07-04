@@ -648,6 +648,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 };
 
 export default function LeadsPage() {
+  console.log("Forcing HMR reload for LeadsPage 2");
   useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
@@ -5613,9 +5614,9 @@ export default function LeadsPage() {
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
-              background: var(--bg-primary) !important;
-              color: var(--text-slate-400) !important;
-              border-bottom-color: var(--border-slate-100) !important;
+              background: #161B22 !important;
+              color: #94A3B8 !important;
+              border-bottom-color: #374151 !important;
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
               border-bottom-color: var(--border-slate-100) !important;
@@ -6475,17 +6476,32 @@ export default function LeadsPage() {
               background: var(--bg-primary);
             }
 
-            .premium-table .ant-table { background: transparent; }
-            .premium-table .ant-table-thead > tr > th { 
-              background: #f8fafc; 
-              color: #64748b; 
-              font-weight: 700; 
-              font-size: 11px; 
-              text-transform: uppercase; 
-              letter-spacing: 0.05em;
-              border-bottom: 1px solid #f1f5f9;
-              padding: 16px 20px;
+            .premium-table,
+            .premium-table.ant-table-wrapper,
+            .premium-table .ant-table,
+            .premium-table .ant-table-wrapper,
+            .premium-table .ant-table-container,
+            .premium-table .ant-table-content,
+            .premium-table .ant-table-header,
+            .premium-table .ant-table-body {
+              background: transparent !important;
+              border-radius: 0px !important;
             }
+            .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td { 
+              background: var(--bg-slate-50) !important; 
+              color: var(--text-slate-400) !important; 
+              font-weight: 700 !important; 
+              font-size: 10px !important; 
+              text-transform: uppercase !important; 
+              letter-spacing: 0.04em !important;
+              border-bottom: 1px solid var(--border-slate-200) !important;
+              padding: 6px 10px !important;
+              white-space: nowrap !important;
+              border-radius: 0 !important;
+              border-start-start-radius: 0 !important;
+              border-start-end-radius: 0 !important;
+            }
+            .premium-table .ant-table-thead > tr > th::before { display: none !important; }
             .premium-table .ant-table-tbody > tr > td { 
               padding: 16px 20px; 
               border-bottom: 1px solid #f8fafc;
@@ -6819,10 +6835,11 @@ export default function LeadsPage() {
 
             /* DARK THEME OVERRIDES */
             [data-theme='dark'] .leads-page-wrapper { background: #0d1117 !important; }
-            [data-theme='dark'] .premium-table .ant-table-thead > tr > th { 
-              background: #161b22 !important; 
-              color: #8b949e !important; 
-              border-bottom-color: #30363d !important; 
+            [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+            [data-theme='dark'] .premium-table .ant-table-thead > tr > td { 
+              background: #161B22 !important; 
+              color: #94A3B8 !important; 
+              border-bottom-color: #374151 !important; 
             }
             [data-theme='dark'] .premium-table .ant-table-tbody > tr > td { 
               border-bottom-color: #21262d !important; 

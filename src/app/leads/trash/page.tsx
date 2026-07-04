@@ -179,6 +179,7 @@ const getGradient = (id: string) => {
 };
 
 export default function LeadsTrashPage() {
+  console.log("Forcing HMR reload for LeadsTrashPage");
   useActivitySource({ section: "WORK", module: "Leads", page: "LeadsTrash" });
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -920,14 +921,27 @@ export default function LeadsTrashPage() {
           .es-stat-spark { opacity: 0.95; }
 
           .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .es-table .ant-table { background: transparent; font-size: 12px; border-radius: 0 !important; }
-          .es-table .ant-table-container { border-radius: 0 !important; }
-          .es-table .ant-table-thead > tr > th {
-            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-            white-space: nowrap !important;
+          .es-table,
+          .es-table.ant-table-wrapper,
+          .es-table .ant-table,
+          .es-table .ant-table-wrapper,
+          .es-table .ant-table-container,
+          .es-table .ant-table-content,
+          .es-table .ant-table-header,
+          .es-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
           }
+          .es-table .ant-table-thead > tr > th, .es-table .ant-table-thead > tr > td {
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .es-table .ant-table-thead > tr > th::before { display: none !important; }
           .es-table .ant-table-thead > tr > th:first-child { border-top-left-radius: 0 !important; border-start-start-radius: 0 !important; }
           .es-table .ant-table-thead > tr > th:last-child { border-top-right-radius: 0 !important; border-start-end-radius: 0 !important; }
           .es-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; background: var(--bg-pure-white) !important; }
@@ -1039,7 +1053,12 @@ export default function LeadsTrashPage() {
           [data-theme='dark'] .es-stat-label { color: #94A3B8; }
           [data-theme='dark'] .es-stat-value { color: #FFFFFF; }
           [data-theme='dark'] .es-table-wrap { background: #0B0F1A !important; border-color: #1F2937 !important; }
-          [data-theme='dark'] .es-table .ant-table-thead > tr > th { background: #0B0F1A !important; border-bottom-color: #1F2937 !important; color: #94A3B8 !important; }
+          [data-theme='dark'] .es-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .es-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            border-bottom-color: #374151 !important;
+            color: #94A3B8 !important;
+          }
           [data-theme='dark'] .es-table .ant-table-tbody > tr > td { background: #0B0F1A !important; border-bottom-color: #1F2937 !important; }
           [data-theme='dark'] .es-table .ant-table-tbody > tr.es-row:hover > td { background: #161B22 !important; }
           [data-theme='dark'] .es-row-title { color: #FFFFFF !important; }

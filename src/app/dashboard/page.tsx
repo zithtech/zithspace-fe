@@ -22,6 +22,7 @@ import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { ClientV2Service } from "@/services/clientV2Service";
+import { useSocket } from "@/providers/SocketProvider";
 
 import {
   Card,
@@ -81,6 +82,7 @@ const { Title, Text } = Typography;
 function DashboardContent() {
   const { token } = theme.useToken();
   const { user } = useAuth();
+  const { socket } = useSocket();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
@@ -258,7 +260,19 @@ function DashboardContent() {
     };
 
     fetchTodayAttendance();
-  }, [user]);
+
+    window.addEventListener("attendance:refresh", fetchTodayAttendance);
+    if (socket) {
+      socket.on("attendance:updated", fetchTodayAttendance);
+    }
+
+    return () => {
+      window.removeEventListener("attendance:refresh", fetchTodayAttendance);
+      if (socket) {
+        socket.off("attendance:updated", fetchTodayAttendance);
+      }
+    };
+  }, [user, socket]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {

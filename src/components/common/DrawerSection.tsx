@@ -6,7 +6,12 @@ export const drawerFormStyles = `
     font-weight: 600 !important;
     color: var(--text-slate-400, #94a3b8) !important;
     letter-spacing: .02em;
-    height: 18px !important;
+    height: auto !important;
+    min-height: 18px !important;
+    white-space: normal !important;
+    line-height: 1.4 !important;
+    align-items: flex-start !important;
+    padding-top: 2px !important;
   }
   [data-theme='dark'] .customer-drawer-card {
     background: transparent !important;

@@ -270,7 +270,7 @@ export default function ClaimsPanel() {
       {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.baseAmount, r.baseCurrency)}</div>}</div>) },
     { title: 'Created', dataIndex: 'createdAt', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 120, align: 'right',
+      title: 'Actions', key: 'actions', width: 120, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           <Tooltip title={r.status === 'draft' ? 'Edit' : 'View'}>

@@ -149,6 +149,26 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
             padding-left: 32px !important;
             padding-right: 32px !important;
           }
+          
+          /* Table styling matching ticket page */
+          .rv-shell .ant-table-thead > tr > th {
+            padding: 5px 10px !important;
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            background: var(--bg-slate-50, #f8fafc) !important;
+            color: var(--text-slate-500, #64748b) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          [data-theme='dark'] .rv-shell .ant-table-thead > tr > th {
+            background: #0f1419 !important;
+            color: #94a3b8 !important;
+          }
+          .rv-shell .ant-table-tbody > tr > td {
+            padding: 4px 10px !important;
+            font-size: 11.5px !important;
+          }
+          
           .rv-sidebar-backdrop { display: none; }
           .rv-sidebar-close {
             display: none; background: transparent; border: none; color: var(--text-slate-500);

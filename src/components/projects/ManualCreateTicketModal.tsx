@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect } from "react";
 import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, notification, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge, App } from "antd";
 import {
@@ -123,7 +124,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       }
       open={open}
       onClose={onClose}
-      width={500}
+      width={680}
       styles={{
         header: { borderBottom: '1px solid var(--border-color)', padding: '12px 16px', background: 'var(--bg-secondary)' },
         body: { padding: '12px 16px', backgroundColor: 'var(--bg-primary)' },
@@ -153,9 +154,15 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       }
       className="ticket-creation-slider"
     >
+      <style>{drawerFormStyles}</style>
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 8 }}
+        wrapperCol={{ span: 16 }}
+        labelAlign="left"
+        colon={false}
+        className="lead-drawer-form customer-drawer-form"
         onFinish={onFinish}
         initialValues={{ storyPoint: 2, estimateHours: 8, priority: 'P2', type: 'Task', tags: [] }}
         requiredMark={false}
@@ -177,48 +184,30 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             }
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          
 
             {/* Field Section: Core Context */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ padding: 6, background: 'var(--bg-blue-50)', borderRadius: 0, display: 'flex' }}>
-                  <ProjectOutlined style={{ color: 'var(--premium-blue)', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Core Context</Text>
-              </div>
+            <SectionCard step="STEP 1" icon={<ProjectOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Core Context" subtitle="General ticket information">
 
-              <Form.Item name="title" label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)' }}>Subject</Text>} rules={[{ required: true }]} style={{ marginBottom: 12 }}>
+              <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Subject</Text>} rules={[{ required: true }]}>
                 <Input placeholder="Enter brief summary of the task..." size="middle" style={{ borderRadius: 0, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
               </Form.Item>
 
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item name="platform" label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)' }}>Platform</Text>} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                  <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Platform</Text>} rules={[{ required: true }]}>
                     <Select size="middle" placeholder="Select platform" style={{ width: '100%' }}>
                       {platforms.map(p => <Option key={p.value} value={p.value}>{p.label}</Option>)}
                     </Select>
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="project" label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)' }}>Target Project</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="project" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>}>
                     <Select size="middle" placeholder="Select project" style={{ width: '100%' }}>
                       {projects.map(p => <Option key={p.value} value={p.value}>{p.label}</Option>)}
                     </Select>
                   </Form.Item>
-                </Col>
-              </Row>
-            </div>
+            </SectionCard>
 
             {/* Field Section: Documentation */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ padding: 6, background: 'var(--bg-slate-50)', borderRadius: 0, display: 'flex' }}>
-                  <FileTextOutlined style={{ color: 'var(--text-slate-500)', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Description</Text>
-              </div>
-              <Form.Item name="description" label={null} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+            <SectionCard step="STEP 2" icon={<FileTextOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Description" subtitle="Technical requirements and context">
+              <Form.Item name="description" label={null} rules={[{ required: true }]} wrapperCol={{ span: 24 }}>
                 <div className="tiptap-minimized-wrapper" style={{ borderRadius: 0, border: '1px solid var(--border-color)', overflow: 'hidden', background: 'var(--bg-primary)' }}>
                   <TiptapEditor
                     placeholder="Provide full technical requirements or context here..."
@@ -227,20 +216,12 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                   />
                 </div>
               </Form.Item>
-            </div>
+            </SectionCard>
 
             {/* Field Section: Execution Specs */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ padding: 6, background: 'var(--bg-orange-50)', borderRadius: 0, display: 'flex' }}>
-                  <ThunderboltOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Execution Specs</Text>
-              </div>
+            <SectionCard step="STEP 3" icon={<ThunderboltOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Execution Specs" subtitle="Priority, type, and effort">
 
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Form.Item name="priority" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Priority Level</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="priority" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Priority Level</Text>}>
                     <Select
                       size="middle"
                       style={{ width: '100%', height: 36 }}
@@ -257,9 +238,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                       ))}
                     </Select>
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="type" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Technical Category</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="type" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Technical Category</Text>}>
                     <Select
                       size="middle"
                       style={{ width: '100%', height: 36 }}
@@ -273,40 +252,24 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                       ))}
                     </Select>
                   </Form.Item>
-                </Col>
 
                 {selectedPlatform?.toLowerCase() === 'development' && (
-                  <Col span={24}>
-                     <Form.Item name="stack" label={<Text style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Technical Stack</Text>} rules={[{ required: true }]} style={{ marginBottom: 12 }}>
+                     <Form.Item name="stack" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Technical Stack</Text>} rules={[{ required: true }]}>
                         <Select size="middle" placeholder="Select technology stack" style={{ width: '100%', borderRadius: 0 }} dropdownStyle={{ borderRadius: 0 }}>
                           {stacks.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
                         </Select>
                       </Form.Item>
-                  </Col>
                 )}
 
-                <Col span={24}>
-                  <div style={{ background: 'var(--bg-slate-50)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)' }}>
-                    <Row gutter={16} align="middle">
-                      <Col span={12}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                          <LineChartOutlined style={{ fontSize: 13, color: 'var(--premium-blue)' }} />
-                          <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Story Points</Text>
-                        </div>
-                        <Form.Item name="storyPoint" label={null} style={{ marginBottom: 0 }}>
+                  
+                        <Form.Item name="storyPoint" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Story Points</Text>}>
                           <Select size="middle" placeholder="Points" style={{ width: '100%', height: 32 }} dropdownStyle={{ borderRadius: 0 }}>
                             {[1, 2, 3, 5, 8, 13, 21, 40].map(pt => (
                               <Option key={pt} value={pt}>{pt} Pts</Option>
                             ))}
                           </Select>
                         </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                          <FieldTimeOutlined style={{ fontSize: 13, color: 'var(--premium-blue)' }} />
-                          <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Est. Hours</Text>
-                        </div>
-                        <Form.Item name="estimateHours" label={null} style={{ marginBottom: 0 }}>
+                        <Form.Item name="estimateHours" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Est. Hours</Text>}>
                           <InputNumber
                             min={1}
                             max={1000}
@@ -314,25 +277,12 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                             placeholder="Hours"
                           />
                         </Form.Item>
-                      </Col>
-                    </Row>
-                  </div>
-                </Col>
-              </Row>
-            </div>
+            </SectionCard>
 
             {/* Field Section: Ownership & Timeline */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ padding: 6, background: 'var(--bg-green-50)', borderRadius: 0, display: 'flex' }}>
-                  <TeamOutlined style={{ color: '#10b981', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Ownership & Timeline</Text>
-              </div>
+            <SectionCard step="STEP 4" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Ownership & Timeline" subtitle="Assignments and schedule">
 
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Form.Item name="assignee" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Primary Owner</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="assignee" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Owner</Text>}>
                     <Select size="middle" showSearch optionFilterProp="label" placeholder="Select owner" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
                       {companyMembers.map(m => (
                         <Option key={m.value} value={m.value} label={m.label}>
@@ -344,9 +294,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                       ))}
                     </Select>
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="reportTo" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Reporter</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="reportTo" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Reporter</Text>}>
                     <Select size="middle" showSearch optionFilterProp="label" placeholder="Select reporter" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
                       {companyMembers.map(m => (
                         <Option key={m.value} value={m.value} label={m.label}>
@@ -358,34 +306,17 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                       ))}
                     </Select>
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="startDate" label={<Text style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Start Date</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="startDate" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>}>
                     <DatePicker size="middle" style={{ width: '100%', height: 36 }} placeholder="Select" />
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="endDate" label={<Text style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>End Date</Text>} style={{ marginBottom: 0 }}>
+                  <Form.Item name="endDate" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>End Date</Text>}>
                     <DatePicker size="middle" style={{ width: '100%', height: 36 }} placeholder="Select" />
                   </Form.Item>
-                </Col>
-              </Row>
-            </div>
+            </SectionCard>
 
             {/* Field Section: Tags */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: 0, border: '1px solid var(--border-color)', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ padding: 6, background: 'var(--bg-blue-50)', borderRadius: 0, display: 'flex' }}>
-                  <TagsOutlined style={{ color: 'var(--premium-blue)', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tags</Text>
-                {tagsValue.length > 0 && (
-                  <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-400)', marginLeft: 'auto' }}>
-                    {tagsValue.length} added
-                  </Text>
-                )}
-              </div>
-              <Form.Item name="tags" label={null} style={{ marginBottom: 0 }}>
+            <SectionCard step="STEP 5" icon={<TagsOutlined style={{ color: '#3b82f6', fontSize: 13 }} />} title="Tags" subtitle="Label categorization">
+              <Form.Item name="tags" label={null}>
                 <Input type="hidden" />
               </Form.Item>
               <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', border: '1px dashed var(--border-color)', borderRadius: 0, minHeight: 44 }}>
@@ -397,8 +328,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                   }}
                 />
               </div>
-            </div>
-          </div>
+            </SectionCard>
         </ConfigProvider>
       </Form>
     </Drawer>

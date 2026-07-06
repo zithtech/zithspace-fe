@@ -182,7 +182,7 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         validUntil: data.validUntil ? dayjs(data.validUntil) : null
       }}
       onValuesChange={(_, allValues) => {
-        const cleanInput = (val: string) => val ? val.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') : '';
+        const cleanInput = (val: string) => val ? val.replace(/[^a-zA-Z\s]/g, '') : '';
         const cleanTitle = cleanInput(allValues.title);
         const cleanClientCompany = cleanInput(allValues.clientCompany);
         const cleanClientName = cleanInput(allValues.clientName);

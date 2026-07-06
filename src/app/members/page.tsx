@@ -72,9 +72,12 @@ import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
+
+
 
 const ROLE_META: Record<
   string,
@@ -197,7 +200,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "work" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 0,
+          borderRadius: 8,
           background: value === "work" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -227,7 +230,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "personal" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 0,
+          borderRadius: 8,
           background: value === "personal" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -330,56 +333,38 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: "var(--bg-pure-white)",
       }}
     >
+      <style>{formStyles}</style>
       {/* Header */}
       <div
+        className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
-          padding: "18px 24px",
-          borderBottom: "1px solid var(--border-slate-100)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          background: "var(--bg-pure-white)",
+          background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+          borderColor: 'var(--border-color)',
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <div className="flex items-start gap-3 min-w-0">
           <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 0,
-              background: "rgba(59,130,246,0.10)",
-              color: "#3b82f6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 16,
-              flexShrink: 0,
+              background: 'rgba(59,130,246,0.10)',
+              color: '#3b82f6',
+              border: '1px solid var(--border-blue-200)',
             }}
           >
-            {mode === "add" ? <PlusOutlined /> : <EditOutlined />}
+            {mode === "add" ? <PlusOutlined style={{ fontSize: 18 }} /> : <EditOutlined style={{ fontSize: 18 }} />}
           </div>
-          <div style={{ minWidth: 0 }}>
+          <div className="min-w-0">
             <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--text-slate-900)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.2,
-              }}
+              className="text-[15px] font-semibold leading-tight"
+              style={{ color: 'var(--text-primary)' }}
             >
               {mode === "add" ? "New Member" : "Edit Member"}
             </div>
             <div
-              style={{
-                fontSize: 12,
-                color: "var(--text-slate-500)",
-                marginTop: 2,
-              }}
+              className="text-[12px] mt-0.5"
+              style={{ color: 'var(--text-secondary)' }}
             >
               {mode === "add" ? (
                 "Invite a new member to your workspace"
@@ -401,8 +386,9 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
-              className="mm-drawer-icon-btn"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)] flex items-center gap-2"
               title="Activity history"
+              style={{ color: 'var(--text-secondary)' }}
             >
               <History size={14} strokeWidth={2} />
               <span style={{ fontSize: 12, fontWeight: 600 }}>History</span>
@@ -412,9 +398,10 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="mm-drawer-icon-btn"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            <CloseOutlined style={{ fontSize: 13 }} />
+            <CloseOutlined />
           </button>
         </div>
       </div>
@@ -425,23 +412,26 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           flex: 1,
           overflowY: "auto",
           padding: "24px",
-          background: "var(--bg-slate-50)",
+          background: "var(--customers-page-bg)",
         }}
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
           onFinish={onSubmit}
-          size="middle"
-          requiredMark={false}
+          className="customer-drawer-form"
+          colon={false}
+          requiredMark="optional"
         >
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
-                <UserOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Profile Details</Text>
-            </div>
+          <SectionCard
+            icon={<UserOutlined />}
+            title="Profile Details"
+            subtitle="Enter the basic information for this member"
+            step="STEP 1"
+          >
 
             <Form.Item
               name="name"
@@ -507,15 +497,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 }}
               />
             </Form.Item>
-          </div>
+          </SectionCard>
 
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon orange" style={{ borderRadius: 0 }}>
-                <SafetyCertificateOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Access</Text>
-            </div>
+          <SectionCard
+            icon={<SafetyCertificateOutlined />}
+            title="Access"
+            subtitle="Configure role and reporting structure"
+            step="STEP 2"
+          >
 
             <Form.Item
               name="role"
@@ -615,15 +604,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   ))}
               </Select>
             </Form.Item>
-          </div>
+          </SectionCard>
 
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon green" style={{ borderRadius: 0 }}>
-                <CalendarOutlined style={{ color: '#10b981', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Schedule</Text>
-            </div>
+          <SectionCard
+            icon={<CalendarOutlined />}
+            title="Schedule"
+            subtitle="Set up work schedule and availability"
+            step="STEP 3"
+          >
 
             <Form.Item name="assignedShift" label="Assigned shift">
               <Select placeholder="Select shift (optional)" allowClear>
@@ -674,17 +662,16 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             >
               <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="e.g. 6" />
             </Form.Item>
-          </div>
+          </SectionCard>
 
           {mode === "add" && (
-            <div className="sp-form-section">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
-                  <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Welcome Notification</Text>
-              </div>
-              <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }}>
+            <SectionCard
+              icon={<MailOutlined />}
+              title="Welcome Notification"
+              subtitle="Send a welcome email to the new member"
+              step="STEP 4"
+            >
+              <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }} wrapperCol={{ span: 24 }}>
                 <EmailSelector workEmail={workEmail} personalEmail={personalEmail} />
               </Form.Item>
 
@@ -694,7 +681,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   padding: "12px 14px",
                   background: "var(--bg-slate-50)",
                   border: "1px solid var(--border-slate-100)",
-                  borderRadius: 0,
+                  borderRadius: 8,
                   display: "flex",
                   gap: 10,
                   alignItems: "flex-start",
@@ -714,23 +701,22 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   prompted to set a new password on first login.
                 </div>
               </div>
-            </div>
+            </SectionCard>
           )}
         </Form>
       </div>
 
       {/* Sticky footer */}
       <div
+        className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
         style={{
-          padding: "14px 24px",
-          borderTop: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 8,
+          background: "var(--bg-secondary)",
+          borderColor: "var(--border-color)",
         }}
       >
+        <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+          Fields marked required must be filled
+        </span>
         <Button
           onClick={onClose}
           className="mm-footer-btn"
@@ -1298,6 +1284,7 @@ export default function MembersPage() {
     canDeleteUser,
     canManageUsers,
   } = usePermission();
+  console.log("Forcing HMR reload for members page");
   const { dataSource: positions, loading: positionsLoading } = usePositions();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -2500,8 +2487,9 @@ export default function MembersPage() {
 
       {/* Add / Edit Drawer */}
       <Drawer
+        rootClassName="leave-drawer-root"
         className="mm-drawer"
-        width={460}
+        width={720}
         open={isModalVisible && modalType !== "delete"}
         onClose={() => {
           setIsModalVisible(false);
@@ -2511,9 +2499,10 @@ export default function MembersPage() {
         closable={false}
         destroyOnClose
         styles={{
-          body: { padding: 0, background: "var(--bg-pure-white)" },
+          body: { padding: 0, background: "var(--customers-page-bg)" },
           header: { display: "none" },
-          content: { background: "var(--bg-pure-white)" },
+          footer: { display: "none" },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
         }}
         footer={null}
       >
@@ -2547,7 +2536,55 @@ export default function MembersPage() {
         .mm-drawer .ant-input-number,
         .mm-drawer .ant-select,
         .mm-drawer .email-selector-card {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
+        }
+        
+        .mm-drawer .ant-segmented {
+          padding: 4px !important;
+          background: var(--bg-slate-100) !important;
+        }
+        .mm-drawer .ant-segmented-item-selected {
+          box-shadow: 0 2px 5px rgba(0,0,0,0.06) !important;
+          font-weight: 600 !important;
+          border-radius: 6px !important;
+        }
+        
+        .mm-drawer .ant-form-item-label > label {
+          color: #475569 !important;
+          font-weight: 500 !important;
+          font-size: 13.5px !important;
+          text-transform: none !important;
+          letter-spacing: 0 !important;
+        }
+        
+        .mm-drawer .ant-input,
+        .mm-drawer .ant-select-selector,
+        .mm-drawer .ant-input-number,
+        .email-selector-card {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+        }
+        .mm-drawer .ant-input:focus,
+        .mm-drawer .ant-input-focused,
+        .mm-drawer .ant-select-focused .ant-select-selector {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+        }
+        
+        [data-theme='dark'] .mm-drawer .ant-input,
+        [data-theme='dark'] .mm-drawer .ant-select-selector,
+        [data-theme='dark'] .mm-drawer .ant-input-number,
+        [data-theme='dark'] .email-selector-card {
+          background-color: #171f2e !important;
+          border-color: #2a374a !important;
+          color: #e2e8f0 !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-input::placeholder,
+        [data-theme='dark'] .mm-drawer .ant-select-selection-placeholder {
+          color: #64748b !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-form-item-label > label {
+          color: #94a3b8 !important;
         }
 
         /* Restore border-radius for footer action buttons */
@@ -2609,15 +2646,31 @@ export default function MembersPage() {
 
         .sp-form-section {
           background: var(--bg-pure-white);
-          padding: 20px;
           border-radius: 0 !important;
-          border: 1px solid var(--border-slate-200);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-          margin-bottom: 16px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-form-section-header {
+          padding: 14px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .sp-form-section-body {
+          padding: 24px 28px;
         }
         [data-theme='dark'] .sp-form-section {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: #141b27 !important;
+          border-color: #232f41 !important;
+        }
+        [data-theme='dark'] .sp-form-section-header {
+          background: #141b27 !important;
+          border-bottom-color: #232f41 !important;
         }
         .sp-section-icon {
           padding: 6px;
@@ -2839,12 +2892,14 @@ export default function MembersPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

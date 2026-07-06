@@ -208,6 +208,7 @@ export default function ClientsV2ListPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
   const { canCreateClient, canUpdateClient, canDeleteClient } = usePermission();
+  console.log("Forcing HMR reload for clients-v2 page");
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
 
@@ -3367,10 +3368,12 @@ export default function ClientsV2ListPage() {
               overflow: hidden;
               margin-top: 0px !important;
             }
-            .cm-table-card .ant-table {
+            .cm-table-card .ant-table, .cm-table-card.ant-table-wrapper, .cm-table-card .ant-table-container, .cm-table-card .ant-table-content, .cm-table-card .ant-table-header, .cm-table-card .ant-table-body {
               background: transparent !important;
+              border-radius: 0 !important;
             }
-            .cm-table-card .ant-table-thead > tr > th {
+            .cm-table-card .ant-table-thead > tr > th,
+            .cm-table-card .ant-table-thead > tr > td {
               background: var(--bg-slate-50) !important;
               border-bottom: 1px solid var(--border-slate-200) !important;
               font-size: 10px !important;
@@ -3380,6 +3383,9 @@ export default function ClientsV2ListPage() {
               color: var(--text-slate-400) !important;
               padding: 6px 10px !important;
               white-space: nowrap !important;
+              border-radius: 0 !important;
+              border-start-start-radius: 0 !important;
+              border-start-end-radius: 0 !important;
             }
             .cm-table-card .ant-table-thead > tr > th::before { display: none !important; }
             .cm-table-card .ant-table-tbody > tr > td {

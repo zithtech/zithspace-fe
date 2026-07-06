@@ -650,6 +650,7 @@ export default function AccountsSettingsPage() {
                   dataSource={pagedCategories}
                   rowKey="id"
                   loading={loading}
+                  className="pp-table"
                   pagination={false}
                   scroll={{ x: 'max-content' }}
                   locale={{ emptyText: emptyState }}
@@ -715,7 +716,7 @@ export default function AccountsSettingsPage() {
             </div>
           </div>
         }
-        width={420}
+        width={720}
         open={drawerVisible}
         onClose={() => {
           setDrawerVisible(false);
@@ -762,7 +763,11 @@ export default function AccountsSettingsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           initialValues={{ isActive: true, color: "#3b82f6" }}
           requiredMark={false}
@@ -1017,12 +1022,14 @@ export default function AccountsSettingsPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1149,7 +1156,7 @@ export default function AccountsSettingsPage() {
 
         .settings-section {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 16px; padding: 12px 14px 4px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+          border-radius: 0 !important; padding: 16px 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
         .settings-section__head {
           display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px;

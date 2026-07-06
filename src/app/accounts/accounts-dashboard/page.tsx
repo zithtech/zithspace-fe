@@ -1164,7 +1164,7 @@ export default function AccountsPage() {
           </div>
         }
         placement="right"
-        width={420}
+        width={720}
         open={isModalVisible}
         onClose={() => {
           setIsModalVisible(false);
@@ -1218,7 +1218,11 @@ export default function AccountsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           size="middle"
           className="accounts-tx-form"
@@ -1784,12 +1788,12 @@ export default function AccountsPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .pp-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -2502,7 +2506,7 @@ export default function AccountsPage() {
         .accounts-tx-form .fp-trigger {
           width: 100% !important;
           height: 38px !important;
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           padding: 0 14px !important;
@@ -2532,7 +2536,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .accounts-tx-form .ant-input-textarea {
@@ -2542,7 +2546,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-lg,
         .accounts-tx-form .ant-picker-large,
         .accounts-tx-form .ant-select-lg .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
         }
         .accounts-tx-form .ant-input:hover,
         .accounts-tx-form .ant-input-textarea:hover,

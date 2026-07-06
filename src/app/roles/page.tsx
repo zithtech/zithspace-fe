@@ -111,6 +111,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   bookmark: "Bookmarks",
   time_tracking: "Time Tracking",
   activity_log: "Activity Log / Transaction History",
+  my_hub: "My Hub",
 };
 
 /**
@@ -183,6 +184,31 @@ const PERFORMANCE_PAGE_ORDER = [
   'Performance Review',
 ];
 
+/**
+ * My Hub — personal self-service launcher. One permission per page, so the Roles
+ * UI lists the 7 My Hub pages by name.
+ */
+const MY_HUB_PAGE_BY_PERM: Record<string, string> = {
+  'my_hub.overview.read': 'Overview',
+  'my_hub.apply_leave.read': 'Apply Leave',
+  'my_hub.attendance.read': 'Attendance',
+  'my_hub.escalation.read': 'Escalations',
+  'my_hub.performance.read': 'Performance Report',
+  'my_hub.payslips.read': 'My Payslips',
+  'my_hub.profile.read': 'My Profile',
+};
+
+/** Display order for the My Hub page sub-groups (mirrors the My Hub rail). */
+const MY_HUB_PAGE_ORDER = [
+  'Overview',
+  'Apply Leave',
+  'Attendance',
+  'Escalations',
+  'Performance Report',
+  'My Payslips',
+  'My Profile',
+];
+
 /** Access Control drawer — premium SaaS tab groups */
 interface AccessGroup {
   key: string;
@@ -239,7 +265,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'connect',
     label: 'Connect',
     icon: <ApiOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
+    resources: ['my_hub', 'dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
     accent: '#6366f1',
   },
   {
@@ -521,6 +547,7 @@ export default function RolesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
+  console.log("Forcing HMR reload for roles page 2");
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
@@ -1738,6 +1765,13 @@ export default function RolesPage() {
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
+                        } else if (resource === 'my_hub') {
+                          // List the 7 My Hub pages by name (see MY_HUB_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = MY_HUB_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
                         } else
                         perms.forEach((p) => {
                           const parts = p.name.split('.');
@@ -1788,6 +1822,8 @@ export default function RolesPage() {
                                 ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : resource === 'performance'
                                 ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                : resource === 'my_hub'
+                                ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : Object.entries(subGroups)
                               ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">

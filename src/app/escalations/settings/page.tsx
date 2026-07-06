@@ -58,6 +58,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { useActivitySource } from '@/hooks/useActivitySource';
 
@@ -236,6 +237,7 @@ interface SettingsDrawerBodyProps {
   form: any;
   editingItem: any;
   onSubmit: (values: any) => void;
+  onClose: () => void;
 }
 
 const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
@@ -243,6 +245,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
   form,
   editingItem,
   onSubmit,
+  onClose,
 }) => {
   // Live values
   const watchedName: string = Form.useWatch('name', form) || '';
@@ -301,52 +304,94 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 
   return (
     <>
-      {/* Hero with live preview */}
-      <div className="es-drawer__hero">
-        <div className="es-drawer__hero-top">
-          <div className="es-drawer__hero-icon">
-            {activeTab === 'categories' ? (
-              <TagsOutlined />
-            ) : activeTab === 'priorities' ? (
-              <FireOutlined />
-            ) : (
-              <FlagOutlined />
-            )}
-          </div>
-          <div className="es-drawer__hero-text">
-            <div className="es-drawer__hero-title">
-              {editingItem ? 'Edit' : 'New'}{' '}
-              {activeTab === 'categories' ? 'Category' : activeTab === 'priorities' ? 'Priority' : 'Status'}
+      <style>{drawerFormStyles}</style>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        {/* Drawer Header */}
+        <div
+          className="customer-drawer-header"
+          style={{
+            padding: "16px 14px 12px 14px",
+            borderBottom: "1px solid var(--border-color)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 0,
+                background: "rgba(59, 130, 246, 0.10)",
+                color: "var(--premium-blue)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                flexShrink: 0,
+              }}
+            >
+              {activeTab === 'categories' ? <TagsOutlined /> : activeTab === 'priorities' ? <FireOutlined /> : <FlagOutlined />}
             </div>
-            <div className="es-drawer__hero-sub">
-              {activeTab === 'categories' && 'Define an issue type for grouping escalations.'}
-              {activeTab === 'priorities' && 'Add a severity level with a numeric weight for triage.'}
-              {activeTab === 'statuses' && 'Define a lifecycle stage and its behaviour.'}
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "var(--text-slate-900)",
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1.2,
+                }}
+              >
+                {editingItem ? 'Edit' : 'New'}{' '}
+                {activeTab === 'categories' ? 'Category' : activeTab === 'priorities' ? 'Priority' : 'Status'}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                {activeTab === 'categories' && 'Define an issue type for grouping escalations.'}
+                {activeTab === 'priorities' && 'Add a severity level with a numeric weight for triage.'}
+                {activeTab === 'statuses' && 'Define a lifecycle stage and its behaviour.'}
+              </div>
             </div>
           </div>
+          <Space>
+            <div className="es-drawer__hero-preview">
+              <span className="es-drawer__hero-preview-label">Live preview</span>
+              {previewChip()}
+            </div>
+            <Button
+              type="text"
+              shape="circle"
+              icon={<CloseOutlined />}
+              onClick={onClose}
+              style={{ color: "var(--text-slate-500)" }}
+            />
+          </Space>
         </div>
 
-        <div className="es-drawer__hero-preview">
-          <span className="es-drawer__hero-preview-label">Live preview</span>
-          {previewChip()}
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="es-drawer__body">
-        <Form form={form} layout="vertical" onFinish={onSubmit} requiredMark={false}>
+        {/* Drawer Form Content */}
+        <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }}>
+        <Form 
+          form={form} 
+          layout="horizontal" 
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
+          className="customer-drawer-form"
+          onFinish={onSubmit}
+        >
           {/* Section 1: Identity */}
-          <div className={`es-section${stepIdentityDone ? ' is-done' : ''}`}>
-            <div className="es-section__header">
-              <div className="es-section__step">{stepIdentityDone ? <CheckOutlined /> : '1'}</div>
-              <div className="es-section__icon">
-                <AppstoreOutlined />
-              </div>
-              <div className="es-section__text">
-                <div className="es-section__title">Identity</div>
-                <div className="es-section__sub">A clear name everyone can recognise</div>
-              </div>
-            </div>
+          <SectionCard
+            step="STEP 1"
+            icon={<AppstoreOutlined />}
+            title="Identity"
+            subtitle="A clear name everyone can recognise"
+          >
 
             <Form.Item
               name="name"
@@ -354,8 +399,8 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
               rules={[
                 { required: true, message: 'Enter a name' },
                 { 
-                  pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
-                  message: 'Name can only contain letters, numbers, and basic punctuation' 
+                  pattern: /^[a-zA-Z0-9\s]+$/, 
+                  message: 'Name can only contain letters, numbers, and spaces' 
                 }
               ]}
             >
@@ -371,8 +416,14 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                 maxLength={64}
                 showCount
                 onKeyPress={(e) => {
-                  if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                  if (!/^[a-zA-Z0-9\s]+$/.test(e.key)) {
                     e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                  if (val !== e.target.value) {
+                    form.setFieldValue('name', val);
                   }
                 }}
               />
@@ -389,26 +440,17 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                 />
               </Form.Item>
             )}
-          </div>
+          </SectionCard>
 
           {/* Section: Severity (priorities only) */}
           {activeTab === 'priorities' && (
-            <div className="es-section">
-              <div className="es-section__header">
-                <div className="es-section__step">2</div>
-                <div className="es-section__icon" style={{ color: bucket.color, background: `${bucket.color}14` }}>
-                  <FireOutlined />
-                </div>
-                <div className="es-section__text">
-                  <div className="es-section__title">Severity weight</div>
-                  <div className="es-section__sub">Higher weight = higher severity. 80+ shows as High Priority on the dashboard.</div>
-                </div>
-                <div className="es-section__badge" style={{ background: `${bucket.color}14`, color: bucket.color, borderColor: `${bucket.color}40` }}>
-                  {bucket.label}
-                </div>
-              </div>
-
-              <div className="es-severity">
+            <SectionCard
+              step="STEP 2"
+              icon={<FireOutlined />}
+              title="Severity weight"
+              subtitle="Higher weight = higher severity. 80+ shows as High Priority on the dashboard."
+            >
+              <div className="es-severity" style={{ padding: "0 8px 12px 8px" }}>
                 <Form.Item name="weight" style={{ marginBottom: 0 }}>
                   <Slider
                     min={0}
@@ -424,31 +466,23 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                     }}
                   />
                 </Form.Item>
-                <div className="es-severity-value">
-                  <span className="es-severity-value__big">{watchedWeight}</span>
-                  <span className="es-severity-value__sub">/ 100</span>
+                <div className="es-severity-value" style={{ marginTop: 20, textAlign: "center" }}>
+                  <span className="es-severity-value__big" style={{ fontSize: 32, fontWeight: 700, color: "var(--text-slate-900)" }}>{watchedWeight}</span>
+                  <span className="es-severity-value__sub" style={{ fontSize: 16, color: "var(--text-slate-400)" }}>/ 100</span>
                 </div>
               </div>
-            </div>
+            </SectionCard>
           )}
 
           {/* Section: Appearance (compact) */}
-          <div className={`es-section${stepAppearanceDone ? ' is-done' : ''}`}>
-            <div className="es-section__header">
-              <div className="es-section__step">
-                {stepAppearanceDone ? <CheckOutlined /> : activeTab === 'priorities' ? '3' : '2'}
-              </div>
-              <div className="es-section__icon">
-                <BgColorsOutlined />
-              </div>
-              <div className="es-section__text">
-                <div className="es-section__title">Appearance</div>
-                <div className="es-section__sub">Pick a color &amp; visibility</div>
-              </div>
-            </div>
-
-            <div className="es-appearance-row">
-              <div className="es-swatch-row">
+          <SectionCard
+            step={activeTab === 'priorities' ? 'STEP 3' : 'STEP 2'}
+            icon={<BgColorsOutlined />}
+            title="Appearance"
+            subtitle="Pick a color & visibility"
+          >
+            <Form.Item label="Color Indicator" style={{ marginBottom: 14 }}>
+              <div className="es-swatch-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {COLOR_PRESETS.map((c) => {
                   const isSelected = watchedColor.toLowerCase() === c.hex.toLowerCase();
                   return (
@@ -456,63 +490,60 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                       <button
                         type="button"
                         className={`es-swatch${isSelected ? ' is-selected' : ''}`}
-                        style={{ background: c.hex }}
+                        style={{ 
+                          background: c.hex, 
+                          width: 32, 
+                          height: 32, 
+                          borderRadius: '50%',
+                          border: isSelected ? `2px solid var(--text-slate-900)` : '2px solid transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => form.setFieldValue('color', c.hex)}
                         aria-label={c.name}
                       >
-                        {isSelected && <CheckOutlined />}
+                        {isSelected && <CheckOutlined style={{ color: '#fff', fontSize: 16 }} />}
                       </button>
                     </Tooltip>
                   );
                 })}
               </div>
-
               <Form.Item name="color" noStyle>
-                <Select
-                  style={{ width: 140 }}
-                  options={[
-                    { value: '#3b82f6', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
-                    { value: '#10b981', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
-                    { value: '#94a3b8', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
-                    { value: '#f59e0b', label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
-                  ]}
-                />
+                <Input type="hidden" />
               </Form.Item>
-            </div>
+            </Form.Item>
 
-            <div className="es-visibility-row">
-              <Form.Item
-                name="isActive"
-                valuePropName="checked"
-                initialValue={true}
-                noStyle
-              >
-                <Switch size="small" />
-              </Form.Item>
-              <div className={`es-visibility-state${watchedIsActive ? ' is-on' : ' is-off'}`}>
-                {watchedIsActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-                <span>
-                  {watchedIsActive ? 'Visible to new escalations' : 'Hidden from new escalations'}
-                </span>
+            <Form.Item label="Visibility" style={{ marginBottom: 14 }}>
+              <div className="es-visibility-row" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Form.Item
+                  name="isActive"
+                  valuePropName="checked"
+                  initialValue={true}
+                  noStyle
+                >
+                  <Switch size="small" />
+                </Form.Item>
+                <div style={{ fontSize: 13, color: watchedIsActive ? 'var(--text-slate-800)' : 'var(--text-slate-400)' }}>
+                  {watchedIsActive ? <EyeOutlined style={{ marginRight: 6 }} /> : <EyeInvisibleOutlined style={{ marginRight: 6 }} />}
+                  <span>
+                    {watchedIsActive ? 'Visible to new escalations' : 'Hidden from new escalations'}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+            </Form.Item>
+          </SectionCard>
 
           {/* Section: Behavior (statuses only) */}
           {activeTab === 'statuses' && (
-            <div className="es-section">
-              <div className="es-section__header">
-                <div className="es-section__step">3</div>
-                <div className="es-section__icon">
-                  <BulbOutlined />
-                </div>
-                <div className="es-section__text">
-                  <div className="es-section__title">Behavior</div>
-                  <div className="es-section__sub">How this status behaves in the lifecycle</div>
-                </div>
-              </div>
-
-              <div className="es-toggle-cards">
+            <SectionCard
+              step="STEP 3"
+              icon={<BulbOutlined />}
+              title="Behavior"
+              subtitle="How this status behaves in the lifecycle"
+            >
+              <div className="es-toggle-cards" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Form.Item name="isDefault" valuePropName="checked" hidden>
                   <Switch />
                 </Form.Item>
@@ -520,17 +551,26 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                   type="button"
                   className={`es-toggle-card${watchedIsDefault ? ' is-on is-default' : ''}`}
                   onClick={() => form.setFieldValue('isDefault', !watchedIsDefault)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    border: watchedIsDefault ? '1px solid var(--premium-blue)' : '1px solid var(--border-color)',
+                    background: watchedIsDefault ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg-pure-white)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
                 >
-                  <div className="es-toggle-card__icon">
+                  <div style={{ fontSize: 18, color: watchedIsDefault ? 'var(--premium-blue)' : 'var(--text-slate-400)' }}>
                     <StarOutlined />
                   </div>
-                  <div className="es-toggle-card__text">
-                    <div className="es-toggle-card__title">Default status</div>
-                    <div className="es-toggle-card__sub">New escalations start with this status</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Default status</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>New escalations start with this status</div>
                   </div>
-                  <span className={`es-toggle-card__switch${watchedIsDefault ? ' is-on' : ''}`}>
-                    <span className="es-toggle-card__thumb" />
-                  </span>
+                  <Switch checked={watchedIsDefault} size="small" />
                 </button>
 
                 <Form.Item name="isFinal" valuePropName="checked" hidden>
@@ -540,24 +580,44 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
                   type="button"
                   className={`es-toggle-card${watchedIsFinal ? ' is-on is-final' : ''}`}
                   onClick={() => form.setFieldValue('isFinal', !watchedIsFinal)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    border: watchedIsFinal ? '1px solid #10b981' : '1px solid var(--border-color)',
+                    background: watchedIsFinal ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-pure-white)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
                 >
-                  <div className="es-toggle-card__icon">
+                  <div style={{ fontSize: 18, color: watchedIsFinal ? '#10b981' : 'var(--text-slate-400)' }}>
                     <CheckCircleFilled />
                   </div>
-                  <div className="es-toggle-card__text">
-                    <div className="es-toggle-card__title">Final state</div>
-                    <div className="es-toggle-card__sub">Terminal stage — counts toward "resolved" stats</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Final state</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Terminal stage — counts toward "resolved" stats</div>
                   </div>
-                  <span className={`es-toggle-card__switch${watchedIsFinal ? ' is-on' : ''}`}>
-                    <span className="es-toggle-card__thumb" />
-                  </span>
+                  <Switch checked={watchedIsFinal} size="small" />
                 </button>
               </div>
-            </div>
+            </SectionCard>
           )}
 
-          <div className="es-info-banner">
-            <InfoCircleOutlined />
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            padding: '12px 16px',
+            background: 'var(--bg-blue-50)',
+            borderRadius: 6,
+            color: 'var(--text-slate-700)',
+            fontSize: 13,
+            lineHeight: 1.4,
+            marginTop: 24,
+          }}>
+            <InfoCircleOutlined style={{ color: 'var(--premium-blue)', marginTop: 2 }} />
             <span>
               {editingItem ? 'Saving will update this item across all related escalations instantly.' : 'This item becomes available the moment you save.'}
             </span>
@@ -566,6 +626,8 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
           {/* Description suppressed in form summary, but description still bound for categories */}
           {activeTab !== 'categories' && watchedDescription && null}
         </Form>
+        </div>
+        {/* Footer rendering has been moved to main Drawer component */}
       </div>
     </>
   );
@@ -576,6 +638,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 /* -------------------------------------------------------------------------- */
 
 export default function EscalationSettingsPage() {
+  console.log("Forcing HMR reload for EscalationSettingsPage");
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationSettings" });
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -1465,49 +1528,49 @@ export default function EscalationSettingsPage() {
 
         {/* CRUD Drawer */}
         <Drawer
-          className="es-drawer"
-          placement="right"
-          width={440}
+          {...commonDrawerProps}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          closable={false}
-          styles={{
-            header: { display: 'none' },
-            body: { padding: 0, background: 'var(--bg-pure-white)' },
-            content: { background: 'var(--bg-pure-white)' },
-            footer: { padding: 0, border: 'none' },
-          }}
-          footer={
-            <div className="es-drawer__footer">
-              <Button htmlType="button" onClick={() => { setDrawerOpen(false); form.resetFields(); }} className="es-btn-ghost">
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={() => form.submit()}
-                className="es-btn-primary"
-              >
-                {editingItem ? 'Save Changes' : `Create ${activeSection.singular}`}
-              </Button>
-            </div>
-          }
         >
-          <button
-            className="es-drawer__close"
-            onClick={() => setDrawerOpen(false)}
-            aria-label="Close"
-          >
-            <CloseOutlined />
-          </button>
-
           {drawerOpen && (
             <SettingsDrawerBody
               activeTab={activeTab}
               form={form}
               editingItem={editingItem}
               onSubmit={handleSave}
+              onClose={() => setDrawerOpen(false)}
             />
+          )}
+          {drawerOpen && (
+            <div
+              className="customer-drawer-footer"
+              style={{
+                padding: "14px 28px",
+                borderTop: "1px solid var(--border-color)",
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                position: "sticky",
+                bottom: 0,
+                gap: 8,
+                background: "var(--bg-pure-white)"
+              }}
+            >
+              <Button onClick={() => { setDrawerOpen(false); form.resetFields(); }} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: "0 18px" }}>Discard</Button>
+              <Button
+                onClick={() => form.submit()}
+                type="primary"
+                loading={saving}
+                style={{
+                  fontWeight: 600,
+                  height: 38,
+                  padding: '0 18px',
+                  borderRadius: 6,
+                }}
+              >
+                {editingItem ? 'Save Changes' : `Create ${activeSection.singular}`}
+              </Button>
+            </div>
           )}
         </Drawer>
       </div>
@@ -1605,14 +1668,27 @@ export default function EscalationSettingsPage() {
 
         /* Table */
         .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .es-table .ant-table { background: transparent; font-size: 12px; border-radius: 0 !important; }
-        .es-table .ant-table-container { border-radius: 0 !important; }
-        .es-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+        .es-table,
+        .es-table.ant-table-wrapper,
+        .es-table .ant-table,
+        .es-table .ant-table-wrapper,
+        .es-table .ant-table-container,
+        .es-table .ant-table-content,
+        .es-table .ant-table-header,
+        .es-table .ant-table-body {
+          background: transparent !important;
+          border-radius: 0px !important;
         }
+        .es-table .ant-table-thead > tr > th, .es-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+        }
+        .es-table .ant-table-thead > tr > th::before { display: none !important; }
         .es-table .ant-table-thead > tr > th:first-child {
           border-start-start-radius: 0 !important;
           border-top-left-radius: 0 !important;
@@ -1808,8 +1884,8 @@ export default function EscalationSettingsPage() {
           border-color: #1F2937 !important;
         }
         [data-theme='dark'] .es-table .ant-table-thead > tr > th {
-          background: #0B0F1A !important;
-          border-bottom-color: #1F2937 !important;
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
           color: #94A3B8 !important;
         }
         [data-theme='dark'] .es-table .ant-table-tbody > tr > td {

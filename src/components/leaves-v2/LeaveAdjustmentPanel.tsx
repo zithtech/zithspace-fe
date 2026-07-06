@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Drawer, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
+import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -18,6 +18,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -33,6 +34,9 @@ const { TextArea } = Input;
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+
+
 
 // kind → { label, sign } (sign drives the live preview; server is authoritative)
 const KINDS: { value: AdjustmentKind; label: string; sign: 1 | -1 }[] = [
@@ -54,6 +58,7 @@ const ENTRY_LABEL: Record<string, string> = {
 
 export default function LeaveAdjustmentPanel() {
   const { canReadLeaveAdjustment, canCreateLeaveAdjustment, canDeleteLeaveAdjustment } = usePermission();
+  console.log("Forcing HMR reload for LeaveAdjustmentPanel");
 
   const [rows, setRows] = useState<LeaveAdjustment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -252,6 +257,14 @@ export default function LeaveAdjustmentPanel() {
     <div className="lvadj">
       <div className="lvadj-header">
         <div className="lvadj-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvadj-header-icon"><CalculatorOutlined /></div>
           <div>
             <div className="lvadj-header-title">Leave Adjustment</div>
@@ -301,7 +314,7 @@ export default function LeaveAdjustmentPanel() {
       </div>
 
       <div className="lvadj-table-wrap">
-        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} onRow={() => ({ className: 'lvadj-row' })} />
+        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
       </div>
 
       {total > 0 && (
@@ -320,86 +333,136 @@ export default function LeaveAdjustmentPanel() {
 
       {/* DRAWER */}
       <Drawer
+        rootClassName="leave-drawer-root"
         title={null}
         open={open}
         onClose={() => setOpen(false)}
-        width={480}
+        width={720}
         closable={false}
         destroyOnClose
-        styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' }, mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' } }}
-      >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-pure-white)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><CalculatorOutlined /></div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>New Adjustment</div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Credit or debit a balance directly</div>
-              </div>
-            </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
+        styles={{
+          header: { display: 'none' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+        }}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <Button onClick={() => setOpen(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
+            <Button
+              type="primary"
+              loading={saving}
+              onClick={submit}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              Apply Adjustment
+            </Button>
           </div>
-
-          <div className="lvadj-drawer-form" style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <div style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', padding: '12px 22px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 32, height: 32, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><InfoCircleOutlined /></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)' }}>Adjustment Details</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)' }}>Who, what and how much</div>
-                </div>
-              </div>
-
-              <Row gutter={16}>
-                <Col span={24} style={{ marginBottom: 14 }}>
-                  <span className="lvadj-label">User</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined }))} style={{ width: '100%', height: 38 }} width={300} />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvadj-label">Leave type</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Select type" itemNoun="leave types" allowClear={false} value={leaveTypeId} onChange={(v) => setLeaveTypeId(v as string)} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} style={{ width: '100%', height: 38 }} width={240} />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvadj-label">Kind</span>
-                  <div style={{ marginTop: 6 }}>
-                    <SearchableDropdown placeholder="Kind" itemNoun="kinds" allowClear={false} value={kind} onChange={(v) => setKind(v as AdjustmentKind)} options={KINDS} style={{ width: '100%', height: 38 }} width={220} />
-                  </div>
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvadj-label">Amount (days)</span>
-                  <InputNumber style={{ marginTop: 6, width: '100%' }} min={0.5} max={9999} step={0.5} value={amount} onChange={(v) => setAmount(Number(v ?? 0))} />
-                </Col>
-                <Col span={12} style={{ marginBottom: 14 }}>
-                  <span className="lvadj-label">Effective date</span>
-                  <DatePicker style={{ marginTop: 6, width: '100%' }} value={effectiveDate} onChange={(d) => d && setEffectiveDate(d)} format="MMM D, YYYY" allowClear={false} />
-                </Col>
-                <Col span={24}>
-                  <span className="lvadj-label">Reason</span>
-                  <TextArea rows={2} style={{ marginTop: 6 }} value={reason} maxLength={500} placeholder="e.g. Comp-off for weekend work" onChange={(e) => setReason(e.target.value)} />
-                </Col>
-              </Row>
+        }
+      >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--bg-blue-50)',
+                color: 'var(--text-blue-700)',
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              <CalculatorOutlined style={{ fontSize: 18 }} />
             </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                New Adjustment
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Credit or debit a balance directly
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
+
+        <Form
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
+          className="customer-drawer-form"
+        >
+          <div className="px-6 py-6 space-y-5 pb-24">
+            <SectionCard
+              icon={<InfoCircleOutlined />}
+              title="Adjustment Details"
+              subtitle="Who, what and how much"
+              step="STEP 1"
+            >
+                <Form.Item label="User" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined }))} style={{ width: '100%', height: 38 }} width={300} />
+                </Form.Item>
+                <Form.Item label="Leave type" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Select type" itemNoun="leave types" allowClear={false} value={leaveTypeId} onChange={(v) => setLeaveTypeId(v as string)} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} style={{ width: '100%', height: 38 }} width={240} />
+                </Form.Item>
+                <Form.Item label="Kind" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown placeholder="Kind" itemNoun="kinds" allowClear={false} value={kind} onChange={(v) => setKind(v as AdjustmentKind)} options={KINDS} style={{ width: '100%', height: 38 }} width={220} />
+                </Form.Item>
+                <Form.Item label="Amount (days)" style={{ marginBottom: 0 }}>
+                  <InputNumber style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} min={0.5} max={9999} step={0.5} value={amount} onChange={(v) => setAmount(Number(v ?? 0))} />
+                </Form.Item>
+                <Form.Item label="Effective date" style={{ marginBottom: 0 }}>
+                  <DatePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={effectiveDate} onChange={(d) => d && setEffectiveDate(d)} format="MMM D, YYYY" allowClear={false} />
+                </Form.Item>
+                <Form.Item label="Reason" style={{ marginBottom: 0 }}>
+                  <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={reason} maxLength={500} placeholder="e.g. Comp-off for weekend work" onChange={(e) => setReason(e.target.value)} />
+                </Form.Item>
+              </SectionCard>
 
             {employeeId && leaveTypeId && (
-              <div className="lvadj-preview">
+              <SectionCard
+                icon={<InfoCircleOutlined />}
+                title="Adjustment Preview"
+                subtitle="Effect on user balance"
+              >
                 <div className="lvadj-preview-row"><span>Current balance</span><strong>{currentBalance == null ? '…' : currentBalance}</strong></div>
                 <div className="lvadj-preview-row"><span>This adjustment</span><strong style={{ color: signed >= 0 ? PALETTE.green : PALETTE.red }}>{signed >= 0 ? `+${signed}` : signed}</strong></div>
-                <div className="lvadj-preview-row lvadj-preview-net"><span>New balance</span><strong>{projected == null ? '…' : projected}</strong></div>
-              </div>
+                <div className="lvadj-preview-row lvadj-preview-net" style={{ borderTop: '1px dashed var(--border-slate-200)', paddingTop: 8, marginTop: 8 }}>
+                  <span>New balance</span><strong style={{ color: PALETTE.blue }}>{projected == null ? '…' : projected}</strong>
+                </div>
+              </SectionCard>
             )}
           </div>
-
-          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <Space size={10}>
-              <Button onClick={() => setOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Cancel</Button>
-              <Button type="primary" loading={saving} icon={<PlusOutlined />} onClick={submit} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>Apply Adjustment</Button>
-            </Space>
-          </div>
-        </div>
+        </Form>
       </Drawer>
 
       <style jsx global>{`
@@ -430,9 +493,16 @@ export default function LeaveAdjustmentPanel() {
         .lvadj-filter-label .anticon { color: var(--text-slate-400); }
         .lvadj-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvadj-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvadj-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); overflow: hidden; }
-        .lvadj-table .ant-table { background: transparent; font-size: 12px; }
-        .lvadj-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvadj-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvadj-table, .lvadj-table.ant-table-wrapper, .lvadj-table .ant-table, .lvadj-table .ant-table-container, .lvadj-table .ant-table-content, .lvadj-table .ant-table-header, .lvadj-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvadj-table .ant-table-thead > tr > th,
+        .lvadj-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvadj-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvadj-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvadj-table .ant-table-tbody > tr.lvadj-row:hover > td { background: var(--bg-slate-50) !important; }

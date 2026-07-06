@@ -35,7 +35,7 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
-  const [activeTab, setActiveTab] = useState('integration');
+  const [activeTab, setActiveTab] = useState('dropdown-management');
   const queryClient = useQueryClient();
 
   // Handle data changes from DropdownManager
@@ -264,20 +264,24 @@ export default function TicketSettings() {
       flexDirection: 'column',
     }}>
       {/* Workstation Header */}
-      <TimeTrackingHeader
-        icon={<ControlOutlined style={{ fontSize: 18, color: '#8b5cf6' }} />}
-        title="Ticket Settings"
-        description="Strategic task organization and cross-project categorization"
-        style={{
-          padding: '10.5px 32px',
-          borderBottom: '1px solid var(--border-slate-200)',
-          marginBottom: 20,
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          background: "var(--bg-pure-white)",
-          margin: '-24px -24px 20px'
-        }}
+      <div className="ts-sticky-header" style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+        background: "var(--bg-pure-white)",
+        margin: '-24px -32px 0',
+        width: 'calc(100% + 64px)',
+        borderLeft: '1px solid var(--border-slate-200)'
+      }}>
+        <TimeTrackingHeader
+          icon={<ControlOutlined style={{ fontSize: 18, color: '#8b5cf6' }} />}
+          title="Ticket Settings"
+          description="Strategic task organization and cross-project categorization"
+          style={{
+            padding: '10.5px 32px 24px 32px',
+            marginBottom: 0,
+            background: "transparent"
+          }}
         extra={
           <Tabs
             activeKey={activeTab}
@@ -285,7 +289,7 @@ export default function TicketSettings() {
             className="premium-nav-tabs"
             style={{ marginBottom: -11 }}
             items={[
-              {
+              /* {
                 key: 'integration',
                 label: (
                   <Space size={8}>
@@ -293,7 +297,7 @@ export default function TicketSettings() {
                     <span>Integration</span>
                   </Space>
                 ),
-              },
+              }, */
               {
                 key: 'dropdown-management',
                 label: (
@@ -316,6 +320,8 @@ export default function TicketSettings() {
           />
         }
       />
+      <Divider style={{ margin: 0, width: '100%', minWidth: '100%' }} />
+      </div>
 
       {/* Content Area */}
       <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -337,7 +343,7 @@ export default function TicketSettings() {
 
         /* ── Root container ──────────────────────────────────────── */
         .ts-root {
-          background-color: var(--bg-pure-white);
+          background-color: transparent;
         }
 
         /* ── Header ──────────────────────────────────────────────── */

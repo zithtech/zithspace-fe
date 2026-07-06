@@ -777,7 +777,7 @@ export default function InvoiceInvoicesPage() {
         const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
           <div className="flex items-center gap-2.5 truncate">
-            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
+            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-none text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
               {companyName.charAt(0)}
             </div>
             <div className="truncate" style={{ lineHeight: 1.25 }}>
@@ -1150,7 +1150,7 @@ export default function InvoiceInvoicesPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -1166,7 +1166,7 @@ export default function InvoiceInvoicesPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -1252,7 +1252,7 @@ export default function InvoiceInvoicesPage() {
             {/* Bulk Action Bar */}
             {selectedRowKeys.length > 0 && (
               <div
-                className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
+                className="rounded-none px-4 py-2.5 mb-3 flex items-center justify-between"
                 style={{
                   background: "var(--bg-blue-50)",
                   border: "1px solid var(--border-blue-200)",
@@ -1333,8 +1333,8 @@ export default function InvoiceInvoicesPage() {
                     dataSource={[]}
                     loading={true}
                     pagination={false}
-                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                     className="pp-table"
+                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                   />
                 </div>
               )
@@ -1639,7 +1639,7 @@ export default function InvoiceInvoicesPage() {
       >
         <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
+            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
               <CreditCard size={20} />
             </div>
             <div>
@@ -1651,19 +1651,19 @@ export default function InvoiceInvoicesPage() {
 
         <div className="p-6">
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
               <Text strong className="text-sm">
                 ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
               <Text strong className="text-sm" style={{ color: 'var(--accounts-emerald-text)' }}>
                 ${Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
               <Text strong className="text-sm" style={{ color: 'var(--text-sky-500)' }}>
                 ${Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -1698,7 +1698,7 @@ export default function InvoiceInvoicesPage() {
                 max={statusInvoice?.balanceDue}
                 placeholder="0.00"
                 prefix={<span className="text-slate-400">$</span>}
-                className="h-12 rounded-xl text-lg font-bold"
+                className="h-12 rounded-none text-lg font-bold"
                 step="0.01"
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               />
@@ -1710,7 +1710,7 @@ export default function InvoiceInvoicesPage() {
                 name="paymentMethod"
                 initialValue="BANK_TRANSFER"
               >
-                <Select className="h-11 rounded-xl" popupClassName="rounded-xl">
+                <Select className="h-11 rounded-none" popupClassName="rounded-none">
                   <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
                   <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
                   <Select.Option value="CASH">Cash</Select.Option>
@@ -1727,8 +1727,8 @@ export default function InvoiceInvoicesPage() {
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm"
-                  className="h-11 w-full rounded-xl"
-                  popupClassName="rounded-xl"
+                  className="h-11 w-full rounded-none"
+                  popupClassName="rounded-none"
                 />
               </Form.Item>
             </div>
@@ -1740,7 +1740,7 @@ export default function InvoiceInvoicesPage() {
               <Input.TextArea
                 rows={2}
                 placeholder="Reference number or memo..."
-                className="rounded-xl p-3"
+                className="rounded-none p-3"
                 maxLength={200}
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               />
@@ -1749,7 +1749,7 @@ export default function InvoiceInvoicesPage() {
             <div className="flex gap-3 mt-8">
               <Button
                 onClick={() => setStatusModalVisible(false)}
-                className="h-11 flex-1 rounded-xl font-semibold"
+                className="h-11 flex-1 rounded-none font-semibold"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
                 Cancel
@@ -1758,7 +1758,7 @@ export default function InvoiceInvoicesPage() {
                 type="primary"
                 htmlType="submit"
                 loading={updateStatusMutation.isPending}
-                className="h-11 flex-1 rounded-xl font-semibold border-none"
+                className="h-11 flex-1 rounded-none font-semibold border-none"
                 style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
               >
                 Update Payment
@@ -1816,7 +1816,7 @@ export default function InvoiceInvoicesPage() {
       >
         <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
+            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
               <RefreshCw size={20} />
             </div>
             <div>
@@ -1827,7 +1827,7 @@ export default function InvoiceInvoicesPage() {
         </div>
 
         <div className="p-6">
-          <div className="rounded-2xl p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+          <div className="rounded-none p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
             <div className="text-center flex-1 min-w-0">
               <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
               <div className="flex justify-center">
@@ -1874,8 +1874,8 @@ export default function InvoiceInvoicesPage() {
                 size="large"
                 value={selectedNewStatus}
                 onChange={(value) => setSelectedNewStatus(value)}
-                popupClassName="rounded-xl"
-                className="rounded-xl border-slate-200"
+                popupClassName="rounded-none"
+                className="rounded-none border-slate-200"
                 options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
                   label: (
                     <div className="flex items-center gap-2 py-1">
@@ -1891,7 +1891,7 @@ export default function InvoiceInvoicesPage() {
             </div>
 
             {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
-              <div className="p-4 rounded-2xl border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
+              <div className="p-4 rounded-none border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
                 <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: '#d48806' }} />
                 <div className="text-xs leading-relaxed" style={{ color: '#d48806' }}>
                   <Text strong className="block mb-1" style={{ color: '#ad6800' }}>Payment Required</Text>
@@ -1907,7 +1907,7 @@ export default function InvoiceInvoicesPage() {
                 setStatusChangeModalVisible(false);
                 setSelectedNewStatus(null);
               }}
-              className="h-11 flex-1 rounded-xl font-semibold"
+              className="h-11 flex-1 rounded-none font-semibold"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               Cancel
@@ -1917,7 +1917,7 @@ export default function InvoiceInvoicesPage() {
               onClick={handleGeneralStatusUpdate}
               loading={updateStatusMutation.isPending}
               disabled={!selectedNewStatus}
-              className="h-11 flex-1 rounded-xl font-semibold border-none"
+              className="h-11 flex-1 rounded-none font-semibold border-none"
               style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
             >
               Update Status
@@ -1930,7 +1930,7 @@ export default function InvoiceInvoicesPage() {
       <Drawer
         title={
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-lg" style={{ backgroundColor: 'var(--customers-header-icon-color)' }}>
+            <div className="flex items-center justify-center size-8 rounded-none" style={{ backgroundColor: 'var(--customers-header-icon-color)' }}>
               <DollarSign size={16} className="text-white" />
             </div>
             <div>
@@ -1968,7 +1968,7 @@ export default function InvoiceInvoicesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="rounded-none border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div>
@@ -2103,7 +2103,7 @@ export default function InvoiceInvoicesPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="rounded-none border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
@@ -2143,7 +2143,7 @@ export default function InvoiceInvoicesPage() {
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
                         {paymentHistory.payments.map((payment: any, index: number) => (
-                          <tr key={payment.id || index} className="hover:bg-gray-50" style={{ backgroundColor: 'transparent' }}>
+                          <tr key={payment.id || index} className="hover:bg-[var(--bg-slate-50)]" style={{ backgroundColor: 'transparent' }}>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
                                 {payment.date || dayjs(payment.paymentDate).format('MMM DD, YYYY')}
@@ -2207,7 +2207,7 @@ export default function InvoiceInvoicesPage() {
             </div>
 
             {paymentHistory.payments && paymentHistory.payments.length > 0 && (
-              <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+              <div className="rounded-none border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
                     <Clock size={12} style={{ color: 'var(--customers-header-icon-color)' }} />
@@ -2317,7 +2317,7 @@ export default function InvoiceInvoicesPage() {
           >
             <div className="flex items-start gap-3 min-w-0">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-none flex items-center justify-center flex-shrink-0"
                 style={{
                   background: "var(--bg-blue-50)",
                   color: "var(--text-blue-700)",
@@ -2460,7 +2460,7 @@ export default function InvoiceInvoicesPage() {
           </div>
 
           <div className="flex-1 flex flex-col p-6 h-full overflow-hidden" style={{ background: "var(--customers-page-bg)" }}>
-            <div className="flex-1 rounded-xl border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
+            <div className="flex-1 rounded-none border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
               {viewedProofFile ? (
                 <>
                   <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -2721,12 +2721,14 @@ export default function InvoiceInvoicesPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

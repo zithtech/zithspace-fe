@@ -39,7 +39,9 @@ import { hivebugStyles } from '@/components/projects/bug-list/hivebug-styles';
 
 import { api } from '@/lib/axios';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
+
 import { EscalationSettingsService } from '@/services/escalationSettings';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -101,27 +103,6 @@ interface CreateEscalationDrawerProps {
   /** The ID of the escalation to edit. When provided the drawer opens in edit mode. */
   editingId?: string;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                             Section Header                                 */
-/* -------------------------------------------------------------------------- */
-
-const SectionHeader: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  step: number;
-  done?: boolean;
-}> = ({ icon, title, subtitle, step, done }) => (
-  <div className={`ced-section-header${done ? ' is-done' : ''}`}>
-    <div className="ced-section-header__step">{done ? <CheckCircleFilled /> : step}</div>
-    <div className="ced-section-header__icon">{icon}</div>
-    <div className="ced-section-header__text">
-      <div className="ced-section-header__title">{title}</div>
-      {subtitle && <div className="ced-section-header__sub">{subtitle}</div>}
-    </div>
-  </div>
-);
 
 /* -------------------------------------------------------------------------- */
 /*                                 Drawer                                     */
@@ -316,11 +297,11 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
     //             detailed_description, targetMembers[].user.id,
     //             tickets[].ticket.id
 
-    const categoryId   = editData.escalation_category_id || null;
-    const priorityId   = editData.escalation_priority_id  || null;
-    const projectId    = editData.project_id               || undefined;
-    const subject      = editData.short_summary            || '';
-    const description  = editData.detailed_description     || '';
+    const categoryId = editData.escalation_category_id || null;
+    const priorityId = editData.escalation_priority_id || null;
+    const projectId = editData.project_id || undefined;
+    const subject = editData.short_summary || '';
+    const description = editData.detailed_description || '';
 
     // targetMembers is a JSON aggregated array: [{ user: { id, name, ... } }]
     const targetUsers = (editData.targetMembers || [])
@@ -355,7 +336,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
         if (Array.isArray(urls)) {
           const initialFileList = urls.map((url, index) => {
             let fileName = url.split('/').pop() || `Attachment ${index + 1}`;
-            
+
             // Remove the 12-character nanoid prefix if it exists
             const match = fileName.match(/^[\w-]{12}_(.+)$/);
             if (match) {
@@ -502,477 +483,519 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
   /* ── Render ─────────────────────────────────────────────────────────── */
   return (
     <>
-    <style>{hivebugStyles}</style>
-    <Drawer
-      className="ced-drawer"
-      placement="right"
-      width={580}
-      open={open}
-      onClose={handleClose}
-      closable={false}
-      destroyOnHidden={false}
-      styles={{
-        header: { display: 'none' },
-        body: { padding: 0, background: 'var(--bg-pure-white)' },
-        content: { background: 'var(--bg-pure-white)' },
-        footer: { padding: 0, border: 'none' },
-      }}
-      footer={
-        <div className="ced-footer">
-          <div className="ced-footer__progress">
-            <div className={`ced-footer__dot${stepContextDone ? ' is-done' : ''}`} />
-            <div className="ced-footer__line" />
-            <div className={`ced-footer__dot${stepDetailsDone ? ' is-done' : ''}`} />
-            <div className="ced-footer__line" />
-            <div className={`ced-footer__dot${fileList.length > 0 ? ' is-done' : ''}`} />
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={handleClose}
+        destroyOnHidden={false}
+      >
+        <style>{drawerFormStyles}</style>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          {/* Drawer Header */}
+          <div
+            className="customer-drawer-header"
+            style={{
+              padding: "16px 14px 12px 14px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 0,
+                  background: "rgba(220, 38, 38, 0.10)",
+                  color: "#dc2626",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 18,
+                  flexShrink: 0,
+                }}
+              >
+                {isLoading && isEditMode ? <LoadingOutlined /> : isEditMode ? <EditOutlined /> : <AlertOutlined />}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "var(--text-slate-900)",
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {isEditMode ? 'Edit Escalation' : 'Raise Manual Escalation'}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                  {isEditMode
+                    ? isLoading
+                      ? 'Loading escalation details…'
+                      : 'Update the escalation details below.'
+                    : 'Flag a quality or performance concern.'}
+                </div>
+              </div>
+            </div>
+            <Space>
+              <Button
+                type="text"
+                shape="circle"
+                icon={<CloseOutlined />}
+                onClick={handleClose}
+                style={{ color: "var(--text-slate-500)" }}
+              />
+            </Space>
           </div>
-          <div className="ced-footer__actions">
-            <Button onClick={handleClose} className="ced-btn-ghost">
-              Discard
-            </Button>
+
+          {/* Drawer Form Content */}
+          <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }}>
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              className="customer-drawer-form"
+              onFinish={onFinish}
+            >
+              <div style={{ display: 'flex', gap: 16, background: 'var(--bg-slate-50)', padding: '12px 16px', borderRadius: 8, marginBottom: 20, border: '1px solid var(--border-slate-200)', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)' }}>
+                  <ThunderboltOutlined style={{ color: '#f59e0b', fontSize: 16 }} />
+                  <span>
+                    <strong>24 hr</strong> review SLA
+                  </span>
+                </div>
+                <div style={{ width: 1, height: 16, background: 'var(--border-slate-200)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)' }}>
+                  <BulbOutlined style={{ color: '#3b82f6', fontSize: 16 }} />
+                  <span>Be specific — add evidence</span>
+                </div>
+              </div>
+
+              {/* ── Section 1: Team Context ─────────────────────────────── */}
+              <SectionCard
+                step="STEP 1"
+                icon={<UserOutlined />}
+                title="Team Context"
+                subtitle="Who is this about and what type of issue?"
+              >
+                <Form.Item
+                  name="targetUsers"
+                  label="Target team members"
+                  rules={[{ required: true, message: 'Select at least one team member' }]}
+                >
+                  {isLoading ? (
+                    <Skeleton.Input active block style={{ height: 42 }} />
+                  ) : (
+                    <Select
+                      mode="multiple"
+                      showSearch
+                      placeholder="Search by name or role…"
+                      maxTagCount="responsive"
+                      optionFilterProp="label"
+                      className="ced-select"
+                      style={{ borderRadius: 6 }}
+                      options={selectMembersOptions.map((m) => ({
+                        value: m.value,
+                        label: m.label,
+                        searchText: `${m.label} ${m.position || ''} ${m.email}`,
+                        rich: (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Avatar
+                              size={24}
+                              style={{ background: '#3B82F6', fontSize: 11, fontWeight: 600 }}
+                            >
+                              {(m.label || '?').charAt(0).toUpperCase()}
+                            </Avatar>
+                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                              <span style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: 13 }}>{m.label}</span>
+                              {(m.position || m.role) && (
+                                <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{m.position || m.role}</span>
+                              )}
+                            </div>
+                          </div>
+                        ),
+                      }))}
+                      optionRender={(option) => (option.data as any).rich}
+                      filterOption={(input, option: any) =>
+                        (option?.searchText || '').toLowerCase().includes(input.toLowerCase())
+                      }
+                    />
+                  )}
+                </Form.Item>
+
+                <Form.Item
+                  name="categoryId"
+                  label="Category"
+                  rules={[{ required: true, message: 'Pick a category' }]}
+                >
+                  {isLoading ? (
+                    <Skeleton.Input active block style={{ height: 42 }} />
+                  ) : (
+                    <Select
+                      placeholder="Issue type"
+                      className="ced-select"
+                      style={{ borderRadius: 6 }}
+                      options={selectCategoriesOptions.map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                        rich: (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 4, height: 14, borderRadius: 0, background: c.color || '#94a3b8' }} />
+                            {c.name}
+                          </span>
+                        ),
+                      }))}
+                      optionRender={(option) => (option.data as any).rich}
+                    />
+                  )}
+                </Form.Item>
+
+              </SectionCard>
+
+              {/* ── Section 2: Issue Particulars ────────────────────────── */}
+              <SectionCard
+                step="STEP 2"
+                icon={<BugOutlined />}
+                title="Issue Particulars"
+                subtitle="Subject, severity, project and detailed context"
+              >
+                <Form.Item
+                  name="subject"
+                  label="Subject"
+                  rules={[
+                    { required: true, message: 'Enter a subject' },
+                    {
+                      pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/,
+                      message: 'Subject can only contain letters, numbers, and basic punctuation'
+                    }
+                  ]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input
+                    placeholder="e.g. Repeated regressions on Employee Profile deploy"
+                    style={{ borderRadius: 6 }}
+                    maxLength={140}
+                    showCount
+                    onKeyPress={(e) => {
+                      if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                </Form.Item>
+
+                  <Form.Item
+                    name="priorityId"
+                    label={<span><FireOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Priority</span>}
+                    rules={[{ required: true, message: 'Pick a priority' }]}
+                  >
+                    {isLoading ? (
+                      <Skeleton.Input active block style={{ height: 42 }} />
+                    ) : (
+                      <Select
+                        placeholder="Severity"
+                        className="ced-select"
+                        style={{ borderRadius: 6 }}
+                        options={priorities.map((p) => ({
+                          value: p.id,
+                          label: p.name,
+                          rich: (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: 0, background: p.color || '#94a3b8' }} />
+                              {p.name}
+                            </span>
+                          ),
+                        }))}
+                        optionRender={(option) => (option.data as any).rich}
+                      />
+                    )}
+                  </Form.Item>
+
+                  <Form.Item
+                    name="projectId"
+                    label={<span><ProjectOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Project</span>}
+                  >
+                    {isLoading ? (
+                      <Skeleton.Input active block style={{ height: 42 }} />
+                    ) : (
+                      <Select
+                        placeholder="Related project"
+                        className="ced-select"
+                        style={{ borderRadius: 6 }}
+                        showSearch
+                        allowClear
+                        optionFilterProp="label"
+                        options={selectProjectsOptions.map((p) => ({ value: p.value, label: p.label }))}
+                      />
+                    )}
+                  </Form.Item>
+
+                  <Form.Item
+                    name="ticketIds"
+                    label={
+                      <span>
+                        <LinkOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />
+                        Related tickets
+                        {!selectedProjectId && (
+                          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 400 }}>
+                            select a project to load tickets
+                          </span>
+                        )}
+                      </span>
+                    }
+                  >
+                    <Select
+                      mode="multiple"
+                      className="ced-select"
+                      style={{ borderRadius: 6 }}
+                      placeholder={selectedProjectId ? 'Link related tickets' : 'No project selected'}
+                      disabled={!selectedProjectId}
+                      showSearch
+                      optionFilterProp="label"
+                      maxTagCount="responsive"
+                      notFoundContent={selectedProjectId ? 'No tickets for this project' : 'Pick a project first'}
+                      options={tickets.map((t) => ({
+                        value: t.id,
+                        label: `${t.ticketNumber} ${t.title}`,
+                        rich: (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <Space>
+                              <Tag color="blue" bordered={false} style={{ margin: 0, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)' }}>
+                                {t.ticketNumber}
+                              </Tag>
+                              <span style={{ color: 'var(--text-slate-800)', fontWeight: 500 }}>{t.title}</span>
+                            </Space>
+                            {t.assignee && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-slate-400)' }}>
+                                <UserOutlined />
+                                {t.assignee.name}
+                              </span>
+                            )}
+                          </div>
+                        ),
+                      }))}
+                      optionRender={(option) => (option.data as any).rich}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="description"
+                    label={<span><FileTextOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Detailed description</span>}
+                    rules={[{ required: true, message: 'Provide a detailed description' }]}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <TextArea
+                      rows={5}
+                      placeholder="Provide clear evidence of the issues. Mention specific instances and reproduction steps."
+                      style={{ padding: '12px 16px', borderRadius: 6 }}
+                      showCount
+                      maxLength={2000}
+                    />
+                  </Form.Item>
+              </SectionCard>
+
+              {/* ── Section 3: Evidence ──────────────── */}
+              <SectionCard
+                step="STEP 3"
+                icon={<PaperClipOutlined />}
+                title="Evidence & attachments"
+                subtitle="Optional — screenshots, logs, or reference documents"
+              >
+                <Upload.Dragger
+                  multiple
+                  listType="picture"
+                  fileList={fileList}
+                  onChange={({ fileList: fl }) => setFileList(fl)}
+                  onPreview={async (file) => {
+                    if (!file.url && !file.preview && file.originFileObj) {
+                      file.preview = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file.originFileObj as Blob);
+                        reader.onload = () => resolve(reader.result as string);
+                      });
+                    }
+                    setPreviewFile(file);
+                  }}
+                  beforeUpload={() => false}
+                  className="ced-dragger"
+                >
+                  <p className="ant-upload-drag-icon">
+                    <CloudUploadOutlined style={{ color: 'var(--premium-blue)', fontSize: 32 }} />
+                  </p>
+                  <p className="ant-upload-text" style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: 14 }}>
+                    Drop files here, or <span style={{ color: 'var(--premium-blue)' }}>click to browse</span>
+                  </p>
+                  <p className="ant-upload-hint" style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>
+                    Screenshots, logs, or any supporting documents
+                  </p>
+                </Upload.Dragger>
+              </SectionCard>
+            </Form>
+          </div> {/* End Drawer Form Content */}
+
+          {/* Drawer Footer */}
+          <div
+            className="customer-drawer-footer"
+            style={{
+              padding: "14px 28px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              position: "sticky",
+              bottom: 0,
+              gap: 8
+            }}
+          >
+            <Button onClick={handleClose} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: "0 18px" }}>Discard</Button>
             <Button
+              onClick={() => form.submit()}
               type="primary"
-              icon={isEditMode ? <EditOutlined /> : <SendOutlined />}
               loading={submitting}
               disabled={isLoading}
-              onClick={() => form.submit()}
-              className="ced-btn-primary"
+              style={{
+                fontWeight: 600,
+                height: 38,
+                padding: '0 18px',
+                borderRadius: 6,
+              }}
             >
               {isEditMode ? 'Save Changes' : 'Post Escalation'}
             </Button>
           </div>
         </div>
-      }
-    >
-      {/* Hero header */}
-      <div className="ced-hero">
-        <div className="ced-hero__bg" />
-        <div className="ced-hero__content">
-          <div className="ced-hero__top">
-            <div className="ced-hero__icon">
-              {isLoading && isEditMode ? <LoadingOutlined /> : isEditMode ? <EditOutlined /> : <AlertOutlined />}
-            </div>
-            <div className="ced-hero__text">
-              <div className="ced-hero__title">
-                {isEditMode ? 'Edit Escalation' : 'Raise Manual Escalation'}
-              </div>
-              <div className="ced-hero__sub">
-                {isEditMode
-                  ? isLoading
-                    ? 'Loading escalation details…'
-                    : 'Update the escalation details below. All changes will be saved immediately.'
-                  : 'Flag a quality or performance concern. Technical leads are notified immediately.'}
-              </div>
-            </div>
-            <button className="ced-hero__close" onClick={handleClose} aria-label="Close">
-              <CloseOutlined />
-            </button>
-          </div>
+      </Drawer>
 
-          <div className="ced-hero__stats">
-            <div className="ced-hero__stat">
-              <ThunderboltOutlined className="ced-hero__stat-icon" />
-              <span>
-                <strong>24 hr</strong> review SLA
-              </span>
-            </div>
-            <div className="ced-hero__stat-divider" />
-            <div className="ced-hero__stat">
-              <BulbOutlined className="ced-hero__stat-icon" />
-              <span>Be specific — add evidence</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="ced-body">
-        <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
-
-          {/* ── Section 1: Team Context ─────────────────────────────── */}
-          <SectionHeader
-            step={1}
-            done={stepContextDone}
-            icon={<UserOutlined />}
-            title="Team Context"
-            subtitle="Who is this about and what type of issue?"
-          />
-
-          <div className="ced-grid-2">
-            <Form.Item
-              name="targetUsers"
-              label="Target team members"
-              rules={[{ required: true, message: 'Select at least one team member' }]}
-            >
-              {isLoading ? (
-                <Skeleton.Input active block style={{ height: 42 }} />
-              ) : (
-                <Select
-                  mode="multiple"
-                  showSearch
-                  placeholder="Search by name or role…"
-                  maxTagCount="responsive"
-                  optionFilterProp="label"
-                  className="ced-select"
-                  options={selectMembersOptions.map((m) => ({
-                    value: m.value,
-                    label: m.label,
-                    searchText: `${m.label} ${m.position || ''} ${m.email}`,
-                    rich: (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Avatar
-                          size={24}
-                          style={{ background: '#3B82F6', fontSize: 11, fontWeight: 600 }}
-                        >
-                          {(m.label || '?').charAt(0).toUpperCase()}
-                        </Avatar>
-                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: 13 }}>{m.label}</span>
-                          {(m.position || m.role) && (
-                            <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{m.position || m.role}</span>
-                          )}
-                        </div>
-                      </div>
-                    ),
-                  }))}
-                  optionRender={(option) => (option.data as any).rich}
-                  filterOption={(input, option: any) =>
-                    (option?.searchText || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                />
-              )}
-            </Form.Item>
-
-            <Form.Item
-              name="categoryId"
-              label="Category"
-              rules={[{ required: true, message: 'Pick a category' }]}
-            >
-              {isLoading ? (
-                <Skeleton.Input active block style={{ height: 42 }} />
-              ) : (
-                <Select
-                  placeholder="Issue type"
-                  className="ced-select"
-                  options={selectCategoriesOptions.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                    rich: (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 4, height: 14, borderRadius: 0, background: c.color || '#94a3b8' }} />
-                        {c.name}
-                      </span>
-                    ),
-                  }))}
-                  optionRender={(option) => (option.data as any).rich}
-                />
-              )}
-            </Form.Item>
-          </div>
-
-          {/* ── Section 2: Issue Particulars ────────────────────────── */}
-          <SectionHeader
-            step={2}
-            done={stepDetailsDone}
-            icon={<BugOutlined />}
-            title="Issue Particulars"
-            subtitle="Subject, severity, project and detailed context"
-          />
-
-          <Form.Item
-            name="subject"
-            label="Subject"
-            rules={[
-              { required: true, message: 'Enter a subject' },
-              { 
-                pattern: /^[a-zA-Z0-9\s.,!?'"()-]+$/, 
-                message: 'Subject can only contain letters, numbers, and basic punctuation' 
+      <Drawer
+        placement="left"
+        width={700}
+        closable={false}
+        title={null}
+        footer={null}
+        mask={false}
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
+        styles={{
+          body: { padding: 0, height: '100%' }
+        }}
+      >
+        {previewFile && (
+          (() => {
+            const displayUrl = (() => {
+              let url = previewFile.url || previewFile.preview || "";
+              if (url.includes("r2.cloudflarestorage.com")) {
+                url = url.replace(
+                  /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                  "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+                );
               }
-            ]}
-          >
-            <Input
-              placeholder="e.g. Repeated regressions on Employee Profile deploy"
-              className="ced-input"
-              maxLength={140}
-              showCount
-              onKeyPress={(e) => {
-                if (!/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(e.key)) {
-                  e.preventDefault();
-                }
-              }}
-            />
-          </Form.Item>
+              if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+                url = url.replace(".r2.dev", ".r2.dev/");
+              }
+              return url;
+            })();
 
-          <div className="ced-grid-2">
-            <Form.Item
-              name="priorityId"
-              label={<span><FireOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Priority</span>}
-              rules={[{ required: true, message: 'Pick a priority' }]}
-            >
-              {isLoading ? (
-                <Skeleton.Input active block style={{ height: 42 }} />
-              ) : (
-                <Select
-                  placeholder="Severity"
-                  className="ced-select"
-                  options={priorities.map((p) => ({
-                    value: p.id,
-                    label: p.name,
-                    rich: (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 0, background: p.color || '#94a3b8' }} />
-                        {p.name}
-                      </span>
-                    ),
-                  }))}
-                  optionRender={(option) => (option.data as any).rich}
-                />
-              )}
-            </Form.Item>
+            const fileType = previewFile.type || (previewFile.name ? previewFile.name.split('.').pop()?.toLowerCase() : '');
 
-            <Form.Item
-              name="projectId"
-              label={<span><ProjectOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Project</span>}
-            >
-              {isLoading ? (
-                <Skeleton.Input active block style={{ height: 42 }} />
-              ) : (
-                <Select
-                  placeholder="Related project"
-                  className="ced-select"
-                  showSearch
-                  allowClear
-                  optionFilterProp="label"
-                  options={selectProjectsOptions.map((p) => ({ value: p.value, label: p.label }))}
-                />
-              )}
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            name="ticketIds"
-            label={
-              <span>
-                <LinkOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />
-                Related tickets
-                {!selectedProjectId && (
-                  <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 400 }}>
-                    select a project to load tickets
-                  </span>
-                )}
-              </span>
-            }
-          >
-            <Select
-              mode="multiple"
-              className="ced-select"
-              placeholder={selectedProjectId ? 'Link related tickets' : 'No project selected'}
-              disabled={!selectedProjectId}
-              showSearch
-              optionFilterProp="label"
-              maxTagCount="responsive"
-              notFoundContent={selectedProjectId ? 'No tickets for this project' : 'Pick a project first'}
-              options={tickets.map((t) => ({
-                value: t.id,
-                label: `${t.ticketNumber} ${t.title}`,
-                rich: (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <Space>
-                      <Tag color="blue" bordered={false} style={{ margin: 0, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)' }}>
-                        {t.ticketNumber}
-                      </Tag>
-                      <span style={{ color: 'var(--text-slate-800)', fontWeight: 500 }}>{t.title}</span>
-                    </Space>
-                    {t.assignee && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-slate-400)' }}>
-                        <UserOutlined />
-                        {t.assignee.name}
-                      </span>
-                    )}
-                  </div>
-                ),
-              }))}
-              optionRender={(option) => (option.data as any).rich}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            style={{ marginTop: 20 }}
-            label={<span><FileTextOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Detailed description</span>}
-            rules={[{ required: true, message: 'Provide a detailed description' }]}
-          >
-            <TextArea
-              rows={5}
-              placeholder="Provide clear evidence of the issues. Mention specific instances and reproduction steps."
-              className="ced-textarea"
-              style={{ padding: '12px 16px' }}
-              showCount
-              maxLength={2000}
-            />
-          </Form.Item>
-
-          {/* ── Section 3: Evidence ──────────────── */}
-          <>
-            <SectionHeader
-                step={3}
-                done={fileList.length > 0}
-                icon={<PaperClipOutlined />}
-                title="Evidence & attachments"
-                subtitle="Optional — screenshots, logs, or reference documents"
-              />
-              <Upload.Dragger
-                multiple
-                listType="picture"
-                fileList={fileList}
-                onChange={({ fileList: fl }) => setFileList(fl)}
-                onPreview={async (file) => {
-                  if (!file.url && !file.preview && file.originFileObj) {
-                    file.preview = await new Promise((resolve) => {
-                      const reader = new FileReader();
-                      reader.readAsDataURL(file.originFileObj as Blob);
-                      reader.onload = () => resolve(reader.result as string);
-                    });
-                  }
-                  setPreviewFile(file);
-                }}
-                beforeUpload={() => false}
-                className="ced-dragger"
-              >
-                <p className="ant-upload-drag-icon">
-                  <CloudUploadOutlined style={{ color: 'var(--premium-blue)', fontSize: 32 }} />
-                </p>
-                <p className="ant-upload-text" style={{ fontWeight: 600, color: 'var(--text-slate-900)', fontSize: 14 }}>
-                  Drop files here, or <span style={{ color: 'var(--premium-blue)' }}>click to browse</span>
-                </p>
-                <p className="ant-upload-hint" style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>
-                  Screenshots, logs, or any supporting documents
-                </p>
-              </Upload.Dragger>
-            </>
-        </Form>
-      </div>
-    </Drawer>
-
-    <Drawer
-      placement="left"
-      width={700}
-      closable={false}
-      title={null}
-      footer={null}
-      mask={false}
-      open={!!previewFile}
-      onClose={() => setPreviewFile(null)}
-      className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
-      styles={{
-        body: { padding: 0, height: '100%' }
-      }}
-    >
-      {previewFile && (
-        (() => {
-          const displayUrl = (() => {
-            let url = previewFile.url || previewFile.preview || "";
-            if (url.includes("r2.cloudflarestorage.com")) {
-              url = url.replace(
-                /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
-                "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
-              );
-            }
-            if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
-              url = url.replace(".r2.dev", ".r2.dev/");
-            }
-            return url;
-          })();
-
-          const fileType = previewFile.type || (previewFile.name ? previewFile.name.split('.').pop()?.toLowerCase() : '');
-
-          return (
-            <div className="hb-preview-shell">
-              <div className="hb-preview-header">
-                <div className="hb-preview-fileinfo">
-                  <FileText size={16} className="hb-preview-icon" />
-                  <div className="hb-preview-meta">
-                    <div className="hb-preview-filename">{previewFile.name}</div>
-                    <div className="hb-preview-filesize">
-                      {previewFile.size ? formatBytes(previewFile.size) : fileType}
+            return (
+              <div className="hb-preview-shell">
+                <div className="hb-preview-header">
+                  <div className="hb-preview-fileinfo">
+                    <FileText size={16} className="hb-preview-icon" />
+                    <div className="hb-preview-meta">
+                      <div className="hb-preview-filename">{previewFile.name}</div>
+                      <div className="hb-preview-filesize">
+                        {previewFile.size ? formatBytes(previewFile.size) : fileType}
+                      </div>
                     </div>
                   </div>
+                  <div className="hb-preview-actions">
+                    <button
+                      className="hb-preview-btn"
+                      onClick={() => {
+                        if (displayUrl) window.open(displayUrl, '_blank');
+                      }}
+                      title="Open in new tab"
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                    <button
+                      className="hb-preview-close"
+                      onClick={() => setPreviewFile(null)}
+                      aria-label="Close preview"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div className="hb-preview-actions">
-                  <button
-                    className="hb-preview-btn"
-                    onClick={() => {
-                      if (displayUrl) window.open(displayUrl, '_blank');
-                    }}
-                    title="Open in new tab"
-                  >
-                    <ExternalLink size={16} />
-                  </button>
-                  <button
-                    className="hb-preview-close"
-                    onClick={() => setPreviewFile(null)}
-                    aria-label="Close preview"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-              <div className="hb-preview-body">
-                {(() => {
-                  const isImage =
-                    fileType?.startsWith("image/") ||
-                    displayUrl.startsWith("data:image/") ||
-                    /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl);
+                <div className="hb-preview-body">
+                  {(() => {
+                    const isImage =
+                      fileType?.startsWith("image/") ||
+                      displayUrl.startsWith("data:image/") ||
+                      /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl);
 
-                  const isVideo =
-                    fileType?.startsWith("video/") ||
-                    /\.(mp4|webm|ogg|mov)/i.test(displayUrl);
+                    const isVideo =
+                      fileType?.startsWith("video/") ||
+                      /\.(mp4|webm|ogg|mov)/i.test(displayUrl);
 
-                  const isPdf =
-                    fileType === "application/pdf" ||
-                    /\.pdf/i.test(displayUrl) || fileType === "pdf";
+                    const isPdf =
+                      fileType === "application/pdf" ||
+                      /\.pdf/i.test(displayUrl) || fileType === "pdf";
 
-                  if (!displayUrl) return <div className="hb-preview-error">No preview available</div>;
+                    if (!displayUrl) return <div className="hb-preview-error">No preview available</div>;
 
-                  if (isImage) {
+                    if (isImage) {
+                      return (
+                        <div className="hb-preview-media-container">
+                          <img src={displayUrl} alt={previewFile.name} className="hb-preview-image" />
+                        </div>
+                      );
+                    }
+                    if (isVideo) {
+                      return (
+                        <div className="hb-preview-media-container">
+                          <video src={displayUrl} controls className="hb-preview-video" />
+                        </div>
+                      );
+                    }
+                    if (isPdf) {
+                      const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(displayUrl)}&embedded=true`;
+                      return <iframe src={googleDocsUrl} className="hb-preview-iframe" title="PDF Preview" />;
+                    }
+
                     return (
-                      <div className="hb-preview-media-container">
-                        <img src={displayUrl} alt={previewFile.name} className="hb-preview-image" />
+                      <div className="hb-preview-fallback">
+                        <FileText size={48} />
+                        <p>Preview not available for this file type</p>
+                        <button
+                          className="hb-cbd-primary"
+                          onClick={() => {
+                            if (displayUrl) window.open(displayUrl, '_blank');
+                          }}
+                        >
+                          Download File
+                        </button>
                       </div>
                     );
-                  }
-                  if (isVideo) {
-                    return (
-                      <div className="hb-preview-media-container">
-                        <video src={displayUrl} controls className="hb-preview-video" />
-                      </div>
-                    );
-                  }
-                  if (isPdf) {
-                    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(displayUrl)}&embedded=true`;
-                    return <iframe src={googleDocsUrl} className="hb-preview-iframe" title="PDF Preview" />;
-                  }
-
-                  return (
-                    <div className="hb-preview-fallback">
-                      <FileText size={48} />
-                      <p>Preview not available for this file type</p>
-                      <button
-                        className="hb-cbd-primary"
-                        onClick={() => {
-                          if (displayUrl) window.open(displayUrl, '_blank');
-                        }}
-                      >
-                        Download File
-                      </button>
-                    </div>
-                  );
-                })()}
+                  })()}
+                </div>
               </div>
-            </div>
-          );
-        })()
-      )}
-    </Drawer>
+            );
+          })()
+        )}
+      </Drawer>
     </>
   );
 };

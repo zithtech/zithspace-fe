@@ -16,6 +16,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
+import { Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -37,6 +38,7 @@ const TYPE_OPTIONS: { value: HolidayType; label: string }[] = [
 
 export default function GovernmentHolidaysPanel() {
   const { canReadLeaveHoliday, canCreateLeaveHoliday, canDeleteLeaveHoliday } = usePermission();
+  console.log("Forcing HMR reload for GovernmentHolidaysPanel");
 
   const [countries, setCountries] = useState<string[]>([]);
   const [country, setCountry] = useState<string>('IN');
@@ -165,6 +167,14 @@ export default function GovernmentHolidaysPanel() {
     <div className="lvgh">
       <div className="lvgh-header">
         <div className="lvgh-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvgh-header-icon"><GlobalOutlined /></div>
           <div>
             <div className="lvgh-header-title">Government Holidays</div>
@@ -217,6 +227,7 @@ export default function GovernmentHolidaysPanel() {
           columns={columns}
           dataSource={filtered}
           pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 25, 50, 100] }}
+          scroll={{ x: 'max-content' }}
           rowSelection={canCreateLeaveHoliday ? {
             selectedRowKeys: selected,
             onChange: setSelected,
@@ -253,9 +264,16 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; }
         .lvgh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; }
         .lvgh-add-btn { height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); }
-        .lvgh-table .ant-table { background: transparent; font-size: 12px; }
-        .lvgh-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvgh-table, .lvgh-table.ant-table-wrapper, .lvgh-table .ant-table, .lvgh-table .ant-table-container, .lvgh-table .ant-table-content, .lvgh-table .ant-table-header, .lvgh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvgh-table .ant-table-thead > tr > th,
+        .lvgh-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvgh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvgh-table .ant-table-tbody > tr.lvgh-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvgh-table .ant-pagination { margin: 12px 12px 8px !important; }

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Spin } from 'antd';
+import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ReloadOutlined,
@@ -40,6 +41,7 @@ const TERM_LABEL: Record<string, string> = { monthly: 'Monthly', quarterly: 'Qua
 export default function ConfigurationPanel() {
   const router = useRouter();
   const { canReadLeavePolicy } = usePermission();
+  console.log("Forcing HMR reload for ConfigurationPanel");
 
   // settings
   const [settings, setSettings] = useState<AccrualSettings | null>(null);
@@ -152,6 +154,7 @@ export default function ConfigurationPanel() {
           size="small"
           pagination={false}
           dataSource={d.lines}
+          scroll={{ x: 'max-content' }}
           columns={[
             { title: 'Leave Type', key: 'lt', render: (_, l) => ltName(l.leaveTypeId) },
             { title: 'Accrual', key: 'm', render: (_, l) => (l.accrualMethod === 'monthly' ? 'Monthly' : 'Whole term') },
@@ -168,6 +171,14 @@ export default function ConfigurationPanel() {
     <div className="lvc">
       <div className="lvc-header">
         <div className="lvc-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="lvc-header-icon"><SettingOutlined /></div>
           <div>
             <div className="lvc-header-title">Configuration</div>
@@ -252,12 +263,12 @@ export default function ConfigurationPanel() {
               <div>
                 <div className="lvc-mini-head">By Leave Type</div>
                 {result.byLeaveType.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing credited" /> :
-                  <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" />}
+                  <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} />}
               </div>
               <div>
                 <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
                 {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
-                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" />}
+                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} />}
               </div>
             </div>
           </div>
@@ -279,6 +290,7 @@ export default function ConfigurationPanel() {
             columns={policyCols}
             dataSource={policies}
             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
+            scroll={{ x: 'max-content' }}
             expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
             locale={{ emptyText: 'No active policies' }}
           />
@@ -317,9 +329,16 @@ export default function ConfigurationPanel() {
         .lvc-rstat-label { font-size: 11px; color: var(--text-slate-400); margin-top: 3px; }
         .lvc-result-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; padding: 16px; }
         .lvc-mini-head { font-size: 12px; font-weight: 700; color: var(--text-slate-600); margin-bottom: 8px; }
-        .lvc-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); }
-        .lvc-table .ant-table { font-size: 12px; }
-        .lvc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important; }
+        .lvc-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvc-table, .lvc-table.ant-table-wrapper, .lvc-table .ant-table, .lvc-table .ant-table-container, .lvc-table .ant-table-content, .lvc-table .ant-table-header, .lvc-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvc-table .ant-table-thead > tr > th,
+        .lvc-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 7px 12px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .lvc-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 7px 12px !important; }
 
         @media (max-width: 1024px) {

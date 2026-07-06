@@ -42,6 +42,7 @@ import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from '@/components/common/DrawerSection';
 import { AttendanceService, Attendance } from '@/services/attendanceService';
 import { MembersService, Member } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
@@ -105,76 +106,15 @@ const fieldLabel = (t: string) => (
   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{t}</span>
 );
 
-// Section card — matches the Leave Type drawer (icon chip + title + subtitle +
-// STEP pill, wrapping its fields in a square white card).
-function SectionCard({
-  icon,
-  tint,
-  color,
-  title,
-  subtitle,
-  step,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  step: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 0,
-        padding: '12px 22px',
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 0,
-            background: tint,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 999,
-            background: 'var(--bg-secondary, #f1f5f9)',
-            color: 'var(--text-slate-500)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {step}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
+const localAttStyles = `
+  [data-theme='dark'] .att-timeline-item {
+    background: transparent !important;
+    border-color: #1f2937 !important;
+  }
+`;
+
+
+
 
 // Smooth area sparkline — identical to the Leave Type stat cards.
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
@@ -225,6 +165,7 @@ export default function ManageAttendancePanel() {
     canUpdateAttendance,
     canDeleteAttendance,
   } = usePermission();
+  console.log("Forcing HMR reload for ManageAttendancePanel");
 
   const [rows, setRows] = useState<ExtendedAttendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -847,137 +788,165 @@ export default function ManageAttendancePanel() {
 
       {/* ── 5) Create / Edit DRAWER ───────────────────────────────────────────── */}
       <Drawer
+        rootClassName="leave-drawer-root"
         title={null}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={640}
+        width={720}
         closable={false}
         destroyOnClose
         styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
           header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
         }}
-      >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          {/* Header */}
+        footer={
           <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
             style={{
-              padding: '16px 18px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-pure-white)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              Fields marked required must be filled
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={editing ? <EditOutlined /> : <PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editing ? 'Save Changes' : 'Create Record'}
+            </Button>
+          </div>
+        }
+      >
+        <style>{formStyles}</style>
+        <style>{localAttStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editing ? TINT.green : TINT.blue,
+                color: editing ? PALETTE.green : PALETTE.blue,
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              {editing ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
               <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 0,
-                  background: editing ? TINT.green : TINT.blue,
-                  color: editing ? PALETTE.green : PALETTE.blue,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
               >
-                {editing ? <EditOutlined /> : <PlusOutlined />}
+                {editing ? 'Edit Attendance Record' : 'Add Attendance Record'}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  {editing ? 'Edit Attendance Record' : 'Add Attendance Record'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                  {editing ? `Update details for ${editing.member?.name || 'this member'}` : 'Create a manual entry for a team member'}
-                </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {editing ? `Update details for ${editing.member?.name || 'this member'}` : 'Create a manual entry for a team member'}
               </div>
             </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setDrawerOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
           </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={form} layout="vertical" requiredMark="optional" className="att-drawer-form">
-              {/* STEP 1 — Record Details */}
-              <SectionCard
-                icon={<InfoCircleOutlined />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
-                title="Record Details"
-                subtitle="Who, when and the attendance status"
-                step="STEP 1"
+        {/* Content */}
+        <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+          <Form 
+            form={form} 
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            requiredMark="optional" 
+            className="customer-drawer-form att-drawer-form"
+          >
+            {/* STEP 1 — Record Details */}
+            <SectionCard
+              icon={<InfoCircleOutlined />}
+              title="Record Details"
+              subtitle="Who, when and the attendance status"
+              step="STEP 1"
+            >
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="member"
+                label="Team member"
+                rules={[{ required: true, message: 'Member is required' }]}
               >
-                <Row gutter={16} align="top">
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="member"
-                      label={fieldLabel('Team member')}
-                      rules={[{ required: true, message: 'Member is required' }]}
-                    >
-                      <SearchableDropdown
-                        className="att-dd-flat"
-                        placeholder="Select member"
-                        searchPlaceholder="Search members"
-                        itemNoun="members"
-                        disabled={!!editing}
-                        options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
-                        style={{ width: '100%', height: 40 }}
-                        width={240}
-                      />
-                    </Form.Item>
-                  </Col>
+                <SearchableDropdown
+                  className="att-dd-flat"
+                  placeholder="Select member"
+                  searchPlaceholder="Search members"
+                  itemNoun="members"
+                  disabled={!!editing}
+                  options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
+                  style={{ width: '100%', height: 40 }}
+                  width={240}
+                />
+              </Form.Item>
 
-                  <Col span={14}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="date"
-                      label={fieldLabel('Date')}
-                      rules={[{ required: true, message: 'Date is required' }]}
-                    >
-                      <DatePicker size="large" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={10}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="status"
-                      label={fieldLabel('Status')}
-                      rules={[{ required: true, message: 'Status is required' }]}
-                    >
-                      <SearchableDropdown
-                        className="att-dd-flat"
-                        placeholder="Status"
-                        searchPlaceholder="Search statuses"
-                        itemNoun="statuses"
-                        allowClear={false}
-                        options={[
-                          { value: 'present', label: 'Present' },
-                          { value: 'late', label: 'Late' },
-                          { value: 'absent', label: 'Absent' },
-                        ]}
-                        style={{ width: '100%', height: 40 }}
-                        width={210}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </SectionCard>
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="date"
+                label="Date"
+                rules={[{ required: true, message: 'Date is required' }]}
+              >
+                <DatePicker size="large" style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="status"
+                label="Status"
+                rules={[{ required: true, message: 'Status is required' }]}
+              >
+                <SearchableDropdown
+                  className="att-dd-flat"
+                  placeholder="Status"
+                  searchPlaceholder="Search statuses"
+                  itemNoun="statuses"
+                  allowClear={false}
+                  options={[
+                    { value: 'present', label: 'Present' },
+                    { value: 'late', label: 'Late' },
+                    { value: 'absent', label: 'Absent' },
+                  ]}
+                  style={{ width: '100%', height: 40 }}
+                  width={210}
+                />
+              </Form.Item>
+            </SectionCard>
 
               {/* STEP 2 — Work & Breaks timeline */}
               {statusValue !== 'absent' && (
                 <SectionCard
                   icon={<ClockCircleOutlined />}
-                  tint={TINT.green}
-                  color={PALETTE.green}
                   title="Work & Breaks"
                   subtitle="Build the day's intervals — work periods split by typed breaks"
                   step="STEP 2"
@@ -1007,6 +976,7 @@ export default function ManageAttendancePanel() {
                                 const needReason = REASON_TYPES.has(type);
                                 return (
                                   <div
+                                    className="att-timeline-item"
                                     style={{
                                       border: '1px solid var(--border-color)',
                                       borderLeft: `3px solid ${accent}`,
@@ -1165,40 +1135,7 @@ export default function ManageAttendancePanel() {
                   </Form.List>
                 </SectionCard>
               )}
-            </Form>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '14px 22px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-pure-white)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              bottom: 0,
-            }}
-          >
-            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
-              Fields marked required must be filled
-            </span>
-            <Space size={10}>
-              <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={submit}
-                loading={saving}
-                icon={editing ? <EditOutlined /> : <PlusOutlined />}
-                style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
-              >
-                {editing ? 'Save Changes' : 'Create Record'}
-              </Button>
-            </Space>
-          </div>
+          </Form>
         </div>
       </Drawer>
 
@@ -1446,12 +1383,14 @@ export default function ManageAttendancePanel() {
 
         /* 4) Table */
         .att-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .att-table .ant-table { background: transparent; font-size: 12px; }
-        .att-table .ant-table-thead > tr > th {
+        .att-table, .att-table.ant-table-wrapper, .att-table .ant-table, .att-table .ant-table-container, .att-table .ant-table-content, .att-table .ant-table-header, .att-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .att-table .ant-table-thead > tr > th,
+        .att-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }

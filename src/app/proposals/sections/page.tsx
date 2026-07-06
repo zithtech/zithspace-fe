@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-  Button, Input, Select, Modal, Dropdown, Tooltip, message,
+  Button, Input, Select, Modal, Dropdown, Tooltip, message, Table,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { CATEGORY_META, CATEGORY_ORDER, typeMeta } from '@/components/proposals/library/sectionMeta';
 import { SectionComposerDrawer, ComposerPayload } from '@/components/proposals/library/SectionComposerDrawer';
 import {
@@ -74,9 +75,11 @@ const MenuItem = ({ icon, tint, color, title, desc }: { icon: React.ReactNode; t
 );
 
 function SectionsContent() {
+  console.log("Forcing HMR reload for Sections");
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'SectionLibrary' });
   const router = useRouter();
   const [messageApi, holder] = message.useMessage();
+  const [modal, modalHolder] = Modal.useModal();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
   const sections = useProposalLibraryStore((s) => s.sections);
@@ -166,45 +169,59 @@ function SectionsContent() {
     }
   };
 
-  const confirmDelete = (s: LibrarySection) => {
-    Modal.confirm({
-      title: 'Delete section?',
-      content: `"${s.name}" will be permanently removed and dropped from any templates that use it.`,
-      okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
-      onOk: async () => {
-        try { await deleteSection(s.id); messageApi.success('Section deleted'); }
-        catch (e: any) { messageApi.error(e?.message || 'Could not delete section'); }
+    const actionMenu = (s: LibrarySection): MenuProps => ({
+      className: 'pp-action-menu',
+      items: [
+        canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Edit Section" desc="Update name, type & content" /> } : null,
+        canCreateProposal ? { key: 'duplicate', label: <MenuItem icon={<CopyOutlined />} tint="rgba(100,116,139,0.10)" color="#475569" title="Duplicate" desc="Create an editable copy" /> } : null,
+        canUpdateProposal ? {
+          key: 'archive',
+          label: <MenuItem
+            icon={s.archived ? <RollbackOutlined /> : <InboxOutlined />}
+            tint="rgba(16,185,129,0.10)" color="#059669"
+            title={s.archived ? 'Restore' : 'Archive'}
+            desc={s.archived ? 'Bring back to the library' : 'Hide from pickers'} />,
+        } : null,
+        (canDeleteProposal && !s.system) ? { type: 'divider' } : null,
+        (canDeleteProposal && !s.system) ? {
+          key: 'delete',
+          danger: true,
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+              title="Delete Section?"
+              description={`"${s.name}" will be permanently removed and dropped from any templates that use it.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="left"
+              onConfirm={async () => {
+                try {
+                  await deleteSection(s.id);
+                  messageApi.success('Section deleted');
+                } catch (e: any) {
+                  messageApi.error(e?.message || 'Could not delete section');
+                }
+              }}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
+              </div>
+            </ConfirmDialog>
+          ),
+        } : null,
+      ].filter(Boolean) as MenuProps['items'],
+      onClick: async ({ key, domEvent }) => {
+        domEvent.stopPropagation();
+        try {
+          if (key === 'edit') openEdit(s);
+          else if (key === 'duplicate') { await duplicateSection(s.id); messageApi.success('Section duplicated'); }
+          else if (key === 'archive') { await archiveSection(s.id, !s.archived); messageApi.success(s.archived ? 'Section restored' : 'Section archived'); }
+        } catch (e: any) {
+          messageApi.error(e?.message || 'Action failed');
+        }
       },
     });
-  };
-
-  const actionMenu = (s: LibrarySection): MenuProps => ({
-    items: [
-      canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Edit Section" desc="Update name, type & content" /> } : null,
-      canCreateProposal ? { key: 'duplicate', label: <MenuItem icon={<CopyOutlined />} tint="rgba(100,116,139,0.10)" color="#475569" title="Duplicate" desc="Create an editable copy" /> } : null,
-      canUpdateProposal ? {
-        key: 'archive',
-        label: <MenuItem
-          icon={s.archived ? <RollbackOutlined /> : <InboxOutlined />}
-          tint="rgba(16,185,129,0.10)" color="#059669"
-          title={s.archived ? 'Restore' : 'Archive'}
-          desc={s.archived ? 'Bring back to the library' : 'Hide from pickers'} />,
-      } : null,
-      (canDeleteProposal && !s.system) ? { type: 'divider' } : null,
-      (canDeleteProposal && !s.system) ? { key: 'delete', danger: true, label: <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" /> } : null,
-    ].filter(Boolean) as MenuProps['items'],
-    onClick: async ({ key, domEvent }) => {
-      domEvent.stopPropagation();
-      try {
-        if (key === 'edit') openEdit(s);
-        else if (key === 'duplicate') { await duplicateSection(s.id); messageApi.success('Section duplicated'); }
-        else if (key === 'archive') { await archiveSection(s.id, !s.archived); messageApi.success(s.archived ? 'Section restored' : 'Section archived'); }
-        else if (key === 'delete') confirmDelete(s);
-      } catch (e: any) {
-        messageApi.error(e?.message || 'Action failed');
-      }
-    },
-  });
 
   const statCells = [
     { key: 'total', title: 'Total Sections', value: activeCount, icon: <BlockOutlined />, color: '#3B82F6', tint: 'var(--bg-blue-50)' },
@@ -228,9 +245,81 @@ function SectionsContent() {
     </div>
   );
 
+  const tableColumns = [
+    {
+      title: 'NAME',
+      dataIndex: 'name',
+      key: 'name',
+      render: (_: string, s: LibrarySection) => {
+        const meta = typeMeta(s.type);
+        const grad = gradientForColor(meta.color);
+        return (
+          <div className="pp-name-cell" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
+            <div className="pp-name-icon" style={{ background: `linear-gradient(135deg, ${grad[0]} 0%, ${grad[1]} 100%)`, color: '#fff' }}>
+              {meta.icon}
+            </div>
+            <span className="pp-name-title">{s.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'CATEGORY',
+      dataIndex: 'category',
+      key: 'category',
+      render: (c: SectionCategory) => <span style={{ fontSize: '12px', color: 'var(--text-slate-700)' }}>{CATEGORY_META[c]?.label || c}</span>,
+    },
+    {
+      title: 'TYPE',
+      key: 'type',
+      render: (_: any, s: LibrarySection) => {
+        const meta = typeMeta(s.type);
+        return (
+          <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg, display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>
+            {meta.icon}{meta.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'SCOPE',
+      key: 'scope',
+      render: (_: any, s: LibrarySection) => s.isGlobal
+        ? <span className="pc-status-tag" style={{ color: '#2563eb', background: 'rgba(37,99,235,0.12)', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}><GlobalOutlined />Global</span>
+        : <span style={{ color: '#94a3b8', fontSize: '12px' }}>Standard</span>,
+    },
+    {
+      title: 'USED',
+      key: 'used',
+      render: (_: any, s: LibrarySection) => {
+        const used = usageCount[s.id] || 0;
+        return <span style={{ color: used > 0 ? '#059669' : '#94a3b8', fontSize: '12px' }}>{used > 0 ? `${used} template${used > 1 ? 's' : ''}` : 'Not used'}</span>;
+      }
+    },
+    {
+      title: 'UPDATED',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      render: (date: string) => <span style={{ fontSize: '12px', color: '#64748b' }}>{dayjs(date).format('MMM D, YYYY')}</span>,
+    },
+    {
+      title: 'ACTIONS',
+      key: 'actions',
+      align: 'right' as const,
+      render: (_: any, s: LibrarySection) => (
+        <Dropdown menu={actionMenu(s)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+          <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
+            <EllipsisOutlined style={{ fontSize: '16px', color: '#64748b' }} />
+          </button>
+        </Dropdown>
+      ),
+    }
+  ];
+
   return (
     <>
       {holder}
+      {modalHolder}
       <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
         <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
         {/* ============================ SIDEBAR ============================ */}
@@ -368,83 +457,106 @@ function SectionsContent() {
 
           {/* Grid of section cards */}
           <div className="pp-body">
-            <div className="pp-grid" style={view === 'list' ? { gridTemplateColumns: '1fr' } : undefined}>
-              {sectionsLoading && !sectionsLoaded ? (
-                <div className="pp-grid-loading" style={{ gridColumn: '1 / -1' }}>Loading sections…</div>
-              ) : paged.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-              ) : paged.map((s) => {
-                const meta = typeMeta(s.type);
-                const grad = gradientForColor(meta.color);
-                const used = usageCount[s.id] || 0;
-                return (
-                  <div key={s.id} className="pc-card" onClick={() => openEdit(s)}>
-                    <div className="pc-top">
-                      <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${grad[0]} 0%, ${grad[1]} 100%)` }}>
-                        {meta.icon}
+            {view === 'list' ? (
+              <div className="pp-table-wrap" style={{ borderRadius: 0, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}>
+                <Table
+                  columns={tableColumns}
+                  dataSource={paged}
+                  rowKey="id"
+                  size="small"
+                  className="pp-table"
+                  scroll={{ x: 'max-content' }}
+                  pagination={false}
+                  locale={{ emptyText: emptyState }}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('.ant-dropdown-trigger, button')) return;
+                      openEdit(record);
+                    }
+                  })}
+                  rowClassName="pp-row"
+                />
+              </div>
+            ) : (
+              <div className="pp-grid">
+                {sectionsLoading && !sectionsLoaded ? (
+                  <div className="pp-grid-loading" style={{ gridColumn: '1 / -1' }}>Loading sections…</div>
+                ) : paged.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                ) : paged.map((s) => {
+                  const meta = typeMeta(s.type);
+                  const grad = gradientForColor(meta.color);
+                  const used = usageCount[s.id] || 0;
+                  return (
+                    <div key={s.id} className="pc-card" onClick={() => openEdit(s)}>
+                      <div className="pc-top">
+                        <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${grad[0]} 0%, ${grad[1]} 100%)` }}>
+                          {meta.icon}
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title">{s.name}</div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Category:</span>
+                            <span className="pc-client-val">{CATEGORY_META[s.category].label}</span>
+                          </div>
+                        </div>
+                        <Dropdown menu={actionMenu(s)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+                          <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                            <EllipsisOutlined />
+                          </button>
+                        </Dropdown>
                       </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title">{s.name}</div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Category:</span>
-                          <span className="pc-client-val">{CATEGORY_META[s.category].label}</span>
+
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Type:</span>
+                            <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
+                              {meta.icon}{meta.label}
+                            </span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Scope:</span>
+                            {s.isGlobal
+                              ? <span className="pc-status-tag" style={{ color: '#2563eb', background: 'rgba(37,99,235,0.12)' }}><GlobalOutlined />Global</span>
+                              : <span className="pc-foot-val" style={{ color: '#94a3b8' }}>Standard</span>}
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Updated</span>
+                            <span className="pc-foot-val">{dayjs(s.updatedAt).format('MMM D, YYYY')}</span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Used:</span>
+                            <span className="pc-foot-val" style={{ color: used > 0 ? '#059669' : '#94a3b8' }}>
+                              {used > 0 ? `${used} template${used > 1 ? 's' : ''}` : 'Not used'}
+                            </span>
+                          </span>
+                          {s.archived && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <span className="pc-status-tag" style={{ color: '#64748b', background: 'rgba(148,163,184,0.18)' }}>Archived</span>
+                            </>
+                          )}
+                          <span className="pc-foot-div" />
+                          <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
+                            <EditOutlined /> Edit
+                          </button>
+                          <span className="pc-foot-div" />
+                          <button type="button" className="pc-foot-item pc-timeline-btn" onClick={async (e) => { e.stopPropagation(); try { await duplicateSection(s.id); messageApi.success('Section duplicated'); } catch (err: any) { messageApi.error(err?.message || 'Duplicate failed'); } }}>
+                            <CopyOutlined /> <span className="pc-timeline-view">Duplicate</span>
+                          </button>
                         </div>
                       </div>
-                      <Dropdown menu={actionMenu(s)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
-                        <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                          <EllipsisOutlined />
-                        </button>
-                      </Dropdown>
                     </div>
-
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Type:</span>
-                          <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
-                            {meta.icon}{meta.label}
-                          </span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Scope:</span>
-                          {s.isGlobal
-                            ? <span className="pc-status-tag" style={{ color: '#2563eb', background: 'rgba(37,99,235,0.12)' }}><GlobalOutlined />Global</span>
-                            : <span className="pc-foot-val" style={{ color: '#94a3b8' }}>Standard</span>}
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Updated</span>
-                          <span className="pc-foot-val">{dayjs(s.updatedAt).format('MMM D, YYYY')}</span>
-                        </span>
-                      </div>
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Used:</span>
-                          <span className="pc-foot-val" style={{ color: used > 0 ? '#059669' : '#94a3b8' }}>
-                            {used > 0 ? `${used} template${used > 1 ? 's' : ''}` : 'Not used'}
-                          </span>
-                        </span>
-                        {s.archived && (
-                          <>
-                            <span className="pc-foot-div" />
-                            <span className="pc-status-tag" style={{ color: '#64748b', background: 'rgba(148,163,184,0.18)' }}>Archived</span>
-                          </>
-                        )}
-                        <span className="pc-foot-div" />
-                        <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
-                          <EditOutlined /> Edit
-                        </button>
-                        <span className="pc-foot-div" />
-                        <button type="button" className="pc-foot-item pc-timeline-btn" onClick={async (e) => { e.stopPropagation(); try { await duplicateSection(s.id); messageApi.success('Section duplicated'); } catch (err: any) { messageApi.error(err?.message || 'Duplicate failed'); } }}>
-                          <CopyOutlined /> <span className="pc-timeline-view">Duplicate</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {total > 0 && (

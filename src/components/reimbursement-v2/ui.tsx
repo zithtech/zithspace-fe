@@ -158,6 +158,16 @@ export function PanelHeader({
   return (
     <div className="rvp-header">
       <div className="rvp-head-about">
+        <button 
+          className="rvp-mobile-toggle" 
+          onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <span className="rvp-head-icon" style={{ background: tint, color }}>
           {icon}
         </span>
@@ -252,6 +262,15 @@ export function SectionCard({
   );
 }
 
+export const tablePaginationConfig = {
+  pageSize: 20,
+  showTotal: (total: number, range: [number, number]) => (
+    <>Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong></>
+  ),
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '25', '50', '100']
+};
+
 // ── Shared styles (render once per panel) ────────────────────────────────────
 export function RmbStyles() {
   return (
@@ -259,22 +278,32 @@ export function RmbStyles() {
       .rvp { display: flex; flex-direction: column; min-height: 0; flex: 1; }
       .rvp-header {
         display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-        padding: 16px 0 14px; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 16px;
+        padding: 16px 0 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 20px;
+        position: sticky; top: 0; z-index: 30; background: var(--bg-pure-white);
       }
-      .rvp-head-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+      .rvp-head-about { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .rvp-mobile-toggle {
+        display: none; background: transparent; border: none; color: var(--text-slate-700);
+        cursor: pointer; padding: 4px; border-radius: 6px;
+      }
+      .rvp-mobile-toggle:hover { background: var(--bg-slate-50); }
+      @media (max-width: 1024px) {
+        .rvp-mobile-toggle { display: flex; align-items: center; justify-content: center; }
+      }
       .rvp-head-icon {
-        width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center;
-        justify-content: center; font-size: 18px; flex-shrink: 0;
+        width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center;
+        justify-content: center; font-size: 16px; flex-shrink: 0;
       }
-      .rvp-head-title { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
-      .rvp-head-sub { font-size: 12.5px; color: var(--text-slate-500); font-weight: 500; margin-top: 2px; }
+      .rvp-head-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.15; }
+      .rvp-head-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; margin-top: 1px; }
       .rvp-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      .rvp-search { width: 240px; }
+      .rvp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+      .rvp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
       .rvp-stats {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;
       }
       .rvp-stat-card {
-        display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px;
+        display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 0;
         border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
       }
       .rvp-stat-icon {
@@ -287,10 +316,41 @@ export function RmbStyles() {
       .rvp-stat-hint { font-size: 10.5px; color: var(--text-slate-400); margin-top: 1px; }
       .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
       .rvp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; }
-      .rvp-table-wrap {
-        border: 1px solid var(--border-slate-200); border-radius: 12px; overflow: hidden;
-        background: var(--bg-pure-white);
+      .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp > .ant-tabs > .ant-tabs-content-holder,
+      .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+      .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+        display: flex; flex-direction: column; flex: 1; min-height: 0;
       }
+      .rvp-table-wrap {
+        display: flex; flex-direction: column; flex: 1; min-height: 0;
+      }
+      .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-table {
+        flex: 0 1 auto; overflow: auto;
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-200);
+        border-radius: 0 !important;
+        margin-bottom: 24px;
+      }
+      .rvp-table-wrap .ant-table table { min-width: 800px; }
+      .rvp-table-wrap .ant-table-container,
+      .rvp-table-wrap .ant-table-thead > tr > th:first-child,
+      .rvp-table-wrap .ant-table-thead > tr > th:last-child {
+        border-radius: 0 !important;
+      }
+      .rvp-table-wrap .ant-pagination {
+        margin: auto -32px 0 -32px !important;
+        padding: 12px 32px;
+        background: var(--bg-pure-white);
+        border-top: 1px solid var(--border-slate-200);
+        position: sticky; bottom: 0; z-index: 20;
+        display: flex; align-items: center;
+        box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.03);
+      }
+      .rvp-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
       .rvp-empty { padding: 48px; text-align: center; color: var(--text-slate-400); }
       .rvp-section {
         border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-pure-white);

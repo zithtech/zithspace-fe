@@ -15,7 +15,8 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   ExpenseCategory, ReimbursementPolicyListItem, SavePolicyInput, ScopeOption,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, SectionCard, RmbStyles, money } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig } from './ui';
+import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 const SCOPE_OPTIONS = [
   { value: 'org', label: 'Whole organization' },
@@ -191,7 +192,7 @@ export default function PoliciesPanel() {
         search={search} onSearch={setSearch} searchPlaceholder="Search policies…"
         onRefresh={load} loading={loading}
       >
-        {canManage && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>New Policy</Button>}
+        {canManage && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>New Policy</Button>}
       </PanelHeader>
 
       <StatCards cells={[
@@ -202,19 +203,99 @@ export default function PoliciesPanel() {
 
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={{ pageSize: 12, hideOnSinglePage: true }} />
+          pagination={tablePaginationConfig} />
       </div>
 
       <Drawer
-        title={editingId ? 'Edit policy' : 'New policy'} width={760} open={drawerOpen}
-        onClose={() => setDrawerOpen(false)} destroyOnClose
-        footer={<div className="rvp-drawer-foot">
-          <Button onClick={() => setDrawerOpen(false)}>Cancel</Button>
-          <Button type="primary" loading={saving} onClick={submit}>{editingId ? 'Save changes' : 'Create'}</Button>
-        </div>}
+        {...commonDrawerProps}
+        title={null}
+        width={760}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              Fields marked required must be filled
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={editingId ? <EditOutlined /> : <PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editingId ? 'Save Changes' : 'Create Policy'}
+            </Button>
+          </div>
+        }
       >
-        <Form form={form} layout="vertical">
-          <SectionCard icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue}
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editingId ? TINT.amber : TINT.orange,
+                color: editingId ? PALETTE.amber : PALETTE.orange,
+                border: '1px solid var(--border-orange-200)',
+              }}
+            >
+              {editingId ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editingId ? 'Edit Policy' : 'New Policy'}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {editingId ? `Update details for this policy` : 'Define per-scope limit overrides'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-5 pb-24">
+          <Form
+            form={form}
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            requiredMark="optional"
+            className="customer-drawer-form"
+          >
+          <SectionCard icon={<InfoCircleOutlined />}
             title="Basics" subtitle="Identity and auto-approval" step="STEP 1">
             <Form.Item name="name" label="Name"
               rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }]}>
@@ -241,7 +322,7 @@ export default function PoliciesPanel() {
             <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
           </SectionCard>
 
-          <SectionCard icon={<ApartmentOutlined />} tint={TINT.cyan} color={PALETTE.cyan}
+          <SectionCard icon={<ApartmentOutlined />}
             title="Applies to" subtitle="Who this policy governs" step="STEP 2">
             <Form.List name="assignments">
               {(fields, { add, remove: rm }) => (
@@ -276,7 +357,7 @@ export default function PoliciesPanel() {
             </Form.List>
           </SectionCard>
 
-          <SectionCard icon={<ProfileOutlined />} tint={TINT.orange} color={PALETTE.orange}
+          <SectionCard icon={<ProfileOutlined />}
             title="Category limit overrides" subtitle="Spend caps for this policy — override the category defaults" step="STEP 3">
             <div style={{ fontSize: 12, color: 'var(--text-slate-500)', marginBottom: 10 }}>
               All values are <b>amounts</b> (₹), not counts. Leave a box empty to keep the category’s own limit.
@@ -322,7 +403,8 @@ export default function PoliciesPanel() {
               )}
             </Form.List>
           </SectionCard>
-        </Form>
+          </Form>
+        </div>
       </Drawer>
       <RmbStyles />
     </div>

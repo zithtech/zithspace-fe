@@ -11,7 +11,8 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Advance } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, SectionCard, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, tablePaginationConfig } from './ui';
+import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 export default function AdvancesPanel() {
   const perms = usePermission() as any;
@@ -100,7 +101,7 @@ export default function AdvancesPanel() {
         search={search} onSearch={setSearch} searchPlaceholder="Search advances…"
         onRefresh={load} loading={loading}
       >
-        {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Request Advance</Button>}
+        {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>Request Advance</Button>}
       </PanelHeader>
 
       <StatCards cells={[
@@ -112,27 +113,110 @@ export default function AdvancesPanel() {
 
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={{ pageSize: 12, hideOnSinglePage: true }} />
+          pagination={tablePaginationConfig} />
       </div>
 
-      <Drawer title="Request advance" width={480} open={drawerOpen} onClose={() => setDrawerOpen(false)} destroyOnClose
-        footer={<div className="rvp-drawer-foot">
-          <Button onClick={() => setDrawerOpen(false)}>Cancel</Button>
-          <Button type="primary" loading={saving} onClick={submit}>Request</Button>
-        </div>}>
-        <Form form={form} layout="vertical">
-          <SectionCard icon={<WalletOutlined />} tint={TINT.cyan} color={PALETTE.cyan} title="Advance details" subtitle="Sent to your reporting manager">
+      <Drawer
+        {...commonDrawerProps}
+        title={null}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              Fields marked required must be filled
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={<PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              Request
+            </Button>
+          </div>
+        }
+      >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: TINT.cyan,
+                color: PALETTE.cyan,
+                border: '1px solid var(--border-cyan-200)',
+              }}
+            >
+              <PlusOutlined style={{ fontSize: 18 }} />
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Request Advance
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Request money upfront
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-5 pb-24">
+          <Form
+            form={form}
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            requiredMark="optional"
+            className="customer-drawer-form"
+          >
+          <SectionCard icon={<WalletOutlined />} title="Advance details" subtitle="Sent to your reporting manager">
             <Form.Item name="purpose" label="Purpose"><Input.TextArea rows={2} placeholder="e.g. Onsite travel to Bangalore" /></Form.Item>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <>
               <Form.Item name="amount" label="Amount"
                 rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
                 <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} />
               </Form.Item>
               <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
-            </div>
+            </>
             <Form.Item name="neededBy" label="Needed by"><DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" /></Form.Item>
           </SectionCard>
-        </Form>
+          </Form>
+        </div>
       </Drawer>
       <RmbStyles />
     </div>

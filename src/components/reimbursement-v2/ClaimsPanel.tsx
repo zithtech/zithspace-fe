@@ -17,7 +17,8 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   Claim, ClaimDetail, ExpenseCategory, Advance,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, SectionCard, RmbStyles, money, fmtDate, StatusTag, CurrencySelect } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig } from './ui';
+import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 export default function ClaimsPanel() {
   const perms = usePermission() as any;
@@ -163,7 +164,7 @@ export default function ClaimsPanel() {
 
   // Shared line-item field grid (used in the create build + the draft manager).
   const renderItemFields = () => (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <>
       <Form.Item name="categoryId" label="Category" rules={[{ required: true, message: 'Pick a category' }]}>
         <Select showSearch optionFilterProp="label" placeholder="Category"
           options={cats.map((c) => ({ value: c.id, label: c.name }))}
@@ -184,7 +185,7 @@ export default function ClaimsPanel() {
       <Form.Item name="merchant" label="Merchant"><Input placeholder="Optional" /></Form.Item>
       <Form.Item name="billNo" label="Bill no."><Input placeholder="Optional" /></Form.Item>
       <Form.Item name="description" label="Description"><Input placeholder="Optional" /></Form.Item>
-    </div>
+    </>
   );
 
   const addItem = async () => {
@@ -304,7 +305,7 @@ export default function ClaimsPanel() {
         search={search} onSearch={setSearch} searchPlaceholder="Search claims…"
         onRefresh={load} loading={loading}
       >
-        {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>New Claim</Button>}
+        {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>New Claim</Button>}
       </PanelHeader>
 
       <StatCards cells={[
@@ -316,33 +317,112 @@ export default function ClaimsPanel() {
 
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={{ pageSize: 12, hideOnSinglePage: true }} />
+          pagination={tablePaginationConfig} />
       </div>
 
       <Drawer
-        title={creating ? 'New claim' : current ? `${current.claimNo} · ${current.status}` : 'Claim'}
-        width={640} open={drawerOpen} onClose={() => setDrawerOpen(false)} destroyOnClose
+        {...commonDrawerProps}
+        title={null}
+        width={640}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
         footer={
-          <div className="rvp-drawer-foot">
-            <Button onClick={() => setDrawerOpen(false)}>{creating ? 'Cancel' : 'Close'}</Button>
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+              Fields marked required must be filled
+            </span>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              {creating ? 'Cancel' : 'Close'}
+            </Button>
             {creating && (
               <>
-                <Button loading={busy} onClick={() => saveNew(false)}>Save as draft</Button>
-                <Button type="primary" icon={<SendOutlined />} loading={busy}
-                  disabled={newItems.length === 0} onClick={() => saveNew(true)}>Save &amp; submit</Button>
+                <Button loading={busy} onClick={() => saveNew(false)} style={{ borderRadius: 8, height: 36 }}>
+                  Save as draft
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  loading={busy}
+                  disabled={newItems.length === 0}
+                  onClick={() => saveNew(true)}
+                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                >
+                  Save &amp; submit
+                </Button>
               </>
             )}
             {!creating && isDraft && (
-              <Button type="primary" icon={<SendOutlined />} loading={busy}
-                disabled={!current || current.items.length === 0} onClick={submitClaim}>Submit</Button>
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                loading={busy}
+                disabled={!current || current.items.length === 0}
+                onClick={submitClaim}
+                style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+              >
+                Submit
+              </Button>
             )}
           </div>
         }
       >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: creating ? TINT.blue : TINT.green,
+                color: creating ? PALETTE.blue : PALETTE.green,
+                border: creating ? '1px solid var(--border-blue-200)' : '1px solid var(--border-green-200)',
+              }}
+            >
+              {creating ? <PlusOutlined style={{ fontSize: 18 }} /> : <SolutionOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {creating ? 'New claim' : current ? `${current.claimNo} · ${current.status}` : 'Claim'}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {creating ? 'Create and submit a new expense claim' : 'View or update claim details'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-5 pb-24">
         {creating && (
           <>
-            <Form form={headerForm} layout="vertical">
-              <SectionCard icon={<FileTextOutlined />} tint={TINT.blue} color={PALETTE.blue}
+            <Form form={headerForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
+              <SectionCard icon={<FileTextOutlined />}
                 title="Claim details" subtitle="What is this claim for? The total is calculated from the line items below." step="STEP 1">
                 <Form.Item name="title" label="Title"><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
                 {advances.length > 0 && (
@@ -361,7 +441,7 @@ export default function ClaimsPanel() {
                   Expenses are in a currency other than INR
                 </Checkbox>
                 {multiCurrency && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                  <div style={{ marginTop: 12 }}>
                     <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
                     <Form.Item name="exchangeRate" label={<span>Exchange rate → INR{' '}
                       <Tooltip title="How many INR one unit of the chosen currency is worth. The claim is stored in INR for reporting."><span style={{ color: 'var(--text-slate-400)' }}>ⓘ</span></Tooltip>
@@ -373,7 +453,7 @@ export default function ClaimsPanel() {
               </SectionCard>
             </Form>
 
-            <SectionCard icon={<SolutionOutlined />} tint={TINT.green} color={PALETTE.green}
+            <SectionCard icon={<SolutionOutlined />}
               title="Line items" subtitle="Add each expense — saved with the claim" step="STEP 2">
               {newItems.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items added yet" />}
               {newItems.map((li) => (
@@ -393,13 +473,13 @@ export default function ClaimsPanel() {
                 </div>
               )}
               <Divider style={{ margin: '12px 0' }} />
-              <Form form={itemForm} layout="vertical">
+              <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
                 {renderItemFields()}
                 <Button icon={<PlusOutlined />} onClick={addLocalItem} block>Add item</Button>
               </Form>
             </SectionCard>
 
-            <SectionCard icon={<PaperClipOutlined />} tint={TINT.cyan} color={PALETTE.cyan}
+            <SectionCard icon={<PaperClipOutlined />}
               title="Receipts" subtitle="Attach bills / invoices (optional)">
               {newFiles.map((f, i) => (
                 <div key={i} className="rvp-line-item">
@@ -425,7 +505,7 @@ export default function ClaimsPanel() {
               {current.paymentReference && <Descriptions.Item label="Payment ref" span={2}>{current.paymentReference}</Descriptions.Item>}
             </Descriptions>
 
-            <SectionCard icon={<SolutionOutlined />} tint={TINT.green} color={PALETTE.green}
+            <SectionCard icon={<SolutionOutlined />}
               title="Line items" subtitle={isDraft ? 'Add expenses to this claim' : 'Expenses on this claim'}>
               {current.items.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items yet" />}
               {current.items.map((it) => (
@@ -443,7 +523,7 @@ export default function ClaimsPanel() {
               {isDraft && (
                 <>
                   <Divider style={{ margin: '12px 0' }} />
-                  <Form form={itemForm} layout="vertical">
+                  <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
                     {renderItemFields()}
                     <Button icon={<PlusOutlined />} loading={busy} onClick={addItem} block>Add item</Button>
                   </Form>
@@ -451,7 +531,7 @@ export default function ClaimsPanel() {
               )}
             </SectionCard>
 
-            <SectionCard icon={<PaperClipOutlined />} tint={TINT.cyan} color={PALETTE.cyan}
+            <SectionCard icon={<PaperClipOutlined />}
               title="Receipts" subtitle="Attach bills / invoices">
               {current.attachments.map((a) => (
                 <div key={a.id} className="rvp-line-item">
@@ -471,6 +551,7 @@ export default function ClaimsPanel() {
             </SectionCard>
           </>
         )}
+        </div>
       </Drawer>
       <RmbStyles />
       <style jsx global>{`

@@ -13,7 +13,8 @@ import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, {
   ApprovalInboxItem, AdvanceInboxItem, ClaimDetail,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag } from './ui';
+import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag, tablePaginationConfig } from './ui';
+import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 type Pending = { kind: 'claim' | 'advance'; action: 'approve' | 'reject' | 'send-back'; id: string; label: string } | null;
 
@@ -83,7 +84,7 @@ export default function ApprovalsPanel() {
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => view(r.id)} />
-          <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'approve', id: r.id, label: `Approve ${r.claimNo}` })}>Approve</Button>
+          <Button size="small" type="primary" size="small" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'approve', id: r.id, label: `Approve ${r.claimNo}` })}>Approve</Button>
           <Button size="small" icon={<RollbackOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'send-back', id: r.id, label: `Send back ${r.claimNo}` })} />
           <Button size="small" danger icon={<CloseOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'reject', id: r.id, label: `Reject ${r.claimNo}` })} />
         </div>
@@ -102,7 +103,7 @@ export default function ApprovalsPanel() {
       title: '', key: 'actions', width: 150, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-          <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'approve', id: r.id, label: `Approve ${r.advanceNo}` })}>Approve</Button>
+          <Button size="small" type="primary" size="small" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'approve', id: r.id, label: `Approve ${r.advanceNo}` })}>Approve</Button>
           <Button size="small" danger icon={<CloseOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'reject', id: r.id, label: `Reject ${r.advanceNo}` })} />
         </div>
       ),
@@ -126,7 +127,7 @@ export default function ApprovalsPanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
-                  locale={{ emptyText: <Empty description="No pending claims" /> }} pagination={{ pageSize: 12, hideOnSinglePage: true }} />
+                  locale={{ emptyText: <Empty description="No pending claims" /> }} pagination={tablePaginationConfig} />
               </div>
             ),
           },
@@ -135,7 +136,7 @@ export default function ApprovalsPanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
-                  locale={{ emptyText: <Empty description="No pending advances" /> }} pagination={{ pageSize: 12, hideOnSinglePage: true }} />
+                  locale={{ emptyText: <Empty description="No pending advances" /> }} pagination={tablePaginationConfig} />
               </div>
             ),
           },
@@ -146,30 +147,102 @@ export default function ApprovalsPanel() {
         <Input.TextArea rows={3} placeholder="Remarks (optional)" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
       </Modal>
 
-      <Drawer title={detail?.claimNo} width={520} open={!!detail} onClose={() => setDetail(null)} destroyOnClose>
+      <Drawer
+        {...commonDrawerProps}
+        title={null}
+        width={520}
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <Button onClick={() => setDetail(null)} style={{ borderRadius: 8, height: 36 }}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <style>{formStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: TINT.amber,
+                color: PALETTE.amber,
+                border: '1px solid var(--border-amber-200)',
+              }}
+            >
+              <EyeOutlined style={{ fontSize: 18 }} />
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {detail ? detail.claimNo : 'Claim'}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                View claim details
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDetail(null)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-5 pb-24">
         {detail && (
           <>
-            <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Status"><StatusTag status={detail.status} /></Descriptions.Item>
-              <Descriptions.Item label="Total">{money(detail.totalAmount, detail.currency)}</Descriptions.Item>
-              <Descriptions.Item label="Title">{detail.title || '—'}</Descriptions.Item>
-            </Descriptions>
-            {detail.items.map((it) => (
-              <div key={it.id} style={{ padding: '8px 10px', border: '1px solid var(--border-slate-100)', borderRadius: 8, marginBottom: 8 }}>
-                <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, detail.currency)}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}</div>
-              </div>
-            ))}
+            <SectionCard icon={<EyeOutlined />} title="Claim Info" subtitle="Basic details about this claim">
+              <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
+                <Descriptions.Item label="Status"><StatusTag status={detail.status} /></Descriptions.Item>
+                <Descriptions.Item label="Total">{money(detail.totalAmount, detail.currency)}</Descriptions.Item>
+                <Descriptions.Item label="Title">{detail.title || '—'}</Descriptions.Item>
+              </Descriptions>
+            </SectionCard>
+            <SectionCard icon={<EyeOutlined />} title="Line items" subtitle="Expenses on this claim">
+              {detail.items.map((it) => (
+                <div key={it.id} style={{ padding: '8px 10px', border: '1px solid var(--border-slate-100)', borderRadius: 8, marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, detail.currency)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}</div>
+                </div>
+              ))}
+            </SectionCard>
             {detail.attachments.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Receipts</div>
-                {detail.attachments.map((a) => (
-                  <div key={a.id}><a href={a.fileUrl} target="_blank" rel="noreferrer">{a.fileName}</a></div>
-                ))}
-              </div>
+              <SectionCard icon={<EyeOutlined />} title="Receipts" subtitle="Attached bills / invoices">
+                <div style={{ marginTop: 12 }}>
+                  {detail.attachments.map((a) => (
+                    <div key={a.id}><a href={a.fileUrl} target="_blank" rel="noreferrer">{a.fileName}</a></div>
+                  ))}
+                </div>
+              </SectionCard>
             )}
           </>
         )}
+        </div>
       </Drawer>
       <RmbStyles />
     </div>

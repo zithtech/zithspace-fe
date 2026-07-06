@@ -35,6 +35,12 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
     }
   }, [isLoading, perms.canReadReimbursement, perms.canManageReimbursements, router]);
 
+  useEffect(() => {
+    const handler = () => setIsMobileOpen(true);
+    window.addEventListener('open-reimbursement-sidebar', handler);
+    return () => window.removeEventListener('open-reimbursement-sidebar', handler);
+  }, []);
+
   return (
     <ProtectedRoute>
       <MainLayout>
@@ -82,12 +88,6 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
           </aside>
 
           <main className="rv-main">
-            <div className="rv-mobile-header">
-              <button className="rv-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
-                <Menu size={20} />
-              </button>
-              <div className="rv-mobile-title">Reimbursement</div>
-            </div>
             <div className="rv-content">{children}</div>
           </main>
         </div>
@@ -141,8 +141,8 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
           .rv-view-item.is-active .rv-view-label { color: var(--text-slate-900); font-weight: 600; }
           .rv-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .rv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
-          .rv-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
-          .rv-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
+          .rv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .rv-content { flex: 1; min-height: 0; padding: 0 32px 0; display: flex; flex-direction: column; }
           .rv-content > * > [class*="-header"] {
             margin-left: -32px !important;
             margin-right: -32px !important;
@@ -154,15 +154,7 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
             display: none; background: transparent; border: none; color: var(--text-slate-500);
             cursor: pointer; padding: 4px; margin-left: auto;
           }
-          .rv-mobile-header {
-            display: none; align-items: center; gap: 12px; padding: 6px 0 10px 0; margin-bottom: 8px;
-            border-bottom: 1px solid var(--border-slate-100);
-          }
-          .rv-mobile-toggle {
-            background: transparent; border: none; color: var(--text-slate-700); cursor: pointer;
-            display: flex; align-items: center; justify-content: center; padding: 4px;
-          }
-          .rv-mobile-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+
           @media (max-width: 1024px) {
             .rv-sidebar {
               position: fixed; left: 0; top: 0; height: 100vh; z-index: 1000;
@@ -174,9 +166,8 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
               z-index: 999; backdrop-filter: blur(2px);
             }
             .rv-sidebar-close { display: flex; }
-            .rv-mobile-header { display: flex; }
-            .rv-main { padding: 4px 0 0; }
-            .rv-content { padding: 4px 16px 0; }
+            .rv-main { padding: 0; }
+            .rv-content { padding: 0 16px 0; }
             .rv-content > * > [class*="-header"] {
               margin-left: -16px !important; margin-right: -16px !important;
               padding-left: 16px !important; padding-right: 16px !important;

@@ -84,7 +84,7 @@ export default function ApprovalsPanel() {
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => view(r.id)} />
-          <Button size="small" type="primary" size="small" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'approve', id: r.id, label: `Approve ${r.claimNo}` })}>Approve</Button>
+          <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'approve', id: r.id, label: `Approve ${r.claimNo}` })}>Approve</Button>
           <Button size="small" icon={<RollbackOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'send-back', id: r.id, label: `Send back ${r.claimNo}` })} />
           <Button size="small" danger icon={<CloseOutlined />} onClick={() => openDecision({ kind: 'claim', action: 'reject', id: r.id, label: `Reject ${r.claimNo}` })} />
         </div>
@@ -103,7 +103,7 @@ export default function ApprovalsPanel() {
       title: 'Actions', key: 'actions', width: 150, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-          <Button size="small" type="primary" size="small" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'approve', id: r.id, label: `Approve ${r.advanceNo}` })}>Approve</Button>
+          <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'approve', id: r.id, label: `Approve ${r.advanceNo}` })}>Approve</Button>
           <Button size="small" danger icon={<CloseOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'reject', id: r.id, label: `Reject ${r.advanceNo}` })} />
         </div>
       ),

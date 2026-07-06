@@ -113,6 +113,53 @@ function LoginFormWithParams() {
     }
   }, []);
 
+  // Handle Google OAuth callback from full-page redirect
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash !== "") {
+      const hash = window.location.hash;
+      if (hash.includes("access_token=")) {
+        const params = new URLSearchParams(hash.substring(1)); // strip '#'
+        const token = params.get("access_token");
+        const stateStr = params.get("state");
+        
+        if (token && !window.opener) {
+          // Top-level window received Google token
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          
+          let stateSubdomain = "";
+          if (stateStr) {
+            try {
+              const stateObj = JSON.parse(decodeURIComponent(stateStr));
+              stateSubdomain = stateObj.subdomain;
+            } catch(e) {}
+          }
+          
+          const { rootHost } = resolveHostInfo();
+          if (stateSubdomain) {
+             const protocol = window.location.protocol;
+             window.location.href = `${protocol}//${stateSubdomain}.${rootHost}/login?token=${token}`;
+             return;
+          }
+          
+          // Proceed with login on root host
+          setLoading(true);
+          AuthService.googleLogin(token).then(async (response) => {
+            const subdomainParam = searchParams.get('subdomain');
+            if (subdomainParam) {
+              const protocol = window.location.protocol;
+              window.location.href = `${protocol}//${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+              return;
+            }
+            await googleLogin(token);
+          }).catch((err: any) => {
+            setError(err.message || "Google sign-in failed");
+            setLoading(false);
+          });
+        }
+      }
+    }
+  }, [searchParams, googleLogin]);
+
   const handleGoogleLogin = () => {
     if (typeof window === "undefined" || !(window as any).google) {
       setError("Google sign-in is not ready yet. Please try again in a few seconds.");
@@ -280,26 +327,20 @@ function LoginFormWithParams() {
   useEffect(() => {
     const auto = searchParams.get('google_login_auto');
     if (auto === 'true') {
-      const params = new URLSearchParams(window.location.search);
-      params.delete('google_login_auto');
-      const newSearch = params.toString();
-      const newPath = window.location.pathname + (newSearch ? `?${newSearch}` : '');
-      router.replace(newPath);
-
-      let attempts = 0;
-      const interval = setInterval(() => {
-        if ((window as any).google) {
-          clearInterval(interval);
-          handleGoogleLogin();
-        }
-        attempts++;
-        if (attempts > 50) {
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
+      const subdomain = searchParams.get('subdomain');
+      const { rootHost } = resolveHostInfo();
+      const protocol = window.location.protocol;
+      const redirectUri = `${protocol}//${rootHost}/login`;
+      
+      const clientId = "945644412981-eu93b14d7jr5d0gd5s04758lu6mupad8.apps.googleusercontent.com";
+      const scope = encodeURIComponent("https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email");
+      const state = encodeURIComponent(JSON.stringify({ subdomain: subdomain || '' }));
+      
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+      
+      window.location.replace(authUrl);
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   // Auto-login with Microsoft if redirected from a subdomain
   useEffect(() => {

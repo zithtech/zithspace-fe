@@ -62,7 +62,7 @@ export default function FinancePanel() {
       {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.totalAmount, r.currency)}</div>}</div>) },
     { title: 'Approved', dataIndex: 'decidedAt', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 130, align: 'right',
+      title: 'Actions', key: 'actions', width: 130, align: 'right',
       render: (_, r) => <Button size="small" type="primary" size="small" icon={<DollarOutlined />} onClick={() => openPay({ kind: 'claim', id: r.id, label: `Pay ${r.claimNo}` })}>Mark paid</Button>,
     },
   ];
@@ -75,7 +75,7 @@ export default function FinancePanel() {
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 130, align: 'right',
+      title: 'Actions', key: 'actions', width: 130, align: 'right',
       render: (_, r) => <Button size="small" type="primary" size="small" icon={<DollarOutlined />} onClick={() => openPay({ kind: 'advance', id: r.id, label: `Pay ${r.advanceNo}` })}>Mark paid</Button>,
     },
   ];

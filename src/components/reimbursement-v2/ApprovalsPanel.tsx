@@ -80,7 +80,7 @@ export default function ApprovalsPanel() {
     { title: 'Amount', dataIndex: 'totalAmount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Submitted', dataIndex: 'submittedAt', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 170, align: 'right',
+      title: 'Actions', key: 'actions', width: 170, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => view(r.id)} />
@@ -100,7 +100,7 @@ export default function ApprovalsPanel() {
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 150, align: 'right',
+      title: 'Actions', key: 'actions', width: 150, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           <Button size="small" type="primary" size="small" icon={<CheckOutlined />} onClick={() => openDecision({ kind: 'advance', action: 'approve', id: r.id, label: `Approve ${r.advanceNo}` })}>Approve</Button>

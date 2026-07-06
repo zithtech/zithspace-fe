@@ -84,7 +84,7 @@ export default function DashboardPanel() {
         </div>
       )}
 
-      <Row gutter={16}>
+      <Row gutter={16} className="rvp-dashboard-cards">
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
             <Table rowKey="categoryId" size="small" loading={loading} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
@@ -97,6 +97,20 @@ export default function DashboardPanel() {
         </Col>
       </Row>
       <RmbStyles />
+      <style>{`
+        .rvp-dashboard-cards .ant-table {
+          border-radius: 0 !important;
+        }
+        .rvp-dashboard-cards .ant-table-container {
+          border-radius: 0 !important;
+        }
+        .rvp-dashboard-cards .ant-table-thead > tr > th:first-child,
+        .rvp-dashboard-cards .ant-table-thead > tr > th:last-child,
+        .rvp-dashboard-cards .ant-table-container > .ant-table-content > table > thead > tr > th:first-child,
+        .rvp-dashboard-cards .ant-table-container > .ant-table-content > table > thead > tr > th:last-child {
+          border-radius: 0 !important;
+        }
+      `}</style>
     </div>
   );
 }

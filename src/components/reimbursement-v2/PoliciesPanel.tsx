@@ -166,7 +166,7 @@ export default function PoliciesPanel() {
     { title: 'Auto-approve', dataIndex: 'autoApproveBelow', render: (v) => (v != null ? `≤ ${money(v)}` : '—') },
     { title: 'Status', dataIndex: 'isActive', render: (v) => (v ? <Tag color="blue">Active</Tag> : <Tag>Inactive</Tag>) },
     {
-      title: '', key: 'actions', width: 90, align: 'right',
+      title: 'Actions', key: 'actions', width: 90, align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
           {canManage && <Tooltip title="Edit"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r.id)} /></Tooltip>}

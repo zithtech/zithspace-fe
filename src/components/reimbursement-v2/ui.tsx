@@ -341,7 +341,49 @@ export function RmbStyles() {
       .rvp-table-wrap .ant-table-thead > tr > th:last-child {
         border-radius: 0 !important;
       }
+      
+      /* Ticket style table headers for ALL v2 tables (in rv-shell and drawers) */
+      .rvp-table-wrap .ant-table-thead > tr > th,
+      .ant-drawer-content .ant-table-thead > tr > th {
+        padding: 5px 10px !important;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        background: var(--bg-slate-50, #f8fafc) !important;
+        color: var(--text-slate-500, #64748b) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left !important;
+        /* Remove vertical separator lines between header cells */
+        border-inline-end: none !important;
+      }
+      .rvp-table-wrap .ant-table-thead > tr > th::before,
+      .ant-drawer-content .ant-table-thead > tr > th::before {
+        display: none !important;
+      }
+      [data-theme='dark'] .rvp-table-wrap .ant-table-thead > tr > th,
+      [data-theme='dark'] .ant-drawer-content .ant-table-thead > tr > th {
+        background: #0f1419 !important;
+        color: #94a3b8 !important;
+      }
+      .rvp-table-wrap .ant-table-tbody > tr > td,
+      .ant-drawer-content .ant-table-tbody > tr > td {
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        text-align: left !important;
+      }
+
+      /* Square pagination buttons */
+      .rvp-table-wrap .ant-pagination .ant-pagination-item,
+      .rvp-table-wrap .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      .rvp-table-wrap .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+        border-radius: 4px !important;
+      }
+      .rvp-table-wrap .ant-pagination .ant-pagination-item-active {
+        border-radius: 4px !important;
+      }
+
       .rvp-table-wrap .ant-pagination {
+
         margin: auto -32px 0 -32px !important;
         padding: 12px 32px;
         background: var(--bg-pure-white);

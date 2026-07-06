@@ -81,7 +81,7 @@ export default function AdvancesPanel() {
     { title: 'Outstanding', dataIndex: 'outstanding', align: 'right', render: (v, r) => <span style={{ fontWeight: 600 }}>{money(v, r.currency)}</span> },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
     {
-      title: '', key: 'actions', width: 60, align: 'right',
+      title: 'Actions', key: 'actions', width: 60, align: 'right',
       render: (_, r) => (['pending', 'approved'].includes(r.status) ? (
         <ConfirmDialog tone="warning" icon={<CloseCircleOutlined />} title="Cancel this advance?" confirmText="Cancel"
           placement="bottomRight" onConfirm={() => cancel(r)}>

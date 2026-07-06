@@ -70,6 +70,7 @@ import {
   Award,
   Star,
   Menu,
+  X as XIcon,
   Maximize2,
   Building2,
   MapPin
@@ -143,6 +144,7 @@ import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
 import { api, apiClient } from "@/lib/axios";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
@@ -360,149 +362,69 @@ const FiverrGlyph = ({ size = 13 }: { size?: number }) => (
 // Slim form for own-website inquiries (Zukvo, Zithtech). Skips gig-platform
 // fields (skills, budget, AI score) and leads with the company-side block.
 const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
-  const sectionCard: React.CSSProperties = {
-    marginBottom: 20,
-    padding: '22px',
-    borderRadius: 14,
-    border: '1px solid var(--border-slate-100)',
-  };
-  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
-  const stepBadge = (color: string, n: string): React.CSSProperties => ({
-    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    background: `${color}14`, color, border: `1px solid ${color}33`,
-  });
   const labelStyle = { fontSize: 12, color: '#64748b' } as const;
 
   return (
     <>
-      {/* 01 — Source */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#6366f1', '01')}>01</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Globe size={15} color="#3b82f6" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry Source</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Which website did this come from</Text>
-          </div>
-        </div>
+      <SectionCard step="STEP 1" icon={<Globe size={13} color="#3b82f6" />} title="Inquiry Source" subtitle="Which website did this come from">
         <Form.Item name="websiteSource" label={<Text strong style={labelStyle}>Website</Text>} initialValue="zukvo">
-          <Select style={{ borderRadius: 0 }}>
+          <Select style={{ borderRadius: 6 }}>
             <Select.Option value="zukvo">Zukvo</Select.Option>
             <Select.Option value="zithtech">Zithtech</Select.Option>
             <Select.Option value="other">Other</Select.Option>
           </Select>
         </Form.Item>
-      </div>
+      </SectionCard>
 
-      {/* 02 — Contact */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#0ea5e9', '02')}>02</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <User size={15} color="#0ea5e9" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Who reached out — name, email, phone, location</Text>
-          </div>
-        </div>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
-              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="priya@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="clientPhone"
-              label={<Text strong style={labelStyle}>Phone</Text>}
-              getValueFromEvent={(e) => {
-                const value = e.target.value;
-                let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
-                if (sanitized.includes('+')) {
-                  const hasPlusAtStart = sanitized.startsWith('+');
-                  sanitized = sanitized.replace(/\+/g, '');
-                  if (hasPlusAtStart) {
-                    sanitized = '+' + sanitized;
-                  }
-                }
-                let digitsCount = 0;
-                let limited = '';
-                for (let i = 0; i < sanitized.length; i++) {
-                  const char = sanitized[i];
-                  if (/\d/.test(char)) {
-                    if (digitsCount < 15) {
-                      digitsCount++;
-                      limited += char;
-                    }
-                  } else {
-                    limited += char;
-                  }
-                }
-                return limited;
-              }}
-              rules={[
-                {
-                  validator: (_, value) => {
-                    if (!value || value.trim() === '') {
-                      return Promise.resolve();
-                    }
-                    const digits = value.replace(/\D/g, '');
-                    if (digits.length < 7) {
-                      return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-            >
-              <Input placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
-              <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-      </div>
+      <SectionCard step="STEP 2" icon={<User size={13} color="#0ea5e9" />} title="Contact" subtitle="Who reached out — name, email, phone, location">
+        <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
+          <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
+          <Input placeholder="priya@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item
+          name="clientPhone"
+          label={<Text strong style={labelStyle}>Phone</Text>}
+          getValueFromEvent={(e) => {
+            const value = e.target.value;
+            let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+            if (sanitized.includes('+')) {
+              const hasPlusAtStart = sanitized.startsWith('+');
+              sanitized = sanitized.replace(/\+/g, '');
+              if (hasPlusAtStart) sanitized = '+' + sanitized;
+            }
+            let digitsCount = 0; let limited = '';
+            for (let i = 0; i < sanitized.length; i++) {
+              const char = sanitized[i];
+              if (/\d/.test(char)) {
+                if (digitsCount < 15) { digitsCount++; limited += char; }
+              } else { limited += char; }
+            }
+            return limited;
+          }}
+          rules={[{ validator: (_, value) => {
+            if (!value || value.trim() === '') return Promise.resolve();
+            if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+            return Promise.resolve();
+          }}]}
+        >
+          <Input placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
+          <Input placeholder="City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+      </SectionCard>
 
-      {/* 03 — Company */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#f59e0b', '03')}>03</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Briefcase size={15} color="#f59e0b" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Where they work and how big the team is</Text>
-          </div>
-        </div>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.&'()]+$/, message: 'Please enter a valid company name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.&'()]/g, '')}>
-              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>} rules={[{ pattern: /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/, message: 'Please enter a valid domain (e.g. acme.com)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\-.]/g, '')}>
-              <Input placeholder="acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
+      <SectionCard step="STEP 3" icon={<Briefcase size={13} color="#f59e0b" />} title="Company" subtitle="Where they work and how big the team is">
+        <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.&'()]+$/, message: 'Please enter a valid company name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.&'()]/g, '')}>
+          <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>} rules={[{ pattern: /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/, message: 'Please enter a valid domain' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\-.]/g, '')}>
+          <Input placeholder="acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
         <Form.Item name="companySize" label={<Text strong style={labelStyle}>Team Size</Text>}>
-          <Select placeholder="Select range" style={{ borderRadius: 0 }} allowClear>
+          <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear>
             <Select.Option value="1-10">1 – 10</Select.Option>
             <Select.Option value="11-50">11 – 50</Select.Option>
             <Select.Option value="51-200">51 – 200</Select.Option>
@@ -511,34 +433,20 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
             <Select.Option value="1000+">1,000+</Select.Option>
           </Select>
         </Form.Item>
-      </div>
+      </SectionCard>
 
-      {/* 04 — Inquiry */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#10b981', '04')}>04</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Mail size={15} color="#10b981" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>What they said and where it sits in your pipeline</Text>
-          </div>
-        </div>
+      <SectionCard step="STEP 4" icon={<Mail size={13} color="#10b981" />} title="Inquiry" subtitle="What they said and where it sits in your pipeline">
         <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
-          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 0 }} autoComplete="off" />
+          <Input placeholder="e.g. Quote request" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
-          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 0 }} autoComplete="off" />
+          <TextArea rows={4} placeholder="Their message verbatim" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
-          <Select placeholder="Select pipeline" style={{ borderRadius: 0 }}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 6 }}>
             {configStatuses.map((s: any) => (
               <Select.Option key={s.id} value={s.name}>
-                <Space>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                  {s.name}
-                </Space>
+                <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
               </Select.Option>
             ))}
           </Select>
@@ -546,243 +454,13 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="platform" hidden initialValue="Website">
           <Input />
         </Form.Item>
-      </div>
+      </SectionCard>
     </>
   );
-};
-
-// Lead Intake — capture a full company profile plus a repeatable list of
+}; // Lead Intake — capture a full company profile plus a repeatable list of
 // decision-maker contacts. Company-level fields map onto the shared lead
 // columns at save time; the intake-only extras + decisionMakers[] array are
 // persisted in leads.form_data (JSONB).
-const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
-  const sectionCard: React.CSSProperties = {
-    marginBottom: 20,
-    padding: '22px',
-    borderRadius: 14,
-    border: '1px solid var(--border-slate-100)',
-  };
-  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
-  const stepBadge = (color: string): React.CSSProperties => ({
-    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    background: `${color}14`, color, border: `1px solid ${color}33`,
-  });
-  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
-  const label = (t: string) => <Text strong style={labelStyle}>{t}</Text>;
-
-  return (
-    <>
-      {/* 01 — Company Information */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#6366f1')}>01</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Building2 size={15} color="#6366f1" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company Information</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>The organisation you're building a relationship with</Text>
-          </div>
-        </div>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
-              <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Form.Item name="intakeCoreBusiness" label={label('Core Business')}>
-          <Input placeholder="What the company primarily does" style={{ borderRadius: 0 }} autoComplete="off" />
-        </Form.Item>
-        <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
-          <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 0 }} autoComplete="off" />
-        </Form.Item>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]}>
-              <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="intakeCompanyPhone"
-              label={label('Company Phone Number')}
-              getValueFromEvent={sanitizePhone}
-              rules={[phoneRule]}
-            >
-              <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="intakeWebsite" label={label('Website URL')}>
-              <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
-              <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="intakeLocation" label={label('Company Location')}>
-              <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
-              <Select placeholder="Select range" style={{ borderRadius: 0 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
-                <Select.Option value="1-10">1 – 10</Select.Option>
-                <Select.Option value="11-50">11 – 50</Select.Option>
-                <Select.Option value="51-200">51 – 200</Select.Option>
-                <Select.Option value="201-500">201 – 500</Select.Option>
-                <Select.Option value="501-1000">501 – 1,000</Select.Option>
-                <Select.Option value="1000+">1,000+</Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-      </div>
-
-      {/* 02 — Research */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#f59e0b')}>02</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Star size={15} color="#f59e0b" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Research</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Reputation signals and your own working notes</Text>
-          </div>
-        </div>
-        <Form.Item name="intakeReviews" label={label('Company Reviews / Notes')}>
-          <TextArea rows={3} placeholder="Glassdoor / Clutch ratings, reputation, press — anything that helps qualify the account." style={{ borderRadius: 0 }} autoComplete="off" />
-        </Form.Item>
-        <Form.Item name="intakeInternalNotes" label={
-          <Space size={6}>
-            {label('Internal Notes')}
-            <span style={{ padding: '1px 7px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
-          </Space>
-        }>
-          <TextArea rows={2} placeholder="Private notes for your team — never shown to the client." style={{ borderRadius: 0 }} autoComplete="off" />
-        </Form.Item>
-        <Form.Item name="intakeStatus" label={label('Pipeline')}>
-          <Select placeholder="Select pipeline" style={{ borderRadius: 0 }} allowClear>
-            {configStatuses.map((s: any) => (
-              <Select.Option key={s.id} value={s.name}>
-                <Space>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                  {s.name}
-                </Space>
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
-      </div>
-
-      {/* 03 — Decision Makers (repeatable) */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#10b981')}>03</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={15} color="#10b981" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Decision Makers</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>One company, many contacts — add everyone worth knowing</Text>
-          </div>
-        </div>
-        <Form.List name="decisionMakers">
-          {(fields, { add, remove }) => (
-            <>
-              {fields.map((field, idx) => (
-                <div key={field.key} className="dm-card">
-                  <div className="dm-card-head">
-                    <span className="dm-card-index">
-                      <User size={13} />
-                      Decision Maker {idx + 1}
-                    </span>
-                    <Tooltip title="Remove contact">
-                      <Button
-                        type="text"
-                        danger
-                        size="small"
-                        icon={<Trash2 size={15} />}
-                        onClick={() => remove(field.name)}
-                        className="dm-remove-btn"
-                      />
-                    </Tooltip>
-                  </div>
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]} style={{ marginBottom: 12 }}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')} style={{ marginBottom: 12 }}>
-                        <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} style={{ marginBottom: 12 }}>
-                        <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]} style={{ marginBottom: 12 }}>
-                        <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')} style={{ marginBottom: 12 }}>
-                        <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
-                        <Space size={6}>
-                          {label('Remarks / Notes')}
-                          <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
-                        </Space>
-                      } style={{ marginBottom: 0 }}>
-                        <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-              ))}
-              <Button
-                type="dashed"
-                onClick={() => add({})}
-                block
-                icon={<UserPlus size={16} />}
-                className="dm-add-btn"
-              >
-                Add Decision Maker
-              </Button>
-            </>
-          )}
-        </Form.List>
-      </div>
-    </>
-  );
-};
-
 // Shared phone helpers — keep the intake fields consistent with the platform /
 // website forms (digits, spaces, dashes, parens, optional leading +; 7–15 digits).
 const sanitizePhone = (e: any) => {
@@ -807,12 +485,138 @@ const sanitizePhone = (e: any) => {
 };
 
 const phoneRule = {
-  validator: (_: any, value: string) => {
+  validator: (_: any, value: any) => {
     if (!value || value.trim() === '') return Promise.resolve();
-    const digits = value.replace(/\D/g, '');
-    if (digits.length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+    if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
     return Promise.resolve();
-  },
+  }
+};
+
+const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
+  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
+  const label = (t: string) => <Text strong style={labelStyle}>{t}</Text>;
+
+  return (
+    <>
+      <SectionCard step="STEP 1" icon={<Building2 size={13} color="#6366f1" />} title="Company Information" subtitle="The organisation you're building a relationship with">
+            <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
+              <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
+              <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+        <Form.Item name="intakeCoreBusiness" label={label('Core Business')}>
+          <Input placeholder="What the company primarily does" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
+          <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]}>
+              <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+              <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeWebsite" label={label('Website URL')}>
+              <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
+              <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeLocation" label={label('Company Location')}>
+              <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
+              <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
+                <Select.Option value="1-10">1 – 10</Select.Option>
+                <Select.Option value="11-50">11 – 50</Select.Option>
+                <Select.Option value="51-200">51 – 200</Select.Option>
+                <Select.Option value="201-500">201 – 500</Select.Option>
+                <Select.Option value="501-1000">501 – 1,000</Select.Option>
+                <Select.Option value="1000+">1,000+</Select.Option>
+              </Select>
+            </Form.Item>
+      </SectionCard>
+
+      <SectionCard step="STEP 2" icon={<Star size={13} color="#f59e0b" />} title="Research" subtitle="Reputation signals and your own working notes">
+        <Form.Item name="intakeReviews" label={label('Company Reviews / Notes')}>
+          <TextArea rows={3} placeholder="Glassdoor / Clutch ratings, reputation, press — anything that helps qualify the account." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeInternalNotes" label={
+          <Space size={6}>
+            {label('Internal Notes')}
+            <span style={{ padding: '1px 7px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+          </Space>
+        }>
+          <TextArea rows={2} placeholder="Private notes for your team — never shown to the client." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+            <Form.Item name="intakeStatus" label={label('Pipeline')}>
+              <Select placeholder="Select pipeline" style={{ borderRadius: 6 }} allowClear>
+                {configStatuses.map((s: any) => (
+                  <Select.Option key={s.id} value={s.name}>
+                    <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+      </SectionCard>
+
+      <SectionCard step="STEP 3" icon={<Users size={13} color="#10b981" />} title="Decision Makers" subtitle="One company, many contacts — add everyone worth knowing">
+        <Form.List name="decisionMakers">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field, idx) => (
+                <div key={field.key} className="dm-card" style={{ marginBottom: 16 }}>
+                  <div className="dm-card-head" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span className="dm-card-index" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <User size={13} />
+                      Decision Maker {idx + 1}
+                    </span>
+                    <Tooltip title="Remove contact">
+                      <Button type="text" danger size="small" icon={<Trash2 size={15} />} onClick={() => remove(field.name)} />
+                    </Tooltip>
+                  </div>
+                  
+                      <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]}>
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')}>
+                        <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                  
+                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]}>
+                        <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+                        <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                  
+                      <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')}>
+                        <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
+                        <Space size={6}>
+                          {label('Remarks / Notes')}
+                          <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+                        </Space>
+                      } style={{ marginBottom: 0 }}>
+                        <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+
+                  {idx < fields.length - 1 && <div style={{ height: 1, background: 'var(--border-slate-100)', marginTop: 24, marginBottom: 8 }} />}
+                </div>
+              ))}
+              <Form.Item wrapperCol={{ span: 24 }}>
+                <Button type="dashed" onClick={() => add({})} block icon={<UserPlus size={16} />} style={{ borderRadius: 6, height: 42 }}>
+                  Add Decision Maker
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+      </SectionCard>
+    </>
+  );
 };
 
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
@@ -4384,116 +4188,82 @@ export default function LeadsPage() {
 
         {/* Lead Form Drawer */}
         <Drawer
-          title={
-            <div className="lead-drawer-header" style={{ position: "relative", overflow: "hidden", margin: "-16px -24px", padding: "22px 24px" }}>
-              <div
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.04) 45%, rgba(255,255,255,0) 100%)",
-                  pointerEvents: "none",
-                }}
-              />
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-                <div
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 13,
-                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 8px 20px -6px rgba(59,130,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {editingKey ? <Edit2 size={20} /> : <Sparkles size={20} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <div className="premium-title" style={{ fontSize: 18, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
-                      {editingKey ? "Edit Opportunity" : "New Lead Entry"}
-                    </div>
-                    <span
-                      className="lead-drawer-badge"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "2px 8px",
-                        borderRadius: 0,
-                        background: "rgba(59, 130, 246, 0.1)",
-                        color: "#2563eb",
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        border: "1px solid rgba(59, 130, 246, 0.2)",
-                      }}
-                    >
-                      <Sparkles size={10} /> AI-ready
-                    </span>
-                  </div>
-                  <div className="premium-text-sec" style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
-                    {editingKey
-                      ? "Refine details and re-sync this opportunity to your pipeline"
-                      : "4 quick sections — client, job, platform & docs. Takes under a minute."}
-                  </div>
-                </div>
-              </div>
-            </div>
-          }
-          width={680}
+          {...commonDrawerProps}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
-          className="premium-drawer lead-drawer"
-          styles={{
-            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
-            body: { padding: '24px', background: 'var(--bg-pure-white)' },
-            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '14px 24px', background: 'var(--bg-pure-white)' },
-          }}
-          footer={
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
-                <ShieldCheck size={13} style={{ color: "#10b981" }} />
-                Auto-saved to your secure workspace
+        >
+          <div className="customer-drawer-header" style={{ padding: "22px 24px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.04) 45%, rgba(255,255,255,0) 100%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 13,
+                  background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 8px 20px -6px rgba(59,130,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25)",
+                  flexShrink: 0,
+                }}
+              >
+                {editingKey ? <Edit2 size={20} /> : <Sparkles size={20} />}
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 0, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
-                  <Button
-                    type="primary"
-                    loading={loading}
-                    onClick={() => form.submit()}
-                    className="lead-drawer-submit"
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <div className="premium-title" style={{ fontSize: 18, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+                    {editingKey ? "Edit Opportunity" : "New Lead Entry"}
+                  </div>
+                  <span
+                    className="lead-drawer-badge"
                     style={{
-                      borderRadius: 0,
-                      height: 40,
-                      padding: "0 22px",
-                      background: "#3b82f6",
-                      border: "none",
-                      fontWeight: 700,
-                      boxShadow: "none",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 4,
+                      padding: "2px 8px",
+                      borderRadius: 0,
+                      background: "rgba(59, 130, 246, 0.1)",
+                      color: "#2563eb",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      border: "1px solid rgba(59, 130, 246, 0.2)",
                     }}
                   >
-                    {editingKey ? "Update Lead" : "Create Lead"}
-                    <ArrowUpRight size={15} />
-                  </Button>
-                )}
+                    <Sparkles size={10} /> AI-ready
+                  </span>
+                </div>
+                <div className="premium-text-sec" style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
+                  {editingKey
+                    ? "Refine details and re-sync this opportunity to your pipeline"
+                    : "4 quick sections — client, job, platform & docs. Takes under a minute."}
+                </div>
               </div>
             </div>
-          }
-        >
-          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form" autoComplete="off">
+            <Button 
+              type="text" 
+              icon={<XIcon size={16} />} 
+              onClick={() => setIsDrawerVisible(false)} 
+              style={{ color: 'var(--text-secondary)' }}
+            />
+          </div>
+          <div style={{ padding: 24, paddingBottom: 100 }}>
+            <style>{drawerFormStyles}</style>
+          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 14 }}>
+            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 14 }} wrapperCol={{ span: 24 }}>
               <Segmented
                 block
                 size="large"
@@ -4551,41 +4321,13 @@ export default function LeadsPage() {
             ) : (
               <>
                 {/* Client Details Section */}
-                <div className="premium-drawer-section lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb",
-                      border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>01</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <User size={15} color="#3b82f6" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
-                    </div>
-                  </div>
-                  <Row gutter={16}>
-                    <Col span={12}>
+                <SectionCard step="STEP 1" icon={<User size={13} color="#3b82f6" />} title="Client Information" subtitle="Who you're pitching — contact, location, and trust signals">
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
                         <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
                         <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
                       <Form.Item
                         name="clientPhone"
                         label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
@@ -4631,27 +4373,15 @@ export default function LeadsPage() {
                       >
                         <Input placeholder="+1 234..." style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
                       <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>} rules={[{ pattern: /^([0-5](\.\d{1,2})?(\/5)?)$/, message: 'Please enter a valid rating (e.g. 4.9 or 4.9/5)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-5./]/g, '')}>
                         <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>} rules={[{ pattern: /^[\$0-9kKMB,\.+\s]+$/, message: 'Please enter a valid amount (e.g. $10k+)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\$0-9kKMB,\.+\s]/g, '')}>
                         <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
                       <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
                         <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
@@ -4662,8 +4392,6 @@ export default function LeadsPage() {
                           </Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
                         <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
@@ -4674,31 +4402,10 @@ export default function LeadsPage() {
                           </Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Job Details Section */}
-                <div className="premium-drawer-section-alt lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>02</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Briefcase size={15} color="#3b82f6" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
-                    </div>
-                  </div>
+                <SectionCard step="STEP 2" icon={<Briefcase size={15} color="#3b82f6" />} title="Job Specification" subtitle="Scope, skills, and budget — what success looks like">
                   <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
                     <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
@@ -4741,62 +4448,27 @@ export default function LeadsPage() {
                       autoComplete="off"
                     />
                   </Form.Item>
-                  <Row gutter={16}>
-                    <Col span={24}>
                       <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
                         <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6}>
                       <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
                       <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
                         <Input placeholder="e.g. 50" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
                       <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
                         <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
                       <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>} rules={[{ pattern: /^[A-Za-z\/\-]+$/, message: 'Please enter a valid type' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\/\-]/g, '')}>
                         <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Timeline & Meta Section */}
-                <div className="premium-drawer-section lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>03</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <LinkIcon size={15} color="#10b981" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
-                    </div>
-                  </div>
-                  <Row gutter={16}>
-                    <Col span={12}>
+                <SectionCard step="STEP 3" icon={<LinkIcon size={15} color="#10b981" />} title="Platform & Status" subtitle="Where this came from and where it sits in your pipeline">
                       <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                        <Select placeholder="Select Platform" style={{ borderRadius: 0 }}>
+                        <Select placeholder="Select Platform" style={{ borderRadius: 6 }}>
                           <Select.Option value="Upwork">Upwork</Select.Option>
                           <Select.Option value="LinkedIn">LinkedIn</Select.Option>
                           <Select.Option value="Freelancer">Freelancer</Select.Option>
@@ -4805,11 +4477,9 @@ export default function LeadsPage() {
                           <Select.Option value="Other">Other</Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                        <Select placeholder="Select Status" style={{ borderRadius: 0 }}>
-                          {configStatuses.map(s => (
+                        <Select placeholder="Select Status" style={{ borderRadius: 6 }}>
+                          {configStatuses.map((s: any) => (
                             <Select.Option key={s.id} value={s.name}>
                               <Space>
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
@@ -4819,21 +4489,17 @@ export default function LeadsPage() {
                           ))}
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
-                    <Input placeholder="https://..." style={{ borderRadius: 0 }} autoComplete="off" />
-                  </Form.Item>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                        <DatePicker style={{ width: '100%', borderRadius: 0 }} />
+                  
+                      <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
+                        <Input placeholder="https://..." style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
+                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
+                        <DatePicker style={{ width: '100%', borderRadius: 6 }} />
+                      </Form.Item>
+
                       <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 0 }}>
-                          {configActions.map(a => (
+                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 6 }}>
+                          {configActions.map((a: any) => (
                             <Select.Option key={a.id} value={a.name}>
                               <Space>
                                 {renderActionIcon(a.icon)}
@@ -4843,35 +4509,10 @@ export default function LeadsPage() {
                           ))}
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Documents Section */}
-                <div className="premium-drawer-section-alt lead-section-card" style={{
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>04</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <FileText size={15} color="#ec4899" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
-                        <span style={{
-                          padding: "1px 7px", borderRadius: 6, background: "#f1f5f9",
-                          color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                          textTransform: "uppercase",
-                        }}>Optional</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
-                    </div>
-                  </div>
+                <SectionCard step="STEP 4" icon={<FileText size={15} color="#ec4899" />} title="Supporting Documents" subtitle="Briefs, mockups, or contract drafts shared by the client">
                   <Form.List name="documents">
                     {(fields, { add, remove }) => (
                       <>
@@ -4884,22 +4525,55 @@ export default function LeadsPage() {
                             messageApi={messageApi}
                           />
                         ))}
-                        <Button
-                          type="dashed"
-                          onClick={() => add({ type: 'file' })}
-                          block
-                          icon={<PlusCircle size={16} />}
-                          className="doc-add-btn"
-                        >
-                          Add Supporting Document
-                        </Button>
+                        <Form.Item wrapperCol={{ span: 24 }}>
+                          <Button
+                            type="dashed"
+                            onClick={() => add({ type: 'file' })}
+                            block
+                            icon={<PlusCircle size={16} />}
+                            className="doc-add-btn"
+                          >
+                            Add Supporting Document
+                          </Button>
+                        </Form.Item>
                       </>
                     )}
                   </Form.List>
-                </div>
+                </SectionCard>
               </>
             )}
           </Form>
+          </div>
+          <div
+            className="customer-drawer-footer"
+            style={{
+              padding: "12px 16px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "var(--bg-secondary)",
+              position: "sticky",
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
+            <span className="lset-drawer-footer-hint" style={{ fontSize: 11, color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck size={12} /> Auto-saved to your secure workspace
+            </span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button htmlType="button" onClick={() => setIsDrawerVisible(false)}>Cancel</Button>
+              {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                <Button
+                  type="primary"
+                  loading={loading}
+                  onClick={() => form.submit()}
+                >
+                  {editingKey ? "Update" : "Create"} Lead
+                </Button>
+              )}
+            </div>
+          </div>
         </Drawer>
 
         <LeadMailDrawer

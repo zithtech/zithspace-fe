@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
+  MY_HUB: LayoutGrid,
   HOME: Sparkle,
   WORK: Briefcase,
   ADMIN: ShieldCheck,
@@ -37,6 +38,7 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
+  MY_HUB: '#3b82f6',   // blue
   HOME: '#3b82f6',     // indigo
   WORK: '#3b82f6',     // sky
   ADMIN: '#3b82f6',    // emerald
@@ -247,8 +249,13 @@ export default function TopNav({
   const isMobile = useIsBreakpoint("max", 790);
   const isSmallMobile = !screens.sm;
 
-  // Filter modules by permission
+  // Filter modules by permission (chip visibility).
+  // requiredChipAnyPermission, when present, controls chip visibility on its own
+  // — decoupled from route access (which stays on requiredAnyPermission). This
+  // lets us hide HRMS/FINANCE chips from normal users while their routes remain
+  // reachable via My Hub shortcuts.
   const visibleModules = NAVIGATION_CONFIG.filter(module => {
+    if (module.requiredChipAnyPermission) return hasAnyPermission(...module.requiredChipAnyPermission);
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
     if (module.requiredPermission) return hasPermission(module.requiredPermission);
     if (module.requiredAnyPermission) return hasAnyPermission(...module.requiredAnyPermission);

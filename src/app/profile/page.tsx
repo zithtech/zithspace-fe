@@ -33,8 +33,8 @@ import {
   ApartmentOutlined,
   GlobalOutlined,
   ReloadOutlined,
+  UserSwitchOutlined,
 } from "@ant-design/icons";
-import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import dayjs from "dayjs";
 import {
   AuthService,
@@ -43,86 +43,20 @@ import {
 } from "@/services/authService";
 import { ApiError } from "@/lib/axios";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-const ROLE_META: Record<
-  string,
-  { label: string; bg: string; color: string; dot: string; icon: React.ReactNode }
-> = {
-  super_admin: {
-    label: "Super Admin",
-    bg: "rgba(225,29,72,0.10)",
-    color: "#e11d48",
-    dot: "#e11d48",
-    icon: <CrownOutlined />,
-  },
-  admin: {
-    label: "Admin",
-    bg: "rgba(245,158,11,0.12)",
-    color: "#d97706",
-    dot: "#f59e0b",
-    icon: <SafetyCertificateOutlined />,
-  },
-  user: {
-    label: "User",
-    bg: "rgba(16,185,129,0.10)",
-    color: "#059669",
-    dot: "#10b981",
-    icon: <IdcardOutlined />,
-  },
+// Neutral, product-standard palette (matches the payroll/settings look).
+const BLUE = "#3B82F6";
+const BLUE_TINT = "rgba(59,130,246,0.10)";
+const GREEN = "#10B981";
+const GREEN_TINT = "rgba(16,185,129,0.10)";
+
+// Role badge — neutral slate chip (no per-role brand colors).
+const ROLE_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  super_admin: { label: "Super Admin", icon: <CrownOutlined /> },
+  admin: { label: "Admin", icon: <SafetyCertificateOutlined /> },
+  user: { label: "User", icon: <IdcardOutlined /> },
 };
-
-const AVATAR_PALETTE = [
-  ["#6366f1", "#8b5cf6"],
-  ["#0ea5e9", "#06b6d4"],
-  ["#10b981", "#14b8a6"],
-  ["#f59e0b", "#f97316"],
-  ["#ec4899", "#f43f5e"],
-  ["#8b5cf6", "#d946ef"],
-];
-
-const gradientFor = (seed: string) => {
-  const idx = Math.abs(
-    seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
-  ) % AVATAR_PALETTE.length;
-  const [a, b] = AVATAR_PALETTE[idx];
-  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
-};
-
-const SectionLabel = ({
-  children,
-  hint,
-}: {
-  children: React.ReactNode;
-  hint?: string;
-}) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "baseline",
-      gap: 10,
-      margin: "0 0 8px",
-    }}
-  >
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: "var(--text-slate-500)",
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-      }}
-    >
-      {children}
-    </span>
-    {hint && (
-      <span style={{ fontSize: 10.5, color: "var(--text-slate-400)" }}>
-        · {hint}
-      </span>
-    )}
-    <div style={{ flex: 1, height: 1, background: "var(--border-slate-100)" }} />
-  </div>
-);
 
 interface ProfileFormData {
   name: string;
@@ -154,11 +88,43 @@ const passwordStrength = (pwd: string) => {
     { label: "Fair", color: "#f59e0b" },
     { label: "Good", color: "#10b981" },
     { label: "Strong", color: "#059669" },
-    { label: "Excellent", color: "#0ea5e9" },
+    { label: "Excellent", color: "#3b82f6" },
   ];
   const idx = Math.min(score, map.length - 1);
   return { score, label: map[idx].label, color: map[idx].color };
 };
+
+// ─── Section card (mirrors the payroll General Settings look) ───────────────
+function SectionCard({
+  icon,
+  tint,
+  color,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: React.ReactNode;
+  tint: string;
+  color: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="pp-card">
+      <div className="pp-card-head">
+        <div className="pp-card-chip" style={{ background: tint, color }}>
+          {icon}
+        </div>
+        <div>
+          <div className="pp-card-title">{title}</div>
+          <div className="pp-card-sub">{subtitle}</div>
+        </div>
+      </div>
+      <div className="pp-card-body">{children}</div>
+    </section>
+  );
+}
 
 export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth();
@@ -362,224 +328,120 @@ export default function ProfilePage() {
 
   const role = userProfile?.role || "user";
   const roleMeta = ROLE_META[role] || ROLE_META.user;
-  const seed = userProfile?.id || userProfile?.name || "you";
 
   return (
     <MainLayout>
-      <div
-        style={{
-          margin: "0 -24px",
-          background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)",
-          overflow: "hidden"
-        }}
-      >
-        <TimeTrackingHeader
-          style={{ padding: "10.5px 32px", marginBottom: 8 }}
-          icon={<UserOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
-          title={<span style={{ fontSize: 16 }}>My Profile</span>}
-          description={<span style={{ fontSize: 11, opacity: 0.8 }}>Manage your information and security</span>}
-          extra={
-            <Button
-              icon={<LogoutOutlined />}
-              onClick={() => logout()}
-              size="small"
-              style={{
-                height: 32,
-                borderRadius: 8,
-                fontWeight: 500,
-                color: "#e11d48",
-                border: "1px solid rgba(225,29,72,0.25)",
-                background: "rgba(225,29,72,0.06)",
-              }}
-            >
+      <div className="pp-page">
+        {/* ============================ HEADER ============================ */}
+        <div className="pp-header">
+          <div className="pp-head-chip" style={{ background: BLUE_TINT, color: BLUE }}>
+            <UserOutlined style={{ fontSize: 20 }} />
+          </div>
+          <div className="pp-head-text">
+            <div className="pp-head-title">My Profile</div>
+            <div className="pp-head-sub">Manage your information and security</div>
+          </div>
+          <div className="pp-head-actions">
+            <Button danger icon={<LogoutOutlined />} onClick={() => logout()}>
               Sign Out
             </Button>
-          }
-        />
+          </div>
+        </div>
 
-        <div style={{ padding: "0 32px 20px", maxWidth: 1200, margin: "0 auto" }}>
-          {/* Identity Card */}
-          <div className="pp-identity-card">
-            <div className="pp-identity-bg" />
-            <div className="pp-identity-inner">
-              <div style={{ display: "flex", alignItems: "center", gap: 20, flex: 1, minWidth: 0 }}>
-                {/* Avatar with camera */}
-                <div className="pp-avatar-wrap">
-                  <Avatar
-                    size={64}
-                    src={userProfile?.avatarUrl}
-                    style={{
-                      background: gradientFor(seed),
-                      color: "#fff",
-                      fontSize: 24,
-                      fontWeight: 700,
-                      border: "3px solid var(--bg-pure-white)",
-                      boxShadow: "0 10px 30px rgba(15,23,42,0.12)",
-                    }}
-                  >
-                    {!userProfile?.avatarUrl &&
-                      userProfile?.name?.charAt(0)?.toUpperCase()}
-                  </Avatar>
-                  <input
-                    type="file"
-                    id="avatar-upload"
-                    style={{ display: "none" }}
-                    accept="image/*"
-                    onChange={onFileChange}
-                  />
-                  <Tooltip title="Update profile photo">
-                    <label htmlFor="avatar-upload" className="pp-camera-btn">
-                      <CameraOutlined />
-                    </label>
-                  </Tooltip>
-                </div>
-
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Title
-                      level={3}
-                      style={{
-                        margin: 0,
-                        fontSize: 18,
-                        fontWeight: 800,
-                        color: "var(--text-slate-900)",
-                        letterSpacing: "-0.02em",
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      {userProfile?.name || user?.name}
-                    </Title>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                        background: roleMeta.bg,
-                        color: roleMeta.color,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      {roleMeta.icon}
-                      {roleMeta.label.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "8px 18px",
-                      marginTop: 6,
-                      fontSize: 11.5,
-                      color: "var(--text-slate-600)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <ApartmentOutlined style={{ color: "var(--text-slate-400)" }} />
-                      {userProfile?.position?.title || "—"}
-                    </span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <MailOutlined style={{ color: "var(--text-slate-400)" }} />
-                      {userProfile?.workEmail || "—"}
-                    </span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <CalendarOutlined style={{ color: "var(--text-slate-400)" }} />
-                      Joined{" "}
-                      {userProfile?.createdAt
-                        ? dayjs(userProfile.createdAt).format("MMM D, YYYY")
-                        : "—"}
-                    </span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        color: userProfile?.isActive ? "#059669" : "#94a3b8",
-                      }}
-                    >
-                      <span
-                        className="pp-status-dot"
-                        style={{
-                          background: userProfile?.isActive ? "#10b981" : "#94a3b8",
-                        }}
-                      />
-                      {userProfile?.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Completion */}
-              <div className="pp-completion">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-slate-500)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Profile Completion
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 800,
-                      color: completion >= 85 ? "#059669" : "#8b5cf6",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {completion}%
-                  </Text>
-                </div>
-                <div className="pp-progress">
-                  <div
-                    className="pp-progress-fill"
-                    style={{
-                      width: `${completion}%`,
-                      background:
-                        completion >= 85
-                          ? "linear-gradient(90deg,#10b981,#059669)"
-                          : "linear-gradient(90deg,#6366f1,#8b5cf6)",
-                    }}
-                  />
-                </div>
-                <Text
+        <div className="pp-body">
+          {/* ---------------------- IDENTITY CARD ---------------------- */}
+          <section className="pp-card pp-identity">
+            <div className="pp-identity-main">
+              <div className="pp-avatar-wrap">
+                <Avatar
+                  size={60}
+                  src={userProfile?.avatarUrl}
                   style={{
-                    fontSize: 10.5,
-                    color: "var(--text-slate-500)",
-                    marginTop: 4,
-                    display: "block",
+                    background: BLUE_TINT,
+                    color: BLUE,
+                    fontSize: 22,
+                    fontWeight: 700,
+                    border: "1px solid var(--border-slate-200)",
                   }}
                 >
-                  {completion >= 85
-                    ? "Your profile looks great!"
-                    : "Add more details to complete your profile."}
-                </Text>
+                  {!userProfile?.avatarUrl &&
+                    userProfile?.name?.charAt(0)?.toUpperCase()}
+                </Avatar>
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  style={{ display: "none" }}
+                  accept="image/*"
+                  onChange={onFileChange}
+                />
+                <Tooltip title="Update profile photo">
+                  <label htmlFor="avatar-upload" className="pp-camera-btn">
+                    <CameraOutlined />
+                  </label>
+                </Tooltip>
+              </div>
+
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="pp-identity-name-row">
+                  <div className="pp-identity-name">
+                    {userProfile?.name || user?.name}
+                  </div>
+                  <span className="pp-role-chip">
+                    {roleMeta.icon}
+                    {roleMeta.label.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="pp-identity-meta">
+                  <span>
+                    <ApartmentOutlined />
+                    {userProfile?.position?.title || "—"}
+                  </span>
+                  <span>
+                    <MailOutlined />
+                    {userProfile?.workEmail || "—"}
+                  </span>
+                  <span>
+                    <CalendarOutlined />
+                    Joined{" "}
+                    {userProfile?.createdAt
+                      ? dayjs(userProfile.createdAt).format("MMM D, YYYY")
+                      : "—"}
+                  </span>
+                  <span className={userProfile?.isActive ? "pp-active" : ""}>
+                    <span
+                      className="pp-status-dot"
+                      style={{
+                        background: userProfile?.isActive ? GREEN : "#94a3b8",
+                      }}
+                    />
+                    {userProfile?.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Tab pills */}
-          <div className="pp-tabs" style={{ marginBottom: 10 }}>
+            {/* Completion */}
+            <div className="pp-completion">
+              <div className="pp-completion-top">
+                <span className="pp-completion-label">Profile Completion</span>
+                <span className="pp-completion-pct">{completion}%</span>
+              </div>
+              <div className="pp-progress">
+                <div className="pp-progress-fill" style={{ width: `${completion}%` }} />
+              </div>
+              <span className="pp-completion-note">
+                {completion >= 85
+                  ? "Your profile looks great!"
+                  : "Add more details to complete your profile."}
+              </span>
+            </div>
+          </section>
+
+          {/* ---------------------- TABS ---------------------- */}
+          <div className="pp-tabs">
             <button
               className={`pp-tab${activeTab === "profile" ? " active" : ""}`}
-              style={{ padding: "6px 14px", fontSize: 12 }}
               onClick={() => setActiveTab("profile")}
             >
               <UserOutlined />
@@ -587,7 +449,6 @@ export default function ProfilePage() {
             </button>
             <button
               className={`pp-tab${activeTab === "security" ? " active" : ""}`}
-              style={{ padding: "6px 14px", fontSize: 12 }}
               onClick={() => setActiveTab("security")}
             >
               <KeyOutlined />
@@ -595,163 +456,131 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Content */}
-          <div className="pp-content-card">
-            {activeTab === "profile" ? (
-              <Form
-                form={profileForm}
-                layout="vertical"
-                onFinish={handleProfileSubmit}
-                requiredMark={false}
+          {/* ---------------------- CONTENT ---------------------- */}
+          {activeTab === "profile" ? (
+            <Form
+              form={profileForm}
+              layout="vertical"
+              onFinish={handleProfileSubmit}
+              requiredMark={false}
+            >
+              <div className="pp-sections">
+                <SectionCard
+                  icon={<UserOutlined />}
+                  tint={BLUE_TINT}
+                  color={BLUE}
+                  title="Personal Information"
+                  subtitle="Editable by you"
+                >
+                  <div className="pp-info-grid">
+                    <Form.Item
+                      name="name"
+                      label="Full name"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input
+                        placeholder="Your full name"
+                        prefix={<UserOutlined style={{ color: "var(--text-slate-400)" }} />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item name="phone" label="Phone number">
+                      <Input
+                        placeholder="+1 555 123 4567"
+                        prefix={<PhoneOutlined style={{ color: "var(--text-slate-400)" }} />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="personalEmail"
+                      label="Personal email"
+                      rules={[{ type: "email", message: "Enter valid email" }]}
+                    >
+                      <Input
+                        placeholder="you@personal.com"
+                        prefix={<MailOutlined style={{ color: "var(--text-slate-400)" }} />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item name="dateOfBirth" label="Date of birth">
+                      <Input type="date" />
+                    </Form.Item>
+                  </div>
+                </SectionCard>
+
+                <SectionCard
+                  icon={<ApartmentOutlined />}
+                  tint="var(--bg-slate-100)"
+                  color="var(--text-slate-500)"
+                  title="Work Information"
+                  subtitle="Managed by your admin"
+                >
+                  <div className="pp-info-grid">
+                    <div className="pp-readonly-field">
+                      <span className="pp-readonly-label">Work email</span>
+                      <span className="pp-readonly-value">
+                        <MailOutlined />
+                        {userProfile?.workEmail || "—"}
+                      </span>
+                    </div>
+                    <div className="pp-readonly-field">
+                      <span className="pp-readonly-label">Position</span>
+                      <span className="pp-readonly-value">
+                        <ApartmentOutlined />
+                        {userProfile?.position?.title || "—"}
+                      </span>
+                    </div>
+                    <div className="pp-readonly-field">
+                      <span className="pp-readonly-label">Reports to</span>
+                      <span className="pp-readonly-value">
+                        <UserSwitchOutlined />
+                        {userProfile?.reportsTo?.name || "—"}
+                      </span>
+                    </div>
+                    <div className="pp-readonly-field">
+                      <span className="pp-readonly-label">Workspace</span>
+                      <span className="pp-readonly-value">
+                        <GlobalOutlined />
+                        {userProfile?.tenant?.name || "—"}
+                      </span>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
+
+              <div className="pp-form-footer">
+                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                  Some fields require admin approval to change.
+                </Text>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    onClick={() => profileForm.resetFields()}
+                    icon={<ReloadOutlined />}
+                  >
+                    Reset
+                  </Button>
+                  <Button type="primary" htmlType="submit" loading={profileLoading}>
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </Form>
+          ) : (
+            <div className="pp-security-grid">
+              <SectionCard
+                icon={<KeyOutlined />}
+                tint={BLUE_TINT}
+                color={BLUE}
+                title="Change Password"
+                subtitle="Choose a strong, unique password"
               >
-                <SectionLabel hint="Editable by you">Personal Information</SectionLabel>
-                <div className="pp-info-grid">
-                  <Form.Item
-                    name="name"
-                    label="Full name"
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Input
-                      placeholder="Your full name"
-                      size="small"
-                      prefix={
-                        <UserOutlined style={{ color: "var(--text-slate-400)" }} />
-                      }
-                    />
-                  </Form.Item>
 
-                  <Form.Item 
-                    name="phone" 
-                    label="Phone number"
-                    getValueFromEvent={(e) => {
-                      const value = e.target.value;
-                      let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
-                      if (sanitized.includes('+')) {
-                        const hasPlusAtStart = sanitized.startsWith('+');
-                        sanitized = sanitized.replace(/\+/g, '');
-                        if (hasPlusAtStart) {
-                          sanitized = '+' + sanitized;
-                        }
-                      }
-                      return sanitized;
-                    }}
-                    rules={[
-                      {
-                        pattern: /^[+0-9\s\-()]*$/,
-                        message: "Invalid phone number format"
-                      }
-                    ]}
-                  >
-                    <Input
-                      placeholder="+1 555 123 4567"
-                      size="small"
-                      prefix={
-                        <PhoneOutlined style={{ color: "var(--text-slate-400)" }} />
-                      }
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="personalEmail"
-                    label="Personal email"
-                    rules={[{ type: "email", message: "Enter valid email" }]}
-                  >
-                    <Input
-                      placeholder="you@personal.com"
-                      size="small"
-                      prefix={
-                        <MailOutlined style={{ color: "var(--text-slate-400)" }} />
-                      }
-                    />
-                  </Form.Item>
-
-                  <Form.Item name="dateOfBirth" label="Date of birth">
-                    <Input type="date" size="small" />
-                  </Form.Item>
-                </div>
-
-                <div style={{ height: 4 }} />
-                <SectionLabel hint="Managed by your admin">
-                  Work Information
-                </SectionLabel>
-
-                <div className="pp-info-grid">
-                  <div className="pp-readonly-field">
-                    <span className="pp-readonly-label">Work email</span>
-                    <span className="pp-readonly-value">
-                      <MailOutlined />
-                      {userProfile?.workEmail || "—"}
-                    </span>
-                  </div>
-                  <div className="pp-readonly-field">
-                    <span className="pp-readonly-label">Position</span>
-                    <span className="pp-readonly-value">
-                      <ApartmentOutlined />
-                      {userProfile?.position?.title || "—"}
-                    </span>
-                  </div>
-                  <div className="pp-readonly-field">
-                    <span className="pp-readonly-label">Reports to</span>
-                    <span className="pp-readonly-value">
-                      <UserOutlined />
-                      {userProfile?.reportsTo?.name || "—"}
-                    </span>
-                  </div>
-                  <div className="pp-readonly-field">
-                    <span className="pp-readonly-label">Workspace</span>
-                    <span className="pp-readonly-value">
-                      <GlobalOutlined />
-                      {userProfile?.tenant?.name || "—"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pp-form-footer">
-                  <Text style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
-                    Some fields require admin approval to change.
-                  </Text>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Button
-                      onClick={() => profileForm.resetFields()}
-                      size="small"
-                      style={{ borderRadius: 8, height: 34 }}
-                      icon={<ReloadOutlined />}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={profileLoading}
-                      size="small"
-                      style={{
-                        borderRadius: 8,
-                        height: 34,
-                        padding: "0 16px",
-                        fontWeight: 600,
-                        background:
-                          "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                        border: "none",
-                        boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
-                      }}
-                    >
-                      Save Changes
-                    </Button>
-                  </div>
-                </div>
-              </Form>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
                 <Form
                   form={passwordForm}
                   layout="vertical"
                   onFinish={handlePasswordSubmit}
                   requiredMark={false}
                 >
-                  <SectionLabel hint="Choose a strong, unique password">
-                    Change Password
-                  </SectionLabel>
-
                   <Form.Item
                     name="currentPassword"
                     label="Current password"
@@ -759,7 +588,6 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="••••••••"
-                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
@@ -776,7 +604,6 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="At least 8 characters"
-                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
@@ -836,97 +663,77 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="Re-enter new password"
-                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
                     />
                   </Form.Item>
 
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 4 }}>
                     <Button
                       type="primary"
                       htmlType="submit"
                       loading={passwordLoading}
                       icon={<KeyOutlined />}
-                      style={{
-                        borderRadius: 8,
-                        height: 34,
-                        padding: "0 18px",
-                        fontWeight: 600,
-                        background:
-                          "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                        border: "none",
-                        boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
-                      }}
                     >
                       Update Password
                     </Button>
                   </div>
                 </Form>
+              </SectionCard>
 
-                {/* Tips card */}
-                <div className="pp-tips-card">
-                  <div className="pp-tips-icon">
-                    <SafetyCertificateOutlined />
-                  </div>
-                  <Text
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: "var(--text-slate-900)",
-                      display: "block",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Password best practices
-                  </Text>
-                  <ul className="pp-tips-list">
-                    <li>
-                      <CheckCircleFilled style={{ color: "#10b981", fontSize: 12 }} />
-                      Use at least 12 characters
-                    </li>
-                    <li>
-                      <CheckCircleFilled style={{ color: "#10b981", fontSize: 12 }} />
-                      Mix uppercase, lowercase, numbers
-                    </li>
-                    <li>
-                      <CheckCircleFilled style={{ color: "#10b981", fontSize: 12 }} />
-                      Add a symbol (e.g. !, @, #)
-                    </li>
-                    <li>
-                      <CheckCircleFilled style={{ color: "#10b981", fontSize: 12 }} />
-                      Avoid reusing passwords
-                    </li>
-                    <li>
-                      <CheckCircleFilled style={{ color: "#10b981", fontSize: 12 }} />
-                      Never share with anyone
-                    </li>
-                  </ul>
-                  <div className="pp-tips-divider" />
-                  <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)" }}>
-                    Last updated:{" "}
-                    {userProfile?.updatedAt
-                      ? dayjs(userProfile.updatedAt).format("MMM D, YYYY")
-                      : "—"}
-                  </Text>
-                </div>
-              </div>
-            )}
-          </div>
+              <SectionCard
+                icon={<SafetyCertificateOutlined />}
+                tint={GREEN_TINT}
+                color={GREEN}
+                title="Password best practices"
+                subtitle="Keep your account secure"
+              >
+                <ul className="pp-tips-list">
+                  <li>
+                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    Use at least 12 characters
+                  </li>
+                  <li>
+                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    Mix uppercase, lowercase, numbers
+                  </li>
+                  <li>
+                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    Add a symbol (e.g. !, @, #)
+                  </li>
+                  <li>
+                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    Avoid reusing passwords
+                  </li>
+                  <li>
+                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    Never share with anyone
+                  </li>
+                </ul>
+                <div className="pp-tips-divider" />
+                <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)" }}>
+                  Last updated:{" "}
+                  {userProfile?.updatedAt
+                    ? dayjs(userProfile.updatedAt).format("MMM D, YYYY")
+                    : "—"}
+                </Text>
+              </SectionCard>
+            </div>
+          )}
         </div>
 
-        {/* Image Editor Modal */}
+        {/* ============================ IMAGE EDITOR MODAL ============================ */}
         <Modal
           title={
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "rgba(139,92,246,0.12)",
-                  color: "#8b5cf6",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9,
+                  background: BLUE_TINT,
+                  color: BLUE,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -938,7 +745,7 @@ export default function ProfilePage() {
               <div>
                 <div
                   style={{
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: 700,
                     color: "var(--text-slate-900)",
                   }}
@@ -954,11 +761,7 @@ export default function ProfilePage() {
           open={isEditorOpen}
           onCancel={() => setIsEditorOpen(false)}
           footer={[
-            <Button
-              key="cancel"
-              onClick={() => setIsEditorOpen(false)}
-              style={{ borderRadius: 8, height: 38 }}
-            >
+            <Button key="cancel" onClick={() => setIsEditorOpen(false)}>
               Cancel
             </Button>,
             <Button
@@ -966,14 +769,6 @@ export default function ProfilePage() {
               type="primary"
               onClick={handleImageUpload}
               loading={uploadingImage}
-              style={{
-                borderRadius: 8,
-                height: 38,
-                fontWeight: 600,
-                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                border: "none",
-                boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
-              }}
             >
               Save Photo
             </Button>,
@@ -1026,7 +821,7 @@ export default function ProfilePage() {
               >
                 Zoom
               </Text>
-              <Text style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 700 }}>
+              <Text style={{ fontSize: 12, color: BLUE, fontWeight: 700 }}>
                 {zoom.toFixed(1)}×
               </Text>
             </div>
@@ -1042,32 +837,115 @@ export default function ProfilePage() {
         </Modal>
 
         <style jsx global>{`
-          .pp-identity-card {
-            position: relative;
-            border-radius: 16px;
-            border: 1px solid var(--border-slate-100);
-            background: var(--bg-pure-white);
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            overflow: hidden;
-            margin-bottom: 12px;
+          .pp-page {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 4px 24px 32px;
           }
-          .pp-identity-bg {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 60px;
-            background:
-              radial-gradient(60% 100% at 0% 0%, rgba(99,102,241,0.10) 0%, transparent 60%),
-              radial-gradient(60% 100% at 100% 0%, rgba(217,70,239,0.08) 0%, transparent 60%),
-              linear-gradient(180deg, rgba(139,92,246,0.06) 0%, transparent 100%);
-            pointer-events: none;
-          }
-          .pp-identity-inner {
-            position: relative;
+          /* ---------------- Header ---------------- */
+          .pp-header {
             display: flex;
             align-items: center;
+            gap: 14px;
+            padding: 4px 2px 16px;
+            border-bottom: 1px solid var(--border-slate-100);
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+          }
+          .pp-head-chip {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .pp-head-text {
+            flex: 1;
+            min-width: 0;
+          }
+          .pp-head-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-slate-900);
+            letter-spacing: -0.025em;
+          }
+          .pp-head-sub {
+            font-size: 12.5px;
+            color: var(--text-slate-500);
+            margin-top: 2px;
+          }
+          .pp-head-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+          }
+
+          .pp-body {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+          }
+
+          /* ---------------- Card ---------------- */
+          .pp-card {
+            border: 1px solid var(--border-slate-200);
+            border-radius: 12px;
+            background: var(--bg-pure-white);
+            overflow: hidden;
+          }
+          .pp-card-head {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-slate-100);
+          }
+          .pp-card-chip {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+          }
+          .pp-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-slate-900);
+          }
+          .pp-card-sub {
+            font-size: 11.5px;
+            color: var(--text-slate-500);
+            margin-top: 1px;
+          }
+          .pp-card-body {
+            padding: 16px;
+          }
+
+          /* ---------------- Identity ---------------- */
+          .pp-identity {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 24px;
-            padding: 16px 24px 12px;
+            padding: 16px 20px;
             flex-wrap: wrap;
+          }
+          .pp-identity-main {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 0;
           }
           .pp-avatar-wrap {
             position: relative;
@@ -1075,51 +953,127 @@ export default function ProfilePage() {
           }
           .pp-camera-btn {
             position: absolute;
-            bottom: -2px; right: -2px;
-            width: 24px; height: 24px;
+            bottom: -2px;
+            right: -2px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: ${BLUE};
             color: #fff;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 10px;
             border: 2px solid var(--bg-pure-white);
-            box-shadow: 0 4px 10px rgba(139,92,246,0.35);
             transition: transform 0.15s ease;
           }
-          .pp-camera-btn:hover { transform: scale(1.08); }
+          .pp-camera-btn:hover {
+            transform: scale(1.08);
+          }
+          .pp-identity-name-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .pp-identity-name {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-slate-900);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+          }
+          .pp-role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 9px;
+            border-radius: 6px;
+            background: var(--bg-slate-100);
+            color: var(--text-slate-600);
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+          }
+          .pp-identity-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            margin-top: 7px;
+            font-size: 12px;
+            color: var(--text-slate-600);
+            font-weight: 500;
+          }
+          .pp-identity-meta > span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .pp-identity-meta .anticon {
+            color: var(--text-slate-400);
+          }
+          .pp-identity-meta .pp-active {
+            color: ${GREEN};
+          }
           .pp-status-dot {
-            width: 7px; height: 7px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             display: inline-block;
-            box-shadow: 0 0 0 2px rgba(16,185,129,0.18);
           }
           .pp-completion {
-            min-width: 180px;
+            min-width: 200px;
             padding: 10px 14px;
-            border-radius: 12px;
+            border-radius: 10px;
             background: var(--bg-slate-50);
             border: 1px solid var(--border-slate-100);
           }
+          .pp-completion-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+          }
+          .pp-completion-label {
+            font-size: 11px;
+            color: var(--text-slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 700;
+          }
+          .pp-completion-pct {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text-slate-900);
+          }
           .pp-progress {
             height: 6px;
-            background: var(--border-slate-100);
+            background: var(--border-slate-200);
             border-radius: 999px;
             overflow: hidden;
           }
           .pp-progress-fill {
             height: 100%;
             border-radius: 999px;
+            background: ${BLUE};
             transition: width 0.6s ease;
           }
+          .pp-completion-note {
+            font-size: 10.5px;
+            color: var(--text-slate-500);
+            margin-top: 5px;
+            display: block;
+          }
+
+          /* ---------------- Tabs ---------------- */
           .pp-tabs {
             display: flex;
             gap: 4px;
             padding: 4px;
-            border-radius: 12px;
+            border-radius: 10px;
             background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-            margin-bottom: 10px;
+            border: 1px solid var(--border-slate-200);
             width: fit-content;
           }
           .pp-tab {
@@ -1127,64 +1081,73 @@ export default function ProfilePage() {
             align-items: center;
             gap: 8px;
             padding: 6px 14px;
-            border-radius: 9px;
+            border-radius: 7px;
             background: transparent;
             border: none;
             color: var(--text-slate-500);
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s ease;
           }
           .pp-tab:hover {
             color: var(--text-slate-900);
-            background: var(--bg-pure-white);
           }
           .pp-tab.active {
             background: var(--bg-pure-white);
-            color: #8b5cf6;
-            box-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 0 0 1px rgba(139,92,246,0.20);
+            color: var(--text-slate-900);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
           }
-          .pp-content-card {
-            border-radius: 16px;
-            border: 1px solid var(--border-slate-100);
-            background: var(--bg-pure-white);
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            padding: 16px 20px;
+
+          /* ---------------- Sections / forms ---------------- */
+          .pp-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
           }
-          .pp-content-card .ant-form-item {
+          .pp-security-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 14px;
+            align-items: start;
+          }
+          .pp-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+          }
+          .pp-page .ant-form-item {
             margin-bottom: 14px !important;
           }
-          .pp-content-card .ant-form-item-label > label {
+          .pp-page .ant-form-item-label > label {
             font-weight: 600 !important;
-            color: var(--text-slate-700, var(--text-slate-600)) !important;
+            color: var(--text-slate-700) !important;
             font-size: 12px !important;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
           }
-          .pp-content-card .ant-input,
-          .pp-content-card .ant-input-affix-wrapper,
-          .pp-content-card .ant-input-password {
-            border-radius: 9px !important;
+          .pp-page .ant-input,
+          .pp-page .ant-input-affix-wrapper,
+          .pp-page .ant-input-password {
+            border-radius: 6px !important;
             border-color: var(--border-slate-200) !important;
-            background: var(--bg-secondary) !important;
-            min-height: 34px;
+            background: var(--bg-pure-white) !important;
           }
-          .pp-content-card .ant-input:focus,
-          .pp-content-card .ant-input-focused,
-          .pp-content-card .ant-input-affix-wrapper-focused,
-          .pp-content-card .ant-input-affix-wrapper:focus-within {
-            border-color: #8b5cf6 !important;
-            box-shadow: 0 0 0 3px rgba(139,92,246,0.12) !important;
+          .pp-page .ant-input:focus,
+          .pp-page .ant-input-focused,
+          .pp-page .ant-input-affix-wrapper-focused,
+          .pp-page .ant-input-affix-wrapper:focus-within {
+            border-color: ${BLUE} !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12) !important;
           }
+
           .pp-readonly-field {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            padding: 8px 12px;
-            border-radius: 9px;
+            gap: 5px;
+            padding: 9px 12px;
+            border-radius: 8px;
             background: var(--bg-slate-50);
-            border: 1px dashed var(--border-slate-200);
+            border: 1px solid var(--border-slate-200);
+            margin-bottom: 8px;
           }
           .pp-readonly-label {
             font-size: 10px;
@@ -1205,16 +1168,19 @@ export default function ProfilePage() {
             color: var(--text-slate-400);
             font-size: 13px;
           }
+
           .pp-form-footer {
-            margin-top: 12px;
-            padding-top: 10px;
+            margin-top: 14px;
+            padding-top: 14px;
             border-top: 1px solid var(--border-slate-100);
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
+            max-width: 900px;
           }
+
           .pp-strength-bar {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -1225,37 +1191,29 @@ export default function ProfilePage() {
             border-radius: 999px;
             transition: background 0.2s ease;
           }
-          .pp-tips-card {
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border-slate-100);
-            background: var(--bg-slate-50);
-            position: relative;
-          }
-          .pp-tips-icon {
-            width: 28px; height: 28px;
-            border-radius: 8px;
-            background: rgba(139,92,246,0.12);
-            color: #8b5cf6;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-            margin-bottom: 8px;
-          }
+
           .pp-tips-list {
             list-style: none;
-            padding: 0; margin: 12px 0 0;
-            display: flex; flex-direction: column; gap: 8px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
           }
           .pp-tips-list li {
-            display: flex; align-items: center; gap: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 12.5px;
             color: var(--text-slate-600);
           }
           .pp-tips-divider {
             height: 1px;
             background: var(--border-slate-100);
-            margin: 16px 0 12px;
+            margin: 14px 0 12px;
           }
+
+          /* ---------------- Modal ---------------- */
           .pp-modal .ant-modal-content {
             border-radius: 14px !important;
             background: var(--bg-pure-white) !important;
@@ -1266,23 +1224,23 @@ export default function ProfilePage() {
             padding-bottom: 14px !important;
             margin-bottom: 16px !important;
           }
-          .react-easy-crop_Container { background: #0f172a !important; }
-          .ant-slider-track { background: linear-gradient(90deg,#6366f1,#8b5cf6) !important; }
-          .ant-slider-handle::after {
-            box-shadow: 0 0 0 2px #8b5cf6 !important;
+          .react-easy-crop_Container {
+            background: #0f172a !important;
           }
-          .pp-info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 16px;
-          }
+
           @media (max-width: 900px) {
-            .pp-identity-inner { padding: 22px; }
-            .pp-completion { width: 100%; }
-            .pp-content-card > div[style*="grid-template-columns: 1.4fr 1fr"] {
-              grid-template-columns: 1fr !important;
+            .pp-identity {
+              align-items: stretch;
             }
-            .pp-info-grid { grid-template-columns: 1fr; }
+            .pp-completion {
+              width: 100%;
+            }
+            .pp-security-grid {
+              grid-template-columns: 1fr;
+            }
+            .pp-info-grid {
+              grid-template-columns: 1fr;
+            }
           }
         `}</style>
       </div>

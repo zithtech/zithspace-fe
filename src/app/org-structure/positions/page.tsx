@@ -43,6 +43,9 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
+
 
 export default function PositionsPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructurePositions" });
@@ -499,128 +502,172 @@ export default function PositionsPage() {
 
           {/* Drawer */}
           <Drawer
-            className="orgx-drawer"
-            width={560}
+            rootClassName="leave-drawer-root"
+            title={null}
             open={isDrawerOpen}
             onClose={() => setIsDrawerOpen(false)}
+            width={720}
             closable={false}
-            styles={{ header: { display: "none" }, footer: { padding: 0, border: "none" } }}
+            destroyOnClose
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0, background: 'var(--customers-page-bg)' },
+              footer: { padding: 0, border: 'none' },
+              wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+            }}
             footer={
-              <div className="orgx-drawer__footer">
-                <Button onClick={() => setIsDrawerOpen(false)} className="orgx-btn-ghost">
+              <div
+                className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderColor: 'var(--border-color)',
+                }}
+              >
+                <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                  Fields marked required must be filled
+                </span>
+                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
                   Cancel
                 </Button>
                 <Button
                   type="primary"
                   loading={submitting}
                   onClick={handleSave}
-                  className="orgx-btn-primary"
+                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                  icon={editingKey ? <Edit size={14} /> : <Plus size={14} />}
                 >
                   {editingKey ? "Save Changes" : "Create Position"}
                 </Button>
               </div>
             }
           >
-            <button
-              type="button"
-              className="orgx-drawer__close"
-              onClick={() => setIsDrawerOpen(false)}
-              aria-label="Close"
+            <style>{formStyles}</style>
+            <div
+              className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+              style={{
+                background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+                borderColor: 'var(--border-color)',
+              }}
             >
-              <X size={14} />
-            </button>
-
-            <div className="orgx-drawer__hero">
-              <div className="orgx-drawer__hero-icon">
-                <Trophy size={18} />
-              </div>
-              <div className="orgx-drawer__hero-text">
-                <div className="orgx-drawer__hero-eyebrow">Position</div>
-                <div className="orgx-drawer__hero-title">
-                  {editingKey ? "Edit Position" : "New Position"}
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'rgba(59,130,246,0.10)',
+                    color: '#3b82f6',
+                    border: '1px solid var(--border-blue-200)',
+                  }}
+                >
+                  {editingKey ? <Edit size={18} /> : <Trophy size={18} />}
                 </div>
-                <div className="orgx-drawer__hero-sub">
-                  Configure a role with its grade and department classification.
+                <div className="min-w-0">
+                  <div
+                    className="text-[15px] font-semibold leading-tight"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {editingKey ? "Edit Position" : "New Position"}
+                  </div>
+                  <div
+                    className="text-[12px] mt-0.5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Configure a role with its grade and department classification.
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                aria-label="Close"
+                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="orgx-drawer__body">
-              <Form
-                form={form}
-                layout="vertical"
-                requiredMark={false}
+            <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+              <Form 
+                form={form} 
+                layout="horizontal"
+                labelCol={{ span: 8 }}
+                wrapperCol={{ span: 16 }}
+                labelAlign="left"
+                colon={false}
+                requiredMark="optional"
+                className="customer-drawer-form"
                 onValuesChange={(changed) => {
                   if (changed.title !== undefined && !editingKey) {
                     form.setFieldsValue({ code: generateCodeFromName(changed.title) });
                   }
                 }}
               >
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <TagIcon size={11} /> Identity
-                  </div>
-                  <Row gutter={12}>
-                    <Col span={15}>
-                      <Form.Item
-                        name="title"
-                        label="Position title"
-                        rules={[{ required: true, message: "Required" }]}
-                      >
-                        <Input placeholder="e.g. Senior Software Engineer" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={9}>
-                      <Form.Item
-                        name="code"
-                        label="Code"
-                        rules={[{ required: true, message: "Required" }]}
-                      >
-                        <Input placeholder="Auto-generated" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                <SectionCard
+                  icon={<TagIcon />}
+                  title="Identity"
+                  subtitle="Naming and identifier"
+                  step="STEP 1"
+                >
+                  <Form.Item
+                    name="title"
+                    label="Position title"
+                    rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Input placeholder="e.g. Senior Software Engineer" />
+                  </Form.Item>
+                  <Form.Item
+                    name="code"
+                    label="Code"
+                    rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Input placeholder="Auto-generated" />
+                  </Form.Item>
+                </SectionCard>
 
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <Building2 size={11} /> Classification
-                  </div>
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="gradeId"
-                        label="Grade"
-                        rules={[{ required: true, message: "Required" }]}
-                      >
-                        <Select
-                          placeholder="Select grade"
-                          loading={gradesLoading}
-                          showSearch
-                          optionFilterProp="label"
-                          options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="departmentId"
-                        label="Department"
-                        rules={[{ required: true, message: "Required" }]}
-                      >
-                        <Select
-                          placeholder="Select department"
-                          loading={departmentsLoading}
-                          showSearch
-                          optionFilterProp="label"
-                          options={departments.map((d) => ({ value: d.id, label: d.name }))}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Form.Item name="subDepartmentId" label="Sub-department (optional)">
+                <SectionCard
+                  icon={<Building2 />}
+                  title="Classification"
+                  subtitle="Grade and department"
+                  step="STEP 2"
+                >
+                  <Form.Item
+                    name="gradeId"
+                    label="Grade"
+                    rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
+                  >
                     <Select
-                      placeholder="Select sub-department"
+                      placeholder="Select grade"
+                      loading={gradesLoading}
+                      showSearch
+                      optionFilterProp="label"
+                      options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="departmentId"
+                    label="Department"
+                    rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Select
+                      placeholder="Select department"
+                      loading={departmentsLoading}
+                      showSearch
+                      optionFilterProp="label"
+                      options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                    />
+                  </Form.Item>
+                  <Form.Item 
+                    name="subDepartmentId" 
+                    label="Sub-department"
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Select
+                      placeholder="Select sub-department (optional)"
                       loading={subDepartmentsLoading}
                       allowClear
                       showSearch
@@ -628,24 +675,29 @@ export default function PositionsPage() {
                       options={subDepartments.map((sd) => ({ value: sd.id, label: sd.name }))}
                     />
                   </Form.Item>
-                </div>
+                </SectionCard>
 
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <Settings size={11} /> Operations
-                  </div>
-                  <div className="orgx-toggle-row">
-                    <div className="orgx-toggle-row__text">
-                      <div className="orgx-toggle-row__title">Active status</div>
-                      <div className="orgx-toggle-row__sub">
-                        Enable this position for recruitment and assignment.
-                      </div>
-                    </div>
-                    <Form.Item name="status" valuePropName="checked" initialValue={true} style={{ margin: 0 }}>
-                      <Switch />
-                    </Form.Item>
-                  </div>
-                  <Form.Item name="description" label="Role description (optional)">
+                <SectionCard
+                  icon={<Settings />}
+                  title="Operations"
+                  subtitle="Status and description"
+                  step="STEP 3"
+                >
+                  <Form.Item 
+                    name="status" 
+                    valuePropName="checked" 
+                    initialValue={true} 
+                    label="Active status" 
+                    tooltip="Enable this position for recruitment and assignment."
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item 
+                    name="description" 
+                    label="Role description (optional)"
+                    style={{ marginBottom: 14 }}
+                  >
                     <Input.TextArea
                       rows={3}
                       placeholder="Define the core responsibilities…"
@@ -653,7 +705,7 @@ export default function PositionsPage() {
                       showCount
                     />
                   </Form.Item>
-                </div>
+                </SectionCard>
               </Form>
             </div>
           </Drawer>

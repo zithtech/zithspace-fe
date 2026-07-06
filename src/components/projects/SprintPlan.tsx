@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Typography,
@@ -2161,7 +2162,7 @@ export default function SprintPlanComponent() {
           }
           open={showCreateModal}
           onClose={handleCloseModal}
-          width={560}
+          width={680}
           maskClosable={true}
           destroyOnClose
           extra={
@@ -2183,7 +2184,8 @@ export default function SprintPlanComponent() {
             mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
           }}
         >
-          <Form form={form} layout="vertical" requiredMark={false}>
+          <style>{drawerFormStyles}</style>
+          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark={false} className="lead-drawer-form customer-drawer-form">
             <ConfigProvider
               theme={{
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -2199,26 +2201,18 @@ export default function SprintPlanComponent() {
               }}
             >
               {/* Section: Basic Information */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon slate">
-                    <InfoCircleOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>General Details</Text>
-                </div>
+              <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="General Details" subtitle="Core sprint information">
 
                 <Form.Item
-                  label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Sprint Name</Text>}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Sprint Name</Text>}
                   name="name"
                   rules={[{ required: true, message: "Sprint Name is required" }]}
-                  style={{ marginBottom: 20 }}
+                 
                 >
                   <Input placeholder="e.g. Q2 Core Infrastructure - Sprint 04" size="middle" />
                 </Form.Item>
 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Target Project</Text>} name="project" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>} name="project" rules={[{ required: true }]}>
                       <Select
                         placeholder="Select project"
                         size="middle"
@@ -2227,25 +2221,15 @@ export default function SprintPlanComponent() {
                         options={projects}
                       />
                     </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Primary Objective</Text>} name="goal" style={{ marginBottom: 0 }}>
+                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Objective</Text>} name="goal">
                       <Input placeholder="High-level goal..." size="middle" />
                     </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+              </SectionCard>
 
               {/* Section: Timeline & Planning */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon orange">
-                    <CalendarOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Planning & Schedule</Text>
-                </div>
+              <SectionCard step="STEP 2" icon={<CalendarOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Planning & Schedule" subtitle="Timeframe for the sprint">
 
-                <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Release Cycle Duration</Text>} style={{ marginBottom: 20 }}>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Release Cycle Duration</Text>}>
                   <Select
                     placeholder="Select duration"
                     size="middle"
@@ -2266,34 +2250,22 @@ export default function SprintPlanComponent() {
                   </Select>
                 </Form.Item>
 
-                <Row gutter={12}>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Start Date</Text>} name="startDate" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>} name="startDate" rules={[{ required: true }]}>
                       <DatePicker size="middle" style={{ width: "100%" }} />
                     </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>End Date</Text>} name="endDate" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>End Date</Text>} name="endDate" rules={[{ required: true }]}>
                       <DatePicker size="middle" style={{ width: "100%" }} />
                     </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+              </SectionCard>
 
               {/* Section: Backlog Allocation */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon green">
-                    <ProjectOutlined style={{ color: '#10b981', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Backlog Allocation</Text>
-                </div>
+              <SectionCard step="STEP 3" icon={<ProjectOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Backlog Allocation" subtitle="Assign existing backlog tickets to this sprint session">
 
                 <Form.Item
-                  label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Assign Selected Issues</Text>}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assign Selected Issues</Text>}
                   name="tickets"
                   tooltip="Map existing backlog tickets to this sprint session"
-                  style={{ marginBottom: 12 }}
+                 
                 >
                   <Select
                     mode="multiple"
@@ -2320,11 +2292,13 @@ export default function SprintPlanComponent() {
                     }}
                   />
                 </Form.Item>
-                <div className="sp-info-hint">
-                  <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-600)' }} />
-                  <Text style={{ fontSize: 10, color: 'var(--text-slate-600)', fontWeight: 500 }}>Only unassigned tickets from the selected project are visible</Text>
-                </div>
-              </div>
+                <Form.Item wrapperCol={{ span: 24 }}>
+                  <div className="sp-info-hint">
+                    <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-600)' }} />
+                    <Text style={{ fontSize: 10, color: 'var(--text-slate-600)', fontWeight: 500 }}>Only unassigned tickets from the selected project are visible</Text>
+                  </div>
+                </Form.Item>
+              </SectionCard>
             </ConfigProvider>
             <Form.Item name="deadline" hidden><Input /></Form.Item>
           </Form>

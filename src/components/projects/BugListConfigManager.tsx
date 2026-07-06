@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState } from "react";
 import {
   Button,
@@ -18,6 +19,7 @@ import {
   App,
   theme as antdTheme,
   ConfigProvider,
+  Space,
   Tabs,
   Badge,
   Grid,
@@ -32,6 +34,8 @@ import {
   StarFilled,
   BugFilled,
   CloseOutlined,
+  BugOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import {
   useBugSeverityOptions,
@@ -560,87 +564,120 @@ function OptionEditor({
     <Drawer
       open={open}
       onClose={onClose}
-      width={520}
+      width={680}
       destroyOnHidden
-      closable={false}
-      title={null}
-      footer={null}
       maskClosable={!submitting}
-      className={`bcm-drawer ${isDark ? "bcm-drawer-dark" : "bcm-drawer-light"}`}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: 0,
+            background: '#2563eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+          }}>
+            <BugOutlined style={{ fontSize: 16 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              {titleText || "Configuration Option"}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {eyebrowKind}
+            </div>
+          </div>
+        </div>
+      }
+      styles={{
+        header: { borderBottom: '1px solid var(--border-color)', padding: '12px 16px', background: 'var(--bg-secondary)' },
+        body: { padding: '12px 16px', backgroundColor: 'var(--bg-primary)' },
+        mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
+      }}
+      extra={
+        <Space size={8}>
+          <Button onClick={onClose} disabled={submitting} style={{ borderRadius: 0, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
+          <Button
+            type="primary"
+            loading={submitting}
+            onClick={handleOk}
+            icon={isEdit ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
+            style={{
+              borderRadius: 0,
+              fontSize: 12,
+              fontWeight: 700,
+              background: '#2563eb',
+              border: 'none',
+              height: 32,
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+            }}
+          >
+            {isEdit ? "Save changes" : "Create option"}
+          </Button>
+        </Space>
+      }
     >
       {editing && (
-        <div className="bcm-drawer-shell">
-          <div className="bcm-drawer-head">
-            <div className="bcm-drawer-headblock">
-              <div className="bcm-modal-eyebrow">
-                <BugFilled />
-                {eyebrowKind}
-              </div>
-              <div className="bcm-modal-title">{titleText}</div>
-              <div className="bcm-modal-sub">{subText}</div>
-            </div>
-            <button
-              className="bcm-drawer-close"
-              aria-label="Close"
-              onClick={onClose}
+        <div style={{ position: 'relative', height: '100%' }}>
+          <ConfigProvider
+            theme={{
+              token: {
+                borderRadius: 0,
+                borderRadiusSM: 0,
+                borderRadiusLG: 0,
+                borderRadiusXS: 0,
+              },
+              components: {
+                Select: { borderRadius: 0 },
+                Input: { borderRadius: 0 },
+                Button: { borderRadius: 0 }
+              }
+            }}
+          >
+            <style>{drawerFormStyles}</style>
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              onValuesChange={(_, all) => setLabelPreview(all.label || "")}
+              className="lead-drawer-form customer-drawer-form"
             >
-              <CloseOutlined />
-            </button>
-          </div>
-
-          <div className="bcm-modal-body">
-            <ConfigProvider
-              theme={{
-                algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-                token: {
-                  colorBgContainer: isDark ? '#161B22' : '#ffffff',
-                  colorText: isDark ? '#F1F5F9' : '#1E293B',
-                }
-              }}
-            >
-              <Form
-                form={form}
-                layout="vertical"
-                requiredMark="optional"
-                onValuesChange={(_, all) => setLabelPreview(all.label || "")}
-              >
+              <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Configuration Details" subtitle="Core metadata">
                 <Form.Item
                   name="label"
-                  label="Label"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Label</Text>}
                   rules={[{ required: true, message: "Label is required" }]}
                 >
                   <Input
-                    placeholder={
-                      editing.kind === "severity"
-                        ? "e.g. Showstopper"
-                        : "e.g. Performance"
-                    }
+                    placeholder={editing.kind === "severity" ? "e.g. Showstopper" : "e.g. Performance"}
                     autoFocus
-                    size="large"
                   />
                 </Form.Item>
 
                 {!isEdit && (
                   <Form.Item
                     name="key"
-                    label="Key"
-                    extra="Lowercase slug stored on bugs (auto-generated from label if blank). Cannot change later."
+                    label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}
+                    extra="Lowercase slug stored on bugs (auto-generated if blank). Cannot change later."
                   >
                     <Input placeholder="auto" />
                   </Form.Item>
                 )}
                 {isEdit && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div className="bcm-field-label">Key</div>
-                    <div style={{ marginTop: 4 }}>
-                      <span className="bcm-key-chip">{editing.option?.key}</span>
-                    </div>
-                  </div>
+                  <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}>
+                    <Tag>{editing.option?.key}</Tag>
+                  </Form.Item>
                 )}
 
                 <Form.Item
                   name="description"
-                  label="Description"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Description</Text>}
                   extra="Help your team pick the right value (visible as a tooltip)."
                 >
                   <Input.TextArea
@@ -650,28 +687,18 @@ function OptionEditor({
                     showCount
                   />
                 </Form.Item>
+              </SectionCard>
 
+              <SectionCard step="STEP 2" icon={<StarFilled style={{ color: '#f59e0b', fontSize: 13 }} />} title="Appearance & Defaults" subtitle="Visual configuration">
                 {showColor && (
-                  <>
-                    <Form.Item name="color" label="Color">
+                  <Form.Item name="color" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Color</Text>}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <ColorPickerWrapper onChange={(v) => setColorPreview(v)} />
-                    </Form.Item>
-                    <div className="bcm-color-preview" style={{ marginBottom: 16 }}>
-                      <span
-                        className="bcm-color-preview-swatch"
-                        style={{ background: colorPreview || "var(--bcm-muted-bg)" }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div className="bcm-color-preview-title">Preview</div>
-                        <div className="bcm-color-preview-label">
-                          {colorPreview || "no color set"}
-                        </div>
-                      </div>
                       <Tag
                         style={{
                           background: colorPreview ? `${colorPreview}1a` : "transparent",
-                          border: `1px solid ${colorPreview || "var(--bcm-border)"}`,
-                          color: colorPreview || "var(--bcm-text-muted)",
+                          border: `1px solid ${colorPreview || "var(--border-color)"}`,
+                          color: colorPreview || "var(--text-slate-400)",
                           margin: 0,
                           fontWeight: 600,
                         }}
@@ -679,34 +706,20 @@ function OptionEditor({
                         {labelPreview || "Severity"}
                       </Tag>
                     </div>
-                  </>
+                  </Form.Item>
                 )}
 
                 <Form.Item
                   name="isDefault"
-                  label="Default"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Default Option</Text>}
                   valuePropName="checked"
                   extra="Pre-selects this option for new bugs."
                 >
-                  <Switch />
+                  <Switch checkedChildren="ON" unCheckedChildren="OFF" />
                 </Form.Item>
-              </Form>
-            </ConfigProvider>
-          </div>
-
-          <div className="bcm-drawer-foot">
-            <Button onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              loading={submitting}
-              onClick={handleOk}
-              style={{ borderRadius: 8, fontWeight: 600 }}
-            >
-              {isEdit ? "Save changes" : "Create option"}
-            </Button>
-          </div>
+              </SectionCard>
+            </Form>
+          </ConfigProvider>
         </div>
       )}
     </Drawer>

@@ -190,6 +190,7 @@ export const usePermission = () => {
     canManageReports: hasPermission(Permissions.REPORT_MANAGE),
 
     // ─── Reimbursement ──────────────────────────────────────────────
+    canReadReimbursementDashboard: hasPermission(Permissions.REIMBURSEMENT_DASHBOARD_READ),
     canCreateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_CREATE),
     canReadReimbursement:    hasPermission(Permissions.REIMBURSEMENT_READ),
     canUpdateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_UPDATE),

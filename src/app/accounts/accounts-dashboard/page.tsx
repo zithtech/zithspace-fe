@@ -1164,7 +1164,7 @@ export default function AccountsPage() {
           </div>
         }
         placement="right"
-        width={420}
+        width={720}
         open={isModalVisible}
         onClose={() => {
           setIsModalVisible(false);
@@ -1218,7 +1218,11 @@ export default function AccountsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           size="middle"
           className="accounts-tx-form"
@@ -2502,7 +2506,7 @@ export default function AccountsPage() {
         .accounts-tx-form .fp-trigger {
           width: 100% !important;
           height: 38px !important;
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           padding: 0 14px !important;
@@ -2532,7 +2536,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .accounts-tx-form .ant-input-textarea {
@@ -2542,7 +2546,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-lg,
         .accounts-tx-form .ant-picker-large,
         .accounts-tx-form .ant-select-lg .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
         }
         .accounts-tx-form .ant-input:hover,
         .accounts-tx-form .ant-input-textarea:hover,

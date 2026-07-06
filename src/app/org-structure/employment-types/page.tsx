@@ -36,6 +36,9 @@ import { OrgModuleScaffold, OrgStatDef, OrgView } from "@/components/org-structu
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
+
 
 export default function EmploymentTypesPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureEmploymentTypes" });
@@ -394,63 +397,115 @@ export default function EmploymentTypesPage() {
           />
 
           {/* Create / Edit Drawer */}
+          {/* Create / Edit Drawer */}
           <Drawer
-            className="orgx-drawer"
-            width={520}
+            rootClassName="leave-drawer-root"
+            title={null}
             open={isDrawerOpen}
             onClose={() => setIsDrawerOpen(false)}
+            width={720}
             closable={false}
-            styles={{ header: { display: "none" }, footer: { padding: 0, border: "none" } }}
+            destroyOnClose
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0, background: 'var(--customers-page-bg)' },
+              footer: { padding: 0, border: 'none' },
+              wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+            }}
             footer={
-              <div className="orgx-drawer__footer">
-                <Button onClick={() => setIsDrawerOpen(false)} className="orgx-btn-ghost">
+              <div
+                className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderColor: 'var(--border-color)',
+                }}
+              >
+                <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                  Fields marked required must be filled
+                </span>
+                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
                   Cancel
                 </Button>
                 <Button
                   type="primary"
                   loading={submitting}
                   onClick={handleSave}
-                  className="orgx-btn-primary"
+                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                  icon={editingKey ? <Edit size={14} /> : <Plus size={14} />}
                 >
                   {editingKey ? "Save Changes" : "Create Type"}
                 </Button>
               </div>
             }
           >
-            <button
-              type="button"
-              className="orgx-drawer__close"
-              onClick={() => setIsDrawerOpen(false)}
-              aria-label="Close"
+            <style>{formStyles}</style>
+            <div
+              className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+              style={{
+                background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+                borderColor: 'var(--border-color)',
+              }}
             >
-              <X size={14} />
-            </button>
-
-            <div className="orgx-drawer__hero">
-              <div className="orgx-drawer__hero-icon">
-                <Briefcase size={18} />
-              </div>
-              <div className="orgx-drawer__hero-text">
-                <div className="orgx-drawer__hero-eyebrow">Employment Type</div>
-                <div className="orgx-drawer__hero-title">
-                  {editingKey ? "Edit Type" : "New Employment Type"}
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'rgba(59,130,246,0.10)',
+                    color: '#3b82f6',
+                    border: '1px solid var(--border-blue-200)',
+                  }}
+                >
+                  {editingKey ? <Edit size={18} /> : <Briefcase size={18} />}
                 </div>
-                <div className="orgx-drawer__hero-sub">
-                  Configure a contract type used when onboarding members.
+                <div className="min-w-0">
+                  <div
+                    className="text-[15px] font-semibold leading-tight"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {editingKey ? "Edit Type" : "New Employment Type"}
+                  </div>
+                  <div
+                    className="text-[12px] mt-0.5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Configure a contract type used when onboarding members.
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                aria-label="Close"
+                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="orgx-drawer__body">
-              <Form form={form} layout="vertical" requiredMark={false}>
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <TagIcon size={11} /> Identity
-                  </div>
+            <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+              <Form 
+                form={form} 
+                layout="horizontal"
+                labelCol={{ span: 8 }}
+                wrapperCol={{ span: 16 }}
+                labelAlign="left"
+                colon={false}
+                requiredMark="optional"
+                className="customer-drawer-form"
+              >
+                <SectionCard
+                  icon={<TagIcon />}
+                  title="Identity"
+                  subtitle="Naming and identifier"
+                  step="STEP 1"
+                >
                   <Form.Item
                     name="typeName"
                     label="Type name"
                     rules={[{ required: true, message: "Please enter type name" }]}
+                    style={{ marginBottom: 14 }}
                   >
                     <Input
                       placeholder="e.g. Full-Time Regular"
@@ -465,27 +520,33 @@ export default function EmploymentTypesPage() {
                     name="code"
                     label="Code"
                     rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
                   >
                     <Input placeholder="e.g. FULL_TIME" />
                   </Form.Item>
-                </div>
+                </SectionCard>
 
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <Settings size={11} /> Controls
-                  </div>
-                  <div className="orgx-toggle-row">
-                    <div className="orgx-toggle-row__text">
-                      <div className="orgx-toggle-row__title">Active status</div>
-                      <div className="orgx-toggle-row__sub">
-                        Allow using this type for new employee contracts.
-                      </div>
-                    </div>
-                    <Form.Item name="isActive" valuePropName="checked" initialValue={true} style={{ margin: 0 }}>
-                      <Switch />
-                    </Form.Item>
-                  </div>
-                  <Form.Item name="description" label="Description (optional)">
+                <SectionCard
+                  icon={<Settings />}
+                  title="Controls"
+                  subtitle="Active status and details"
+                  step="STEP 2"
+                >
+                  <Form.Item 
+                    name="isActive" 
+                    valuePropName="checked" 
+                    initialValue={true} 
+                    label="Active status" 
+                    tooltip="Allow using this type for new employee contracts."
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item 
+                    name="description" 
+                    label="Description (optional)"
+                    style={{ marginBottom: 14 }}
+                  >
                     <Input.TextArea
                       rows={3}
                       placeholder="Requirements or details for this employment category…"
@@ -493,7 +554,7 @@ export default function EmploymentTypesPage() {
                       showCount
                     />
                   </Form.Item>
-                </div>
+                </SectionCard>
               </Form>
             </div>
           </Drawer>

@@ -620,7 +620,28 @@ export default function ProfilePage() {
                     />
                   </Form.Item>
 
-                  <Form.Item name="phone" label="Phone number">
+                  <Form.Item 
+                    name="phone" 
+                    label="Phone number"
+                    getValueFromEvent={(e) => {
+                      const value = e.target.value;
+                      let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                      if (sanitized.includes('+')) {
+                        const hasPlusAtStart = sanitized.startsWith('+');
+                        sanitized = sanitized.replace(/\+/g, '');
+                        if (hasPlusAtStart) {
+                          sanitized = '+' + sanitized;
+                        }
+                      }
+                      return sanitized;
+                    }}
+                    rules={[
+                      {
+                        pattern: /^[+0-9\s\-()]*$/,
+                        message: "Invalid phone number format"
+                      }
+                    ]}
+                  >
                     <Input
                       placeholder="+1 555 123 4567"
                       size="small"

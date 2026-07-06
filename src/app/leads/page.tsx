@@ -4749,8 +4749,8 @@ export default function LeadsPage() {
                     </Col>
                   </Row>
                   <Row gutter={16}>
-                    <Col span={8}>
-                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[0-9\s\-,.]+$/, message: 'Please enter a valid duration (numbers only)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-9\s\-,.]/g, '')}>
+                    <Col span={6}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                     </Col>

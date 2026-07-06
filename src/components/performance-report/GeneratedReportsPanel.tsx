@@ -329,7 +329,7 @@ export default function GeneratedReportsPanel() {
   );
   const wizPositions = useMemo(() => uniq(candidates.map((c) => c.position)), [candidates]);
   const wizMemberOptions = useMemo(
-    () => candidates.filter((c) => !wizPosition || c.position === wizPosition).map((c) => ({ value: c.id, label: c.name })),
+    () => candidates.filter((c) => !wizPosition || c.position === wizPosition).map((c) => ({ value: c.id, label: c.name, avatarUrl: c.avatarUrl })),
     [candidates, wizPosition]
   );
   const wizResolved = useMemo(() => {
@@ -358,13 +358,15 @@ export default function GeneratedReportsPanel() {
     [allReports, dept]
   );
   const memberOptions = useMemo(() => {
-    const seen = new Map<string, string>();
+    const seen = new Map<string, { label: string; avatarUrl: string | null }>();
     allReports
       .filter((r) => (!dept || r.userDepartment === dept) && (!subDept || r.userSubDepartment === subDept))
       .forEach((r) => {
-        if (r.userId && !seen.has(r.userId)) seen.set(r.userId, r.userName || r.userId);
+        if (r.userId && !seen.has(r.userId)) {
+          seen.set(r.userId, { label: r.userName || r.userId, avatarUrl: r.userAvatar || null });
+        }
       });
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(seen.entries()).map(([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl }));
   }, [allReports, dept, subDept]);
 
   // ── apply filters ───────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Input, Switch, Select, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -198,6 +199,13 @@ export default function ApprovalWorkflowPanel() {
     <div className="pvw">
       <div className="pvw-header">
         <div className="pvw-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvw-header-icon"><BranchesOutlined /></div>
           <div>
             <div className="pvw-header-title">Approval Workflows</div>
@@ -383,6 +391,27 @@ export default function ApprovalWorkflowPanel() {
         .pvw-step-tools { display: flex; align-items: center; gap: 0; margin-left: auto; }
         .pvw-step-fallback { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
         .pvw-drawer-foot { padding: 14px 22px; border-top: 1px solid var(--border-color); background: var(--bg-pure-white); display: flex; justify-content: space-between; align-items: center; position: sticky; bottom: 0; }
+
+        @media (max-width: 900px) {
+          .pvw-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvw-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvw-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+        }
+        @media (max-width: 500px) {
+          .pvw-add-btn {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

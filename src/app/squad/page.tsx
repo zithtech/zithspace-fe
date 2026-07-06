@@ -101,6 +101,16 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase();
 
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
+
 const CARD_ACCENTS: [string, string][] = [
   ['#3b82f6', '#2563eb'], // blue
   ['#10b981', '#059669'], // green
@@ -353,15 +363,38 @@ export default function SquadManagement() {
   );
 
   const userOptions = useMemo(() => {
-    const map = new Map<string, { value: string; label: string; sub?: string }>();
+    const map = new Map<string, { value: string; label: string; sub?: string; avatarUrl?: string }>();
     squads.forEach(s => {
       s.squadMembers?.forEach(m => {
         if (!map.has(m.squadMemberId)) {
-          map.set(m.squadMemberId, { value: m.squadMemberId, label: m.member.name, sub: m.member.workEmail });
+          map.set(m.squadMemberId, {
+            value: m.squadMemberId,
+            label: m.member.name,
+            sub: m.member.workEmail,
+            avatarUrl: m.member.avatarUrl || m.member.avatar,
+          });
         }
       });
     });
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label)).map(u => ({
+      value: u.value,
+      label: u.label,
+      description: u.sub,
+      badge: (
+        <Avatar
+          src={u.avatarUrl || undefined}
+          size={20}
+          style={{
+            backgroundColor: u.avatarUrl ? 'transparent' : avatarColorFor(u.label || ''),
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 800,
+          }}
+        >
+          {initialsOf(u.label)}
+        </Avatar>
+      )
+    }));
   }, [squads]);
 
   const statusOptions = [

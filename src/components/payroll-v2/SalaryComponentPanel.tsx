@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -460,6 +461,13 @@ export default function SalaryComponentPanel() {
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
       <div className="pvc-header">
         <div className="pvc-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvc-header-icon"><PieChartOutlined /></div>
           <div>
             <div className="pvc-header-title">Salary Components</div>
@@ -846,6 +854,33 @@ export default function SalaryComponentPanel() {
         .pvc-toggle-row:last-child { border-bottom: none; padding-bottom: 2px; }
         .pvc-toggle-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
         .pvc-toggle-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
+
+        @media (max-width: 900px) {
+          .pvc-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvc-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvc-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+          .pvc-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 500px) {
+          .pvc-stats {
+            grid-template-columns: 1fr;
+          }
+          .pvc-add-btn {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

@@ -11,10 +11,9 @@ import {
   Tooltip,
   Switch,
   Drawer,
-  Popconfirm,
-  Dropdown,
-  App,
+  Popover,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Building2,
   Edit,
@@ -60,7 +59,7 @@ export default function DepartmentsPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
-  const { modal } = App.useApp();
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
@@ -246,18 +245,18 @@ export default function DepartmentsPage() {
             </Tooltip>
           )}
           {canDeleteOrgDepartment && (
-            <Popconfirm
+            <ConfirmDialog
               title="Remove department?"
               description="This will permanently delete this department."
+              confirmText="Delete"
+              tone="danger"
+              placement="bottomRight"
               onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete">
                 <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -282,30 +281,51 @@ export default function DepartmentsPage() {
     { key: "inactive", label: "Inactive", value: inactiveDepartments, icon: <User size={14} />, color: "#64748b", tint: "rgba(100,116,139,0.10)" },
   ];
 
+  const deptMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
   const renderDepartmentCard = (record: Department) => {
     const [c0, c1] = accentFor(record.code || record.name || "");
     const canAct = canUpdateOrgDepartment || canDeleteOrgDepartment;
     const head = (record as any).head;
-    const menu = {
-      items: [
-        ...(canUpdateOrgDepartment ? [{ key: "edit", label: "Edit department", icon: <Edit size={14} /> }] : []),
-        ...(canDeleteOrgDepartment ? [{ key: "delete", danger: true, label: "Delete", icon: <Trash2 size={14} /> }] : []),
-      ],
-      onClick: ({ key, domEvent }: any) => {
-        domEvent?.stopPropagation?.();
-        if (key === "edit") handleEdit(record);
-        else if (key === "delete") {
-          modal.confirm({
-            title: "Remove department?",
-            content: "This will permanently delete this department.",
-            okText: "Delete",
-            cancelText: "Cancel",
-            okButtonProps: { danger: true },
-            onOk: () => handleDelete(record.id),
-          });
-        }
-      },
-    };
+    
+    const actionContent = (
+      <div className="ant-dropdown-menu" style={{ border: 'none', boxShadow: 'none' }}>
+        {canUpdateOrgDepartment && (
+          <div 
+            className="ant-dropdown-menu-item" 
+            onClick={(e) => { e.stopPropagation(); setOpenCardId(null); handleEdit(record); }}
+          >
+            {deptMenuLabel("Edit department", "Modify name, code or status", <Edit size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
+          </div>
+        )}
+        {canDeleteOrgDepartment && (
+          <ConfirmDialog
+            title="Remove department?"
+            description="This will permanently delete this department."
+            confirmText="Delete"
+            tone="danger"
+            placement="bottomRight"
+            onConfirm={async () => {
+              await handleDelete(record.id);
+              setOpenCardId(null);
+            }}
+          >
+            <div className="ant-dropdown-menu-item ant-dropdown-menu-item-danger" onClick={(e) => e.stopPropagation()}>
+              {deptMenuLabel("Delete", "Permanently remove this department", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)")}
+            </div>
+          </ConfirmDialog>
+        )}
+      </div>
+    );
+
     return (
       <div className="omx-card">
         <div className="omx-card-top">
@@ -317,11 +337,21 @@ export default function DepartmentsPage() {
             <div className="omx-card-sub">{record.code}</div>
           </div>
           {canAct && (
-            <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+            <Popover 
+              content={actionContent} 
+              trigger="click" 
+              placement="bottomRight"
+              open={openCardId === record.id}
+              onOpenChange={(open) => {
+                setOpenCardId(open ? record.id : null);
+              }}
+              overlayClassName="pp-action-pop"
+              arrow={false}
+            >
               <button type="button" className="omx-card-actions" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal size={16} />
               </button>
-            </Dropdown>
+            </Popover>
           )}
         </div>
         <div className="omx-card-desc">{record.description || "No description provided"}</div>
@@ -542,6 +572,56 @@ export default function DepartmentsPage() {
           onClose={() => setHistoryOpen(false)}
           module="OrgStructure"
         />
+        <style jsx global>{`
+          .orgx-shell .saas-header-container {
+            padding: 9.5px 32px !important;
+          }
+          @media (max-width: 1024px) {
+            .orgx-shell .saas-header-container {
+              padding: 9px 16px !important;
+            }
+          }
+
+          /* Premium action dropdown — matches Proposal page */
+          .pp-action-pop .ant-popover-inner {
+            padding: 0 !important;
+            border-radius: 0px !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+          .pp-action-pop .ant-dropdown-menu {
+            padding: 6px; border-radius: 0px !important; min-width: 220px;
+            overflow: hidden !important;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          }
+          .pp-action-pop .ant-dropdown-menu-item {
+            padding: 0 !important; border-radius: 0px !important; margin: 1px 0;
+            transition: background .12s ease;
+          }
+          .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+          .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+          .pp-menu-ic {
+            width: 30px; height: 30px; border-radius: 0px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          }
+          .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+          .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+          .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+          .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+          .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+            background: #0B0F1A !important; border-color: #1E293B !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+          [data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+          [data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
+        `}</style>
     </>
   );
 }

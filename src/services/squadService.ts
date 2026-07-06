@@ -10,6 +10,8 @@ export interface SquadMember {
     name: string;
     workEmail: string;
     position?: { title: string };
+    avatarUrl?: string;
+    avatar?: string;
   };
 }
 

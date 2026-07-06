@@ -50,6 +50,9 @@ export interface ConfirmDialogProps {
   /** Card width in px. Default 300. */
   width?: number;
   disabled?: boolean;
+  /** Controlled open state. If provided, the popover is controlled externally. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
   /** The trigger element (e.g. the delete button). */
@@ -66,13 +69,22 @@ export default function ConfirmDialog({
   placement = 'bottomRight',
   width = 300,
   disabled,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   onConfirm,
   onCancel,
   children,
 }: ConfirmDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const t = TONES[tone];
+
+  // Support both controlled (open prop) and uncontrolled usage
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled
+    ? (v: boolean) => controlledOnOpenChange?.(v)
+    : setInternalOpen;
 
   const handleConfirm = async () => {
     try {
@@ -160,7 +172,7 @@ export default function ConfirmDialog({
           if (disabled) return;
           if (!busy) setOpen(v);
         }}
-        trigger="click"
+        trigger={isControlled ? [] : 'click'}
         placement={placement}
         content={content}
         arrow

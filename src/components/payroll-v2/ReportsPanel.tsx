@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select, Button, Table, Tag, message, Spin, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -99,6 +100,13 @@ export default function ReportsPanel() {
     <div className="rpt">
       <div className="rpt-header">
         <div className="rpt-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="rpt-header-icon"><BarChartOutlined /></div>
           <div>
             <div className="rpt-header-title">Reports</div>
@@ -179,6 +187,40 @@ export default function ReportsPanel() {
         .rpt-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; white-space: nowrap; }
         .rpt-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .rpt-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+
+        .rpt-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        @media (max-width: 900px) {
+          .rpt-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .rpt-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .rpt-header-actions > * {
+            flex: 1;
+            min-width: 120px;
+          }
+        }
+        @media (max-width: 500px) {
+          .rpt-summary {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            padding: 16px;
+          }
+          .rpt-sum {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+            border-left: none !important;
+          }
+        }
       `}</style>
     </div>
   );

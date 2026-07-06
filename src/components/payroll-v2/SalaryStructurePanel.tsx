@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
@@ -382,6 +383,13 @@ export default function SalaryStructurePanel() {
       {/* HEADER */}
       <div className="pvs-header">
         <div className="pvs-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvs-header-icon"><ApartmentOutlined /></div>
           <div>
             <div className="pvs-header-title">Salary Structures</div>
@@ -663,6 +671,33 @@ export default function SalaryStructurePanel() {
         .pvs-balance { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; }
         .pvs-balance.ok { color: ${PALETTE.green}; background: ${TINT.green}; }
         .pvs-balance.warn { color: ${PALETTE.amber}; background: ${TINT.amber}; }
+
+        @media (max-width: 900px) {
+          .pvs-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvs-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvs-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+          .pvs-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 500px) {
+          .pvs-stats {
+            grid-template-columns: 1fr;
+          }
+          .pvs-add-btn {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

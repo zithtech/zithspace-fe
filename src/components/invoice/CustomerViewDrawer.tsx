@@ -43,10 +43,30 @@ const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
     .join(", ");
 
   return (
-    <Drawer
+    <>
+      <style>{`
+        [data-theme='dark'] .customer-drawer-card {
+          background: transparent !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-drawer-header {
+          background: #0b0f19 !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-drawer-card > div:first-child,
+        [data-theme='dark'] .customer-drawer-card .divide-y > * {
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-view-drawer-root .ant-drawer-content,
+        [data-theme='dark'] .customer-view-drawer-root .ant-drawer-body {
+          background: #020617 !important;
+        }
+      `}</style>
+      <Drawer
+      rootClassName="customer-view-drawer-root"
       open={open}
       onClose={onClose}
-      width={600}
+      width={720}
       closable={false}
       styles={{
         body: { padding: 0, background: "var(--customers-page-bg)" },
@@ -61,7 +81,7 @@ const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
       <div className="h-full flex flex-col">
         {/* HEADER */}
         <div
-          className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
             background:
               "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
@@ -235,6 +255,7 @@ const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
         </div>
       </div>
     </Drawer>
+    </>
   );
 };
 
@@ -250,7 +271,7 @@ const Section = ({
   children: React.ReactNode;
 }) => (
   <div
-    className="rounded-2xl overflow-hidden"
+    className="customer-drawer-card rounded-none overflow-hidden"
     style={{
       background: "var(--bg-secondary)",
       border: "1px solid var(--border-color)",

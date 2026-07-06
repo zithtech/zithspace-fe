@@ -68,58 +68,45 @@ export default function CustomerDrawer({
   };
 
   const SectionHeader = ({
-    icon: Icon,
+    num,
     title,
     subtitle,
   }: {
-    icon: any;
+    num: string;
     title: string;
     subtitle?: string;
   }) => (
     <div
-      className="px-5 py-3 flex items-center gap-2.5 border-b"
-      style={{ borderColor: "var(--border-color)" }}
+      className="mx-5 pt-4 pb-3 flex items-start gap-3 mb-2"
+      style={{ borderBottom: "1px dashed var(--border-color)" }}
     >
       <div
-        className="w-7 h-7 rounded-lg flex items-center justify-center"
+        className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-[11px] font-extrabold"
         style={{
-          background: "var(--bg-blue-50)",
-          color: "var(--text-blue-700)",
-          border: "1px solid var(--border-blue-200)",
+          background: "rgba(59,130,246,0.10)",
+          color: "#3b82f6",
+          border: "1px solid rgba(59,130,246,0.22)",
         }}
       >
-        <Icon size={13} strokeWidth={2.25} />
+        {num}
       </div>
-      <span
-        className="text-[13px] font-semibold"
-        style={{ color: "var(--text-primary)" }}
-      >
-        {title}
-      </span>
-      {subtitle && (
-        <>
-          <span
-            className="h-3.5 w-px"
-            style={{ background: "var(--border-color)" }}
-          />
-          <span
-            className="text-[11px] uppercase tracking-[0.08em]"
+      <div>
+        <div
+          className="text-[13px] font-bold leading-tight"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {title}
+        </div>
+        {subtitle && (
+          <div
+            className="text-[11px] font-medium mt-0.5"
             style={{ color: "var(--text-secondary)" }}
           >
             {subtitle}
-          </span>
-        </>
-      )}
+          </div>
+        )}
+      </div>
     </div>
-  );
-
-  const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-    <span
-      className="text-[11px] font-semibold uppercase tracking-[0.08em]"
-      style={{ color: "var(--text-secondary)" }}
-    >
-      {children}
-    </span>
   );
 
   const inputBase: React.CSSProperties = {
@@ -138,13 +125,45 @@ export default function CustomerDrawer({
   };
 
   return (
-    <Drawer
+    <>
+      <style>{`
+        .customer-drawer-form .ant-form-item-label > label {
+          font-size: 11.5px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-400, #94a3b8) !important;
+          letter-spacing: .02em;
+          height: 18px !important;
+        }
+        [data-theme='dark'] .customer-drawer-card {
+          background: transparent !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-drawer-card > div:first-child {
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-drawer-root .ant-drawer-content,
+        [data-theme='dark'] .customer-drawer-root .ant-drawer-body {
+          background: #020617 !important;
+        }
+        [data-theme='dark'] .customer-drawer-header,
+        [data-theme='dark'] .customer-drawer-footer {
+          background: #0b0f19 !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .customer-drawer-form .ant-input {
+          background: transparent !important;
+          border-color: #1f2937 !important;
+          color: #f3f4f6 !important;
+        }
+      `}</style>
+      <Drawer
+      rootClassName="customer-drawer-root"
       title={null}
       closable={false}
       placement="right"
       onClose={onClose}
       open={open}
-      width={560}
+      width={720}
       styles={{
         body: {
           padding: 0,
@@ -162,7 +181,7 @@ export default function CustomerDrawer({
     >
       {/* HEADER */}
       <div
-        className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+        className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
           background:
             "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
@@ -215,29 +234,33 @@ export default function CustomerDrawer({
       {/* BODY */}
       <div className="flex-1 overflow-y-auto px-6 py-6 pb-24">
         <Form
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           form={form}
           requiredMark={false}
-          className="flex flex-col gap-5"
+          className="customer-drawer-form flex flex-col gap-5"
           autoComplete="off"
         >
           {/* COMPANY */}
           <div
-            className="rounded-2xl overflow-hidden"
+            className="customer-drawer-card rounded-none overflow-hidden"
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-color)",
             }}
           >
             <SectionHeader
-              icon={Building2}
+              num="01"
               title="Company"
               subtitle="Identify the customer"
             />
             <div className="px-5 py-5 space-y-4">
               <Form.Item
                 name="companyName"
-                label={<FieldLabel>Company / Client name</FieldLabel>}
+                label="Company / Client name"
                 rules={[
                   { required: true, message: "Company name is required" },
                   {
@@ -250,79 +273,77 @@ export default function CustomerDrawer({
                 <Input placeholder="Acme Corp" style={inputBase} autoComplete="off" />
               </Form.Item>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Form.Item
-                  name="email"
-                  label={<FieldLabel>Email address</FieldLabel>}
-                  rules={[{ type: "email", message: "Invalid email" }]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input
-                    prefix={
-                      <Mail
-                        size={14}
-                        style={{
-                          color: "var(--text-secondary)",
-                          marginRight: 4,
-                        }}
-                      />
-                    }
-                    placeholder="client@example.com"
-                    style={inputBase}
-                    autoComplete="off"
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="phone"
-                  label={<FieldLabel>Phone number</FieldLabel>}
-                  normalize={(value) =>
-                    (value || "").replace(/[^0-9+\-]/g, "")
+              <Form.Item
+                name="email"
+                label="Email address"
+                rules={[{ type: "email", message: "Invalid email" }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  prefix={
+                    <Mail
+                      size={14}
+                      style={{
+                        color: "var(--text-secondary)",
+                        marginRight: 4,
+                      }}
+                    />
                   }
-                  rules={[
-                    {
-                      pattern: /^[+]?[0-9][0-9\-]{5,18}$/,
-                      message: "Enter a valid phone number (digits and + or - only)",
-                    },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input
-                    prefix={
-                      <Phone
-                        size={14}
-                        style={{
-                          color: "var(--text-secondary)",
-                          marginRight: 4,
-                        }}
-                      />
-                    }
-                    placeholder="+1 234 567 890"
-                    maxLength={20}
-                    style={inputBase}
-                    autoComplete="off"
-                  />
-                </Form.Item>
-              </div>
+                  placeholder="client@example.com"
+                  style={inputBase}
+                  autoComplete="off"
+                />
+              </Form.Item>
+              <Form.Item
+                name="phone"
+                label="Phone number"
+                normalize={(value) =>
+                  (value || "").replace(/[^0-9+\-]/g, "")
+                }
+                rules={[
+                  {
+                    pattern: /^[+]?[0-9][0-9\-]{5,18}$/,
+                    message: "Enter a valid phone number (digits and + or - only)",
+                  },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  prefix={
+                    <Phone
+                      size={14}
+                      style={{
+                        color: "var(--text-secondary)",
+                        marginRight: 4,
+                      }}
+                    />
+                  }
+                  placeholder="+1 234 567 890"
+                  maxLength={20}
+                  style={inputBase}
+                  autoComplete="off"
+                />
+              </Form.Item>
             </div>
           </div>
 
           {/* ADDRESS */}
           <div
-            className="rounded-2xl overflow-hidden"
+            className="customer-drawer-card rounded-none overflow-hidden"
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-color)",
             }}
           >
             <SectionHeader
-              icon={MapPin}
+              num="02"
               title="Billing address"
               subtitle="Where invoices are sent"
             />
             <div className="px-5 py-5 space-y-4">
               <Form.Item
                 name="address"
-                label={<FieldLabel>Street address</FieldLabel>}
+                label="Street address"
                 style={{ marginBottom: 0 }}
               >
                 <Input
@@ -332,67 +353,65 @@ export default function CustomerDrawer({
                 />
               </Form.Item>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Form.Item
-                  name="city"
-                  label={<FieldLabel>City / district</FieldLabel>}
-                  rules={[
-                    {
-                      pattern: /^[A-Za-z\s\-'.]+$/,
-                      message: "City must contain only letters",
-                    },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input placeholder="New York" style={inputBase} autoComplete="off" />
-                </Form.Item>
-                <Form.Item
-                  name="country"
-                  label={<FieldLabel>Country</FieldLabel>}
-                  rules={[
-                    {
-                      pattern: /^[A-Za-z\s\-'.]+$/,
-                      message: "Country must contain only letters",
-                    },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input
-                    prefix={
-                      <Globe
-                        size={14}
-                        style={{
-                          color: "var(--text-secondary)",
-                          marginRight: 4,
-                        }}
-                      />
-                    }
-                    placeholder="USA"
-                    style={inputBase}
-                    autoComplete="off"
-                  />
-                </Form.Item>
-              </div>
+              <Form.Item
+                name="city"
+                label="City / district"
+                rules={[
+                  {
+                    pattern: /^[A-Za-z\s\-'.]+$/,
+                    message: "City must contain only letters",
+                  },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input placeholder="New York" style={inputBase} autoComplete="off" />
+              </Form.Item>
+              <Form.Item
+                name="country"
+                label="Country"
+                rules={[
+                  {
+                    pattern: /^[A-Za-z\s\-'.]+$/,
+                    message: "Country must contain only letters",
+                  },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  prefix={
+                    <Globe
+                      size={14}
+                      style={{
+                        color: "var(--text-secondary)",
+                        marginRight: 4,
+                      }}
+                    />
+                  }
+                  placeholder="USA"
+                  style={inputBase}
+                  autoComplete="off"
+                />
+              </Form.Item>
             </div>
           </div>
 
           {/* TAX */}
           <div
-            className="rounded-2xl overflow-hidden"
+            className="customer-drawer-card rounded-none overflow-hidden"
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-color)",
             }}
           >
             <SectionHeader
-              icon={IdCard}
+              num="03"
               title="Tax identifiers"
               subtitle="Used on printed invoices"
             />
             <div className="px-5 py-5 space-y-4">
               <Form.Item
                 name="taxId"
-                label={<FieldLabel>Tax ID number</FieldLabel>}
+                label="Tax ID number"
                 normalize={(value) =>
                   (value || "").replace(/[^A-Za-z0-9\-]/g, "").toUpperCase()
                 }
@@ -407,65 +426,63 @@ export default function CustomerDrawer({
                 <Input style={monoInput} placeholder="—" maxLength={30} autoComplete="off" />
               </Form.Item>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Form.Item
-                  name="gstin"
-                  label={<FieldLabel>GSTIN</FieldLabel>}
-                  normalize={(value) =>
-                    (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-                  }
-                  rules={[
-                    { len: 15, message: "GSTIN must be exactly 15 characters" },
-                    {
-                      pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
-                      message: "Invalid GSTIN format (e.g. 22ABCDE1234F1Z5)",
-                    },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input
-                    maxLength={15}
-                    style={monoInput}
-                    placeholder="22ABCDE1234F1Z5"
-                    autoComplete="off"
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="pan"
-                  label={<FieldLabel>PAN</FieldLabel>}
-                  normalize={(value) =>
-                    (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-                  }
-                  rules={[
-                    { len: 10, message: "Exactly 10 characters" },
-                    {
-                      pattern: /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/,
-                      message: "Format: ABCDE1234F",
-                    },
-                  ]}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input
-                    maxLength={10}
-                    style={monoInput}
-                    placeholder="ABCDE1234F"
-                    autoComplete="off"
-                  />
-                </Form.Item>
-              </div>
+              <Form.Item
+                name="gstin"
+                label="GSTIN"
+                normalize={(value) =>
+                  (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+                }
+                rules={[
+                  { len: 15, message: "GSTIN must be exactly 15 characters" },
+                  {
+                    pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                    message: "Invalid GSTIN format (e.g. 22ABCDE1234F1Z5)",
+                  },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  maxLength={15}
+                  style={monoInput}
+                  placeholder="22ABCDE1234F1Z5"
+                  autoComplete="off"
+                />
+              </Form.Item>
+              <Form.Item
+                name="pan"
+                label="PAN"
+                normalize={(value) =>
+                  (value || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+                }
+                rules={[
+                  { len: 10, message: "Exactly 10 characters" },
+                  {
+                    pattern: /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/,
+                    message: "Format: ABCDE1234F",
+                  },
+                ]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  maxLength={10}
+                  style={monoInput}
+                  placeholder="ABCDE1234F"
+                  autoComplete="off"
+                />
+              </Form.Item>
             </div>
           </div>
 
           {/* STATUS */}
           <div
-            className="rounded-2xl overflow-hidden"
+            className="customer-drawer-card rounded-none overflow-hidden"
             style={{
               background: "var(--bg-secondary)",
               border: "1px solid var(--border-color)",
             }}
           >
             <SectionHeader
-              icon={FileText}
+              num="04"
               title="Visibility"
               subtitle="Profile state"
             />
@@ -498,7 +515,7 @@ export default function CustomerDrawer({
 
       {/* FOOTER */}
       <div
-        className="absolute bottom-0 left-0 right-0 px-6 py-3 flex items-center justify-end gap-2 border-t"
+        className="customer-drawer-footer absolute bottom-0 left-0 right-0 px-6 py-3 flex items-center justify-end gap-2 border-t"
         style={{
           background: "var(--bg-secondary)",
           borderColor: "var(--border-color)",
@@ -526,5 +543,6 @@ export default function CustomerDrawer({
         </Button>
       </div>
     </Drawer>
+    </>
   );
 }

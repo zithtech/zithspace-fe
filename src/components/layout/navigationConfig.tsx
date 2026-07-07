@@ -94,6 +94,7 @@ import {
   Layers,
   PieChart,
   BarChart3,
+  ReceiptText,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -173,6 +174,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PERFORMANCE_READ,
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
+      Permissions.MY_HUB_CLAIMS_READ,
     ],
     items: [
       {
@@ -225,6 +227,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Banknote),
         path: "/my-hub/payslips",
         requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
+      },
+      {
+        key: "/my-hub/claims",
+        label: "My Claims",
+        icon: I(ReceiptText),
+        path: "/my-hub/claims",
+        requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
       },
     ],
   },

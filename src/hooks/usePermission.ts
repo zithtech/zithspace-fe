@@ -412,6 +412,9 @@ export const usePermission = () => {
     // My Hub self-service — granted via my_hub.performance.read in RBAC
     canReadMyHubPerformance: hasPermission(Permissions.MY_HUB_PERFORMANCE_READ),
 
+    // My Hub self-service — granted via my_hub.claims.read in RBAC
+    canReadMyHubClaims: hasPermission(Permissions.MY_HUB_CLAIMS_READ),
+
     // ─── Job Openings ───────────────────────────────────────────────
     canCreateOpening: hasPermission(Permissions.OPENING_CREATE),
     canReadOpening:   hasPermission(Permissions.OPENING_READ),

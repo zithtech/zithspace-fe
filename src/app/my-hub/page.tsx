@@ -11,6 +11,7 @@ import {
   Banknote,
   CircleUser,
   ChevronRight,
+  ReceiptText,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -86,6 +87,15 @@ const HUB_CARDS: HubCard[] = [
     icon: <Banknote size={22} strokeWidth={1.75} />,
     accent: "#0ea5e9",
     anyPermission: [Permissions.MY_HUB_PAYSLIPS_READ],
+  },
+  {
+    key: "claims",
+    label: "My Claims",
+    description: "Submit & track your expenses",
+    path: "/my-hub/claims",
+    icon: <ReceiptText size={22} strokeWidth={1.75} />,
+    accent: "#059669",
+    anyPermission: [Permissions.MY_HUB_CLAIMS_READ],
   },
 ];
 

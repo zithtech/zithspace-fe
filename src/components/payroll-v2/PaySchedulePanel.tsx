@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Drawer, Input, Switch, Select, InputNumber, message, Tooltip, Space,
@@ -270,6 +271,13 @@ export default function PaySchedulePanel() {
       {/* HEADER */}
       <div className="pvg-header">
         <div className="pvg-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvg-header-icon"><CalendarOutlined /></div>
           <div>
             <div className="pvg-header-title">Pay Schedules &amp; Groups</div>
@@ -473,6 +481,40 @@ export default function PaySchedulePanel() {
         .pvg-drawer-body .ant-input-lg, .pvg-drawer-body .ant-input-number-lg { height: 40px; }
         .pvg-drawer-body .pvg-dd.sd-trigger { display: flex; align-items: center; }
         .pvg-drawer-foot { padding: 14px 22px; border-top: 1px solid var(--border-color); background: var(--bg-pure-white); display: flex; justify-content: space-between; align-items: center; position: sticky; bottom: 0; }
+
+        @media (max-width: 900px) {
+          .pvg-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvg-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvg-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+          .pvg-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+        }
+        @media (max-width: 500px) {
+          .pvg-add-btn {
+            width: 100%;
+          }
+          .pvg-tabs {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .pvg-tab {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

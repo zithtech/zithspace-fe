@@ -107,7 +107,6 @@ export default function ProjectTrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
@@ -137,7 +136,7 @@ export default function ProjectTrashManagementPage() {
   const bulkDelete = useBulkPermanentDeleteProjects();
 
   const uniqueProjects = Array.from(new Map(trashProjects?.map(p => [p.id, p.name])).entries());
-  const uniqueManagers = Array.from(new Map(trashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, p.projectManager.name])).entries());
+  const uniqueManagers = Array.from(new Map(trashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
 
   const filteredProjects = trashProjects?.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase());
@@ -269,9 +268,8 @@ export default function ProjectTrashManagementPage() {
   ];
 
   return (
-    <div className={`pm2-page ${isMobileOpen ? 'is-mobile-open' : ''}`}>
+    <div className="pm2-page">
       <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
-        <div className="pm2-backdrop" onClick={() => setIsMobileOpen(false)} />
         <div
           className="pm2-sidebar-backdrop"
           onClick={() => setIsSidebarOpen(false)}
@@ -355,15 +353,31 @@ export default function ProjectTrashManagementPage() {
                   />
 
                   <SearchableDropdown
-                    className="pm2-side-filter-select"
-                    placeholder="Project Manager"
-                    searchPlaceholder="Search managers"
-                    itemNoun="managers"
-                    value={filters.projectManagerId || undefined}
-                    onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
-                    options={uniqueManagers.map(([id, name]) => ({ value: id as string, label: name as string }))}
-                    width="100%"
-                  />
+                      className="pm2-side-filter-select"
+                      placeholder="Project Manager"
+                      searchPlaceholder="Search managers"
+                      itemNoun="managers"
+                      value={filters.projectManagerId || undefined}
+                      onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
+                      options={uniqueManagers.map(([id, pm]) => ({
+                        value: id as string,
+                        label: (pm as any).name as string,
+                        badge: (
+                          <Avatar
+                            src={(pm as any).avatarUrl || undefined}
+                            size={20}
+                            style={{
+                              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                              fontSize: 9,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {((pm as any).name || "?").charAt(0).toUpperCase()}
+                          </Avatar>
+                        )
+                      }))}
+                      width="100%"
+                    />
 
                   <DatePicker.RangePicker
                     className="premium-range-picker"
@@ -397,14 +411,6 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
-              <button 
-                type="button" 
-                className="pm2-mobile-toggle"
-                onClick={() => setIsMobileOpen(true)}
-              >
-                <MenuOutlined />
-              </button>
-
               <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
                 <button
                   type="button"
@@ -421,8 +427,7 @@ export default function ProjectTrashManagementPage() {
                 </button>
               </Tooltip>
 
-              <Divider type="vertical" style={{ height: 24, margin: '0 12px 0 0', opacity: 0.5 }} className="pm2-sidebar-divider" />
-              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+              <div className="pp-search-wrap">
                 <SearchOutlined className="pp-search-icon" />
                 <input
                   className="pp-search"
@@ -799,11 +804,12 @@ export default function ProjectTrashManagementPage() {
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
         .pp-search-wrap {
-          position: relative; flex: 1; display: flex; align-items: center;
-          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); padding: 0 10px;
+          position: relative; flex: 1 1 auto; display: flex; align-items: center;
+          max-width: 480px; width: 100%; height: 38px; min-height: 38px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 12px;
+          transition: all 0.2s;
         }
-        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); max-width: 520px; }
         .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
         .pp-search {
           flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
@@ -923,11 +929,12 @@ export default function ProjectTrashManagementPage() {
           color: #FFFFFF !important;
         }
         [data-theme='dark'] .pp-search-wrap {
-          background: #0B0F1A !important;
-          border-color: #1F2937 !important;
+          background: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
         }
         [data-theme='dark'] .pp-search-wrap:focus-within {
-          border-color: rgba(59, 130, 246, 0.4) !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(59, 130, 246, 0.5) !important;
         }
         [data-theme='dark'] .pp-search {
           color: #FFFFFF !important;
@@ -1273,7 +1280,7 @@ export default function ProjectTrashManagementPage() {
 
         /* Desktop > 1100px: Hide toggle */
         @media (min-width: 1100px) {
-          .pm2-sidebar-show-toggle, .pm2-sidebar-divider {
+          .pm2-sidebar-show-toggle {
             display: none !important;
           }
         }

@@ -859,7 +859,7 @@ export default function AccountsPage() {
                   itemNoun="members"
                   value={memberFilter ?? undefined}
                   onChange={(v) => setMemberFilter(v ?? undefined)}
-                  options={members.map((m) => ({ value: m.id, label: m.name }))}
+                  options={memberOptions}
                   width={212}
                   disabled={members.length === 0}
                 />

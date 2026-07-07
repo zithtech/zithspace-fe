@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, InputNumber, Switch, Input, message, Spin } from 'antd';
-import { Landmark, Save, RotateCcw, ShieldCheck, PiggyBank, Percent, Building2 } from 'lucide-react';
+import { Landmark, Save, RotateCcw, ShieldCheck, PiggyBank, Percent, Building2, Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
   PfConfig, EsiConfig, UpdatePfInput, UpdateEsiInput,
@@ -130,10 +130,19 @@ export default function StatutoryPanel() {
   return (
     <div className="pvst-page">
       <div className="pvst-header">
-        <div className="pvst-head-chip" style={{ background: TINT.red, color: PALETTE.red }}><Landmark size={20} /></div>
-        <div className="pvst-head-text">
-          <div className="pvst-head-title">Statutory</div>
-          <div className="pvst-head-sub">India compliance — Provident Fund &amp; Employee State Insurance</div>
+        <div className="pvst-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
+          <div className="pvst-head-chip" style={{ background: TINT.red, color: PALETTE.red }}><Landmark size={20} /></div>
+          <div className="pvst-head-text">
+            <div className="pvst-head-title">Statutory</div>
+            <div className="pvst-head-sub">India compliance — Provident Fund &amp; Employee State Insurance</div>
+          </div>
         </div>
         <div className="pvst-head-actions">
           <Button icon={<RotateCcw size={15} />} onClick={reset} disabled={!dirty || saving}>Reset</Button>
@@ -244,6 +253,34 @@ export default function StatutoryPanel() {
         .pvst-preview-cells span { font-size: 11px; color: var(--text-slate-500); }
         .pvst-preview-cells strong { font-size: 16px; font-weight: 800; color: var(--text-slate-900); }
         .pvst-page .ant-input-number, .pvst-page .ant-input, .pvst-page .ant-input-affix-wrapper { border-radius: 6px !important; }
+
+        .pvst-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        @media (max-width: 900px) {
+          .pvst-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvst-head-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvst-head-actions > * {
+            flex: 1;
+            min-width: 120px;
+          }
+        }
+        @media (max-width: 600px) {
+          .pvst-tabs {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .pvst-tab {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

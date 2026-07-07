@@ -268,7 +268,7 @@ export default function BugListPage() {
 
   // Add missing variables to fix TypeScript errors
   const { users } = useMembersSelect();
-  const members = users.map(u => ({ value: u.value, label: u.label }));
+  const members = users.map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl, description: u.position || u.role }));
   const allFolders = useMemo(() => {
     const res = [...(folders || [])];
     archivedFolders?.forEach(f => { if (!res.find(x => x.id === f.id)) res.push(f); });
@@ -406,7 +406,7 @@ export default function BugListPage() {
   }, [bugs]);
 
   const memberOptions = useMemo(
-    () => members.map((m: { value: string; label: string }) => ({ value: m.value, label: m.label })),
+    () => members.map((m: any) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl, description: m.description })),
     [members]
   );
 

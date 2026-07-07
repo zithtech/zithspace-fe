@@ -144,6 +144,16 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase();
 
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
+
 export default function ProposalsTrashPage() {
   console.log("Forcing HMR reload for ProposalsTrashPage");
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'ProposalTrash' });
@@ -553,7 +563,24 @@ export default function ProposalsTrashPage() {
       const c = p.createdBy;
       if (c?.id && c?.name && !byId.has(c.id)) byId.set(c.id, { id: c.id, name: c.name, avatarUrl: c.avatarUrl || c.avatar });
     });
-    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)).map((u) => ({ value: u.id, label: u.name }));
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)).map((u) => ({
+      value: u.id,
+      label: u.name,
+      badge: (
+        <Avatar
+          src={u.avatarUrl || undefined}
+          size={20}
+          style={{
+            backgroundColor: u.avatarUrl ? 'transparent' : avatarColorFor(u.name || ''),
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 800,
+          }}
+        >
+          {initialsOf(u.name)}
+        </Avatar>
+      )
+    }));
   }, [users, proposals]);
 
   const statusOptions: { value: StatusKey; label: string }[] = [

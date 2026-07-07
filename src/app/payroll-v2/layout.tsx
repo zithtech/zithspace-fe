@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Banknote } from 'lucide-react';
+import { Banknote, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -19,11 +19,23 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
     () => PAYROLL_NAV_ITEMS.filter((item) => canAccessPayrollItem(perms, item)),
     [perms]
   );
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleOpenSidebar = () => setIsMobileOpen(true);
+    window.addEventListener('open-pv-sidebar', handleOpenSidebar);
+    return () => window.removeEventListener('open-pv-sidebar', handleOpenSidebar);
+  }, []);
 
   // Base guard: redirect only if there's nothing the user can access. Self-
   // service items (My Payslips) are always visible, so any authenticated user
@@ -38,14 +50,25 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
     <ProtectedRoute>
       <MainLayout>
         <div className="pv-shell">
+          {/* ============================ MOBILE BACKDROP ============================ */}
+          {isMobileOpen && (
+            <div
+              className="pv-sidebar-backdrop"
+              onClick={() => setIsMobileOpen(false)}
+            />
+          )}
+
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="pv-sidebar">
+          <aside className={`pv-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="pv-side-head">
               <div className="pv-side-logo"><Banknote size={22} /></div>
               <div className="pv-side-head-text">
                 <div className="pv-side-title">Payroll</div>
                 <div className="pv-side-subtitle">Pay · components · statutory</div>
               </div>
+              <button className="pv-sidebar-close" onClick={() => setIsMobileOpen(false)}>
+                <X size={20} />
+              </button>
             </div>
 
             <div className="pv-side-scroll">
@@ -69,6 +92,7 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
                       key={item.key}
                       href={item.href}
                       className={`pv-view-item ${active ? 'is-active' : ''}`}
+                      onClick={() => setIsMobileOpen(false)}
                     >
                       <span
                         className="pv-view-icon"
@@ -164,6 +188,85 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
             z-index: 20;
             background: var(--bg-pure-white);
             box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
+          }
+          
+          /* ---------------- Mobile ---------------- */
+          .pv-mobile-menu-btn {
+            display: none;
+          }
+          .pv-sidebar-close {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            margin-left: auto;
+          }
+          .pv-sidebar-close:hover {
+            background: var(--bg-slate-50);
+            color: var(--text-slate-900);
+          }
+
+          @media (max-width: 900px) {
+            .pv-sidebar {
+              position: fixed;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
+            }
+            .pv-sidebar.is-open {
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            }
+            .pv-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              z-index: 999;
+              backdrop-filter: blur(2px);
+            }
+            .pv-sidebar-close {
+              display: flex;
+            }
+            .pv-mobile-menu-btn {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-200);
+              color: var(--text-slate-700);
+              cursor: pointer;
+              margin-right: 12px;
+            }
+            .pv-mobile-menu-btn:hover {
+              background: var(--bg-slate-100);
+            }
+            .pv-main {
+              padding: 0;
+            }
+            .pv-content {
+              padding: 0 16px;
+            }
+            .pv-content > * > [class*="-header"] {
+              margin-left: -16px !important;
+              margin-right: -16px !important;
+              padding-left: 16px !important;
+              padding-right: 16px !important;
+              padding-top: 8px !important;
+            }
           }
         `}</style>
       </MainLayout>

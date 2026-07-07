@@ -2334,7 +2334,23 @@ const DocumentHubPage = () => {
                   loading={membersLoading}
                   width={260}
                   style={{ width: '100%' }}
-                  options={members.map((m: any) => ({ value: m.value, label: m.label }))}
+                  options={members.map((m: any) => ({
+                    value: m.value,
+                    label: m.label,
+                    badge: (
+                      <Avatar
+                        src={m.avatarUrl || undefined}
+                        size={20}
+                        style={{
+                          background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                          fontSize: 9,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {(m.label || "?").charAt(0).toUpperCase()}
+                      </Avatar>
+                    )
+                  }))}
                 />
                 <RangePicker
                   className="premium-range-picker"

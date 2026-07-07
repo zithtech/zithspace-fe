@@ -4451,7 +4451,7 @@ export default function LeadsPage() {
                       <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
                         <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
                       </Form.Item>
-                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[0-9\s\-,.]+$/, message: 'Please enter a valid duration (numbers only)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-9\s\-,.]/g, '')}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                       <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>

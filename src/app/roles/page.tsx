@@ -29,6 +29,8 @@ import {
   Avatar,
   List,
   Skeleton,
+  Switch,
+  Collapse,
 } from "antd";
 import {
   SafetyOutlined,
@@ -40,6 +42,7 @@ import {
   CheckSquareOutlined,
   BorderOutlined,
   TeamOutlined,
+  MinusOutlined,
   MinusCircleOutlined,
   SearchOutlined,
   ReloadOutlined,
@@ -53,7 +56,9 @@ import {
   BarsOutlined,
   MenuOutlined,
   RocketOutlined,
-  ApartmentOutlined
+  ApartmentOutlined,
+  DownOutlined,
+  UpOutlined
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -266,13 +271,13 @@ const ACCESS_GROUPS: AccessGroup[] = [
     resources: ['invoice', 'account', 'reimbursement', 'payroll', 'salary', 'vendor'],
     accent: '#0ea5e9',
   },
-  {
-    key: 'others',
-    label: 'Others',
-    icon: <EllipsisOutlined />,
-    resources: null,
-    accent: '#94a3b8',
-  },
+  // {
+  //   key: 'others',
+  //   label: 'Others',
+  //   icon: <EllipsisOutlined />,
+  //   resources: null,
+  //   accent: '#94a3b8',
+  // },
 ];
 
 const ASSIGNED_RESOURCES = new Set(
@@ -590,8 +595,20 @@ export default function RolesPage() {
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
   const [accessTab, setAccessTab] = useState<string>('all');
   const [permSearch, setPermSearch] = useState<string>('');
+  const [expandedPermGroups, setExpandedPermGroups] = useState<string[]>([]);
 
-
+  // Auto-expand groups when searching
+  React.useEffect(() => {
+    if (permSearch.trim()) {
+      const q = permSearch.trim().toLowerCase();
+      const matching = Object.keys(allPermissions).filter(res => {
+        const perms = allPermissions[res] || [];
+        if ((RESOURCE_LABELS[res] || res).toLowerCase().includes(q)) return true;
+        return perms.some(p => p.name.toLowerCase().includes(q) || p.action.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+      });
+      setExpandedPermGroups(prev => [...new Set([...prev, ...matching])]);
+    }
+  }, [permSearch, allPermissions]);
 
   // Calculate role stats
   const roleStats = React.useMemo(() => {
@@ -1678,26 +1695,43 @@ export default function RolesPage() {
                         </span>
                       </div>
 
-                      {canUpdateRole && (
-                        <div className="rp-acc-toolbar__actions">
-                          <Button
-                            size="small"
-                            icon={<CheckSquareOutlined />}
-                            onClick={accessTab === 'all' ? selectAll : handleSelectTab}
-                            className="rp-acc-link"
-                          >
-                            Select {accessTab === 'all' ? 'all' : 'tab'}
-                          </Button>
-                          <Button
-                            size="small"
-                            icon={<BorderOutlined />}
-                            onClick={accessTab === 'all' ? clearAll : handleClearTab}
-                            className="rp-acc-link is-danger"
-                          >
-                            Clear {accessTab === 'all' ? 'all' : 'tab'}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="rp-acc-toolbar__actions" style={{ display: 'flex', gap: 12 }}>
+                        {(() => {
+                          const allExpanded = visibleResources.length > 0 && visibleResources.every((r) => expandedPermGroups.includes(r));
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)', border: '1px solid var(--border-color, #e2e8f0)', padding: '4px 12px', borderRadius: 6, background: 'var(--bg-pure-white, #ffffff)' }}>
+                              <Switch 
+                                size="small" 
+                                checked={allExpanded} 
+                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])} 
+                              />
+                              <span style={{ cursor: 'pointer', fontWeight: 500 }} onClick={() => setExpandedPermGroups(allExpanded ? [] : visibleResources)}>
+                                Expand all
+                              </span>
+                            </div>
+                          );
+                        })()}
+                        {canUpdateRole && (
+                          <>
+                            <Button
+                              size="small"
+                              icon={<CheckSquareOutlined />}
+                              onClick={accessTab === 'all' ? selectAll : handleSelectTab}
+                              className="rp-acc-link"
+                            >
+                              Select {accessTab === 'all' ? 'all' : 'tab'}
+                            </Button>
+                            <Button
+                              size="small"
+                              icon={<BorderOutlined />}
+                              onClick={accessTab === 'all' ? clearAll : handleClearTab}
+                              className="rp-acc-link is-danger"
+                            >
+                              Clear {accessTab === 'all' ? 'all' : 'tab'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Tab progress bar */}
@@ -1793,29 +1827,62 @@ export default function RolesPage() {
                             subGroups[subKey].push(p);
                           });
 
-                        return (
-                          <div key={resource} className="rp-acc-card">
-                            <div className="rp-acc-card__header">
-                              <Checkbox
-                                checked={allInGroup}
-                                indeterminate={someInGroup}
-                                onChange={() => toggleResource(allPermsForRes)}
-                                disabled={!canUpdateRole}
-                                className="rp-acc-card__check"
-                              />
-                              <div className="rp-acc-card__text">
-                                <div className="rp-acc-card__title">{label}</div>
-                                <div className="rp-acc-card__sub">{resource}</div>
-                              </div>
-                              <span
-                                className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
-                                  }`}
-                              >
-                                {selectedCount} / {allPermsForRes.length}
-                              </span>
-                            </div>
+                        const isExpanded = expandedPermGroups.includes(resource);
 
-                            <div className="rp-acc-card__body">
+                        return (
+                          <Collapse
+                            key={resource}
+                            className="rp-acc-card rp-acc-collapse"
+                            activeKey={isExpanded ? [resource] : []}
+                            onChange={(keys) => {
+                              if (keys.includes(resource)) {
+                                setExpandedPermGroups(prev => [...prev, resource]);
+                              } else {
+                                setExpandedPermGroups(prev => prev.filter(r => r !== resource));
+                              }
+                            }}
+                            expandIcon={({ isActive }) => (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={allInGroup}
+                                    indeterminate={someInGroup}
+                                    onChange={() => toggleResource(allPermsForRes)}
+                                    disabled={!canUpdateRole}
+                                    className="rp-acc-card__check"
+                                  />
+                                </div>
+                                <span style={{ 
+                                  color: 'var(--text-slate-500)', 
+                                  fontSize: 10, 
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 16,
+                                  height: 16,
+                                  border: '1px solid var(--border-color, #e2e8f0)',
+                                  borderRadius: 4,
+                                  background: 'var(--bg-secondary, #f8fafc)'
+                                }}>
+                                  {isActive ? <MinusOutlined /> : <PlusOutlined />}
+                                </span>
+                              </div>
+                            )}
+                            items={[{
+                              key: resource,
+                              label: (
+                                <div className="rp-acc-card__text" style={{ marginLeft: 8 }}>
+                                  <div className="rp-acc-card__title">{label}</div>
+                                  <div className="rp-acc-card__sub">{resource}</div>
+                                </div>
+                              ),
+                              extra: (
+                                <span className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''}`}>
+                                  {selectedCount} / {allPermsForRes.length}
+                                </span>
+                              ),
+                              children: (
+                                <div className="rp-acc-card__body" style={{ padding: 0 }}>
                               {(resource === 'leave'
                                 ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : resource === 'performance'
@@ -1886,8 +1953,10 @@ export default function RolesPage() {
                                   </Row>
                                 </div>
                               ))}
-                            </div>
-                          </div>
+                                </div>
+                              )
+                            }]}
+                          />
                         );
                       })
                     )}

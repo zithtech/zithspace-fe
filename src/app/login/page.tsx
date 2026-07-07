@@ -48,6 +48,7 @@ function resolveHostInfo() {
     } catch (e) {}
   }
 
+
   if (isLocalhost) {
     const parts = hostname.split('.');
     if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
@@ -135,9 +136,15 @@ function LoginFormWithParams() {
           }
           
           const { rootHost } = resolveHostInfo();
+          // Strip 'app.' prefix when building tenant subdomain URLs:
+          // app.zukvo.com → zukvo.com, so redirect becomes company1.zukvo.com not company1.app.zukvo.com
+          const tenantBaseHost = rootHost.startsWith('app.')
+            ? rootHost.slice(4)
+            : rootHost;
+
           if (stateSubdomain) {
              const protocol = window.location.protocol;
-             window.location.href = `${protocol}//${stateSubdomain}.${rootHost}/login?token=${token}`;
+             window.location.href = `${protocol}//${stateSubdomain}.${tenantBaseHost}/login?token=${token}`;
              return;
           }
           
@@ -147,7 +154,7 @@ function LoginFormWithParams() {
             const subdomainParam = searchParams.get('subdomain');
             if (subdomainParam) {
               const protocol = window.location.protocol;
-              window.location.href = `${protocol}//${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+              window.location.href = `${protocol}//${subdomainParam}.${tenantBaseHost}/login?token=${response.accessToken}`;
               return;
             }
             await googleLogin(token);

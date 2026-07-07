@@ -78,6 +78,8 @@ export const usePermission = () => {
     ),
     canReadAttendanceDashboard: hasPermission(Permissions.ATTENDANCE_DASHBOARD_READ),
     canClockInOut: hasPermission(Permissions.ATTENDANCE_CLOCK_IN_OUT),
+    // My Hub self-service — granted via my_hub.attendance.read in RBAC
+    canReadMyHubAttendance: hasPermission(Permissions.MY_HUB_ATTENDANCE_READ),
 
     // ─── Leaves ─────────────────────────────────────────────────────
     canCreateLeave:  hasPermission(Permissions.LEAVE_CREATE),
@@ -86,6 +88,8 @@ export const usePermission = () => {
     canDeleteLeave:  hasPermission(Permissions.LEAVE_DELETE),
     canApproveLeave: hasPermission(Permissions.LEAVE_APPROVE),
     canManageLeaves: hasPermission(Permissions.LEAVE_MANAGE),
+    // My Hub self-service — granted via my_hub.apply_leave.read in RBAC
+    canReadMyHubApplyLeave: hasPermission(Permissions.MY_HUB_APPLY_LEAVE_READ),
     canReadLeaveDashboard: hasPermission(Permissions.LEAVE_DASHBOARD_READ),
     canReadLeaveType:      hasPermission(Permissions.LEAVE_TYPE_READ),
     canCreateLeaveType:    hasPermission(Permissions.LEAVE_TYPE_CREATE),
@@ -370,6 +374,8 @@ export const usePermission = () => {
     canUpdateEscalation: hasPermission(Permissions.ESCALATION_UPDATE),
     canDeleteEscalation: hasPermission(Permissions.ESCALATION_DELETE),
     canManageEscalations: hasPermission(Permissions.ESCALATION_MANAGE),
+    // My Hub self-service — granted via my_hub.escalation.read in RBAC
+    canReadMyHubEscalation: hasPermission(Permissions.MY_HUB_ESCALATION_READ),
 
     // ─── Pipeline ───────────────────────────────────────────────────
     canCreatePipeline:  hasPermission(Permissions.PIPELINE_CREATE),
@@ -403,6 +409,8 @@ export const usePermission = () => {
     canUpdatePerformanceReportSetting: hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_UPDATE),
     canReadGeneratedPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_GENERATED_READ),
     canReadMyPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_MY_READ),
+    // My Hub self-service — granted via my_hub.performance.read in RBAC
+    canReadMyHubPerformance: hasPermission(Permissions.MY_HUB_PERFORMANCE_READ),
 
     // ─── Job Openings ───────────────────────────────────────────────
     canCreateOpening: hasPermission(Permissions.OPENING_CREATE),

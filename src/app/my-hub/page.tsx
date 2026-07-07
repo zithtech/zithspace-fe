@@ -34,6 +34,15 @@ interface HubCard {
 // with the MY_HUB module items in navigationConfig.tsx.
 const HUB_CARDS: HubCard[] = [
   {
+    key: "profile",
+    label: "My Profile",
+    description: "Personal details & settings",
+    path: "/my-hub/profile",
+    icon: <CircleUser size={22} strokeWidth={1.75} />,
+    accent: "#ec4899",
+    anyPermission: [Permissions.MY_HUB_PROFILE_READ],
+  },
+  {
     key: "apply-leave",
     label: "Apply Leave",
     description: "Request time off & track balances",
@@ -77,15 +86,6 @@ const HUB_CARDS: HubCard[] = [
     icon: <Banknote size={22} strokeWidth={1.75} />,
     accent: "#0ea5e9",
     anyPermission: [Permissions.MY_HUB_PAYSLIPS_READ],
-  },
-  {
-    key: "profile",
-    label: "My Profile",
-    description: "Personal details & settings",
-    path: "/profile",
-    icon: <CircleUser size={22} strokeWidth={1.75} />,
-    accent: "#ec4899",
-    anyPermission: [Permissions.MY_HUB_PROFILE_READ],
   },
 ];
 

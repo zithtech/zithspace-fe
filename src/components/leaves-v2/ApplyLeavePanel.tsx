@@ -91,7 +91,7 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
 }
 
 export default function ApplyLeavePanel() {
-  const { canReadLeave, canCreateLeave, canUpdateLeave } = usePermission();
+  const { canReadLeave, canCreateLeave, canUpdateLeave, canReadMyHubApplyLeave } = usePermission();
   console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
@@ -138,8 +138,8 @@ export default function ApplyLeavePanel() {
   }, []);
 
   useEffect(() => {
-    if (canReadLeave) load();
-  }, [canReadLeave, load]);
+    if (canReadLeave || canReadMyHubApplyLeave) load();
+  }, [canReadLeave, canReadMyHubApplyLeave, load]);
 
   // A server rejection (e.g. overlap) is stale once the type/dates change.
   useEffect(() => { setSubmitError(null); }, [leaveTypeId, range, portion]);
@@ -453,7 +453,7 @@ export default function ApplyLeavePanel() {
     },
   ];
 
-  if (!canReadLeave) {
+  if (!canReadLeave && !canReadMyHubApplyLeave) {
     return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view leave.</div>;
   }
 
@@ -482,7 +482,7 @@ export default function ApplyLeavePanel() {
             <input className="lva-search" placeholder="Search leave type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Tooltip title="Refresh"><button type="button" className="lva-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
-          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
+          {(canCreateLeave || canReadMyHubApplyLeave) && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
         </div>
       </div>
 

@@ -183,6 +183,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
       },
       {
+        key: "/my-hub/profile",
+        label: "My Profile",
+        icon: I(CircleUser),
+        path: "/my-hub/profile",
+        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
+      },
+      {
         key: "/my-hub/apply-leave",
         label: "Apply Leave",
         icon: I(CalendarPlus),
@@ -218,13 +225,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Banknote),
         path: "/my-hub/payslips",
         requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
-      },
-      {
-        key: "/profile",
-        label: "My Profile",
-        icon: I(CircleUser),
-        path: "/profile",
-        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
       },
     ],
   },

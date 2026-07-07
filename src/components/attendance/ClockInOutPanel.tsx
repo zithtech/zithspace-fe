@@ -88,7 +88,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 export default function ClockInOutPanel() {
   const { user } = useAuth();
   const { socket } = useSocket();
-  const { canClockInOut, canReadAttendance } = usePermission();
+  const { canClockInOut, canReadAttendance, canReadMyHubAttendance } = usePermission();
   console.log("Forcing HMR reload for ClockInOutPanel");
 
   const [today, setToday] = useState<TodayStatus | null>(null);
@@ -147,12 +147,12 @@ export default function ClockInOutPanel() {
   }, [user?.id, tablePage, tablePageSize, monthStart, monthEnd]);
 
   useEffect(() => {
-    if (canClockInOut || canReadAttendance) loadTop();
-  }, [canClockInOut, canReadAttendance, loadTop]);
+    if (canClockInOut || canReadAttendance || canReadMyHubAttendance) loadTop();
+  }, [canClockInOut, canReadAttendance, canReadMyHubAttendance, loadTop]);
 
   useEffect(() => {
-    if (canClockInOut || canReadAttendance) loadMonth();
-  }, [canClockInOut, canReadAttendance, loadMonth]);
+    if (canClockInOut || canReadAttendance || canReadMyHubAttendance) loadMonth();
+  }, [canClockInOut, canReadAttendance, canReadMyHubAttendance, loadMonth]);
 
   const refresh = useCallback(() => {
     loadTop();
@@ -303,7 +303,7 @@ export default function ClockInOutPanel() {
     );
   };
 
-  if (!canClockInOut && !canReadAttendance) {
+  if (!canClockInOut && !canReadAttendance && !canReadMyHubAttendance) {
     return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view this page.</div>;
   }
 

@@ -47,15 +47,13 @@ import {
   CrownOutlined,
   AppstoreOutlined,
   SettingOutlined,
-  ApartmentOutlined,
-  RocketOutlined,
-  RiseOutlined,
   BankOutlined,
-  ApiOutlined,
   EllipsisOutlined,
   CloseOutlined,
   BarsOutlined,
   MenuOutlined,
+  RocketOutlined,
+  ApartmentOutlined
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -200,21 +198,21 @@ const MY_HUB_PAGE_BY_PERM: Record<string, string> = {
 
 /** Display order for the My Hub page sub-groups (mirrors the My Hub rail). */
 const MY_HUB_PAGE_ORDER = [
+  'My Profile',
   'Overview',
   'Apply Leave',
   'Attendance',
   'Escalations',
   'Performance Report',
   'My Payslips',
-  'My Profile',
 ];
 
-/** Access Control drawer — premium SaaS tab groups */
+/** Access Control drawer — tabs that mirror the app module navigation */
 interface AccessGroup {
   key: string;
   label: string;
   icon: React.ReactNode;
-  resources: string[] | null; // null for 'all' or 'others'
+  resources: string[] | null; // null = 'all' or 'others'
   accent: string;
 }
 
@@ -227,46 +225,46 @@ const ACCESS_GROUPS: AccessGroup[] = [
     accent: '#3b82f6',
   },
   {
-    key: 'execution',
-    label: 'Execution Suite',
-    icon: <RocketOutlined />,
-    resources: ['ticket', 'document', 'project', 'squad'],
-    accent: '#3b82f6',
-  },
-  {
-    key: 'workforce',
-    label: 'Workforce Ops',
-    icon: <TeamOutlined />,
-    resources: ['daily_update', 'time_tracking', 'performance', 'escalation'],
-    accent: '#10b981',
-  },
-  {
-    key: 'growth',
-    label: 'Growth Suite',
-    icon: <RiseOutlined />,
-    resources: ['lead', 'proposal', 'pipeline'],
-    accent: '#f59e0b',
-  },
-  {
-    key: 'organization',
-    label: 'Organization Suite',
-    icon: <ApartmentOutlined />,
-    resources: ['client', 'role', 'user', 'org'],
+    key: 'my_hub',
+    label: 'My Hub',
+    icon: <AppstoreOutlined />,
+    resources: ['my_hub'],
     accent: '#ec4899',
   },
   {
-    key: 'finance',
-    label: 'Finance Suite',
-    icon: <BankOutlined />,
-    resources: ['invoice', 'account', 'payroll', 'salary', 'reimbursement', 'vendor'],
-    accent: '#0ea5e9',
+    key: 'home',
+    label: 'Home',
+    icon: <AppstoreOutlined />,
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log'],
+    accent: '#3b82f6',
   },
   {
-    key: 'connect',
-    label: 'Connect',
-    icon: <ApiOutlined />,
-    resources: ['my_hub', 'dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
-    accent: '#6366f1',
+    key: 'work',
+    label: 'Work',
+    icon: <RocketOutlined />,
+    resources: ['project', 'ticket', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    accent: '#8b5cf6',
+  },
+  {
+    key: 'hrms',
+    label: 'HRMS',
+    icon: <TeamOutlined />,
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile'],
+    accent: '#10b981',
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    icon: <SettingOutlined />,
+    resources: ['client', 'settings', 'user', 'role', 'report', 'org'],
+    accent: '#f59e0b',
+  },
+  {
+    key: 'finance',
+    label: 'Finance',
+    icon: <BankOutlined />,
+    resources: ['invoice', 'account', 'reimbursement', 'payroll', 'salary', 'vendor'],
+    accent: '#0ea5e9',
   },
   {
     key: 'others',
@@ -1773,27 +1771,27 @@ export default function RolesPage() {
                             subGroups[subKey].push(p);
                           });
                         } else
-                        perms.forEach((p) => {
-                          const parts = p.name.split('.');
-                          let subKey = `${label} Core`;
-                          if (p.name === 'time_tracking.manage_time') {
-                            subKey = 'Team Module';
-                          } else if (parts.length > 2) {
-                            const subName = parts[1]
-                              .split('_')
-                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                              .join(' ');
-                            subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
-                          } else if (parts[0] !== resource) {
-                            const subName = parts[0]
-                              .split('_')
-                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                              .join(' ');
-                            subKey = `${subName} Module`;
-                          }
-                          if (!subGroups[subKey]) subGroups[subKey] = [];
-                          subGroups[subKey].push(p);
-                        });
+                          perms.forEach((p) => {
+                            const parts = p.name.split('.');
+                            let subKey = `${label} Core`;
+                            if (p.name === 'time_tracking.manage_time') {
+                              subKey = 'Team Module';
+                            } else if (parts.length > 2) {
+                              const subName = parts[1]
+                                .split('_')
+                                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                .join(' ');
+                              subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
+                            } else if (parts[0] !== resource) {
+                              const subName = parts[0]
+                                .split('_')
+                                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                .join(' ');
+                              subKey = `${subName} Module`;
+                            }
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
 
                         return (
                           <div key={resource} className="rp-acc-card">
@@ -1821,10 +1819,10 @@ export default function RolesPage() {
                               {(resource === 'leave'
                                 ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : resource === 'performance'
-                                ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : resource === 'my_hub'
-                                ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : Object.entries(subGroups)
+                                  ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                  : resource === 'my_hub'
+                                    ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                    : Object.entries(subGroups)
                               ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">
                                   <div className="rp-acc-subgroup__title">{subTitle}</div>

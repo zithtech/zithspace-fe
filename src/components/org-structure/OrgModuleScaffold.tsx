@@ -365,8 +365,8 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
         .omx-table .ant-table-tbody > tr.omx-row { cursor: pointer; }
         .omx-table .ant-table-tbody > tr.omx-row:hover > td { background: var(--bg-slate-50) !important; }
 
-        /* Grid (compact / minimized cards) — 3 per row */
-        .omx-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        /* Grid (compact / minimized cards) — 2 per row */
+        .omx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .omx-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .omx-card {
@@ -406,6 +406,14 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
         .omx-chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--bg-blue-50); color: #3b82f6; white-space: nowrap; }
         .omx-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
+        /* Table Overrides */
+        :global(.ant-table-thead > tr > th) {
+          border-radius: 0px !important;
+        }
+        :global(.ant-table-wrapper .ant-table-container) {
+          border-radius: 0px !important;
+        }
+
         /* Empty */
         .omx-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
         .omx-empty-orb { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: var(--bg-blue-50); color: #3b82f6; margin-bottom: 16px; }
@@ -431,7 +439,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
         .omx-pagesize { margin-left: 5px; }
         .omx-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
-        @media (max-width: 1100px) { .omx-stats { grid-template-columns: repeat(2, 1fr); } .omx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 1100px) { .omx-stats { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 820px) { .omx-topbar-meta { display: none; } }
         @media (max-width: 620px) {
           .omx-grid { grid-template-columns: 1fr; }

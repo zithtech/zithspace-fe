@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Switch, Select, InputNumber, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -264,6 +265,13 @@ export default function StateStatutoryPanel() {
     <div className="pvss">
       <div className="pvss-header">
         <div className="pvss-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvss-header-icon"><ProfileOutlined /></div>
           <div>
             <div className="pvss-header-title">Professional Tax &amp; LWF</div>
@@ -474,6 +482,40 @@ export default function StateStatutoryPanel() {
         .pvss-slabs { display: flex; flex-direction: column; gap: 6px; }
         .pvss-slab-row { display: grid; grid-template-columns: 1fr 1fr 1fr 32px; gap: 8px; align-items: center; }
         .pvss-drawer-foot { padding: 14px 22px; border-top: 1px solid var(--border-color); background: var(--bg-pure-white); display: flex; justify-content: space-between; align-items: center; position: sticky; bottom: 0; }
+
+        @media (max-width: 900px) {
+          .pvss-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvss-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvss-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+          .pvss-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+        }
+        @media (max-width: 500px) {
+          .pvss-add-btn {
+            width: 100%;
+          }
+          .pvss-tabs {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .pvss-tab {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

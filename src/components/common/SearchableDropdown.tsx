@@ -191,7 +191,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         {!hideAvatar && (
           <div
             className="sd-option-avatar"
-            style={opt.badge ? undefined : {
+            style={opt.badge ? {
+              background: 'transparent',
+              border: 'none',
+              width: 'auto',
+              height: 'auto',
+              padding: 0,
+            } : {
               backgroundColor: opt.avatarUrl ? 'transparent' : (avatarColor || avatarColorFor(opt.value || opt.label)),
               color: opt.avatarUrl ? undefined : '#fff',
               borderColor: opt.avatarUrl ? undefined : 'transparent',

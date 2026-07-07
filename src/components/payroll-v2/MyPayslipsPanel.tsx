@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Table, Tag, message, Spin, Empty, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -49,6 +50,13 @@ export default function MyPayslipsPanel() {
     <div className="mps">
       <div className="mps-header">
         <div className="mps-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="mps-header-icon"><FileTextOutlined /></div>
           <div>
             <div className="mps-header-title">My Payslips</div>
@@ -101,6 +109,26 @@ export default function MyPayslipsPanel() {
         .mps-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 10px 12px !important; }
         .mps-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .mps-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+
+        .mps-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        @media (max-width: 900px) {
+          .mps-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+        }
+        @media (max-width: 600px) {
+          .mps-hero {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+          }
+          .mps-hero .ant-btn {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );

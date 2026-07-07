@@ -574,6 +574,7 @@ export default function ProfilePage() {
                 title="Change Password"
                 subtitle="Choose a strong, unique password"
               >
+
                 <Form
                   form={passwordForm}
                   layout="vertical"

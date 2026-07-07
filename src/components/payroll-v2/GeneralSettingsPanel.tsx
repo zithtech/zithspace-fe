@@ -11,6 +11,7 @@ import {
   Calculator,
   CircleSlash,
   Coins,
+  Menu,
 } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
@@ -139,6 +140,13 @@ export default function GeneralSettingsPanel() {
     <div className="pv-page">
       {/* ============================ HEADER ============================ */}
       <div className="pv-header">
+        <button
+          type="button"
+          className="pv-mobile-menu-btn"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+        >
+          <Menu size={20} />
+        </button>
         <div className="pv-head-chip" style={{ background: TINT.blue, color: PALETTE.blue }}>
           <SlidersHorizontal size={20} />
         </div>

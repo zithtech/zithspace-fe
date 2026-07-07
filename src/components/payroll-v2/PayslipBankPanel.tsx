@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Input, Switch, Select, ColorPicker, Drawer, Upload, message, Spin } from 'antd';
-import { FileCog, Save, RotateCcw, Palette, ListChecks, Landmark, Banknote, LayoutTemplate, Check, Eye, EyeOff, Building2, UserRound, ImageUp, Trash2 } from 'lucide-react';
+import { FileCog, Save, RotateCcw, Palette, ListChecks, Landmark, Banknote, LayoutTemplate, Check, Eye, EyeOff, Building2, UserRound, ImageUp, Trash2, Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
   PayslipTemplate, BankSettings, UpdatePayslipTemplateInput, UpdateBankSettingsInput, PaymentMode, BankFileFormat, PayslipTemplateStyle,
@@ -229,10 +229,19 @@ export default function PayslipBankPanel() {
   return (
     <div className="pvpb-page">
       <div className="pvpb-header">
-        <div className="pvpb-head-chip" style={{ background: TINT.pink, color: PALETTE.pink }}><FileCog size={20} /></div>
-        <div className="pvpb-head-text">
-          <div className="pvpb-head-title">Payslip &amp; Bank</div>
-          <div className="pvpb-head-sub">Payslip appearance and salary-disbursement settings</div>
+        <div className="pvpb-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
+          <div className="pvpb-head-chip" style={{ background: TINT.pink, color: PALETTE.pink }}><FileCog size={20} /></div>
+          <div className="pvpb-head-text">
+            <div className="pvpb-head-title">Payslip &amp; Bank</div>
+            <div className="pvpb-head-sub">Payslip appearance and salary-disbursement settings</div>
+          </div>
         </div>
         <div className="pvpb-head-actions">
           <Button icon={<RotateCcw size={15} />} onClick={reset} disabled={!dirty || saving}>Reset</Button>
@@ -522,6 +531,34 @@ export default function PayslipBankPanel() {
         .pvpb-tg-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }
         .pvpb-tg-desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 1px; }
         .pvpb-page .ant-input, .pvpb-page .ant-input-affix-wrapper, .pvpb-page .ant-select-selector { border-radius: 6px !important; }
+
+        .pvpb-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        @media (max-width: 900px) {
+          .pvpb-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvpb-head-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvpb-head-actions > * {
+            flex: 1;
+            min-width: 120px;
+          }
+        }
+        @media (max-width: 600px) {
+          .pvpb-tabs {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .pvpb-tab {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

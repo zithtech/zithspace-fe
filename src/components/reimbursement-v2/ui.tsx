@@ -319,7 +319,7 @@ export function RmbStyles() {
       .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .rvp > .ant-tabs > .ant-tabs-content-holder,
       .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
-      .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+      .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
         display: flex; flex-direction: column; flex: 1; min-height: 0;
       }
       .rvp-table-wrap {

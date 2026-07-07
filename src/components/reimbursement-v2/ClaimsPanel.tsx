@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, DatePicker, Tooltip,
-  message, Upload, Descriptions, Divider, Empty, Checkbox,
+  message, notification, Upload, Descriptions, Divider, Empty, Checkbox, Modal,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -44,6 +44,7 @@ export default function ClaimsPanel() {
   }>>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [multiCurrency, setMultiCurrency] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
 
   const catById = useCallback((id: string) => cats.find((c) => c.id === id), [cats]);
   const selectedCatId = Form.useWatch('categoryId', itemForm);
@@ -137,6 +138,23 @@ export default function ClaimsPanel() {
     let v: any;
     try { v = await headerForm.validateFields(); } catch { return; }
     if (submitAfter && newItems.length === 0) { message.warning('Add at least one item to submit'); return; }
+
+    // Validate limits on both Save Draft and Save & Submit
+    try {
+      await ReimbursementV2Service.validateClaim({
+          title: v.title, currency: v.currency, exchangeRate: v.exchangeRate ?? 1, advanceId: v.advanceId ?? null,
+          items: newItems.map((li) => ({
+            categoryId: li.categoryId, expenseDate: li.expenseDate,
+            amount: li.amount, distance: li.distance,
+            merchant: li.merchant, billNo: li.billNo, description: li.description,
+          })),
+        });
+      } catch (e: any) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to validate claim';
+        setLimitError(msg);
+        return;
+      }
+
     setBusy(true);
     try {
       const detail = await ReimbursementV2Service.createClaim({
@@ -147,18 +165,30 @@ export default function ClaimsPanel() {
           merchant: li.merchant, billNo: li.billNo, description: li.description,
         })),
       });
-      if (newFiles.length) await ReimbursementV2Service.uploadReceipts(detail.id, newFiles); // claim-level
-      if (submitAfter) {
-        const done = await ReimbursementV2Service.submitClaim(detail.id);
-        message.success(done.status === 'approved' ? `Auto-approved (${done.claimNo})` : `Submitted ${done.claimNo}`);
-      } else {
-        message.success(`Draft ${detail.claimNo} saved`);
+      try {
+        if (newFiles.length) await ReimbursementV2Service.uploadReceipts(detail.id, newFiles); // claim-level
+        if (submitAfter) {
+          const done = await ReimbursementV2Service.submitClaim(detail.id);
+          message.success(done.status === 'approved' ? `Auto-approved (${done.claimNo})` : `Submitted ${done.claimNo}`);
+        } else {
+          message.success(`Draft ${detail.claimNo} saved`);
+        }
+      } catch (err: any) {
+        if (submitAfter) {
+          await ReimbursementV2Service.deleteClaim(detail.id).catch(() => {});
+        }
+        throw err;
       }
       setDrawerOpen(false);
       setNewItems([]); setNewFiles([]);
       await load();
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Failed to save claim');
+      const msg = e?.response?.data?.error || 'Failed to save claim';
+      if (msg.toLowerCase().includes('exceeds')) {
+        Modal.error({ title: 'Limit Exceeded', content: msg, zIndex: 2000 });
+      } else {
+        message.error(msg);
+      }
     } finally { setBusy(false); }
   };
 
@@ -239,6 +269,8 @@ export default function ClaimsPanel() {
 
   const submitClaim = async () => {
     if (!current) return;
+
+
     setBusy(true);
     try {
       const detail = await ReimbursementV2Service.submitClaim(current.id);
@@ -246,7 +278,8 @@ export default function ClaimsPanel() {
       setDrawerOpen(false);
       await load();
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Failed to submit');
+      const msg = e?.response?.data?.error || e?.message || 'Failed to submit';
+      setLimitError(msg);
     } finally { setBusy(false); }
   };
 
@@ -553,6 +586,84 @@ export default function ClaimsPanel() {
         )}
         </div>
       </Drawer>
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.2)'
+            }}>
+              <CloseCircleOutlined style={{ fontSize: 16, color: '#ef4444' }} />
+            </div>
+            <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+              Policy Limit Exceeded
+            </span>
+          </div>
+        }
+        open={!!limitError}
+        onOk={() => setLimitError(null)}
+        onCancel={() => setLimitError(null)}
+        zIndex={2000}
+        closeIcon={<CloseCircleOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16, transition: 'color 0.2s' }} />}
+        styles={{
+          mask: { backdropFilter: 'blur(8px)', background: 'var(--modal-mask-bg, rgba(15, 23, 42, 0.6))' },
+          content: { 
+            background: 'var(--bg-pure-white, #FFFFFF)',
+            border: '1px solid var(--border-color, #e2e8f0)',
+            borderRadius: 20,
+            padding: '24px',
+            boxShadow: 'var(--pb-elev-3, 0 25px 50px -12px rgba(0, 0, 0, 0.25))'
+          },
+          header: { 
+            background: 'transparent',
+            borderBottom: '1px solid var(--border-color, #e2e8f0)',
+            paddingBottom: 16,
+            marginBottom: 20
+          },
+          body: { padding: 0 },
+          footer: { borderTop: 'none', background: 'transparent', marginTop: 28 }
+        }}
+        footer={[
+          <Button 
+            key="ok" 
+            type="primary" 
+            onClick={() => setLimitError(null)}
+            style={{ 
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+              border: 'none',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 14,
+              padding: '0 28px',
+              height: 42,
+              boxShadow: '0 4px 14px -2px rgba(239, 68, 68, 0.4)'
+            }}
+          >
+            Acknowledge & Close
+          </Button>
+        ]}
+      >
+        <div style={{ 
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          padding: '16px 20px', 
+          borderRadius: 12,
+          color: 'var(--text-slate-700, #334155)',
+          fontSize: 14,
+          lineHeight: 1.6,
+          fontWeight: 400,
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{ 
+            position: 'absolute', top: 0, left: 0, width: 4, height: '100%', 
+            background: 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)' 
+          }} />
+          {limitError}
+        </div>
+      </Modal>
       <RmbStyles />
       <style jsx global>{`
         .rvp-line-item {

@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Spin, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -350,6 +351,13 @@ export default function PayRunPanel() {
     <div className="pvr">
       <div className="pvr-header">
         <div className="pvr-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvr-header-icon"><PlayCircleOutlined /></div>
           <div>
             <div className="pvr-header-title">Run Payroll</div>
@@ -718,6 +726,37 @@ export default function PayRunPanel() {
         .pvr-bd-full { font-size: 10.5px; color: var(--text-slate-400); }
         .pvr-bd-amt { font-size: 12.5px; font-weight: 700; min-width: 84px; text-align: right; }
         .pvr-bd-lop { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: ${PALETTE.amber}; }
+
+        .pvr-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        @media (max-width: 900px) {
+          .pvr-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvr-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvr-header-actions > * {
+            flex: 1;
+            min-width: 120px;
+          }
+        }
+        @media (max-width: 500px) {
+          .pvr-summary {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvr-sum {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+        }
       `}</style>
     </div>
   );

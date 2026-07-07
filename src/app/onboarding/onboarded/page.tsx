@@ -8,7 +8,7 @@ import {
   Button,
   message,
   Switch,
-  Dropdown,
+  Popover,
   Tooltip,
   Select,
   Pagination,
@@ -52,6 +52,75 @@ const TINT = {
 } as const;
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+/* ---------------- ISOLATED ACTION CELL ---------------- */
+const ActionCell = ({ record, canUpdate, canDelete, onDelete, router, menuLabelHelper }: any) => {
+  const [open, setOpen] = useState(false);
+
+  const actionContent = (
+    <div className="ant-dropdown-menu">
+      <button
+        className="ant-dropdown-menu-item"
+        style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+        onClick={() => {
+          setOpen(false);
+          router.push(`/onboarding/onboarded/${record.id}`);
+        }}
+      >
+        {menuLabelHelper("View Details", "Open full employee profile", <Eye size={14} />, "#64748b", "rgba(100,116,139,0.10)")}
+      </button>
+      {canUpdate && (
+        <button
+          className="ant-dropdown-menu-item"
+          style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+          onClick={() => {
+            setOpen(false);
+            router.push(`/onboarding/create?id=${record.id}`);
+          }}
+        >
+          {menuLabelHelper("Edit Info", "Modify employee information", <Edit2 size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
+        </button>
+      )}
+      {canDelete && (
+        <>
+          <div className="ant-dropdown-menu-item-divider" />
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={14} />}
+            title="Delete this record?"
+            description="This action cannot be undone."
+            confirmText="Delete"
+            placement="bottomRight"
+            onConfirm={() => {
+              setOpen(false);
+              onDelete(record.id);
+            }}
+          >
+            <button 
+              className="ant-dropdown-menu-item ant-dropdown-menu-item-danger" 
+              style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+            >
+              {menuLabelHelper("Delete Record", "Permanently remove this record", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)")}
+            </button>
+          </ConfirmDialog>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <Popover
+      content={actionContent}
+      trigger="click"
+      placement="bottomRight"
+      overlayClassName="pp-action-pop"
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <Button type="text" size="small" icon={<MoreVertical size={16} style={{ color: PALETTE.grey }} />} />
+    </Popover>
+  );
+};
 
 /* ---------------- MAIN COMPONENT ---------------- */
 
@@ -215,6 +284,19 @@ const Onboarded = () => {
     if (tablePage > pageCount) setTablePage(pageCount);
   }, [pageCount, tablePage]);
 
+  // ✅ Premium Menu Label Helper
+  const onbMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, bg: string) => (
+    <div className="pp-menu-item">
+      <div className="pp-menu-ic" style={{ color, background: bg }}>
+        {icon}
+      </div>
+      <div className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </div>
+    </div>
+  );
+
   // ✅ Table Columns
   const columns: ColumnsType<any> = useMemo(
     () => [
@@ -302,57 +384,15 @@ const Onboarded = () => {
         width: 60,
         align: "right" as const,
         render: (_: any, record: any) => {
-          const items: any[] = [
-            {
-              key: "view",
-              label: "View Details",
-              icon: <Eye size={14} />,
-              onClick: () =>
-                router.push(`/onboarding/onboarded/${record.id}`),
-            },
-          ];
-          if (canUpdateOnboarding) {
-            items.push({
-              key: "edit",
-              label: "Edit Info",
-              icon: <Edit2 size={14} />,
-              onClick: () =>
-                router.push(`/onboarding/create?id=${record.id}`),
-            });
-          }
-          if (canDeleteOnboarding) {
-            items.push({ type: "divider" as const });
-            items.push({
-              key: "delete",
-              danger: true,
-              icon: <Trash2 size={14} />,
-              label: (
-                <ConfirmDialog
-                  tone="danger"
-                  icon={<Trash2 size={14} />}
-                  title="Delete this record?"
-                  description="This action cannot be undone."
-                  confirmText="Delete"
-                  placement="bottomRight"
-                  onConfirm={() => handleDelete(record.id)}
-                >
-                  <span style={{ display: "block", width: "100%" }}>
-                    Delete Record
-                  </span>
-                </ConfirmDialog>
-              ),
-            });
-          }
           return (
-            <Dropdown menu={{ items }} trigger={["click"]}>
-              <Button
-                type="text"
-                size="small"
-                icon={
-                  <MoreVertical size={16} style={{ color: PALETTE.grey }} />
-                }
-              />
-            </Dropdown>
+            <ActionCell 
+              record={record} 
+              canUpdate={canUpdateOnboarding} 
+              canDelete={canDeleteOnboarding} 
+              onDelete={handleDelete} 
+              router={router} 
+              menuLabelHelper={onbMenuLabel}
+            />
           );
         },
       },
@@ -624,6 +664,46 @@ const Onboarded = () => {
         [data-theme='dark'] .bd2-pagination-meta b {
           color: #f1f5f9 !important;
         }
+
+        /* Premium action dropdown — matches Proposal page */
+        .pp-action-pop .ant-popover-inner {
+          padding: 0 !important;
+          border-radius: 0px !important;
+          border: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
+        }
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0px !important; width: 220px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0px !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+          background: #0B0F1A !important; border-color: #1E293B !important;
+        }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+        [data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+        [data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
       `}</style>
     </div>
   );

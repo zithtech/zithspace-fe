@@ -1,5 +1,6 @@
 'use client';
 
+import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Table, Tag, Drawer, Input, InputNumber, Select, message, Tooltip, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -278,6 +279,13 @@ export default function EmployeePaySetupPanel() {
     <div className="pvep">
       <div className="pvep-header">
         <div className="pvep-header-about">
+          <button
+            type="button"
+            className="pv-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+          >
+            <Menu size={20} />
+          </button>
           <div className="pvep-header-icon"><TeamOutlined /></div>
           <div>
             <div className="pvep-header-title">Employee Pay Setup</div>
@@ -515,6 +523,30 @@ export default function EmployeePaySetupPanel() {
         .pvep-totals strong { font-size: 15px; font-weight: 800; color: var(--text-slate-900); }
         .pvep-warn { margin-left: auto; color: ${PALETTE.amber}; font-size: 12px; font-weight: 700; }
         .pvep-drawer-foot { padding: 14px 22px; border-top: 1px solid var(--border-color); background: var(--bg-pure-white); display: flex; justify-content: space-between; align-items: center; position: sticky; bottom: 0; }
+
+        @media (max-width: 900px) {
+          .pvep-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .pvep-header-actions {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .pvep-search-wrap {
+            flex: 1;
+            min-width: 200px;
+          }
+          .pvep-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 500px) {
+          .pvep-stats {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
   );

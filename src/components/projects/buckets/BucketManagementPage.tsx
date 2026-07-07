@@ -334,12 +334,13 @@ export default function BucketManagementPage() {
 
   // Unique owners across all buckets, for the Owner dropdown
   const ownerOptions = useMemo<SearchableDropdownOption[]>(() => {
-    const seen = new Map<string, { name: string; email?: string }>();
+    const seen = new Map<string, { name: string; email?: string; avatarUrl?: string }>();
     allBuckets.forEach((b) => {
       if (b.createdBy?.id && !seen.has(b.createdBy.id)) {
         seen.set(b.createdBy.id, {
           name: b.createdBy.name,
           email: b.createdBy.workEmail,
+          avatarUrl: b.createdBy.avatarUrl,
         });
       }
     });
@@ -349,6 +350,7 @@ export default function BucketManagementPage() {
       description: o.email,
       badge: (
         <Avatar
+          src={o.avatarUrl || undefined}
           size={20}
           style={{
             background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",

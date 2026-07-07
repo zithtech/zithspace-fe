@@ -87,32 +87,41 @@ export async function downloadReportPdf(sprintIdOrEl: string | HTMLElement, elOr
     }
   } else {
     // Fallback for non-sprint reports (html2pdf)
-    const clone = el.cloneNode(true) as HTMLElement;
-    el.parentNode?.appendChild(clone);
+    const { clone, wrapper } = isolateClone(el);
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       await (html2pdf() as any).set(baseOptions(clone, fname)).from(clone).save();
     } finally {
-      clone.remove();
+      wrapper.remove();
     }
   }
 }
+function isolateClone(el: HTMLElement): { clone: HTMLElement; wrapper: HTMLElement } {
+  const clone = el.cloneNode(true) as HTMLElement;
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-10000px";
+  wrapper.style.top = "0";
+  wrapper.style.width = "794px";
+  wrapper.style.pointerEvents = "none";
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+  return { clone, wrapper };
+}
 
 export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
-  const clone = el.cloneNode(true) as HTMLElement;
-  el.parentNode?.appendChild(clone);
+  const { clone, wrapper } = isolateClone(el);
   try {
     const html2pdf = (await import("html2pdf.js")).default;
     const worker = (html2pdf() as any).set(baseOptions(clone, filename)).from(clone);
     return await worker.outputPdf("blob");
   } finally {
-    clone.remove();
+    wrapper.remove();
   }
 }
 
 export async function downloadReportDocx(el: HTMLElement, filename: string): Promise<void> {
-  const clone = el.cloneNode(true) as HTMLElement;
-  el.parentNode?.appendChild(clone);
+  const { clone, wrapper } = isolateClone(el);
 
   try {
     const html2pdf = (await import("html2pdf.js")).default;

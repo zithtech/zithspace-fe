@@ -23,7 +23,7 @@ import OverviewSection, { ModuleWeight } from './OverviewSection';
 import EmptyState from './EmptyState';
 import ReportPrintable from './ReportPrintable';
 import { gatherReportData, ReportModel } from './reportPdfData';
-import { downloadReportPdf, downloadReportDocx, reportToPdfBlob } from '@/app/tickets/reports/[sprintId]/reportExport';
+import { PerformanceReportExportRunner } from './PerformanceReportExportRunner';
 import { usePermission } from '@/hooks/usePermission';
 import PerformanceReportService, { ReportTicket, ReportMember } from '@/services/performanceReportService';
 import { ticketPoints, POINT_RULES, MISSING_DATA_PENALTY } from './ticketPoints';
@@ -98,11 +98,9 @@ export default function ReportsPanel() {
 
   // ── PDF / Word export ──────────────────────────────────────────────────────
   const { canUpdatePerformanceReportSetting } = usePermission();
-  const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState<null | 'pdf' | 'word' | 'save'>(null);
   const [printModel, setPrintModel] = useState<ReportModel | null>(null);
   const [printAvatar, setPrintAvatar] = useState<string | null>(null);
-  const pendingFormat = useRef<'pdf' | 'word' | 'save' | null>(null);
 
   // Convert the avatar to a data URL — html2canvas can't capture a CORS-blocked
   // <img>, so we inline it (falls back to initials if the fetch is blocked too).
@@ -147,67 +145,13 @@ export default function ReportsPanel() {
         }),
         resolveAvatar(selected.member.avatarUrl),
       ]);
-      pendingFormat.current = format;
       setPrintAvatar(avatar);
-      setPrintModel(model); // renders the off-screen printable, then the effect exports
+      setPrintModel(model);
     } catch (err: any) {
       message.error(err?.message || 'Failed to prepare the report');
       setDownloading(null);
     }
   };
-
-  // Once the printable is rendered with data, capture it to PDF / Word.
-  useEffect(() => {
-    if (!printModel || !pendingFormat.current || !selected || !applied) return;
-    const fmt = pendingFormat.current;
-    (async () => {
-      try {
-        await new Promise((r) => setTimeout(r, 300)); // let layout + avatar settle
-        const el = printRef.current;
-        if (!el) throw new Error('nothing to export');
-        const base = `${selected.member.name || 'report'}-${applied.range[0].format('YYYY-MM')}`
-          .replace(/\s+/g, '_')
-          .toLowerCase();
-        if (fmt === 'pdf') {
-          await downloadReportPdf(el, `${base}.pdf`);
-        } else if (fmt === 'word') {
-          await downloadReportDocx(el, `${base}.docx`);
-        } else if (fmt === 'save' && printModel) {
-          const blob = await reportToPdfBlob(el, `${base}.pdf`);
-          const pdfBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          await PerformanceReportService.saveGeneratedReport({
-            userId: applied.memberId!,
-            periodKey: applied.range[0].format('YYYY-MM'),
-            periodStart: applied.range[0].format('YYYY-MM-DD'),
-            periodEnd: applied.range[1].format('YYYY-MM-DD'),
-            scores: {
-              overall: printModel.overall,
-              tickets: printModel.tickets.score,
-              timeTracking: printModel.timeTracking.score,
-              dailyUpdates: printModel.dailyUpdates.score,
-              attendance: printModel.attendance.score,
-              leaves: printModel.leaves.score,
-            },
-            summary: { stages: printModel.stages },
-            pdfBase64,
-          });
-          message.success('Saved to Generated Reports');
-        }
-      } catch (err: any) {
-        message.error(err?.response?.data?.error || err?.message || 'Export failed');
-      } finally {
-        pendingFormat.current = null;
-        setPrintModel(null);
-        setDownloading(null);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [printModel]);
 
   // Load the tenant's module settings once (status caps + BOD/EOD toggle).
   useEffect(() => {
@@ -436,17 +380,19 @@ export default function ReportsPanel() {
       </div>
 
       {/* Off-screen printable used only for the PDF / Word capture. */}
-      {printModel && selected && applied && (
-        <div style={{ position: 'fixed', left: -99999, top: 0, zIndex: -1 }} aria-hidden>
-          <ReportPrintable
-            ref={printRef}
-            member={selected.member}
-            range={applied.range}
-            model={printModel}
-            statusMarks={statusMarks}
-            avatarDataUrl={printAvatar}
-          />
-        </div>
+      {printModel && downloading && applied && (
+        <PerformanceReportExportRunner
+          format={downloading}
+          model={printModel}
+          member={selected.member}
+          range={applied.range}
+          statusMarks={statusMarks}
+          avatarDataUrl={printAvatar}
+          onDone={(ok) => {
+            setDownloading(null);
+            setPrintModel(null);
+          }}
+        />
       )}
 
       {/* ── Results ─────────────────────────────────────────────────────────── */}

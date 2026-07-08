@@ -223,19 +223,19 @@ export default function PayRunPanel() {
     finally { setSavingItem(null); }
   };
 
-  const syncLop = async () => {
+  const syncExternal = async () => {
     if (!detail) return;
     setSyncing(true);
     try {
-      const res = await PayrollV2Service.syncRunLop(detail.id);
+      const res = await PayrollV2Service.syncExternal(detail.id);
       setDetail(res.detail);
       setLopEdits({});
       message.success(res.syncedEmployees > 0
-        ? `Synced ${res.totalLopDays} LOP day(s) across ${res.syncedEmployees} employee(s)`
-        : 'No approved unpaid leave found for this month');
+        ? `Synced external data across ${res.syncedEmployees} employee(s)`
+        : 'No external data (unpaid leave/advances) found for this month');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to sync LOP');
+      message.error(err?.response?.data?.error || 'Failed to sync external data');
     } finally { setSyncing(false); }
   };
 
@@ -474,8 +474,8 @@ export default function PayRunPanel() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {detail && isDraft && canProcessPayrollRun && (
-                <Tooltip title="Pull approved unpaid-leave days from Leaves for this month">
-                  <Button icon={<SyncOutlined spin={syncing} />} loading={syncing} onClick={syncLop}>Sync LOP</Button>
+                <Tooltip title="Pull approved unpaid-leave days and paid advances from external modules for this month">
+                  <Button icon={<SyncOutlined spin={syncing} />} loading={syncing} onClick={syncExternal}>Sync Data</Button>
                 </Tooltip>
               )}
               {detail && isDraft && canProcessPayrollRun && (

@@ -40,7 +40,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor, avatarColorFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from '@/components/common/DrawerSection';
 import { AttendanceService, Attendance } from '@/services/attendanceService';
@@ -372,7 +372,8 @@ export default function ManageAttendancePanel() {
     let values: any;
     try {
       values = await form.validateFields();
-    } catch {
+    } catch (error) {
+      console.error("Validation failed:", error);
       return;
     }
     setSaving(true);
@@ -385,14 +386,14 @@ export default function ManageAttendancePanel() {
       // session; a break row attaches its type/reason to the preceding work
       // session (the gap to the next session IS the break duration).
       const rows = (values.timeline || [])
-        .filter((r: any) => r && r.start && r.end)
-        .map((r: any) => ({ ...r, s: atDate(r.start), e: atDate(r.end) }))
+        .filter((r: any) => r && r.start)
+        .map((r: any) => ({ ...r, s: atDate(r.start), e: r.end ? atDate(r.end) : null }))
         .sort((a: any, b: any) => a.s.valueOf() - b.s.valueOf());
 
-      const sessions: { clockIn: string; clockOut: string; breakType: string | null; breakReason: string | null }[] = [];
+      const sessions: { clockIn: string; clockOut: string | null; breakType: string | null; breakReason: string | null }[] = [];
       for (const r of rows) {
         if (r.type === 'work') {
-          sessions.push({ clockIn: r.s.toISOString(), clockOut: r.e.toISOString(), breakType: null, breakReason: null });
+          sessions.push({ clockIn: r.s.toISOString(), clockOut: r.e ? r.e.toISOString() : null, breakType: null, breakReason: null });
         } else if (sessions.length) {
           sessions[sessions.length - 1].breakType = r.type;
           sessions[sessions.length - 1].breakReason = r.reason || null;
@@ -475,8 +476,17 @@ export default function ManageAttendancePanel() {
       key: 'member',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar size={32} src={r.member?.avatarUrl} style={{ backgroundColor: PALETTE.blue, borderRadius: 8 }}>
-            {r.member?.name?.charAt(0)}
+          <Avatar 
+            size={32} 
+            src={r.member?.avatarUrl} 
+            style={{ 
+              backgroundColor: r.member?.avatarUrl ? 'transparent' : avatarColorFor(r.member?.id || r.member?.name || ''), 
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600
+            }}
+          >
+            {initialsFor(r.member?.name || '')}
           </Avatar>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{r.member?.name || '—'}</div>
@@ -713,7 +723,7 @@ export default function ManageAttendancePanel() {
           itemNoun="members"
           value={memberFilter}
           onChange={(v) => setMemberFilter((v as string) ?? undefined)}
-          options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
+          options={members.map((m) => ({ value: m.id, label: m.name || '—', avatarUrl: m.avatarUrl }))}
           style={{ width: 170 }}
           width={240}
         />
@@ -743,7 +753,7 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
-      <div className="att-table-wrap">
+      <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <Table
           rowKey="id"
           size="small"
@@ -752,6 +762,7 @@ export default function ManageAttendancePanel() {
           columns={columns}
           dataSource={rows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'att-row' })}
           expandable={{
             expandedRowRender: renderSessions,
@@ -969,9 +980,11 @@ export default function ManageAttendancePanel() {
                                 const accent = isWork ? PALETTE.blue : bt?.color || PALETTE.grey;
                                 const start = form.getFieldValue(['timeline', field.name, 'start']);
                                 const end = form.getFieldValue(['timeline', field.name, 'end']);
+                                const normStart = start ? dayjs().hour(dayjs(start).hour()).minute(dayjs(start).minute()).second(0).millisecond(0) : null;
+                                const normEnd = end ? dayjs().hour(dayjs(end).hour()).minute(dayjs(end).minute()).second(0).millisecond(0) : null;
                                 const dur =
-                                  start && end && dayjs(end).isAfter(dayjs(start))
-                                    ? dayjs(end).diff(dayjs(start), 'minute')
+                                  normStart && normEnd && normEnd.isAfter(normStart)
+                                    ? normEnd.diff(normStart, 'minute')
                                     : 0;
                                 const needReason = REASON_TYPES.has(type);
                                 return (
@@ -1041,7 +1054,6 @@ export default function ManageAttendancePanel() {
                                           {...field}
                                           key="type"
                                           name={[field.name, 'type']}
-                                          style={{ marginBottom: 0 }}
                                           rules={[{ required: true, message: 'Type' }]}
                                         >
                                           <Select size="large" options={INTERVAL_TYPE_OPTIONS} placeholder="Type" />
@@ -1052,10 +1064,9 @@ export default function ManageAttendancePanel() {
                                           {...field}
                                           key="start"
                                           name={[field.name, 'start']}
-                                          style={{ marginBottom: 0 }}
                                           rules={[{ required: true, message: 'Start' }]}
                                         >
-                                          <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
+                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
                                         </Form.Item>
                                       </Col>
                                       <Col span={7}>
@@ -1063,19 +1074,20 @@ export default function ManageAttendancePanel() {
                                           {...field}
                                           key="end"
                                           name={[field.name, 'end']}
-                                          style={{ marginBottom: 0 }}
                                           rules={[
-                                            { required: true, message: 'End' },
                                             ({ getFieldValue }) => ({
                                               validator(_, value) {
                                                 const s = getFieldValue(['timeline', field.name, 'start']);
-                                                if (!value || !s || value.isAfter(s)) return Promise.resolve();
+                                                if (!value || !s) return Promise.resolve();
+                                                const normS = dayjs().hour(dayjs(s).hour()).minute(dayjs(s).minute()).second(0).millisecond(0);
+                                                const normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
+                                                if (normE.isAfter(normS)) return Promise.resolve();
                                                 return Promise.reject(new Error('After start'));
                                               },
                                             }),
                                           ]}
                                         >
-                                          <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
+                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
                                         </Form.Item>
                                       </Col>
                                     </Row>
@@ -1250,8 +1262,8 @@ export default function ManageAttendancePanel() {
           <div style={{ marginBottom: 14 }}>
             {fieldLabel('Resume work from')}
             <TimePicker
-              format="HH:mm"
-              size="large"
+              format="h:mm a"
+              use12Hours
               value={reopenTime}
               onChange={(t) => setReopenTime(t)}
               needConfirm={false}
@@ -1319,6 +1331,7 @@ export default function ManageAttendancePanel() {
 
       <style jsx global>{`
         .att-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .att-panel > * { flex-shrink: 0; }
         /* 1) Header */
         .att-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -1402,7 +1415,7 @@ export default function ManageAttendancePanel() {
           height: 52px; box-sizing: border-box;
         }
         .att-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px;
+          position: sticky; bottom: 0; z-index: 20; margin: auto -32px 0; padding: 0 32px;
           background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }

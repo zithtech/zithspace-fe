@@ -491,7 +491,7 @@ export default function ClockInOutPanel() {
         <CalendarOutlined /> {monthLabel} · My Attendance
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
-      <div className="cio-table-wrap">
+      <div className="cio-table-wrap" style={{ overflowX: 'auto' }}>
         <Table
           rowKey="id"
           size="small"
@@ -500,6 +500,7 @@ export default function ClockInOutPanel() {
           columns={columns}
           dataSource={rows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'cio-row' })}
           expandable={{
             expandedRowRender: renderSessions,
@@ -546,6 +547,7 @@ export default function ClockInOutPanel() {
 
       <style jsx global>{`
         .cio { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .cio > * { flex-shrink: 0; }
 
         /* 1) Header */
         .cio-header {
@@ -690,7 +692,7 @@ export default function ClockInOutPanel() {
           height: 52px; box-sizing: border-box;
         }
         .cio-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px;
+          position: sticky; bottom: 0; z-index: 20; margin: auto -32px 0; padding: 0 32px;
           background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }

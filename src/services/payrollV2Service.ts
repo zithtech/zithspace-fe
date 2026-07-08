@@ -383,8 +383,8 @@ export const PayrollV2Service = {
   async deleteRun(id: string): Promise<void> {
     await apiClient.delete(`${BASE}/runs/${id}`);
   },
-  async syncRunLop(runId: string): Promise<{ detail: PayRunDetail; syncedEmployees: number; totalLopDays: number }> {
-    const res = await apiClient.post(`${BASE}/runs/${runId}/sync-lop`, {});
+  async syncExternal(runId: string): Promise<{ detail: PayRunDetail; syncedEmployees: number; totalLopDays: number }> {
+    const res = await apiClient.post(`${BASE}/runs/${runId}/sync`, {});
     return unwrap<{ detail: PayRunDetail; syncedEmployees: number; totalLopDays: number }>(res.data);
   },
   async submitRun(runId: string): Promise<PayRunDetail> {

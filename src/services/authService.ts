@@ -128,10 +128,16 @@ export class AuthService {
 
   /**
    * Login user with Microsoft access token
+   * @param token - Microsoft OAuth access token
+   * @param subdomain - Optional tenant subdomain (required when calling from root OAuth domain e.g. app.zukvo.com)
    */
-  static async microsoftLogin(token: string): Promise<LoginResponse> {
+  static async microsoftLogin(token: string, subdomain?: string): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post('/api/auth/microsoft-login', { token });
+      const headers: Record<string, string> = {};
+      if (subdomain) {
+        headers['X-Tenant-Subdomain'] = subdomain;
+      }
+      const response = await apiClient.post('/api/auth/microsoft-login', { token }, { headers });
 
       if (response.data.success) {
         TokenManager.setAccessToken(response.data.accessToken);

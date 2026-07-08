@@ -38,7 +38,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     href: '/reimbursement-v2/claims',
     icon: <ReceiptText size={16} />,
     color: '#10B981',
-    anyPerm: ['canReadReimbursement'],
+    anyPerm: ['canReadReimbursement', 'canReadMyHubClaims'],
   },
   {
     key: 'advances',

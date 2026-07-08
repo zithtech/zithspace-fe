@@ -39,7 +39,10 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     href: '/leaves-v2/apply',
     icon: <CalendarPlus size={16} />,
     color: '#10B981',
-    anyPerm: ['canReadLeave'],
+    // canReadMyHubApplyLeave is the My Hub self-service permission so that
+    // users granted my_hub.apply_leave.read (without full leave module
+    // access) can still reach this page via My Hub.
+    anyPerm: ['canReadLeave', 'canReadMyHubApplyLeave'],
   },
   {
     key: 'approvals',

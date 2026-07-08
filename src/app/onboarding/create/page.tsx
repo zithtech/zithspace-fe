@@ -11,6 +11,7 @@ import {
   BankOutlined,
   HistoryOutlined,
   LaptopOutlined,
+  FileTextOutlined,
   ArrowLeftOutlined,
   ArrowRightOutlined,
   CheckOutlined,
@@ -23,6 +24,7 @@ import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
 import EmployeHistory from "@/components/onboarding/EmployeeHistory";
 import Assets from "@/components/onboarding/Assets";
+import Documents from "@/components/onboarding/Documents";
 import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 
@@ -48,6 +50,7 @@ const STEPS = [
   { key: "bank", label: "Bank & Payroll", icon: <BankOutlined />, color: PALETTE.violet, tint: TINT.violet },
   { key: "history", label: "History", icon: <HistoryOutlined />, color: PALETTE.amber, tint: TINT.amber },
   { key: "assets", label: "Assets", icon: <LaptopOutlined />, color: PALETTE.grey, tint: TINT.grey },
+  { key: "documents", label: "Documents", icon: <FileTextOutlined />, color: PALETTE.blue, tint: TINT.blue },
 ] as const;
 
 const OnboardingContent = () => {
@@ -77,18 +80,20 @@ const OnboardingContent = () => {
     bank: {},
     history: [],
     assets: [],
+    documents: [],
   });
   const [resetKey, setResetKey] = useState(0);
 
-  const stepKeys = ["personal", "employment", "bank", "history", "assets"];
+  const stepKeys = ["personal", "employment", "bank", "history", "assets", "documents"];
 
   const personalRef = useRef<any>(null);
   const employmentRef = useRef<any>(null);
   const bankRef = useRef<any>(null);
   const historyRef = useRef<any>(null);
   const assetsRef = useRef<any>(null);
+  const documentsRef = useRef<any>(null);
 
-  const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
+  const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef, documentsRef];
 
   const { createOnboarding, updateOnboarding, loading: submitting }: any =
     useEmployeeOnboarding();
@@ -114,6 +119,7 @@ const OnboardingContent = () => {
               bank: employeeData.bankAndPayroll || employeeData.bank || {},
               history: employeeData.previousCompanyDetails || employeeData.history || [],
               assets: employeeData.assets || [],
+              documents: employeeData.documents || [],
             });
             // Update resetKey to force re-render of components with new data
             setResetKey(prev => prev + 1);
@@ -213,7 +219,7 @@ const OnboardingContent = () => {
         message.success("Profile created and saved as draft");
       }
 
-      if (current < 4) setCurrent(prev => prev + 1);
+      if (current < 5) setCurrent(prev => prev + 1);
       else router.push("/onboarding/onboarded");
     } catch (error) {
       console.log("Save & Skip Failed:", error);
@@ -239,6 +245,7 @@ const OnboardingContent = () => {
         bank: "bank",
         history: "history",
         assets: "assets",
+        documents: "documents",
       };
 
       const finalPayload: any = {};
@@ -365,6 +372,14 @@ const OnboardingContent = () => {
             data={allData.assets}
           />
         </div>
+
+        <div style={{ display: current === 5 ? "block" : "none" }}>
+          <Documents
+            key={`documents-${resetKey}`}
+            ref={documentsRef}
+            data={allData.documents}
+          />
+        </div>
       </div>
 
       {/* ── Slim sticky footer: Back / Save & Next / Continue / Submit ── */}
@@ -382,7 +397,7 @@ const OnboardingContent = () => {
         </div>
 
         <div className="onb-footer-actions">
-          {current < 4 && (
+          {current < 5 && (
             <>
               <Button
                 onClick={saveAndSkip}
@@ -402,7 +417,7 @@ const OnboardingContent = () => {
             </>
           )}
 
-          {current === 4 && (
+          {current === 5 && (
             <Button
               type="primary"
               onClick={submitAll}

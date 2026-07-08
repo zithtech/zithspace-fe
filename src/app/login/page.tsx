@@ -142,21 +142,26 @@ function LoginFormWithParams() {
             ? rootHost.slice(4)
             : rootHost;
 
-          if (stateSubdomain) {
-             const protocol = window.location.protocol;
-             window.location.href = `${protocol}//${stateSubdomain}.${tenantBaseHost}/login?token=${token}`;
-             return;
+          const targetSubdomain = stateSubdomain || searchParams.get('subdomain') || '';
+
+          if (targetSubdomain) {
+            // Exchange the Google token for a backend JWT, passing the tenant subdomain
+            // so the backend's resolveTenant middleware can identify the correct tenant.
+            setLoading(true);
+            AuthService.googleLogin(token, targetSubdomain).then((response) => {
+              const protocol = window.location.protocol;
+              // Redirect to the tenant with the proper app JWT (not the raw Google token)
+              window.location.href = `${protocol}//${targetSubdomain}.${tenantBaseHost}/login?token=${response.accessToken}`;
+            }).catch((err: any) => {
+              setError(err.message || "Google sign-in failed");
+              setLoading(false);
+            });
+            return;
           }
           
-          // Proceed with login on root host
+          // No subdomain — proceed with login on root host (app.zukvo.com)
           setLoading(true);
           AuthService.googleLogin(token).then(async (response) => {
-            const subdomainParam = searchParams.get('subdomain');
-            if (subdomainParam) {
-              const protocol = window.location.protocol;
-              window.location.href = `${protocol}//${subdomainParam}.${tenantBaseHost}/login?token=${response.accessToken}`;
-              return;
-            }
             await googleLogin(token);
           }).catch((err: any) => {
             setError(err.message || "Google sign-in failed");

@@ -94,6 +94,8 @@ import {
   Layers,
   PieChart,
   BarChart3,
+  Mail,
+  Folder,
   ReceiptText,
 } from "lucide-react";
 
@@ -853,37 +855,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
 
       {
-        key: "Onbording",
+        key: "/onboarding/onboarded",
         icon: I(UserPlus),
-        label: "Onbording",
+        label: "Onboarding",
+        path: "/onboarding/onboarded",
         requiredAnyPermission: [
           Permissions.ONBOARDING_READ,
           Permissions.ONBOARDING_CREATE,
           Permissions.ONBOARDING_UPDATE,
           Permissions.ONBOARDING_DELETE,
-        ],
-        children: [
-          {
-            key: "/onbording/create",
-            icon: I(UserPlus2),
-            label: "Create",
-            path: "/onboarding/create",
-            requiredPermission: Permissions.ONBOARDING_CREATE,
-          },
-          {
-            key: "/onbording/onboarded",
-            icon: I(UserCheck),
-            label: "Onborded",
-            path: "/onboarding/onboarded",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onbording/settings",
-            icon: I(Settings),
-            label: "Settings",
-            path: "/onboarding/settings",
-            requiredPermission: Permissions.ONBOARDING_SETTING_READ,
-          },
         ],
       },
 

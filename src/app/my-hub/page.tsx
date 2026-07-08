@@ -11,6 +11,7 @@ import {
   Banknote,
   CircleUser,
   ChevronRight,
+  FolderOpen,
   ReceiptText,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -96,6 +97,15 @@ const HUB_CARDS: HubCard[] = [
     icon: <ReceiptText size={22} strokeWidth={1.75} />,
     accent: "#059669",
     anyPermission: [Permissions.MY_HUB_CLAIMS_READ],
+  },
+  {
+    key: "documents",
+    label: "My Documents",
+    description: "View & download HR documents",
+    path: "/my-hub/documents",
+    icon: <FolderOpen size={22} strokeWidth={1.75} />,
+    accent: "#3b82f6",
+    anyPermission: [Permissions.MY_HUB_DOCUMENTS_READ],
   },
 ];
 

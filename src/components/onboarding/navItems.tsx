@@ -3,6 +3,7 @@ import {
   Users,
   UserPlus,
   Link2,
+  FileText,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -43,6 +44,14 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <Link2 size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canCreateOnboarding', 'canReadOnboarding'],
+  },
+  {
+    key: 'documents',
+    label: 'Documents',
+    href: '/onboarding/documents',
+    icon: <FileText size={16} />,
+    color: '#F59E0B',
+    anyPerm: ['canReadOnboarding'],
   },
   {
     key: 'settings',

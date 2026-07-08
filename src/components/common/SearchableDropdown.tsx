@@ -38,7 +38,7 @@ export interface SearchableDropdownOption {
 
 export interface SearchableDropdownProps {
   mode?: "multiple";
-  value?: string | string[];
+  value?: string | string[] | null;
   onChange?: (value: any) => void;
   options: SearchableDropdownOption[];
   placeholder?: string;
@@ -68,6 +68,8 @@ export interface SearchableDropdownProps {
   onOpenChange?: (open: boolean) => void;
   /** Custom trigger element to render instead of the default styled div. */
   customTrigger?: React.ReactElement;
+  /** Show the avatar of the selected option in the trigger field. */
+  showSelectedAvatar?: boolean;
 }
 
 const initialsFor = (s: string): string => {
@@ -112,6 +114,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   defaultOpen = false,
   onOpenChange,
   customTrigger,
+  showSelectedAvatar,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -300,6 +303,12 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     .filter(Boolean)
     .join(" ");
 
+  const selectedOption = useMemo(() => {
+    if (!value || (Array.isArray(value) && value.length !== 1)) return null;
+    const val = Array.isArray(value) ? value[0] : value;
+    return options.find((o) => o.value === val) || null;
+  }, [value, options]);
+
   return (
     <Popover
       content={overlay}
@@ -322,7 +331,40 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             {triggerLabel && (
               <span className="sd-trigger-label">{triggerLabel}</span>
             )}
-            <span className="sd-trigger-value">{displayLabel}</span>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {showSelectedAvatar && selectedOption && !hideAvatar && (
+                <div
+                  className="sd-option-avatar"
+                  style={selectedOption.badge ? {
+                    background: 'transparent',
+                    border: 'none',
+                    width: 'auto',
+                    height: 'auto',
+                    padding: 0,
+                    marginRight: 8,
+                    marginTop: 0,
+                    marginBottom: 0,
+                  } : {
+                    backgroundColor: selectedOption.avatarUrl ? 'transparent' : (avatarColor || avatarColorFor(selectedOption.value || selectedOption.label)),
+                    color: selectedOption.avatarUrl ? undefined : '#fff',
+                    borderColor: selectedOption.avatarUrl ? undefined : 'transparent',
+                    width: 20,
+                    height: 20,
+                    fontSize: 10,
+                    marginRight: 8,
+                    flexShrink: 0,
+                  }}
+                >
+                  {selectedOption.badge
+                    ? selectedOption.badge
+                    : selectedOption.avatarUrl
+                      ? <img src={selectedOption.avatarUrl} alt={initialsFor(selectedOption.label)} />
+                      : initialsFor(selectedOption.label)
+                  }
+                </div>
+              )}
+              <span className="sd-trigger-value">{displayLabel}</span>
+            </div>
           </div>
           {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
             <XIcon

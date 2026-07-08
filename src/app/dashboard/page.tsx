@@ -23,8 +23,12 @@ import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { ClientV2Service } from "@/services/clientV2Service";
 import { useSocket } from "@/providers/SocketProvider";
-
+import { usePermission } from "@/hooks/usePermission";
 import {
+  Drawer,
+  Form,
+  Switch,
+  message,
   Card,
   Row,
   Col,
@@ -42,6 +46,7 @@ import {
   theme,
 } from "antd";
 import {
+  SettingOutlined,
   TeamOutlined,
   UserOutlined,
   ClockCircleOutlined,
@@ -82,6 +87,7 @@ const { Title, Text } = Typography;
 function DashboardContent() {
   const { token } = theme.useToken();
   const { user } = useAuth();
+  const { canUpdateSettings } = usePermission();
   const { socket } = useSocket();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
@@ -89,6 +95,7 @@ function DashboardContent() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dashboardSettings, setDashboardSettings] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [todayUpdates, setTodayUpdates] = useState<{
     bod: any | null;
@@ -295,6 +302,36 @@ function DashboardContent() {
   }, [user]);
 
   useEffect(() => {
+    const fetchDashboardSettings = async () => {
+      if (user) {
+        try {
+          const data = await dashboardService.getSettings();
+          if (data && data.visibleCards) {
+            setDashboardSettings(data.visibleCards);
+          } else {
+            // Default settings if null
+            setDashboardSettings({
+              heroSection: true,
+              quickActions: true,
+              attendanceStats: true,
+              myTicketsProgress: true,
+              recentTickets: true,
+              freelancerStats: true,
+              recentLeads: true,
+              recentInvoices: true,
+              calendar: true,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to fetch dashboard settings", error);
+        }
+      }
+    };
+    
+    fetchDashboardSettings();
+  }, [user]);
+
+  useEffect(() => {
     const fetchTodayUpdate = async () => {
       if (user) {
         try {
@@ -440,12 +477,12 @@ function DashboardContent() {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 60)
-      return `${diffMins}m ago`;
-    if (diffHours < 24)
-      return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
+      if (diffMins < 60)
+        return `${diffMins}m ago`;
+      if (diffHours < 24)
+        return `${diffHours}h ago`;
+      return `${diffDays}d ago`;
+    };
 
   const handleClockIn = async () => {
     setIsClocking(true);
@@ -724,6 +761,16 @@ function DashboardContent() {
     </Card>
   );
 
+  const isHeroVisible = dashboardSettings?.heroSection !== false;
+  const isQuickActionsVisible = dashboardSettings?.quickActions !== false;
+  const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false;
+  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false;
+  const isRecentTicketsVisible = dashboardSettings?.recentTickets !== false;
+  const isFreelancerStatsVisible = dashboardSettings?.freelancerStats !== false;
+  const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false;
+  const isRecentInvoicesVisible = dashboardSettings?.recentInvoices !== false;
+  const isCalendarVisible = dashboardSettings?.calendar !== false;
+
   return (
     <MainLayout>
       <div
@@ -746,9 +793,11 @@ function DashboardContent() {
           }}
         >
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div
-              style={{
-                display: "flex",
+            {isHeroVisible && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
                 alignItems: "center",
                 gap: 12,
                 flexWrap: "wrap",
@@ -807,15 +856,18 @@ function DashboardContent() {
                 display: "block",
               }}
             >
-              {heroSubtext}
-            </Text>
+                {heroSubtext}
+              </Text>
+              </>
+            )}
           </div>
 
-          <div
-            className="dash-switch"
-            role="tablist"
-            aria-label="Dashboard view"
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              className="dash-switch"
+              role="tablist"
+              aria-label="Dashboard view"
+            >
             {[
               {
                 value: "me" as const,
@@ -824,13 +876,6 @@ function DashboardContent() {
                 accent: "#3B82F6",
                 accentLight: "#60A5FA",
               },
-              // {
-              //   value: "freelancer" as const,
-              //   title: "Freelancer",
-              //   icon: <SolutionOutlined />,
-              //   accent: "#10B981",
-              //   accentLight: "#34D399",
-              // },
               {
                 value: "organization" as const,
                 title: "Organization",
@@ -864,6 +909,15 @@ function DashboardContent() {
                 </button>
               );
             })}
+            </div>
+            {canUpdateSettings && (
+              <Button 
+                type="text" 
+                icon={<SettingOutlined />} 
+                onClick={() => router.push('/dashboard/settings')}
+                style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              />
+            )}
           </div>
         </div>
 
@@ -935,6 +989,7 @@ function DashboardContent() {
                 {/* ─── KPI Strip ──────────────────────────────────── */}
                 <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   {/* BOD / EOD */}
+                  {isAttendanceStatsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const submittedCount =
@@ -1023,8 +1078,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Avg Working Hours */}
+                  {isAttendanceStatsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const [hh = 0, mm = 0, ss = 0] = String(averageWorkHours || "0:0:0")
@@ -1085,8 +1142,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* My Tickets */}
+                  {isMyTicketsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const closed = myTicketsStats.closed;
@@ -1196,8 +1255,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Today's Attendance */}
+                  {isAttendanceStatsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const present = dashboardData.stats.attendance.present;
@@ -1258,11 +1319,13 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
                 <Row gutter={[12, 12]}>
                   {/* Time Tracker */}
+                  {isAttendanceStatsVisible && (
                   <Col xs={24} lg={8}>
                     <Card
                       style={{
@@ -1683,6 +1746,221 @@ function DashboardContent() {
                         <Skeleton active paragraph={{ rows: 3 }} />
                       )}
                     </Card>
+                  </Col>
+                  )}
+
+                  {/* Calendar Integration - Takes up 2 columns */}
+                  {isCalendarVisible && (
+                  <Col xs={24} lg={16}>
+                    <Card
+                      style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
+                      title={
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            minWidth: 0,
+                          }}
+                        >
+                          {sectionTitle(
+                            <VideoCameraOutlined />,
+                            "Today's Meetings",
+                            "#3B82F6",
+                          )}
+                          {todaysMeetings.length > 0 && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: "0.4px",
+                                color: "#3B82F6",
+                                background: `#3B82F614`,
+                                border: `1px solid #3B82F633`,
+                                padding: "2px 7px",
+                                borderRadius: 999,
+                                fontVariantNumeric: "tabular-nums",
+                              }}
+                            >
+                              {todaysMeetings.length} TODAY
+                            </span>
+                          )}
+                        </div>
+                      }
+                      extra={
+                        connectedProvider ? (
+                          <Space size={4}>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={
+                                <ClockCircleOutlined
+                                  style={{ fontSize: 11 }}
+                                />
+                              }
+                              onClick={() =>
+                                syncCalendar(connectedProvider)
+                              }
+                              loading={calendarSyncing}
+                              style={{ fontSize: 11 }}
+                            >
+                              Sync
+                            </Button>
+                            <Button
+                              type="text"
+                              size="small"
+                              onClick={() => router.push("/calendar")}
+                              style={{ fontSize: 11 }}
+                            >
+                              View
+                            </Button>
+                          </Space>
+                        ) : (
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => router.push("/integrations")}
+                            style={{ fontSize: 11 }}
+                          >
+                            Connect
+                          </Button>
+                        )
+                      }
+                    >
+                      <div
+                        style={{
+                          flex: 1,
+                          overflowY: "auto",
+                          padding: 0,
+                          position: "relative",
+                          zIndex: 1,
+                        }}
+                        className="no-scrollbar"
+                      >
+                        {calendarLoading ? (
+                          <div style={{ padding: 16 }}>
+                            <Skeleton active paragraph={{ rows: 3 }} />
+                          </div>
+                        ) : !connectedProvider ? (
+                          <div
+                            style={{
+                              padding: 24,
+                              textAlign: "center",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: 14,
+                                background: token.colorFillAlter,
+                                margin: "0 auto 12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: token.colorTextTertiary,
+                              }}
+                            >
+                              <VideoCameraOutlined
+                                style={{ fontSize: 22 }}
+                              />
+                            </div>
+                            <Text
+                              type="secondary"
+                              style={{
+                                fontSize: 12,
+                                display: "block",
+                                marginBottom: 12,
+                              }}
+                            >
+                              Connect your calendar to see today's meetings
+                            </Text>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() =>
+                                router.push("/integrations")
+                              }
+                              style={{ borderRadius: 8 }}
+                            >
+                              Connect Calendar
+                            </Button>
+                          </div>
+                        ) : todaysMeetings.length > 0 ? (
+                          (() => {
+                            const now = dayjs();
+                            const sorted = [...todaysMeetings].sort(
+                              (a: any, b: any) =>
+                                dayjs(a.startTime).valueOf() -
+                                dayjs(b.startTime).valueOf(),
+                            );
+                            const isLive = (m: any) =>
+                              dayjs(m.startTime).isBefore(now) &&
+                              dayjs(m.endTime).isAfter(now);
+                            const isPast = (m: any) =>
+                              dayjs(m.endTime).isBefore(now);
+                            const liveMeeting = sorted.find(isLive);
+                            const upcoming = sorted.filter((m: any) =>
+                              dayjs(m.startTime).isAfter(now),
+                            );
+                            const ended = sorted.filter(isPast);
+                            const heroMeeting = liveMeeting || upcoming[0];
+                            const restMeetings = sorted.filter(
+                              (m: any) => m !== heroMeeting,
+                            );
+
+                            const formatRelative = (m: any) => {
+                              const s = dayjs(m.startTime);
+                              const e = dayjs(m.endTime);
+                              if (s.isBefore(now) && e.isAfter(now)) {
+                                const minLeft = e.diff(now, "minute");
+                                return `${minLeft}m left`;
+                              }
+                              if (s.isAfter(now)) {
+                                const diff = s.diff(now, "minute");
+                                if (diff < 60) return `in ${diff}m`;
+                                const h = Math.floor(diff / 60);
+                                const mm = diff % 60;
+                                return mm
+                                  ? `in ${h}h ${mm}m`
+                                  : `in ${h}h`;
+                              }
+                              return "Finished";
+                            };
+
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                {heroMeeting && (
+                                  <div style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? "#EFF6FF" : "transparent" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                      {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
+                                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
+                                        {liveMeeting ? "LIVE NOW" : `UP NEXT · ${formatRelative(heroMeeting)}`}
+                                      </Text>
+                                    </div>
+                                    <Text strong style={{ fontSize: 14, display: "block", color: token.colorText }}>{heroMeeting.title}</Text>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(heroMeeting.startTime).format("h:mm A")} - {dayjs(heroMeeting.endTime).format("h:mm A")}</Text>
+                                  </div>
+                                )}
+                                {restMeetings.map((m: any) => (
+                                  <div key={m.id} style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <Text style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</Text>
+                                      <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(m.startTime).format("h:mm A")}</Text>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div style={{ padding: 24, textAlign: "center" }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>No meetings scheduled for today.</Text>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
                     <BreakPickerModal
                       open={breakModalOpen}
                       loading={isClocking}
@@ -1693,668 +1971,8 @@ function DashboardContent() {
                       }}
                     />
                   </Col>
+                  )}
 
-                  {/* Today's Meetings */}
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const accentTM = "#3B82F6";
-                      const tmCount = todaysMeetings.length;
-                      const liveTM = todaysMeetings.find((m: any) => {
-                        const now = dayjs();
-                        return (
-                          dayjs(m.startTime).isBefore(now) &&
-                          dayjs(m.endTime).isAfter(now)
-                        );
-                      });
-                      const upcomingTM = todaysMeetings.filter((m: any) =>
-                        dayjs(m.startTime).isAfter(dayjs()),
-                      ).length;
-                      return (
-                        <Card
-                          style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
-                          styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                          title={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                minWidth: 0,
-                              }}
-                            >
-                              {sectionTitle(
-                                <VideoCameraOutlined />,
-                                "Today's Meetings",
-                                accentTM,
-                              )}
-                              {tmCount > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accentTM,
-                                    background: `${accentTM}14`,
-                                    border: `1px solid ${accentTM}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {tmCount} TODAY
-                                </span>
-                              )}
-                            </div>
-                          }
-                          extra={
-                            connectedProvider ? (
-                              <Space size={4}>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={
-                                    <ClockCircleOutlined
-                                      style={{ fontSize: 11 }}
-                                    />
-                                  }
-                                  onClick={() =>
-                                    syncCalendar(connectedProvider)
-                                  }
-                                  loading={calendarSyncing}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  Sync
-                                </Button>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  onClick={() => router.push("/calendar")}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  View
-                                </Button>
-                              </Space>
-                            ) : (
-                              <Button
-                                type="link"
-                                size="small"
-                                onClick={() => router.push("/integrations")}
-                                style={{ fontSize: 11 }}
-                              >
-                                Connect
-                              </Button>
-                            )
-                          }
-                        >
-
-                          <div
-                            style={{
-                              flex: 1,
-                              overflowY: "auto",
-                              padding: 0,
-                              position: "relative",
-                              zIndex: 1,
-                            }}
-                            className="no-scrollbar"
-                          >
-                            {calendarLoading ? (
-                              <div style={{ padding: 16 }}>
-                                <Skeleton active paragraph={{ rows: 3 }} />
-                              </div>
-                            ) : !connectedProvider ? (
-                              <div
-                                style={{
-                                  padding: 24,
-                                  textAlign: "center",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: 14,
-                                    background: token.colorFillAlter,
-                                    margin: "0 auto 12px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: token.colorTextTertiary,
-                                  }}
-                                >
-                                  <VideoCameraOutlined
-                                    style={{ fontSize: 22 }}
-                                  />
-                                </div>
-                                <Text
-                                  type="secondary"
-                                  style={{
-                                    fontSize: 12,
-                                    display: "block",
-                                    marginBottom: 12,
-                                  }}
-                                >
-                                  Connect your calendar to see today's meetings
-                                </Text>
-                                <Button
-                                  type="primary"
-                                  size="small"
-                                  onClick={() =>
-                                    router.push("/integrations")
-                                  }
-                                  style={{ borderRadius: 8 }}
-                                >
-                                  Connect Calendar
-                                </Button>
-                              </div>
-                            ) : todaysMeetings.length > 0 ? (
-                              (() => {
-                                const now = dayjs();
-                                const sorted = [...todaysMeetings].sort(
-                                  (a: any, b: any) =>
-                                    dayjs(a.startTime).valueOf() -
-                                    dayjs(b.startTime).valueOf(),
-                                );
-                                const isLive = (m: any) =>
-                                  dayjs(m.startTime).isBefore(now) &&
-                                  dayjs(m.endTime).isAfter(now);
-                                const isPast = (m: any) =>
-                                  dayjs(m.endTime).isBefore(now);
-                                const liveMeeting = sorted.find(isLive);
-                                const upcoming = sorted.filter((m: any) =>
-                                  dayjs(m.startTime).isAfter(now),
-                                );
-                                const ended = sorted.filter(isPast);
-                                const heroMeeting = liveMeeting || upcoming[0];
-                                const restMeetings = sorted.filter(
-                                  (m: any) => m !== heroMeeting,
-                                );
-
-                                const formatRelative = (m: any) => {
-                                  const s = dayjs(m.startTime);
-                                  const e = dayjs(m.endTime);
-                                  if (s.isBefore(now) && e.isAfter(now)) {
-                                    const minLeft = e.diff(now, "minute");
-                                    return `${minLeft}m left`;
-                                  }
-                                  if (s.isAfter(now)) {
-                                    const diff = s.diff(now, "minute");
-                                    if (diff < 60) return `in ${diff}m`;
-                                    const h = Math.floor(diff / 60);
-                                    const mm = diff % 60;
-                                    return mm
-                                      ? `in ${h}h ${mm}m`
-                                      : `in ${h}h`;
-                                  }
-                                  const minAgo = now.diff(e, "minute");
-                                  if (minAgo < 60) return `${minAgo}m ago`;
-                                  return `${Math.floor(minAgo / 60)}h ago`;
-                                };
-
-                                return (
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: 10,
-                                      padding: "12px 14px 14px",
-                                    }}
-                                  >
-                                    {/* Sub-header status bar */}
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        background: "var(--bg-slate-50)",
-                                        border: "1px solid var(--border-color)",
-                                        borderRadius: 8,
-                                        padding: "6px 12px",
-                                        marginBottom: 2,
-                                      }}
-                                    >
-                                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                        {liveTM ? (
-                                          <span
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 6,
-                                              fontSize: 11,
-                                              fontWeight: 700,
-                                              color: "#047857",
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                width: 6,
-                                                height: 6,
-                                                borderRadius: "50%",
-                                                background: "#10B981",
-                                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.2)",
-                                                animation: "pulse-soft 2s infinite ease-in-out",
-                                              }}
-                                            />
-                                            Live now
-                                          </span>
-                                        ) : upcomingTM > 0 ? (
-                                          <span
-                                            style={{
-                                              fontSize: 11,
-                                              fontWeight: 700,
-                                              color: "#4F46E5",
-                                            }}
-                                          >
-                                            {upcomingTM} upcoming
-                                          </span>
-                                        ) : (
-                                          <span style={{ fontSize: 11, color: token.colorTextTertiary, fontStyle: "italic", fontWeight: 600 }}>
-                                            No more meetings
-                                          </span>
-                                        )}
-                                      </div>
-                                      {ended.length > 0 && (
-                                        <Text
-                                          style={{
-                                            fontSize: 10.5,
-                                            color: token.colorTextTertiary,
-                                            fontWeight: 600,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.2px",
-                                          }}
-                                        >
-                                          {ended.length} done
-                                        </Text>
-                                      )}
-                                    </div>
-
-                                    {/* Hero meeting */}
-                                    {heroMeeting &&
-                                      (() => {
-                                        const live = isLive(heroMeeting);
-                                        const start = dayjs(heroMeeting.startTime);
-                                        const end = dayjs(heroMeeting.endTime);
-                                        const totalMin = Math.max(
-                                          1,
-                                          end.diff(start, "minute"),
-                                        );
-                                        const progressPct = live
-                                          ? Math.min(
-                                            100,
-                                            Math.round(
-                                              (now.diff(start, "minute") /
-                                                totalMin) *
-                                              100,
-                                            ),
-                                          )
-                                          : 0;
-                                        return (
-                                          <div
-                                            style={{
-                                              position: "relative",
-                                              borderRadius: 12,
-                                              padding: 12,
-                                              background: token.colorFillAlter,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
-                                              overflow: "hidden",
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 8,
-                                                marginBottom: 4,
-                                              }}
-                                            >
-                                              <Tooltip title={heroMeeting.title}>
-                                                <div
-                                                  style={{
-                                                    flex: 1,
-                                                    minWidth: 0,
-                                                    fontSize: 14,
-                                                    fontWeight: 700,
-                                                    color: token.colorText,
-                                                    letterSpacing: "-0.2px",
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                  }}
-                                                >
-                                                  {heroMeeting.title}
-                                                </div>
-                                              </Tooltip>
-                                              <span
-                                                style={{
-                                                  display: "inline-flex",
-                                                  alignItems: "center",
-                                                  gap: 5,
-                                                  padding: "2px 8px",
-                                                  borderRadius: 999,
-                                                  background: live
-                                                    ? "#ECFDF5"
-                                                    : "rgba(79,70,229,0.10)",
-                                                  border: live
-                                                    ? "1px solid #A7F3D0"
-                                                    : "1px solid rgba(79,70,229,0.25)",
-                                                  color: live
-                                                    ? "#047857"
-                                                    : "#3B82F6",
-                                                  fontSize: 9,
-                                                  fontWeight: 700,
-                                                  letterSpacing: "0.6px",
-                                                  flexShrink: 0,
-                                                }}
-                                              >
-                                                <span
-                                                  className={
-                                                    live ? "live-pulse" : ""
-                                                  }
-                                                  style={{
-                                                    width: 5,
-                                                    height: 5,
-                                                    borderRadius: "50%",
-                                                    background: live
-                                                      ? "#10B981"
-                                                      : "#3B82F6",
-                                                  }}
-                                                />
-                                                {live ? "LIVE NOW" : "NEXT UP"}
-                                              </span>
-                                              <Text
-                                                style={{
-                                                  fontSize: 10,
-                                                  color: token.colorTextSecondary,
-                                                  fontWeight: 600,
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                  flexShrink: 0,
-                                                }}
-                                              >
-                                                {formatRelative(heroMeeting)}
-                                              </Text>
-                                            </div>
-
-                                            <Text
-                                              style={{
-                                                fontSize: 11,
-                                                color: token.colorTextSecondary,
-                                                fontVariantNumeric:
-                                                  "tabular-nums",
-                                                fontWeight: 500,
-                                                display: "block",
-                                              }}
-                                            >
-                                              {start.format("h:mm A")} —{" "}
-                                              {end.format("h:mm A")} ·{" "}
-                                              {totalMin}m
-                                            </Text>
-
-                                            {live && (
-                                              <div
-                                                style={{
-                                                  marginTop: 8,
-                                                  height: 4,
-                                                  background: token.colorBgContainer,
-                                                  border: `1px solid ${token.colorBorderSecondary}`,
-                                                  borderRadius: 999,
-                                                  overflow: "hidden",
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    height: "100%",
-                                                    width: `${progressPct}%`,
-                                                    background: token.colorPrimary,
-                                                    borderRadius: 999,
-                                                    transition:
-                                                      "width 1s linear",
-                                                  }}
-                                                />
-                                              </div>
-                                            )}
-
-                                            <Tooltip
-                                              title={
-                                                heroMeeting.meetingLink
-                                                  ? "Join Meeting"
-                                                  : "No meeting link"
-                                              }
-                                            >
-                                              <Button
-                                                type="primary"
-                                                block
-                                                size="small"
-                                                icon={<VideoCameraOutlined />}
-                                                onClick={() =>
-                                                  heroMeeting.meetingLink &&
-                                                  window.open(
-                                                    heroMeeting.meetingLink,
-                                                    "_blank",
-                                                  )
-                                                }
-                                                disabled={!heroMeeting.meetingLink}
-                                                style={{
-                                                  marginTop: 10,
-                                                  borderRadius: 8,
-                                                  height: 30,
-                                                  fontSize: 12,
-                                                  fontWeight: 600,
-                                                }}
-                                              >
-                                                {live ? "Join now" : "Join meeting"}
-                                              </Button>
-                                            </Tooltip>
-                                          </div>
-                                        );
-                                      })()}
-
-                                    {/* Rest list */}
-                                    {restMeetings.length > 0 && (
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          flexDirection: "column",
-                                          gap: 6,
-                                        }}
-                                      >
-                                        {restMeetings.map(
-                                          (m: any, idx: number) => {
-                                            const start = dayjs(m.startTime);
-                                            const end = dayjs(m.endTime);
-                                            const past = isPast(m);
-                                            const totalMin = Math.max(
-                                              1,
-                                              end.diff(start, "minute"),
-                                            );
-                                            return (
-                                              <div
-                                                key={m.id || idx}
-                                                style={{
-                                                  display: "flex",
-                                                  alignItems: "center",
-                                                  gap: 10,
-                                                  padding: "6px 10px",
-                                                  borderRadius: 10,
-                                                  background:
-                                                    token.colorFillAlter,
-                                                  border: `1px solid ${token.colorBorderSecondary}`,
-                                                  opacity: past ? 0.55 : 1,
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    minWidth: 42,
-                                                    textAlign: "center",
-                                                    padding: "3px 0",
-                                                    borderRadius: 8,
-                                                    background:
-                                                      token.colorBgContainer,
-                                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                                  }}
-                                                >
-                                                  <div
-                                                    style={{
-                                                      fontSize: 11,
-                                                      fontWeight: 700,
-                                                      color: token.colorText,
-                                                      fontVariantNumeric:
-                                                        "tabular-nums",
-                                                      lineHeight: 1,
-                                                    }}
-                                                  >
-                                                    {start.format("h:mm")}
-                                                  </div>
-                                                  <div
-                                                    style={{
-                                                      fontSize: 8,
-                                                      fontWeight: 700,
-                                                      color:
-                                                        token.colorTextTertiary,
-                                                      letterSpacing: "0.5px",
-                                                      marginTop: 1,
-                                                    }}
-                                                  >
-                                                    {start.format("A")}
-                                                  </div>
-                                                </div>
-
-                                                <div
-                                                  style={{
-                                                    flex: 1,
-                                                    minWidth: 0,
-                                                  }}
-                                                >
-                                                  <Tooltip title={m.title}>
-                                                    <div
-                                                      style={{
-                                                        fontSize: 12,
-                                                        fontWeight: 600,
-                                                        color:
-                                                          token.colorText,
-                                                        whiteSpace: "nowrap",
-                                                        overflow: "hidden",
-                                                        textOverflow:
-                                                          "ellipsis",
-                                                        lineHeight: 1.3,
-                                                      }}
-                                                    >
-                                                      {m.title}
-                                                    </div>
-                                                  </Tooltip>
-                                                  <Text
-                                                    style={{
-                                                      fontSize: 10,
-                                                      color:
-                                                        token.colorTextTertiary,
-                                                      fontWeight: 500,
-                                                    }}
-                                                  >
-                                                    {totalMin}m ·{" "}
-                                                    {formatRelative(m)}
-                                                  </Text>
-                                                </div>
-
-                                                <Tooltip
-                                                  title={
-                                                    m.meetingLink
-                                                      ? past
-                                                        ? "Meeting ended"
-                                                        : "Join Meeting"
-                                                      : "No meeting link"
-                                                  }
-                                                >
-                                                  <Button
-                                                    type={
-                                                      m.meetingLink && !past
-                                                        ? "primary"
-                                                        : "default"
-                                                    }
-                                                    size="small"
-                                                    icon={
-                                                      <VideoCameraOutlined
-                                                        style={{
-                                                          fontSize: 11,
-                                                        }}
-                                                      />
-                                                    }
-                                                    onClick={() =>
-                                                      m.meetingLink &&
-                                                      window.open(
-                                                        m.meetingLink,
-                                                        "_blank",
-                                                      )
-                                                    }
-                                                    disabled={
-                                                      !m.meetingLink || past
-                                                    }
-                                                    style={{
-                                                      borderRadius: 8,
-                                                      height: 26,
-                                                      fontSize: 11,
-                                                      fontWeight: 600,
-                                                    }}
-                                                  >
-                                                    Join
-                                                  </Button>
-                                                </Tooltip>
-                                              </div>
-                                            );
-                                          },
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()
-                            ) : (
-                              <div
-                                style={{
-                                  padding: 24,
-                                  textAlign: "center",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: 14,
-                                    background: "#EFF6FF",
-                                    border: "1px solid #BFDBFE",
-                                    margin: "0 auto 10px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: "#3B82F6",
-                                  }}
-                                >
-                                  <CalendarOutlined
-                                    style={{ fontSize: 22 }}
-                                  />
-                                </div>
-                                <Text
-                                  strong
-                                  style={{
-                                    fontSize: 13,
-                                    display: "block",
-                                    color: token.colorText,
-                                    marginBottom: 2,
-                                  }}
-                                >
-                                  No meetings today
-                                </Text>
-                                <Text
-                                  type="secondary"
-                                  style={{ fontSize: 11 }}
-                                >
-                                  Enjoy the deep focus time 🌿
-                                </Text>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
                   <Col xs={24} lg={8}>
                     {(() => {
                       const segments = [
@@ -2476,6 +2094,7 @@ function DashboardContent() {
 
                 {/* Bottom Row: Recent Tickets + Quick Actions */}
                 <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+                  {isRecentTicketsVisible && (
                   <Col xs={24} lg={16}>
                     {(() => {
                       const accent = "#3B82F6";
@@ -2950,7 +2569,9 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
+                  {isQuickActionsVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
                       const accentQA = "#10B981";
@@ -3136,6 +2757,7 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
               </>
             ) : null}
@@ -3159,6 +2781,7 @@ function DashboardContent() {
               <>
                 {/* ─── KPI Strip ──────────────────────────────────── */}
                 <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                  {isMyTicketsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const closed = myTicketsStats.closed;
@@ -3264,6 +2887,8 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
+                  {isRecentLeadsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const accent = "#10B981";
@@ -3327,6 +2952,8 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
+                  {isFreelancerStatsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const activeC = clientStats.active;
@@ -3439,6 +3066,8 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
+                  {isFreelancerStatsVisible && (
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
                       const active = dashboardData?.stats.activeProjects || 0;
@@ -3498,11 +3127,13 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
                 <Row gutter={[12, 12]}>
                   {/* My Tickets Stats */}
+                  {isMyTicketsVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
                       const segments = [
@@ -3620,8 +3251,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Today's Meetings */}
+                  {isCalendarVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
                       const accentTM = "#7C3AED";
@@ -4279,8 +3912,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Recent Tickets List */}
+                  {isRecentTicketsVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
                       const accent = "#3B82F6";
@@ -4687,8 +4322,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Recent Leads */}
+                  {isRecentLeadsVisible && (
                   <Col xs={24} lg={12}>
                     {(() => {
                       const accent = "#10B981";
@@ -5245,8 +4882,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Created Invoices */}
+                  {isRecentInvoicesVisible && (
                   <Col xs={24} lg={12}>
                     {(() => {
                       const accent = "#10B981";
@@ -5742,6 +5381,7 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
               </>
             )}
@@ -5749,7 +5389,7 @@ function DashboardContent() {
         )}
 
         {/* ─── ORGANIZATION SEGMENT ─────────────────────────────── */}
-        {activeSegment === "organization" && <Organization />}
+        {activeSegment === "organization" && <Organization dashboardSettings={dashboardSettings} />}
 
         <TicketDetailDrawer
           ticketId={selectedTicketId}
@@ -5759,8 +5399,8 @@ function DashboardContent() {
           onNavigate={(id) => setSelectedTicketId(id)}
         />
       </div>
-    </MainLayout>
 
+    </MainLayout>
   );
 }
 

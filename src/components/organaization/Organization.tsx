@@ -40,7 +40,7 @@ import dayjs from "dayjs";
 
 const { Text } = Typography;
 
-function DashboardContent() {
+function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
   const { token } = theme.useToken();
   const { user } = useAuth();
   const router = useRouter();
@@ -59,6 +59,11 @@ function DashboardContent() {
     error: calendarError,
     successMessage: calendarSuccess,
   } = useZohoCalendar();
+
+  const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false;
+  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false;
+  const isCalendarVisible = dashboardSettings?.calendar !== false;
+  const isQuickActionsVisible = dashboardSettings?.quickActions !== false;
 
   useEffect(() => {
     if (
@@ -307,7 +312,7 @@ function DashboardContent() {
         const rateA = dashboardData.stats.attendance.attendanceRate;
         const absentA = dashboardData.stats.attendance.absent;
         const lateA = dashboardData.stats.attendance.late;
-        return [
+        const allStats = [
           {
             eyebrow: "Total Members",
             value: dashboardData.stats.totalMembers,
@@ -493,8 +498,14 @@ function DashboardContent() {
                 </span>
               </div>
             ),
-          },
+          }
         ];
+
+        return allStats.filter((stat) => {
+          if (stat.eyebrow === "Team Today" && !isAttendanceStatsVisible) return false;
+          if (stat.eyebrow === "Tickets" && !isMyTicketsVisible) return false;
+          return true;
+        });
       })()
     : [];
 
@@ -1357,6 +1368,7 @@ function DashboardContent() {
 
           {/* Top Row: Project Pulse · Today's Pulse · Birthdays */}
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            {isMyTicketsVisible && (
             <Col xs={24} lg={8}>
               <Card
                 style={{ ...cardBase, height: 380 }}
@@ -1413,7 +1425,9 @@ function DashboardContent() {
                 {renderProjectPulse()}
               </Card>
             </Col>
+            )}
 
+            {isAttendanceStatsVisible && (
             <Col xs={24} lg={8}>
               <Card
                 style={{ ...cardBase, height: 380 }}
@@ -1444,6 +1458,7 @@ function DashboardContent() {
                 {renderTodayPulse()}
               </Card>
             </Col>
+            )}
 
             <Col xs={24} lg={8}>
               <Card
@@ -1489,6 +1504,7 @@ function DashboardContent() {
               </Card>
             </Col>
 
+            {isQuickActionsVisible && (
             <Col xs={24} lg={8}>
               <Card
                 style={cardBase}
@@ -1528,6 +1544,7 @@ function DashboardContent() {
                 </Space>
               </Card>
             </Col>
+            )}
           </Row>
         </>
       ) : null}
@@ -1535,10 +1552,10 @@ function DashboardContent() {
   );
 }
 
-export default function Organization() {
+export default function Organization({ dashboardSettings }: { dashboardSettings?: any }) {
   return (
     <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
-      <DashboardContent />
+      <DashboardContent dashboardSettings={dashboardSettings} />
     </Suspense>
   );
 }

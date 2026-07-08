@@ -99,6 +99,22 @@ export interface TeamPerformance {
   overtimeWorkers: number;
 }
 
+export interface DashboardSettings {
+  id?: string;
+  tenantId?: string;
+  visibleCards: {
+    heroSection: boolean;
+    quickActions: boolean;
+    attendanceStats: boolean;
+    myTicketsProgress: boolean;
+    recentTickets: boolean;
+    freelancerStats: boolean;
+    recentLeads: boolean;
+    recentInvoices: boolean;
+    calendar: boolean;
+  };
+}
+
 export interface DashboardData {
   stats: DashboardStats;
   recentActivities: RecentActivity[];
@@ -126,6 +142,22 @@ export const dashboardService = {
    */
   getDashboardSummary: async (): Promise<DashboardData> => {
     const data = await api.get<DashboardData>("api/dashboard/summary");
+    return data;
+  },
+
+  /**
+   * Get dashboard settings for visible cards
+   */
+  getSettings: async (): Promise<DashboardSettings> => {
+    const data = await api.get<DashboardSettings>("api/dashboard/settings");
+    return data;
+  },
+
+  /**
+   * Update dashboard settings
+   */
+  updateSettings: async (visibleCards: DashboardSettings['visibleCards']): Promise<DashboardSettings> => {
+    const data = await api.put<DashboardSettings>("api/dashboard/settings", { visibleCards });
     return data;
   },
 };

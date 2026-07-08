@@ -135,29 +135,50 @@ function LoginFormWithParams() {
             } catch(e) {}
           }
           
-          const { rootHost } = resolveHostInfo();
+          const { subdomain: hostnameSubdomain, rootHost } = resolveHostInfo();
           // Strip 'app.' prefix when building tenant subdomain URLs:
           // app.zukvo.com → zukvo.com, so redirect becomes company1.zukvo.com not company1.app.zukvo.com
           const tenantBaseHost = rootHost.startsWith('app.')
             ? rootHost.slice(4)
             : rootHost;
 
-          if (stateSubdomain) {
-             const protocol = window.location.protocol;
-             window.location.href = `${protocol}//${stateSubdomain}.${tenantBaseHost}/login?token=${token}`;
-             return;
+          // Determine target subdomain: state param > query param > current hostname subdomain
+          const targetSubdomain = stateSubdomain || searchParams.get('subdomain') || hostnameSubdomain || '';
+
+          if (targetSubdomain) {
+            // Exchange the Google token for a backend JWT, passing the tenant subdomain
+            // so the backend's resolveTenant middleware can identify the correct tenant.
+            setLoading(true);
+            AuthService.googleLogin(token, targetSubdomain).then((response) => {
+              const protocol = window.location.protocol;
+              const targetHost = `${targetSubdomain}.${tenantBaseHost}`;
+
+              // If we're already on the tenant domain, finalize login in-place
+              if (window.location.host === targetHost) {
+                // Clear any stale cached tenant to prevent wrong X-Tenant-ID header
+                localStorage.removeItem('currentTenant');
+                AuthService.setAccessToken(response.accessToken);
+                document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+                checkAuth().catch(() => {
+                  setError("Failed to finalize login");
+                  setLoading(false);
+                });
+              } else {
+                // Redirect to the tenant with the proper app JWT (not the raw Google token)
+                window.location.href = `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+              }
+            }).catch((err: any) => {
+              setError(err.message || "Google sign-in failed");
+              setLoading(false);
+            });
+            return;
           }
           
-          // Proceed with login on root host
+          // No subdomain — proceed with login on root host (app.zukvo.com)
           setLoading(true);
           AuthService.googleLogin(token).then(async (response) => {
-            const subdomainParam = searchParams.get('subdomain');
-            if (subdomainParam) {
-              const protocol = window.location.protocol;
-              window.location.href = `${protocol}//${subdomainParam}.${tenantBaseHost}/login?token=${response.accessToken}`;
-              return;
-            }
-            await googleLogin(token);
+            // Use the app JWT from the response, not the raw Google token
+            await googleLogin(response.accessToken);
           }).catch((err: any) => {
             setError(err.message || "Google sign-in failed");
             setLoading(false);
@@ -165,7 +186,7 @@ function LoginFormWithParams() {
         }
       }
     }
-  }, [searchParams, googleLogin]);
+  }, [searchParams, googleLogin, checkAuth]);
 
   const handleGoogleLogin = () => {
     if (typeof window === "undefined" || !(window as any).google) {
@@ -197,16 +218,30 @@ function LoginFormWithParams() {
           }
           if (tokenResponse.access_token) {
             try {
-              const response = await AuthService.googleLogin(tokenResponse.access_token);
               const subdomainParam = searchParams.get('subdomain');
-              if (subdomainParam) {
-                // Redirect back to subdomain with token
-                const protocol = window.location.protocol;
-                window.location.href = `${protocol}//${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+              // Use hostname subdomain as fallback (covers case where popup runs on lakshmi.zukvo.com)
+              const { subdomain: hostnameSubdomain, rootHost: currentRootHost } = resolveHostInfo();
+              const effectiveSubdomain = subdomainParam || hostnameSubdomain || '';
+              const tenantBaseHost = currentRootHost.startsWith('app.') ? currentRootHost.slice(4) : currentRootHost;
+
+              const response = await AuthService.googleLogin(tokenResponse.access_token, effectiveSubdomain || undefined);
+              
+              if (effectiveSubdomain) {
+                const targetHost = `${effectiveSubdomain}.${tenantBaseHost}`;
+                if (window.location.host === targetHost) {
+                  // Already on the tenant domain — finalize in-place
+                  localStorage.removeItem('currentTenant');
+                  AuthService.setAccessToken(response.accessToken);
+                  document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+                  await checkAuth();
+                } else {
+                  const protocol = window.location.protocol;
+                  window.location.href = `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+                }
                 return;
               }
-              // Normal login finalize
-              await googleLogin(tokenResponse.access_token);
+              // Root domain login — use the app JWT from response
+              await googleLogin(response.accessToken);
             } catch (err: any) {
               setError(err.message || "Google sign-in failed");
               setLoading(false);
@@ -236,7 +271,10 @@ function LoginFormWithParams() {
     setError("");
 
     const clientId = "2de414d6-6eff-4c4a-9480-f124cc8d4796";
-    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    // Always use the registered Azure redirect URI (app.zukvo.com/login).
+    // Using window.location.origin would produce sl.zukvo.com which is NOT registered.
+    const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
     const scope = encodeURIComponent("openid profile email User.Read");
     
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
@@ -352,8 +390,13 @@ function LoginFormWithParams() {
   // Auto-login with Microsoft if redirected from a subdomain
   useEffect(() => {
     const auto = searchParams.get('microsoft_login_auto');
-    const token = searchParams.get('ms_token');
-    if (auto === 'true' && token) {
+    const msToken = searchParams.get('ms_token');
+    const subdomainParam = searchParams.get('subdomain');
+
+    if (auto !== 'true') return;
+
+    // Case A: We already have the MS token (passed back from popup via query param)
+    if (msToken) {
       const params = new URLSearchParams(window.location.search);
       params.delete('microsoft_login_auto');
       params.delete('ms_token');
@@ -365,20 +408,81 @@ function LoginFormWithParams() {
       setError("");
 
       const { rootHost } = resolveHostInfo();
+      const tenantBaseHost = rootHost.startsWith('app.') ? rootHost.slice(4) : rootHost;
 
-      AuthService.microsoftLogin(token).then(async (response) => {
-        const subdomainParam = searchParams.get('subdomain');
-        if (subdomainParam) {
+      const targetSubdomain = subdomainParam || '';
+      AuthService.microsoftLogin(msToken, targetSubdomain || undefined).then(async (response) => {
+        if (targetSubdomain) {
           const protocol = window.location.protocol;
-          window.location.href = `${protocol}//${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+          window.location.href = `${protocol}//${targetSubdomain}.${tenantBaseHost}/login?token=${response.accessToken}`;
           return;
         }
-        await microsoftLogin(token);
+        await microsoftLogin(msToken);
       }).catch((err) => {
         setError(err.message || "Microsoft login failed");
         setLoading(false);
       });
+      return;
     }
+
+    // Case B: No token yet — auto-trigger the Microsoft popup now that we're on app.zukvo.com.
+    // Clean the auto param from URL first.
+    const params = new URLSearchParams(window.location.search);
+    params.delete('microsoft_login_auto');
+    const newSearch = params.toString();
+    router.replace(window.location.pathname + (newSearch ? `?${newSearch}` : ''));
+
+    setLoading(true);
+    setError("");
+
+    const clientId = "2de414d6-6eff-4c4a-9480-f124cc8d4796";
+    const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
+    const scope = encodeURIComponent("openid profile email User.Read");
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
+
+    const width = 600, height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    const popup = window.open(authUrl, "microsoft-login-popup", `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`);
+
+    if (!popup) {
+      setError("Popup blocked. Please allow popups for this site.");
+      setLoading(false);
+      return;
+    }
+
+    const messageListener = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "microsoft-token" && event.data?.token) {
+        const token = event.data.token;
+        cleanup();
+        const { rootHost } = resolveHostInfo();
+        const tenantBaseHost = rootHost.startsWith('app.') ? rootHost.slice(4) : rootHost;
+        const targetSubdomain = subdomainParam || '';
+        try {
+          const response = await AuthService.microsoftLogin(token, targetSubdomain || undefined);
+          if (targetSubdomain) {
+            const protocol = window.location.protocol;
+            window.location.href = `${protocol}//${targetSubdomain}.${tenantBaseHost}/login?token=${response.accessToken}`;
+            return;
+          }
+          await microsoftLogin(token);
+        } catch (err: any) {
+          setError(err.message || "Microsoft sign-in failed");
+          setLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener("message", messageListener);
+    const checkClosedInterval = setInterval(() => {
+      if (popup.closed) { cleanup(); setLoading(false); }
+    }, 1000);
+    const cleanup = () => {
+      window.removeEventListener("message", messageListener);
+      clearInterval(checkClosedInterval);
+    };
   }, [searchParams, router]);
 
   // Get the redirect URL from query parameters

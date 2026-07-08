@@ -464,6 +464,7 @@ export const Permissions = {
   MY_HUB_PERFORMANCE_READ:  'my_hub.performance.read',
   MY_HUB_PAYSLIPS_READ:     'my_hub.payslips.read',
   MY_HUB_PROFILE_READ:      'my_hub.profile.read',
+  MY_HUB_CLAIMS_READ:       'my_hub.claims.read',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

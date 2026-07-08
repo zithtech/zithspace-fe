@@ -1,4 +1,4 @@
-import { api, ApiError } from "@/lib/axios";
+import { api, apiClient, ApiError } from "@/lib/axios";
 
 export class EmployeeOnboardingService {
   /**
@@ -174,6 +174,112 @@ export class EmployeeOnboardingService {
     } catch (error) {
       if (error instanceof ApiError) throw new Error(error.message);
       throw new Error("Failed to delete document type");
+    }
+  }
+}
+
+// ── Employee HR Documents ─────────────────────────────────────────────────
+
+export interface EmployeeDocument {
+  id: string;
+  employeeId: string;
+  employeeName: string | null;
+  documentName: string;
+  documentType: string;
+  documentUrl: string;
+  status: "uploaded" | "pending" | "expired";
+  expiryDate: string | null;
+  notes: string | null;
+  uploadedAt: string;
+  createdById: string | null;
+  uploadedByName: string | null;
+}
+
+export interface DocumentStats {
+  total: number;
+  uploaded: number;
+  pending: number;
+  expired: number;
+}
+
+export class EmployeeDocumentService {
+  /** List all employee documents with optional filters */
+  static async listDocuments(filters?: {
+    employeeId?: string;
+    documentType?: string;
+    status?: string;
+    search?: string;
+  }): Promise<{ data: EmployeeDocument[]; stats: DocumentStats }> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.employeeId) params.set("employeeId", filters.employeeId);
+      if (filters?.documentType) params.set("documentType", filters.documentType);
+      if (filters?.status) params.set("status", filters.status);
+      if (filters?.search) params.set("search", filters.search);
+      const qs = params.toString();
+      const response = await apiClient.get<any>(`/api/onboarding/employee-documents${qs ? `?${qs}` : ""}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error("Failed to fetch documents");
+    }
+  }
+
+  /** List my documents with optional filters */
+  static async listMyDocuments(filters?: {
+    documentType?: string;
+    status?: string;
+    search?: string;
+  }): Promise<{ data: EmployeeDocument[]; stats: DocumentStats }> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.documentType) params.set("documentType", filters.documentType);
+      if (filters?.status) params.set("status", filters.status);
+      if (filters?.search) params.set("search", filters.search);
+      const qs = params.toString();
+      const response = await apiClient.get<any>(`/api/onboarding/my-documents${qs ? `?${qs}` : ""}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error("Failed to fetch my documents");
+    }
+  }
+
+  /** Upload an employee document (multipart file + metadata) */
+  static async uploadDocument(payload: {
+    file: File;
+    employeeId: string;
+    documentName: string;
+    documentType: string;
+    status?: string;
+    expiryDate?: string;
+    notes?: string;
+  }): Promise<{ data: EmployeeDocument }> {
+    try {
+      const formData = new FormData();
+      formData.append("file", payload.file);
+      formData.append("employeeId", payload.employeeId);
+      formData.append("documentName", payload.documentName);
+      formData.append("documentType", payload.documentType);
+      if (payload.status) formData.append("status", payload.status);
+      if (payload.expiryDate) formData.append("expiryDate", payload.expiryDate);
+      if (payload.notes) formData.append("notes", payload.notes);
+      return await api.post<any>("/api/onboarding/employee-documents", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error("Failed to upload document");
+    }
+  }
+
+  /** Soft-delete a document */
+  static async deleteDocument(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/onboarding/employee-documents/${id}`);
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error("Failed to delete document");
     }
   }
 }

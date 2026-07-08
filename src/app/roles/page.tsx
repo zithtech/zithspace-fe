@@ -29,6 +29,8 @@ import {
   Avatar,
   List,
   Skeleton,
+  Switch,
+  Collapse,
 } from "antd";
 import {
   SafetyOutlined,
@@ -40,6 +42,7 @@ import {
   CheckSquareOutlined,
   BorderOutlined,
   TeamOutlined,
+  MinusOutlined,
   MinusCircleOutlined,
   SearchOutlined,
   ReloadOutlined,
@@ -47,15 +50,15 @@ import {
   CrownOutlined,
   AppstoreOutlined,
   SettingOutlined,
-  ApartmentOutlined,
-  RocketOutlined,
-  RiseOutlined,
   BankOutlined,
-  ApiOutlined,
   EllipsisOutlined,
   CloseOutlined,
   BarsOutlined,
   MenuOutlined,
+  RocketOutlined,
+  ApartmentOutlined,
+  DownOutlined,
+  UpOutlined
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -200,21 +203,21 @@ const MY_HUB_PAGE_BY_PERM: Record<string, string> = {
 
 /** Display order for the My Hub page sub-groups (mirrors the My Hub rail). */
 const MY_HUB_PAGE_ORDER = [
+  'My Profile',
   'Overview',
   'Apply Leave',
   'Attendance',
   'Escalations',
   'Performance Report',
   'My Payslips',
-  'My Profile',
 ];
 
-/** Access Control drawer — premium SaaS tab groups */
+/** Access Control drawer — tabs that mirror the app module navigation */
 interface AccessGroup {
   key: string;
   label: string;
   icon: React.ReactNode;
-  resources: string[] | null; // null for 'all' or 'others'
+  resources: string[] | null; // null = 'all' or 'others'
   accent: string;
 }
 
@@ -227,54 +230,54 @@ const ACCESS_GROUPS: AccessGroup[] = [
     accent: '#3b82f6',
   },
   {
-    key: 'execution',
-    label: 'Execution Suite',
-    icon: <RocketOutlined />,
-    resources: ['ticket', 'document', 'project', 'squad'],
-    accent: '#3b82f6',
-  },
-  {
-    key: 'workforce',
-    label: 'Workforce Ops',
-    icon: <TeamOutlined />,
-    resources: ['daily_update', 'time_tracking', 'performance', 'escalation'],
-    accent: '#10b981',
-  },
-  {
-    key: 'growth',
-    label: 'Growth Suite',
-    icon: <RiseOutlined />,
-    resources: ['lead', 'proposal', 'pipeline'],
-    accent: '#f59e0b',
-  },
-  {
-    key: 'organization',
-    label: 'Organization Suite',
-    icon: <ApartmentOutlined />,
-    resources: ['client', 'role', 'user', 'org'],
+    key: 'my_hub',
+    label: 'My Hub',
+    icon: <AppstoreOutlined />,
+    resources: ['my_hub'],
     accent: '#ec4899',
   },
   {
+    key: 'home',
+    label: 'Home',
+    icon: <AppstoreOutlined />,
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log'],
+    accent: '#3b82f6',
+  },
+  {
+    key: 'work',
+    label: 'Work',
+    icon: <RocketOutlined />,
+    resources: ['project', 'ticket', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    accent: '#8b5cf6',
+  },
+  {
+    key: 'hrms',
+    label: 'HRMS',
+    icon: <TeamOutlined />,
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile'],
+    accent: '#10b981',
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    icon: <SettingOutlined />,
+    resources: ['client', 'settings', 'user', 'role', 'report', 'org'],
+    accent: '#f59e0b',
+  },
+  {
     key: 'finance',
-    label: 'Finance Suite',
+    label: 'Finance',
     icon: <BankOutlined />,
-    resources: ['invoice', 'account', 'payroll', 'salary', 'reimbursement', 'vendor'],
+    resources: ['invoice', 'account', 'reimbursement', 'payroll', 'salary', 'vendor'],
     accent: '#0ea5e9',
   },
-  {
-    key: 'connect',
-    label: 'Connect',
-    icon: <ApiOutlined />,
-    resources: ['my_hub', 'dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
-    accent: '#6366f1',
-  },
-  {
-    key: 'others',
-    label: 'Others',
-    icon: <EllipsisOutlined />,
-    resources: null,
-    accent: '#94a3b8',
-  },
+  // {
+  //   key: 'others',
+  //   label: 'Others',
+  //   icon: <EllipsisOutlined />,
+  //   resources: null,
+  //   accent: '#94a3b8',
+  // },
 ];
 
 const ASSIGNED_RESOURCES = new Set(
@@ -592,8 +595,20 @@ export default function RolesPage() {
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
   const [accessTab, setAccessTab] = useState<string>('all');
   const [permSearch, setPermSearch] = useState<string>('');
+  const [expandedPermGroups, setExpandedPermGroups] = useState<string[]>([]);
 
-
+  // Auto-expand groups when searching
+  React.useEffect(() => {
+    if (permSearch.trim()) {
+      const q = permSearch.trim().toLowerCase();
+      const matching = Object.keys(allPermissions).filter(res => {
+        const perms = allPermissions[res] || [];
+        if ((RESOURCE_LABELS[res] || res).toLowerCase().includes(q)) return true;
+        return perms.some(p => p.name.toLowerCase().includes(q) || p.action.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+      });
+      setExpandedPermGroups(prev => [...new Set([...prev, ...matching])]);
+    }
+  }, [permSearch, allPermissions]);
 
   // Calculate role stats
   const roleStats = React.useMemo(() => {
@@ -1680,26 +1695,43 @@ export default function RolesPage() {
                         </span>
                       </div>
 
-                      {canUpdateRole && (
-                        <div className="rp-acc-toolbar__actions">
-                          <Button
-                            size="small"
-                            icon={<CheckSquareOutlined />}
-                            onClick={accessTab === 'all' ? selectAll : handleSelectTab}
-                            className="rp-acc-link"
-                          >
-                            Select {accessTab === 'all' ? 'all' : 'tab'}
-                          </Button>
-                          <Button
-                            size="small"
-                            icon={<BorderOutlined />}
-                            onClick={accessTab === 'all' ? clearAll : handleClearTab}
-                            className="rp-acc-link is-danger"
-                          >
-                            Clear {accessTab === 'all' ? 'all' : 'tab'}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="rp-acc-toolbar__actions" style={{ display: 'flex', gap: 12 }}>
+                        {(() => {
+                          const allExpanded = visibleResources.length > 0 && visibleResources.every((r) => expandedPermGroups.includes(r));
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)', border: '1px solid var(--border-color, #e2e8f0)', padding: '4px 12px', borderRadius: 6, background: 'var(--bg-pure-white, #ffffff)' }}>
+                              <Switch 
+                                size="small" 
+                                checked={allExpanded} 
+                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])} 
+                              />
+                              <span style={{ cursor: 'pointer', fontWeight: 500 }} onClick={() => setExpandedPermGroups(allExpanded ? [] : visibleResources)}>
+                                Expand all
+                              </span>
+                            </div>
+                          );
+                        })()}
+                        {canUpdateRole && (
+                          <>
+                            <Button
+                              size="small"
+                              icon={<CheckSquareOutlined />}
+                              onClick={accessTab === 'all' ? selectAll : handleSelectTab}
+                              className="rp-acc-link"
+                            >
+                              Select {accessTab === 'all' ? 'all' : 'tab'}
+                            </Button>
+                            <Button
+                              size="small"
+                              icon={<BorderOutlined />}
+                              onClick={accessTab === 'all' ? clearAll : handleClearTab}
+                              className="rp-acc-link is-danger"
+                            >
+                              Clear {accessTab === 'all' ? 'all' : 'tab'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Tab progress bar */}
@@ -1773,58 +1805,91 @@ export default function RolesPage() {
                             subGroups[subKey].push(p);
                           });
                         } else
-                        perms.forEach((p) => {
-                          const parts = p.name.split('.');
-                          let subKey = `${label} Core`;
-                          if (p.name === 'time_tracking.manage_time') {
-                            subKey = 'Team Module';
-                          } else if (parts.length > 2) {
-                            const subName = parts[1]
-                              .split('_')
-                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                              .join(' ');
-                            subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
-                          } else if (parts[0] !== resource) {
-                            const subName = parts[0]
-                              .split('_')
-                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                              .join(' ');
-                            subKey = `${subName} Module`;
-                          }
-                          if (!subGroups[subKey]) subGroups[subKey] = [];
-                          subGroups[subKey].push(p);
-                        });
+                          perms.forEach((p) => {
+                            const parts = p.name.split('.');
+                            let subKey = `${label} Core`;
+                            if (p.name === 'time_tracking.manage_time') {
+                              subKey = 'Team Module';
+                            } else if (parts.length > 2) {
+                              const subName = parts[1]
+                                .split('_')
+                                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                .join(' ');
+                              subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
+                            } else if (parts[0] !== resource) {
+                              const subName = parts[0]
+                                .split('_')
+                                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                .join(' ');
+                              subKey = `${subName} Module`;
+                            }
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+
+                        const isExpanded = expandedPermGroups.includes(resource);
 
                         return (
-                          <div key={resource} className="rp-acc-card">
-                            <div className="rp-acc-card__header">
-                              <Checkbox
-                                checked={allInGroup}
-                                indeterminate={someInGroup}
-                                onChange={() => toggleResource(allPermsForRes)}
-                                disabled={!canUpdateRole}
-                                className="rp-acc-card__check"
-                              />
-                              <div className="rp-acc-card__text">
-                                <div className="rp-acc-card__title">{label}</div>
-                                <div className="rp-acc-card__sub">{resource}</div>
+                          <Collapse
+                            key={resource}
+                            className="rp-acc-card rp-acc-collapse"
+                            activeKey={isExpanded ? [resource] : []}
+                            onChange={(keys) => {
+                              if (keys.includes(resource)) {
+                                setExpandedPermGroups(prev => [...prev, resource]);
+                              } else {
+                                setExpandedPermGroups(prev => prev.filter(r => r !== resource));
+                              }
+                            }}
+                            expandIcon={({ isActive }) => (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={allInGroup}
+                                    indeterminate={someInGroup}
+                                    onChange={() => toggleResource(allPermsForRes)}
+                                    disabled={!canUpdateRole}
+                                    className="rp-acc-card__check"
+                                  />
+                                </div>
+                                <span style={{ 
+                                  color: 'var(--text-slate-500)', 
+                                  fontSize: 10, 
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 16,
+                                  height: 16,
+                                  border: '1px solid var(--border-color, #e2e8f0)',
+                                  borderRadius: 4,
+                                  background: 'var(--bg-secondary, #f8fafc)'
+                                }}>
+                                  {isActive ? <MinusOutlined /> : <PlusOutlined />}
+                                </span>
                               </div>
-                              <span
-                                className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
-                                  }`}
-                              >
-                                {selectedCount} / {allPermsForRes.length}
-                              </span>
-                            </div>
-
-                            <div className="rp-acc-card__body">
+                            )}
+                            items={[{
+                              key: resource,
+                              label: (
+                                <div className="rp-acc-card__text" style={{ marginLeft: 8 }}>
+                                  <div className="rp-acc-card__title">{label}</div>
+                                  <div className="rp-acc-card__sub">{resource}</div>
+                                </div>
+                              ),
+                              extra: (
+                                <span className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''}`}>
+                                  {selectedCount} / {allPermsForRes.length}
+                                </span>
+                              ),
+                              children: (
+                                <div className="rp-acc-card__body" style={{ padding: 0 }}>
                               {(resource === 'leave'
                                 ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                 : resource === 'performance'
-                                ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : resource === 'my_hub'
-                                ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : Object.entries(subGroups)
+                                  ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                  : resource === 'my_hub'
+                                    ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                    : Object.entries(subGroups)
                               ).map(([subTitle, subPerms]) => (
                                 <div key={subTitle} className="rp-acc-subgroup">
                                   <div className="rp-acc-subgroup__title">{subTitle}</div>
@@ -1888,8 +1953,10 @@ export default function RolesPage() {
                                   </Row>
                                 </div>
                               ))}
-                            </div>
-                          </div>
+                                </div>
+                              )
+                            }]}
+                          />
                         );
                       })
                     )}

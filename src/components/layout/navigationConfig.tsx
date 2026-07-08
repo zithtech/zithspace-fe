@@ -846,51 +846,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
 
       {
-        key: "Onboarding",
+        key: "/onboarding/onboarded",
         icon: I(UserPlus),
         label: "Onboarding",
+        path: "/onboarding/onboarded",
         requiredAnyPermission: [
           Permissions.ONBOARDING_READ,
           Permissions.ONBOARDING_CREATE,
           Permissions.ONBOARDING_UPDATE,
           Permissions.ONBOARDING_DELETE,
-        ],
-        children: [
-          {
-            key: "/onboarding/onboarded",
-            icon: I(Users),
-            label: "Employees",
-            path: "/onboarding/onboarded",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onboarding/create",
-            icon: I(UserPlus2),
-            label: "Add Employee",
-            path: "/onboarding/create",
-            requiredPermission: Permissions.ONBOARDING_CREATE,
-          },
-          {
-            key: "/onboarding/invites",
-            icon: I(Mail),
-            label: "Invites",
-            path: "/onboarding/invites",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onboarding/documents",
-            icon: I(Folder),
-            label: "Documents",
-            path: "/onboarding/documents",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onboarding/settings",
-            icon: I(Settings),
-            label: "Settings",
-            path: "/onboarding/settings",
-            requiredPermission: Permissions.ONBOARDING_SETTING_READ,
-          },
         ],
       },
 

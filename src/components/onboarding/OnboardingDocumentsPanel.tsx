@@ -358,7 +358,7 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
             </div>
           </div>
         </div>
-        
+
         <div
           className="customer-drawer-footer"
           style={{
@@ -563,17 +563,6 @@ export default function OnboardingDocumentsPanel() {
           {docTypeOptions.map((t) => (
             <Option key={t} value={t}>{t}</Option>
           ))}
-        </Select>
-        <Select
-          placeholder="All statuses"
-          style={{ width: 150 }}
-          value={filterStatus}
-          onChange={setFilterStatus}
-          allowClear
-        >
-          <Option value="uploaded">Uploaded</Option>
-          <Option value="pending">Pending</Option>
-          <Option value="expired">Expired</Option>
         </Select>
       </div>
 

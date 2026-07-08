@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Table, Typography, Button, Spin, Empty } from "antd";
-import { DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
+import React, { useEffect, useState, useMemo } from "react";
+import { Table, Typography, Button, Spin, Empty, Input } from "antd";
+import { DownloadOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import { EmployeeDocumentService } from "@/services/onboardingService";
 import dayjs from "dayjs";
 
@@ -10,6 +10,16 @@ const { Title, Text } = Typography;
 export default function MyDocumentsPanel() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const filteredDocuments = useMemo(() => {
+    if (!search) return documents;
+    const q = search.toLowerCase();
+    return documents.filter(d => 
+      (d.documentName || '').toLowerCase().includes(q) ||
+      (d.documentType || '').toLowerCase().includes(q)
+    );
+  }, [documents, search]);
 
   useEffect(() => {
     fetchDocuments();
@@ -53,17 +63,6 @@ export default function MyDocumentsPanel() {
       ),
     },
     {
-      title: "Expiry Date",
-      dataIndex: "expiryDate",
-      key: "expiryDate",
-      render: (date: string) =>
-        date ? (
-          <Text style={{ fontWeight: 500 }}>{dayjs(date).format("MMM DD, YYYY")}</Text>
-        ) : (
-          <Text type="secondary">—</Text>
-        ),
-    },
-    {
       title: "Status",
       dataIndex: "status",
       key: "status",
@@ -86,6 +85,12 @@ export default function MyDocumentsPanel() {
       ),
     },
     {
+      title: "Uploaded By",
+      dataIndex: "uploadedByName",
+      key: "uploadedByName",
+      render: (name: string) => <Text type="secondary">{name || "—"}</Text>,
+    },
+    {
       title: "Action",
       key: "action",
       width: 100,
@@ -95,7 +100,12 @@ export default function MyDocumentsPanel() {
           icon={<DownloadOutlined />}
           onClick={() => {
             if (record.documentUrl) {
-              window.open(record.documentUrl, "_blank");
+              const link = document.createElement("a");
+              link.href = record.documentUrl;
+              link.download = record.documentName || "document";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
             }
           }}
           style={{ color: "#3b82f6" }}
@@ -107,18 +117,43 @@ export default function MyDocumentsPanel() {
   ];
 
   return (
-    <div style={{ padding: "32px 0 64px 0", minHeight: "100%", display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-          My Documents
-        </Title>
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          View and download your HR documents.
-        </Text>
+    <div style={{ padding: "24px 0 64px 0", minHeight: "100%", display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        margin: "0 -32px",
+        padding: "0 32px 16px 32px",
+        borderBottom: "1px solid var(--border-slate-200)"
+      }}>
+        <div>
+          <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+            My Documents
+          </Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            View and download your HR documents.
+          </Text>
+        </div>
+        <Input
+          placeholder="Search documents..."
+          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          allowClear
+          style={{ width: 280 }}
+        />
       </div>
 
+      <style>{`
+        .my-docs-table .ant-table-container,
+        .my-docs-table .ant-table,
+        .my-docs-table .ant-table-thead > tr > th {
+          border-radius: 0px !important;
+        }
+      `}</style>
       <Table
-        dataSource={documents}
+        className="my-docs-table"
+        dataSource={filteredDocuments}
         columns={columns}
         rowKey="id"
         loading={loading}
@@ -131,7 +166,7 @@ export default function MyDocumentsPanel() {
             />
           ),
         }}
-        style={{ border: "1px solid var(--border-slate-200)", borderRadius: 8, overflow: "hidden" }}
+        style={{ border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}
       />
     </div>
   );

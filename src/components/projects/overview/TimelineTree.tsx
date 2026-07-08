@@ -53,6 +53,8 @@ interface TimelineTreeProps {
   pointsOf?: (t: TimelineTicket) => number | null;
   /** When set, renders a "How points work" button in the header that calls this. */
   onPointsInfo?: () => void;
+  hideAvatar?: boolean;
+  flatView?: boolean;
 }
 
 // Ticket Points (0–100) → percentage text + colour. Palette: green / amber / red.
@@ -110,7 +112,7 @@ interface FlatTicket extends TimelineTicket {
   memberLabel: string;
 }
 
-export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnHeader, hideToolbar, pointsOf, onPointsInfo }) => {
+export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnHeader, hideToolbar, pointsOf, onPointsInfo, hideAvatar, flatView }) => {
   const { open: openTicket } = useTicketDrawer();
   const [groupBy, setGroupBy] = useState<"month" | "member">("month");
   const [assignee, setAssignee] = useState<string | null>(null);
@@ -226,6 +228,64 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
     );
   }
 
+  const renderTicket = (t: TimelineTicket) => {
+    const meta = statusMeta(t.status);
+    const eff = effortMeta(t.estimateHours || 0, t.trackedSeconds || 0);
+    return (
+      <div key={t.id} className="tl-ticket">
+        <span className="tl-guide" />
+        <div className="tl-ticket-main">
+          <span className="tl-dot" style={{ background: meta.color }} />
+          <Tooltip title="Open ticket details">
+            <button type="button" className="tl-num" onClick={() => openTicket(t.id)}>
+              {t.ticketNumber}
+            </button>
+          </Tooltip>
+          <Tooltip title={t.title}>
+            <button type="button" className="tl-title" onClick={() => openTicket(t.id)}>
+              {t.title}
+            </button>
+          </Tooltip>
+          {t.sprintName && <span className="tl-sprint">{t.sprintName}</span>}
+        </div>
+        <span className="tl-col" style={{ textTransform: "capitalize" }}>{t.type || "—"}</span>
+        <span className="tl-col">{fmtDate(t.startDate)}</span>
+        <span className="tl-col">{fmtDate(t.endDate || t.dueDate)}</span>
+        <span className="tl-col" style={!eff.est ? { color: "var(--text-slate-400)" } : undefined}>
+          {eff.est || "No est"}
+        </span>
+        {eff.tracked ? (
+          <span className="tl-col" style={{ color: "var(--text-slate-700)", fontWeight: 600 }}>
+            {eff.tracked}
+          </span>
+        ) : (
+          <Tooltip title="No time tracked">
+            <span className="tl-col" style={{ color: "var(--text-slate-400)" }}>
+              No time
+            </span>
+          </Tooltip>
+        )}
+        <span className="tl-col" style={{ color: eff.delayColor, fontWeight: 700 }}>
+          {eff.delayText}
+        </span>
+        {pointsOf && (() => {
+          const pm = pointMeta(pointsOf(t));
+          return (
+            <span className="tl-col" style={{ color: pm.color, fontWeight: 700 }}>
+              {pm.text}
+            </span>
+          );
+        })()}
+        <span className="tl-status-col">
+          <span className="tl-status" style={{ color: meta.color, background: `${meta.color}14` }}>
+            {meta.icon}
+            {meta.label}
+          </span>
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="tl-card">
       {/* Toolbar */}
@@ -296,141 +356,81 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
       <div className="tl-body">
         {groups.length === 0 && (
           <div style={{ padding: "40px 0" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No tickets for this assignee</Text>}
-            />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: "var(--text-slate-400)" }}>No matches found</Text>} />
           </div>
         )}
-        {groups.map((o) => {
-          const oOpen = !collapsed.has(o.key);
-          const ticketCount = o.innerGroups.reduce((n, i) => n + i.items.length, 0);
-          const isMemberOuter = groupBy === "member";
-          return (
-            <div key={o.key} className="tl-month">
-              <button className="tl-month-head" onClick={() => toggle(o.key)}>
-                <RightOutlined className={`tl-chev ${oOpen ? "open" : ""}`} />
-                {isMemberOuter && (
-                  <Avatar
-                    shape="square"
-                    size={22}
-                    src={avatarFor.get(o.key) || undefined}
-                    style={{ background: "#3b82f6", color: "#fff", fontSize: 10, fontWeight: 800, borderRadius: 6 }}
-                  >
-                    {o.label.substring(0, 2).toUpperCase()}
-                  </Avatar>
-                )}
-                <span className="tl-month-title">{o.label}</span>
-                <span className="tl-badge">{ticketCount} tickets</span>
-                <span className="tl-badge tl-badge--soft">{o.innerGroups.length} {isMemberOuter ? "months" : "members"}</span>
-              </button>
+        
+        {flatView ? (
+          <div className="tl-tickets" style={{ paddingLeft: 0, border: "none" }}>
+            {flat.map((t) => renderTicket(t))}
+          </div>
+        ) : (
+          groups.map((o) => {
+            const ticketCount = o.innerGroups.reduce((acc, i) => acc + i.items.length, 0);
+            const oOpen = !collapsed.has(o.key);
+            const isMemberOuter = groupBy === "member";
+            return (
+              <div key={o.key} className="tl-month">
+                <button className="tl-month-head" onClick={() => toggle(o.key)}>
+                  <RightOutlined className={`tl-chev ${oOpen ? "open" : ""}`} />
+                  {!hideAvatar && isMemberOuter && (
+                    <Avatar
+                      shape="square"
+                      size={22}
+                      src={avatarFor.get(o.key) || undefined}
+                      style={{ background: "#3b82f6", color: "#fff", fontSize: 10, fontWeight: 800, borderRadius: 6 }}
+                    >
+                      {o.label.substring(0, 2).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <span className="tl-month-title">{o.label}</span>
+                  <span className="tl-badge">{ticketCount} tickets</span>
+                  <span className="tl-badge tl-badge--soft">{o.innerGroups.length} {isMemberOuter ? "months" : "members"}</span>
+                </button>
 
-              {oOpen && (
-                <div className="tl-month-body">
-                  {o.innerGroups.map((i) => {
-                    const ikey = `${o.key}::${i.key}`;
-                    const iOpen = !collapsed.has(ikey);
-                    const innerIsMember = groupBy === "month";
-                    const done = i.items.filter((t) => statusMeta(t.status).label === "Done").length;
-                    return (
-                      <div key={ikey} className="tl-member">
-                        <button className="tl-member-head" onClick={() => toggle(ikey)}>
-                          <RightOutlined className={`tl-chev sm ${iOpen ? "open" : ""}`} />
-                          {innerIsMember && (
-                            <Avatar
-                              shape="square"
-                              size={20}
-                              src={avatarFor.get(i.key) || undefined}
-                              style={{ background: "#3b82f6", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 5 }}
-                            >
-                              {i.label.substring(0, 2).toUpperCase()}
-                            </Avatar>
+                {oOpen && (
+                  <div className="tl-month-body">
+                    {o.innerGroups.map((i) => {
+                      const ikey = `${o.key}::${i.key}`;
+                      const iOpen = !collapsed.has(ikey);
+                      const innerIsMember = groupBy === "month";
+                      const done = i.items.filter((t) => statusMeta(t.status).label === "Done").length;
+                      return (
+                        <div key={ikey} className="tl-member">
+                          <button className="tl-member-head" onClick={() => toggle(ikey)}>
+                            <RightOutlined className={`tl-chev sm ${iOpen ? "open" : ""}`} />
+                            {!hideAvatar && innerIsMember && (
+                              <Avatar
+                                shape="square"
+                                size={20}
+                                src={avatarFor.get(i.key) || undefined}
+                                style={{ background: "#3b82f6", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 5 }}
+                              >
+                                {i.label.substring(0, 2).toUpperCase()}
+                              </Avatar>
+                            )}
+                            <span className="tl-member-name">{i.label}</span>
+                            <span className="tl-mini">{i.items.length}</span>
+                            <span className="tl-progress-mini">
+                              <span style={{ width: `${(done / i.items.length) * 100}%` }} />
+                            </span>
+                            <span className="tl-done-txt">{done}/{i.items.length} done</span>
+                          </button>
+
+                          {iOpen && (
+                            <div className="tl-tickets">
+                              {i.items.map((t) => renderTicket(t))}
+                            </div>
                           )}
-                          <span className="tl-member-name">{i.label}</span>
-                          <span className="tl-mini">{i.items.length}</span>
-                          <span className="tl-progress-mini">
-                            <span style={{ width: `${(done / i.items.length) * 100}%` }} />
-                          </span>
-                          <span className="tl-done-txt">{done}/{i.items.length} done</span>
-                        </button>
-
-                        {iOpen && (
-                          <div className="tl-tickets">
-                            {i.items.map((t) => {
-                              const meta = statusMeta(t.status);
-                              const eff = effortMeta(t.estimateHours || 0, t.trackedSeconds || 0);
-                              return (
-                                <div key={t.id} className="tl-ticket">
-                                  <span className="tl-guide" />
-                                  <div className="tl-ticket-main">
-                                    <span className="tl-dot" style={{ background: meta.color }} />
-                                    <Tooltip title="Open ticket details">
-                                      <button
-                                        type="button"
-                                        className="tl-num"
-                                        onClick={() => openTicket(t.id)}
-                                      >
-                                        {t.ticketNumber}
-                                      </button>
-                                    </Tooltip>
-                                    <Tooltip title={t.title}>
-                                      <button
-                                        type="button"
-                                        className="tl-title"
-                                        onClick={() => openTicket(t.id)}
-                                      >
-                                        {t.title}
-                                      </button>
-                                    </Tooltip>
-                                    {t.sprintName && <span className="tl-sprint">{t.sprintName}</span>}
-                                  </div>
-                                  <span className="tl-col" style={{ textTransform: "capitalize" }}>{t.type || "—"}</span>
-                                  <span className="tl-col">{fmtDate(t.startDate)}</span>
-                                  <span className="tl-col">{fmtDate(t.endDate || t.dueDate)}</span>
-                                  <span className="tl-col" style={!eff.est ? { color: "var(--text-slate-400)" } : undefined}>
-                                    {eff.est || "No est"}
-                                  </span>
-                                  {eff.tracked ? (
-                                    <span className="tl-col" style={{ color: "var(--text-slate-700)", fontWeight: 600 }}>
-                                      {eff.tracked}
-                                    </span>
-                                  ) : (
-                                    <Tooltip title="No time tracked">
-                                      <span className="tl-col" style={{ color: "var(--text-slate-400)" }}>
-                                        No time
-                                      </span>
-                                    </Tooltip>
-                                  )}
-                                  <span className="tl-col" style={{ color: eff.delayColor, fontWeight: 700 }}>
-                                    {eff.delayText}
-                                  </span>
-                                  {pointsOf && (() => {
-                                    const pm = pointMeta(pointsOf(t));
-                                    return (
-                                      <span className="tl-col" style={{ color: pm.color, fontWeight: 700 }}>
-                                        {pm.text}
-                                      </span>
-                                    );
-                                  })()}
-                                  <span className="tl-status-col">
-                                    <span className="tl-status" style={{ color: meta.color, background: `${meta.color}14` }}>
-                                      {meta.icon}
-                                      {meta.label}
-                                    </span>
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
       <style jsx global>{`

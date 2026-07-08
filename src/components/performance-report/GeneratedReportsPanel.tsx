@@ -665,7 +665,7 @@ export default function GeneratedReportsPanel() {
 
       {/* Off-screen printable for the current member being generated */}
       {printJob && (
-        <div style={{ position: 'fixed', left: -99999, top: 0, zIndex: -1 }} aria-hidden>
+        <div style={{ display: 'none' }} aria-hidden>
           <ReportPrintable ref={printRef} member={printJob.member} range={printJob.range} model={printJob.model} statusMarks={settingsRef.current.statusMarks} avatarDataUrl={printJob.avatar} />
         </div>
       )}

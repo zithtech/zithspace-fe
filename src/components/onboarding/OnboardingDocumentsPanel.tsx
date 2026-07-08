@@ -553,17 +553,14 @@ export default function OnboardingDocumentsPanel() {
           options={employeeOptions}
           showSelectedAvatar
         />
-        <Select
+        <SearchableDropdown
           placeholder="All types"
-          style={{ width: 180 }}
+          width={180}
           value={filterType}
           onChange={setFilterType}
           allowClear
-        >
-          {docTypeOptions.map((t) => (
-            <Option key={t} value={t}>{t}</Option>
-          ))}
-        </Select>
+          options={docTypeOptions.map((t) => ({ value: t, label: t }))}
+        />
       </div>
 
       {/* ── Table ───────────────────────────────────────────────────────── */}

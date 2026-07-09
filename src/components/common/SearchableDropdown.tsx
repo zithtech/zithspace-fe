@@ -72,7 +72,7 @@ export interface SearchableDropdownProps {
   showSelectedAvatar?: boolean;
 }
 
-const initialsFor = (s: string): string => {
+export const initialsFor = (s: string): string => {
   if (!s) return "?";
   const parts = s
     .replace(/[_\-]/g, " ")
@@ -83,7 +83,7 @@ const initialsFor = (s: string): string => {
 };
 
 /** Deterministic color from string so the same person always gets the same color */
-const avatarColorFor = (str: string): string => {
+export const avatarColorFor = (str: string): string => {
   const COLORS = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',

@@ -1,5 +1,7 @@
 'use client';
 
+import { apiClient } from '@/lib/axios';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Button, DatePicker, Dropdown, Drawer, Empty, Spin, Typography, message } from 'antd';
 import {
@@ -15,6 +17,7 @@ import { Ticket, Timer, NotebookPen, CalendarCheck, Plane, Gauge } from 'lucide-
 import dayjs, { Dayjs } from 'dayjs';
 import { TimelineTree } from '@/components/projects/overview/TimelineTree';
 import { PerformanceTracker } from '@/components/time-tracking/PerformanceTracker';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import DailyUpdatesSection from './DailyUpdatesSection';
 import AttendanceSection from './AttendanceSection';
 import LeavesSection from './LeavesSection';
@@ -65,6 +68,21 @@ export default function ReportsPanel() {
   );
   const memberId = selected?.member.id ?? null;
   const projectId = selected?.projectId ?? null;
+
+  const [dropdownOptions, setDropdownOptions] = useState<any[]>([]);
+  useEffect(() => {
+    if (selected) {
+      apiClient.get('/api/members/select')
+        .then((res) => {
+          if (res.data?.data) {
+            setDropdownOptions(res.data.data);
+          } else if (Array.isArray(res.data)) {
+            setDropdownOptions(res.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selected ? 'open' : 'closed']);
 
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().startOf('month'),
@@ -297,7 +315,7 @@ export default function ReportsPanel() {
   return (
     <div className="prr-wrap">
       {/* ── Header: back + member identity ──────────────────────────────────── */}
-      <div className="prr-head">
+      <div className="prr-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="prr-member-head">
           <button type="button" className="prr-back" onClick={() => setSelected(null)} aria-label="Back to members">
             <ArrowLeftOutlined />
@@ -315,6 +333,44 @@ export default function ReportsPanel() {
               {[m.position, m.department].filter(Boolean).join(' · ') || 'Performance report'}
             </p>
           </div>
+        </div>
+        <div>
+          <SearchableDropdown
+            placeholder="Choose User"
+            searchPlaceholder="Search user..."
+            itemNoun="users"
+            value={m.id}
+            onChange={(userId) => {
+              const opt = dropdownOptions.find((o) => o.value === userId);
+              if (opt) {
+                const newMember: ReportMember = {
+                  id: opt.value,
+                  name: opt.label,
+                  avatarUrl: opt.avatarUrl || null,
+                  workEmail: opt.email || null,
+                  position: opt.position || null,
+                  department: null,
+                  grade: null,
+                };
+                setSelected({ member: newMember, projectId: selected.projectId });
+              }
+            }}
+            options={[
+              ...(dropdownOptions.some(o => o.value === m.id) ? [] : [{
+                value: m.id,
+                label: m.name,
+                description: m.position || m.department || '',
+                avatarUrl: m.avatarUrl
+              }]),
+              ...dropdownOptions.map((o) => ({
+                value: o.value,
+                label: o.label,
+                description: o.position || '',
+                avatarUrl: o.avatarUrl,
+              }))
+            ]}
+            width={240}
+          />
         </div>
       </div>
 

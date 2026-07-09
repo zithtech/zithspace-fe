@@ -22,6 +22,8 @@ import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { ClientV2Service } from "@/services/clientV2Service";
+import LeaveV2Service from "@/services/leaveV2Service";
+import PayrollV2Service, { PayPayslip } from "@/services/payrollV2Service";
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import {
@@ -44,6 +46,7 @@ import {
   Segmented,
   Empty,
   theme,
+  Select,
 } from "antd";
 import {
   SettingOutlined,
@@ -57,6 +60,8 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   CaretRightOutlined,
+  FilePdfFilled,
+  DownloadOutlined,
   CheckSquareOutlined,
   CoffeeOutlined,
   LoginOutlined,
@@ -77,7 +82,8 @@ import {
   StarFilled,
   SyncOutlined,
   ExperimentOutlined,
-  SafetyCertificateFilled
+  SafetyCertificateFilled,
+  GiftOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -126,6 +132,8 @@ function DashboardContent() {
   const [clientStats, setClientStats] = useState({ active: 0, total: 0 });
 
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
+  const [payslips, setPayslips] = useState<PayPayslip[]>([]);
+  const [selectedPayslipId, setSelectedPayslipId] = useState<string | null>(null);
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
@@ -255,6 +263,23 @@ function DashboardContent() {
       setSelectedProjectId(dashboardData.projectProgress[0].id);
     }
   }, [dashboardData]);
+
+
+
+  useEffect(() => {
+    if (dashboardSettings?.cardSalarySlip !== false) {
+      const fetchPayslips = async () => {
+        try {
+          const res = await PayrollV2Service.getMyPayslips();
+          setPayslips(res);
+          if (res.length > 0) setSelectedPayslipId(res[0].id);
+        } catch (e) {
+          console.error("Failed to fetch payslips", e);
+        }
+      };
+      fetchPayslips();
+    }
+  }, [dashboardSettings?.cardSalarySlip]);
 
   useEffect(() => {
     const fetchTodayAttendance = async () => {
@@ -770,6 +795,79 @@ function DashboardContent() {
   const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false;
   const isRecentInvoicesVisible = dashboardSettings?.recentInvoices !== false;
   const isCalendarVisible = dashboardSettings?.calendar !== false;
+  const isCardSalarySlipVisible = dashboardSettings?.cardSalarySlip !== false;
+  const isDailyAttendanceVisible = dashboardSettings?.dailyAttendanceCard !== false;
+  const isMetricDailyUpdatesVisible = dashboardSettings?.metricDailyUpdates !== false;
+  const isMetricAvgHoursVisible = dashboardSettings?.metricAvgHours !== false;
+  const isMetricMyTicketsVisible = dashboardSettings?.metricMyTickets !== false;
+  const isMetricTeamTodayVisible = dashboardSettings?.metricTeamToday !== false;
+
+  // ─── Today Leaves render ──────────────────────────────────────────
+
+  // ─── Salary Slip render ───────────────────────────────────────────
+  const renderSalarySlip = () => {
+    if (payslips.length === 0) {
+      return (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: `linear-gradient(135deg, ${token.colorFillAlter} 0%, transparent 100%)`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorTextTertiary, marginBottom: 12 }}>
+            <FileTextOutlined style={{ fontSize: 20 }} />
+          </div>
+          <Text strong style={{ fontSize: 13, color: token.colorText, display: "block", marginBottom: 4 }}>No Salary Slips</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>You have no salary slips available yet.</Text>
+        </div>
+      );
+    }
+
+    const selectedSlip = payslips.find(p => p.id === selectedPayslipId) || payslips[0];
+
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <Text strong style={{ fontSize: 16 }}>Salary Slip</Text>
+          <Select
+            size="small"
+            value={selectedSlip.id}
+            onChange={(val) => setSelectedPayslipId(val)}
+            style={{ width: 130 }}
+            options={payslips.map(p => ({ label: p.periodLabel || `${p.month}/${p.year}`, value: p.id }))}
+          />
+        </div>
+
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <div style={{
+            width: 90, height: 90, borderRadius: 16, background: `${token.colorError}15`,
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <FilePdfFilled style={{ fontSize: 40, color: token.colorError }} />
+          </div>
+          <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>
+            Salary-Slip of {selectedSlip.periodLabel || `${selectedSlip.month}/${selectedSlip.year}`}
+          </Text>
+        </div>
+
+        <Button
+          type="primary"
+          icon={<DownloadOutlined />}
+          style={{ width: "100%", marginTop: 24, borderRadius: 8, height: 40, background: "#4338CA", borderColor: "#4338CA" }}
+          onClick={() => {
+            if (selectedSlip.fileUrl) {
+              const fileName = `Salary_Slip_${selectedSlip.periodLabel || `${selectedSlip.month}_${selectedSlip.year}`}.pdf`;
+              const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(selectedSlip.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+              const a = document.createElement("a");
+              a.href = proxyUrl;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+          }}
+          disabled={!selectedSlip.fileUrl}
+        >
+          Download
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <MainLayout>
@@ -987,10 +1085,20 @@ function DashboardContent() {
             ) : dashboardData ? (
               <>
                 {/* ─── KPI Strip ──────────────────────────────────── */}
+                {(() => {
+                  const visibleMetrics = [
+                    isMetricDailyUpdatesVisible,
+                    isMetricAvgHoursVisible,
+                    isMetricMyTicketsVisible,
+                    isMetricTeamTodayVisible
+                  ].filter(Boolean).length;
+                  const metricsSpan = visibleMetrics === 1 ? 24 : visibleMetrics === 2 ? 12 : visibleMetrics === 3 ? 8 : 6;
+
+                  return (
                 <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   {/* BOD / EOD */}
-                  {isAttendanceStatsVisible && (
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricDailyUpdatesVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const submittedCount =
                         (todayUpdates.bod ? 1 : 0) + (todayUpdates.eod ? 1 : 0);
@@ -1081,8 +1189,8 @@ function DashboardContent() {
                   )}
 
                   {/* Avg Working Hours */}
-                  {isAttendanceStatsVisible && (
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricAvgHoursVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const [hh = 0, mm = 0, ss = 0] = String(averageWorkHours || "0:0:0")
                         .split(":")
@@ -1145,8 +1253,8 @@ function DashboardContent() {
                   )}
 
                   {/* My Tickets */}
-                  {isMyTicketsVisible && (
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricMyTicketsVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const closed = myTicketsStats.closed;
                       const totalT = myTicketsStats.total;
@@ -1258,8 +1366,8 @@ function DashboardContent() {
                   )}
 
                   {/* Today's Attendance */}
-                  {isAttendanceStatsVisible && (
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricTeamTodayVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const present = dashboardData.stats.attendance.present;
                       const total = dashboardData.stats.totalMembers;
@@ -1321,12 +1429,44 @@ function DashboardContent() {
                   </Col>
                   )}
                 </Row>
+                  );
+                })()}
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
-                <Row gutter={[12, 12]}>
-                  {/* Time Tracker */}
-                  {isAttendanceStatsVisible && (
-                  <Col xs={24} lg={8}>
+                {(() => {
+                  const visibleKeys = [
+                    isDailyAttendanceVisible && "attendance",
+                    isCalendarVisible && "calendar",
+                    isQuickActionsVisible && "quickActions",
+                    isCardSalarySlipVisible && "salarySlip",
+                    isMyTicketsVisible && "tickets",
+                    isRecentTicketsVisible && "recentTickets"
+                  ].filter(Boolean) as string[];
+
+                  const N = visibleKeys.length;
+                  const spanMap: Record<string, number> = {};
+
+                  if (N >= 6) {
+                    for (let i = 0; i < N; i++) spanMap[visibleKeys[i]] = 8;
+                  } else if (N === 5) {
+                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+                    spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
+                  } else if (N === 4) {
+                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12; 
+                    spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
+                  } else if (N === 3) {
+                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+                  } else if (N === 2) {
+                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
+                  } else if (N === 1) {
+                    spanMap[visibleKeys[0]] = 24;
+                  }
+
+                  return (
+                    <Row gutter={[12, 12]}>
+                      {/* Time Tracker */}
+                      {isDailyAttendanceVisible && (
+                      <Col xs={24} md={spanMap["attendance"]} lg={spanMap["attendance"]} xl={spanMap["attendance"]}>
                     <Card
                       style={{
                         ...cardBase,
@@ -1751,43 +1891,73 @@ function DashboardContent() {
 
                   {/* Calendar Integration - Takes up 2 columns */}
                   {isCalendarVisible && (
-                  <Col xs={24} lg={16}>
+                  <Col xs={24} md={spanMap["calendar"]} lg={spanMap["calendar"]} xl={spanMap["calendar"]}>
                     <Card
                       style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
                       styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                      title={
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            minWidth: 0,
-                          }}
-                        >
-                          {sectionTitle(
-                            <VideoCameraOutlined />,
-                            "Today's Meetings",
-                            "#3B82F6",
-                          )}
-                          {todaysMeetings.length > 0 && (
-                            <span
+                          title={
+                            <div
                               style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: "0.4px",
-                                color: "#3B82F6",
-                                background: `#3B82F614`,
-                                border: `1px solid #3B82F633`,
-                                padding: "2px 7px",
-                                borderRadius: 999,
-                                fontVariantNumeric: "tabular-nums",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                minWidth: 0,
                               }}
                             >
-                              {todaysMeetings.length} TODAY
-                            </span>
-                          )}
-                        </div>
-                      }
+                              <div
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: `#3B82F614`,
+                                  border: `1px solid #3B82F633`,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#3B82F6",
+                                  fontSize: 13,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <VideoCameraOutlined />
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    color: token.colorText,
+                                    letterSpacing: "-0.1px",
+                                    lineHeight: 1.2,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  Today's Meetings
+                                </span>
+                                {todaysMeetings.length > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.4px",
+                                      color: "#3B82F6",
+                                      background: `#3B82F614`,
+                                      border: `1px solid #3B82F633`,
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                      fontVariantNumeric: "tabular-nums",
+                                      width: "fit-content",
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    {todaysMeetings.length} TODAY
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          }
                       extra={
                         connectedProvider ? (
                           <Space size={4}>
@@ -1973,7 +2143,211 @@ function DashboardContent() {
                   </Col>
                   )}
 
-                  <Col xs={24} lg={8}>
+                  {isQuickActionsVisible && (
+                  <Col xs={24} md={spanMap["quickActions"]} lg={spanMap["quickActions"]} xl={spanMap["quickActions"]}>
+                    {(() => {
+                      const accentQA = "#10B981";
+                      const quickActions = [
+                        {
+                          icon: <PlusCircleOutlined />,
+                          title: "Create Ticket",
+                          desc: "Log a new task or issue",
+                          accent: "#3B82F6",
+                          onClick: () => router.push("/tickets/create"),
+                          shortcut: "T",
+                        },
+                        {
+                          icon: <FolderOpenOutlined />,
+                          title: "Document Hub",
+                          desc: "Browse and manage docs",
+                          accent: "#10B981",
+                          onClick: () => router.push("/documenthub"),
+                          shortcut: "D",
+                        },
+                        {
+                          icon: <AppstoreOutlined />,
+                          title: "Project",
+                          desc: "Manage and track all projects",
+                          accent: "#3B82F6",
+                          onClick: () => router.push("/projects/manage"),
+                          shortcut: "P",
+                        },
+                      ];
+                      return (
+                        <Card
+                          style={{
+                            ...cardBase,
+                            height: "100%",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                          styles={{
+                            body: {
+                              padding: 16,
+                              position: "relative",
+                              zIndex: 1,
+                            },
+                          }}
+                          title={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                minWidth: 0,
+                              }}
+                            >
+                              {sectionTitle(
+                                <ThunderboltFilled />,
+                                "Quick Actions",
+                                accentQA,
+                              )}
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: "0.4px",
+                                  color: accentQA,
+                                  background: `${accentQA}14`,
+                                  border: `1px solid ${accentQA}33`,
+                                  padding: "2px 7px",
+                                  borderRadius: 999,
+                                }}
+                              >
+                                SHORTCUTS
+                              </span>
+                            </div>
+                          }
+                        >
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                            }}
+                          >
+                            {quickActions.map((a) => (
+                              <div
+                                key={a.title}
+                                onClick={a.onClick}
+                                className="dash-qa-row"
+                                style={
+                                  {
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    padding: "10px 12px 10px 14px",
+                                    borderRadius: 12,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    background: token.colorBgContainer,
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    ["--qa-accent" as any]: a.accent,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: 3,
+                                    background: a.accent,
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: `${a.accent}14`,
+                                    border: `1px solid ${a.accent}33`,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: a.accent,
+                                    fontSize: 16,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {a.icon}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <Text
+                                    strong
+                                    style={{
+                                      fontSize: 13,
+                                      color: token.colorText,
+                                      display: "block",
+                                      lineHeight: 1.3,
+                                      letterSpacing: "-0.1px",
+                                    }}
+                                  >
+                                    {a.title}
+                                  </Text>
+                                  <Text
+                                    type="secondary"
+                                    style={{
+                                      fontSize: 11,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {a.desc}
+                                  </Text>
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: token.colorTextTertiary,
+                                    background: token.colorFillAlter,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    fontVariantNumeric: "tabular-nums",
+                                    letterSpacing: "0.4px",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  ⌘ {a.shortcut}
+                                </span>
+                                <ArrowRightOutlined
+                                  style={{
+                                    fontSize: 11,
+                                    color: token.colorTextTertiary,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                  )}
+
+                  {isCardSalarySlipVisible && (
+                    <Col xs={24} md={spanMap["salarySlip"]} lg={spanMap["salarySlip"]} xl={spanMap["salarySlip"]}>
+                      <Card
+                        style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                        styles={{
+                          body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
+                        }}
+                      >
+                        {renderSalarySlip()}
+                      </Card>
+                    </Col>
+                  )}
+
+
+                  {/* My Tickets Stats */}
+                  {isMyTicketsVisible && (
+                  <Col xs={24} md={spanMap["tickets"]} lg={spanMap["tickets"]} xl={spanMap["tickets"]}>
                     {(() => {
                       const segments = [
                         { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
@@ -1984,7 +2358,7 @@ function DashboardContent() {
                       const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
+                          style={{ ...cardBase, minHeight: 330, height: "100%", overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
                           extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
@@ -2090,12 +2464,11 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
-                </Row>
+                  )}
 
-                {/* Bottom Row: Recent Tickets + Quick Actions */}
-                <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+                  {/* Recent Tickets */}
                   {isRecentTicketsVisible && (
-                  <Col xs={24} lg={16}>
+                  <Col xs={24} md={spanMap["recentTickets"]} lg={spanMap["recentTickets"]} xl={spanMap["recentTickets"]}>
                     {(() => {
                       const accent = "#3B82F6";
                       const testingCount = recentTickets.filter((t: any) => {
@@ -2114,7 +2487,9 @@ function DashboardContent() {
                         <Card
                           style={{
                             ...cardBase,
-                            height: "100%",
+                            height: 330,
+                            display: "flex",
+                            flexDirection: "column",
                             position: "relative",
                             overflow: "hidden",
                           }}
@@ -2125,6 +2500,8 @@ function DashboardContent() {
                               flexDirection: "column",
                               position: "relative",
                               zIndex: 1,
+                              flex: 1,
+                              minHeight: 0,
                             },
                           }}
                           title={
@@ -2158,96 +2535,6 @@ function DashboardContent() {
                                 >
                                   {recentTickets.length} TOTAL
                                 </span>
-                              )}
-                              {activeCount > 0 && (
-                                <Tooltip title={`${activeCount} in progress`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#3B82F6",
-                                      background: "#EFF6FF",
-                                      border: "1px solid #3B82F633",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#3B82F6",
-                                        boxShadow: "none",
-                                        animation:
-                                          "pulse-soft 2s infinite ease-in-out",
-                                      }}
-                                    />
-                                    {activeCount} ACTIVE
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {testingCount > 0 && (
-                                <Tooltip title={`${testingCount} in testing`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#10B981",
-                                      background: "#ECFDF5",
-                                      border: "1px solid #10B98133",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#10B981",
-                                      }}
-                                    />
-                                    {testingCount} TESTING
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {notStartedCount > 0 && (
-                                <Tooltip title={`${notStartedCount} not started`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#94A3B8",
-                                      background: token.colorFillAlter,
-                                      border: `1px solid ${token.colorBorderSecondary}`,
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#94A3B8",
-                                      }}
-                                    />
-                                    {notStartedCount} NOT STARTED
-                                  </span>
-                                </Tooltip>
                               )}
                             </div>
                           }
@@ -2311,11 +2598,15 @@ function DashboardContent() {
                             </div>
                           ) : (
                             <div
+                              className="no-scrollbar"
                               style={{
-                                display: "grid",
-                                gridTemplateColumns:
-                                  "repeat(auto-fill, minmax(240px, 1fr))",
+                                display: "flex",
+                                flexDirection: "column",
                                 gap: 12,
+                                flex: 1,
+                                overflowY: "auto",
+                                paddingRight: 4,
+                                alignContent: "start",
                               }}
                             >
                               {recentTickets.map((item: any) => {
@@ -2373,6 +2664,7 @@ function DashboardContent() {
                                         display: "flex",
                                         flexDirection: "column",
                                         gap: 10,
+                                        flexShrink: 0,
                                         overflow: "hidden",
                                         ["--rt-glow" as any]: `${sm.color}55`,
                                         ["--rt-border" as any]: `${sm.color}55`,
@@ -2571,194 +2863,9 @@ function DashboardContent() {
                   </Col>
                   )}
 
-                  {isQuickActionsVisible && (
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const accentQA = "#10B981";
-                      const quickActions = [
-                        {
-                          icon: <PlusCircleOutlined />,
-                          title: "Create Ticket",
-                          desc: "Log a new task or issue",
-                          accent: "#3B82F6",
-                          onClick: () => router.push("/tickets/create"),
-                          shortcut: "T",
-                        },
-                        {
-                          icon: <FolderOpenOutlined />,
-                          title: "Document Hub",
-                          desc: "Browse and manage docs",
-                          accent: "#10B981",
-                          onClick: () => router.push("/documenthub"),
-                          shortcut: "D",
-                        },
-                        {
-                          icon: <AppstoreOutlined />,
-                          title: "Project",
-                          desc: "Manage and track all projects",
-                          accent: "#3B82F6",
-                          onClick: () => router.push("/projects/manage"),
-                          shortcut: "P",
-                        },
-                      ];
-                      return (
-                        <Card
-                          style={{
-                            ...cardBase,
-                            height: "100%",
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                          styles={{
-                            body: {
-                              padding: 16,
-                              position: "relative",
-                              zIndex: 1,
-                            },
-                          }}
-                          title={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                minWidth: 0,
-                              }}
-                            >
-                              {sectionTitle(
-                                <ThunderboltFilled />,
-                                "Quick Actions",
-                                accentQA,
-                              )}
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  letterSpacing: "0.4px",
-                                  color: accentQA,
-                                  background: `${accentQA}14`,
-                                  border: `1px solid ${accentQA}33`,
-                                  padding: "2px 7px",
-                                  borderRadius: 999,
-                                }}
-                              >
-                                SHORTCUTS
-                              </span>
-                            </div>
-                          }
-                        >
-
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 8,
-                            }}
-                          >
-                            {quickActions.map((a) => (
-                              <div
-                                key={a.title}
-                                onClick={a.onClick}
-                                className="dash-qa-row"
-                                style={
-                                  {
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 12,
-                                    padding: "10px 12px 10px 14px",
-                                    borderRadius: 12,
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    background: token.colorBgContainer,
-                                    position: "relative",
-                                    overflow: "hidden",
-                                    ["--qa-accent" as any]: a.accent,
-                                  } as React.CSSProperties
-                                }
-                              >
-                                <span
-                                  aria-hidden
-                                  style={{
-                                    position: "absolute",
-                                    left: 0,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: 3,
-                                    background: a.accent,
-                                  }}
-                                />
-                                <div
-                                  style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 10,
-                                    background: `${a.accent}14`,
-                                    border: `1px solid ${a.accent}33`,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: a.accent,
-                                    fontSize: 16,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {a.icon}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <Text
-                                    strong
-                                    style={{
-                                      fontSize: 13,
-                                      color: token.colorText,
-                                      display: "block",
-                                      lineHeight: 1.3,
-                                      letterSpacing: "-0.1px",
-                                    }}
-                                  >
-                                    {a.title}
-                                  </Text>
-                                  <Text
-                                    type="secondary"
-                                    style={{
-                                      fontSize: 11,
-                                      lineHeight: 1.3,
-                                    }}
-                                  >
-                                    {a.desc}
-                                  </Text>
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: token.colorTextTertiary,
-                                    background: token.colorFillAlter,
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    padding: "2px 6px",
-                                    borderRadius: 6,
-                                    fontVariantNumeric: "tabular-nums",
-                                    letterSpacing: "0.4px",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  ⌘ {a.shortcut}
-                                </span>
-                                <ArrowRightOutlined
-                                  style={{
-                                    fontSize: 11,
-                                    color: token.colorTextTertiary,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
-                  )}
-                </Row>
+                    </Row>
+                  );
+                })()}
               </>
             ) : null}
           </>
@@ -3145,7 +3252,7 @@ function DashboardContent() {
                       const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
+                          style={{ ...cardBase, minHeight: 330, height: "100%", overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
                           extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
@@ -3278,32 +3385,62 @@ function DashboardContent() {
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
+                                gap: 10,
                                 minWidth: 0,
                               }}
                             >
-                              {sectionTitle(
-                                <VideoCameraOutlined />,
-                                "Today's Meetings",
-                                accentTM,
-                              )}
-                              {tmCount > 0 && (
+                              <div
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: `${accentTM}14`,
+                                  border: `1px solid ${accentTM}33`,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: accentTM,
+                                  fontSize: 13,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <VideoCameraOutlined />
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                                 <span
                                   style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accentTM,
-                                    background: `${accentTM}14`,
-                                    border: `1px solid ${accentTM}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    color: token.colorText,
+                                    letterSpacing: "-0.1px",
+                                    lineHeight: 1.2,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
                                   }}
                                 >
-                                  {tmCount} TODAY
+                                  Today's Meetings
                                 </span>
-                              )}
+                                {tmCount > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.4px",
+                                      color: accentTM,
+                                      background: `${accentTM}14`,
+                                      border: `1px solid ${accentTM}33`,
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                      fontVariantNumeric: "tabular-nums",
+                                      width: "fit-content",
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    {tmCount} TODAY
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           }
                           extra={

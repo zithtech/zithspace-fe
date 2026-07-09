@@ -112,6 +112,8 @@ export interface DashboardSettings {
     recentLeads: boolean;
     recentInvoices: boolean;
     calendar: boolean;
+    upcomingBirthdays: boolean;
+    dailyAttendanceCard: boolean;
   };
 }
 
@@ -133,6 +135,14 @@ export interface DashboardData {
     startDate: string;
     endDate: string;
   };
+  upcomingBirthdays?: {
+    id: string;
+    name: string;
+    position: string;
+    avatarUrl: string | null;
+    dateOfBirth: string;
+    daysUntil: number;
+  }[];
 }
 
 export const dashboardService = {

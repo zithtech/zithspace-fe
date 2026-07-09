@@ -240,29 +240,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     ],
     items: [
       {
-        key: "dashboard-group",
+        key: "/dashboard",
         label: "Dashboard",
         icon: I(LayoutDashboard),
-        requiredAnyPermission: [
-          Permissions.DASHBOARD_READ,
-          Permissions.SETTINGS_UPDATE,
-        ],
-        children: [
-          {
-            key: "/dashboard",
-            label: "Overview",
-            icon: I(LayoutDashboard),
-            path: "/dashboard",
-            requiredPermission: Permissions.DASHBOARD_READ,
-          },
-          {
-            key: "/dashboard/settings",
-            label: "Settings",
-            icon: I(Settings2),
-            path: "/dashboard/settings",
-            requiredPermission: Permissions.SETTINGS_UPDATE,
-          },
-        ],
+        path: "/dashboard",
+        requiredPermission: Permissions.DASHBOARD_READ,
       },
       {
         key: "/integrations",
@@ -270,6 +252,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Plug2),
         path: "/integrations",
         requiredPermission: Permissions.INTEGRATION_READ,
+      },
+      {
+        key: "/dashboard/settings",
+        label: "Dashboard Settings",
+        icon: I(Settings2),
+        path: "/dashboard/settings",
+        requiredPermission: Permissions.SETTINGS_UPDATE,
       },
     ],
   },

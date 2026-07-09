@@ -26554,4 +26554,36 @@ select:-webkit-autofill:focus {
   align-items: center;
   gap: 6px;
 }
-
+
+/* Dashboard Masonry Layout */
+.dash-masonry {
+  display: block;
+  margin-top: 12px;
+}
+.dash-masonry::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+.dash-col-left {
+  float: left;
+  clear: left;
+  width: calc(33.33333333% - 8px);
+  margin-bottom: 12px;
+  margin-right: 12px;
+}
+.dash-col-right {
+  float: right;
+  clear: right;
+  width: calc(66.66666667% - 4px);
+  margin-bottom: 12px;
+}
+
+@media (max-width: 992px) {
+  .dash-col-left, .dash-col-right {
+    float: none;
+    clear: both;
+    width: 100%;
+    margin-right: 0;
+  }
+}

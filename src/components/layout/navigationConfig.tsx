@@ -264,6 +264,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/integrations",
         requiredPermission: Permissions.INTEGRATION_READ,
       },
+      {
+        key: "/dashboard/settings",
+        label: "Dashboard Settings",
+        icon: I(Settings2),
+        path: "/dashboard/settings",
+        requiredPermission: Permissions.SETTINGS_UPDATE,
+      },
     ],
   },
   {

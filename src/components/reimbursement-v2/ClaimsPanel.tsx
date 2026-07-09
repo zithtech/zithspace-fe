@@ -17,8 +17,21 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   Claim, ClaimDetail, ExpenseCategory, Advance,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
+
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'partially_reconciled', label: 'Partially Reconciled' },
+  { value: 'reconciled', label: 'Reconciled' },
+];
 
 export default function ClaimsPanel() {
   const perms = usePermission() as any;
@@ -30,6 +43,7 @@ export default function ClaimsPanel() {
   const [advances, setAdvances] = useState<Advance[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [current, setCurrent] = useState<ClaimDetail | null>(null);
   const [creating, setCreating] = useState(false);
@@ -78,8 +92,12 @@ export default function ClaimsPanel() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.claimNo.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q));
-  }, [rows, search]);
+    return rows.filter((r) => {
+      const matchSearch = !q || r.claimNo.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [rows, search, statusFilter]);
 
   const openCreate = async () => {
     setCurrent(null);
@@ -201,20 +219,20 @@ export default function ClaimsPanel() {
           notFoundContent={cats.length === 0 ? 'No categories yet — ask an admin to add expense categories' : 'No match'} />
       </Form.Item>
       <Form.Item name="expenseDate" label="Date" rules={[{ required: true, message: 'Date required' }]}>
-        <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+        <DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />
       </Form.Item>
       {selectedCat?.kind === 'mileage' ? (
         <Form.Item name="distance" label={`Distance (${selectedCat.mileageUnit || 'units'})`} rules={[{ required: true, message: 'Distance required' }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
         </Form.Item>
       ) : (
         <Form.Item name="amount" label="Amount" rules={[{ required: true, message: 'Amount required' }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
         </Form.Item>
       )}
-      <Form.Item name="merchant" label="Merchant"><Input placeholder="Optional" /></Form.Item>
-      <Form.Item name="billNo" label="Bill no."><Input placeholder="Optional" /></Form.Item>
-      <Form.Item name="description" label="Description"><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="merchant" label="Merchant" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="billNo" label="Bill no." rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="description" label="Description" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
     </>
   );
 
@@ -338,6 +356,15 @@ export default function ClaimsPanel() {
         search={search} onSearch={setSearch} searchPlaceholder="Search claims…"
         onRefresh={load} loading={loading}
       >
+        <SearchableDropdown
+          placeholder="All statuses"
+          itemNoun="statuses"
+          value={statusFilter === 'all' ? undefined : statusFilter}
+          onChange={(v) => setStatusFilter((v as string) ?? 'all')}
+          options={STATUS_OPTIONS}
+          style={{ width: 160 }}
+          width={220}
+        />
         {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>New Claim</Button>}
       </PanelHeader>
 
@@ -457,7 +484,7 @@ export default function ClaimsPanel() {
             <Form form={headerForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
               <SectionCard icon={<FileTextOutlined />}
                 title="Claim details" subtitle="What is this claim for? The total is calculated from the line items below." step="STEP 1">
-                <Form.Item name="title" label="Title"><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
+                <Form.Item name="title" label="Title" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
                 {advances.length > 0 && (
                   <Form.Item name="advanceId" label="Settle against advance (optional)">
                     <Select allowClear placeholder="Pick a paid advance"
@@ -479,7 +506,7 @@ export default function ClaimsPanel() {
                     <Form.Item name="exchangeRate" label={<span>Exchange rate → INR{' '}
                       <Tooltip title="How many INR one unit of the chosen currency is worth. The claim is stored in INR for reporting."><span style={{ color: 'var(--text-slate-400)' }}>ⓘ</span></Tooltip>
                     </span>}>
-                      <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" />
+                      <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" onKeyDown={preventInvalidNumberKeys as any} />
                     </Form.Item>
                   </div>
                 )}
@@ -587,81 +614,95 @@ export default function ClaimsPanel() {
         </div>
       </Drawer>
       <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)'
-            }}>
-              <CloseCircleOutlined style={{ fontSize: 16, color: '#ef4444' }} />
-            </div>
-            <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-              Policy Limit Exceeded
-            </span>
-          </div>
-        }
+        title={null}
         open={!!limitError}
         onOk={() => setLimitError(null)}
         onCancel={() => setLimitError(null)}
         zIndex={2000}
-        closeIcon={<CloseCircleOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16, transition: 'color 0.2s' }} />}
+        closeIcon={false}
+        width={400}
+        centered
         styles={{
-          mask: { backdropFilter: 'blur(8px)', background: 'var(--modal-mask-bg, rgba(15, 23, 42, 0.6))' },
+          mask: { backdropFilter: 'blur(12px)', background: 'var(--modal-mask-bg, rgba(15, 23, 42, 0.65))' },
           content: { 
             background: 'var(--bg-pure-white, #FFFFFF)',
             border: '1px solid var(--border-color, #e2e8f0)',
-            borderRadius: 20,
-            padding: '24px',
-            boxShadow: 'var(--pb-elev-3, 0 25px 50px -12px rgba(0, 0, 0, 0.25))'
-          },
-          header: { 
-            background: 'transparent',
-            borderBottom: '1px solid var(--border-color, #e2e8f0)',
-            paddingBottom: 16,
-            marginBottom: 20
+            borderRadius: 24,
+            padding: '36px 28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.05) inset',
+            textAlign: 'center'
           },
           body: { padding: 0 },
-          footer: { borderTop: 'none', background: 'transparent', marginTop: 28 }
+          footer: { display: 'none' }
         }}
-        footer={[
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', marginBottom: 24 }}>
+            <div style={{ 
+              position: 'absolute', inset: -14, background: 'rgba(239, 68, 68, 0.15)',
+              borderRadius: '50%', filter: 'blur(16px)', zIndex: 0 
+            }} />
+            <div style={{
+              position: 'relative', zIndex: 1,
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+              border: '4px solid #ffffff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px -4px rgba(239, 68, 68, 0.25)'
+            }}>
+              <CloseCircleOutlined style={{ fontSize: 32, color: '#ef4444' }} />
+            </div>
+          </div>
+          
+          <h3 style={{ 
+            fontSize: 22, fontWeight: 700, color: 'var(--text-slate-900, #0f172a)', 
+            marginBottom: 12, letterSpacing: '-0.02em', lineHeight: 1.2
+          }}>
+            Policy Limit Exceeded
+          </h3>
+          
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.03) 0%, rgba(239, 68, 68, 0.08) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            borderRadius: 16,
+            padding: '16px 20px',
+            color: 'var(--text-slate-700, #334155)',
+            fontSize: 14.5,
+            lineHeight: 1.6,
+            fontWeight: 500,
+            marginBottom: 32,
+            width: '100%',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}>
+            {limitError}
+          </div>
+
           <Button 
-            key="ok" 
             type="primary" 
             onClick={() => setLimitError(null)}
+            block
             style={{ 
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 14,
               fontWeight: 600,
-              fontSize: 14,
-              padding: '0 28px',
-              height: 42,
-              boxShadow: '0 4px 14px -2px rgba(239, 68, 68, 0.4)'
+              fontSize: 16,
+              height: 50,
+              boxShadow: '0 8px 20px -6px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 24px -6px rgba(239, 68, 68, 0.65), inset 0 1px 0 rgba(255,255,255,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px -6px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)';
             }}
           >
             Acknowledge & Close
           </Button>
-        ]}
-      >
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          padding: '16px 20px', 
-          borderRadius: 12,
-          color: 'var(--text-slate-700, #334155)',
-          fontSize: 14,
-          lineHeight: 1.6,
-          fontWeight: 400,
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ 
-            position: 'absolute', top: 0, left: 0, width: 4, height: '100%', 
-            background: 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)' 
-          }} />
-          {limitError}
         </div>
       </Modal>
       <RmbStyles />

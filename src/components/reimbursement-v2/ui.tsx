@@ -8,6 +8,14 @@ import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 // look consistent. Class prefix `rvp-`; the header class contains "-header" so
 // the layout shell (.rv-content > * > [class*="-header"]) stretches it edge-to-edge.
 
+/** Prevent invalid keystrokes in numeric input fields. */
+export const preventInvalidNumberKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Only intercept single-character keys that aren't digits, comma, or period, and aren't modified by Ctrl/Cmd
+  if (!/^[0-9.,]$/.test(e.key) && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+  }
+};
+
 export const PALETTE = {
   blue: '#3B82F6',
   green: '#10B981',

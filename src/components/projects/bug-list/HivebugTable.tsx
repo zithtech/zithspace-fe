@@ -7,6 +7,10 @@ import {
   Link as LinkIcon,
   Plus,
   Archive,
+  Edit,
+  Trash2,
+  RotateCcw,
+  CheckCircle,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -270,6 +274,16 @@ function BugRow({
   const creatorId = bug.createdBy?.id || bug.createdById;
   const ticketLinked = !!bug.ticketId;
 
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint, borderRadius: 6 }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
   return (
     <tr 
       className="hb-tr" 
@@ -411,21 +425,18 @@ function BugRow({
       </td>
       <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
         <Dropdown
+          overlayClassName="pp-action-pop"
           trigger={["click"]}
           menu={{
             items: isTrashView
               ? [
                   { 
                     key: "restore", 
-                    label: (
-                      <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
-                        <span>Restore</span>
-                      </Tooltip>
-                    ),
+                    label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
                     disabled: isNestedInFolder || isNestedInSheet
                   },
                   { type: "divider" as const },
-                  { key: "delete", label: "Delete Permanently", danger: true },
+                  { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
                 ]
               : isArchiveView
               ? [
@@ -433,30 +444,25 @@ function BugRow({
                     key: "restore", 
                     label: (
                       <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
-                        <span>Restore from Archive</span>
+                        <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
                       </Tooltip>
                     ),
                     disabled: isNestedInFolder || isNestedInSheet
                   },
                   { type: "divider" as const },
-                  { key: "delete", label: "Delete", danger: true },
+                  { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
                 ]
               : [
-                  { key: "edit", label: "Edit", disabled: !canUpdateBug },
+                  { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
                   ...(bug.status === "converted" || bug.status === "reopened"
                     ? [
-                        { key: "verify", label: "Mark as Verified", disabled: !canUpdateBug },
-                        { key: "reopen", label: "Reopen", disabled: !canUpdateBug },
+                        { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
+                        { key: "reopen", label: menuLabel("Reopen", "Reopen bug", <RotateCcw size={15}/>, "#f59e0b", "rgba(245,158,11,0.12)"), disabled: !canUpdateBug },
                       ]
                     : []),
-                  /* {
-                    key: "ignore",
-                    label: "Ignore",
-                    disabled: bug.status === "ignored" || !canUpdateBug,
-                  }, */
-                  { key: "archive", label: "Archive", disabled: !canUpdateBug },
+                  { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
                   { type: "divider" as const },
-                  { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
+                  { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
                 ],
             onClick: ({ key }) => {
               if (key === "edit") onEdit();

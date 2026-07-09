@@ -158,8 +158,8 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
           .att-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
           .att-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; overflow: hidden; }
-          .att-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; }
-          
+          .att-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; scrollbar-width: none; }
+          .att-content::-webkit-scrollbar { display: none; }
           /* Stretch panel headers to the edges (overriding content padding) */
           .adb-header,
           .cio-header,

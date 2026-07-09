@@ -131,7 +131,7 @@ export default function EscalationListPage() {
   // view: locked to targeted-member, excluding ones I raised, with no switcher.
   const isMyHub = pathname?.startsWith('/my-hub') ?? false;
   const { user, isLoading } = useAuth();
-  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog, canReadMyHubEscalation } = usePermission();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -201,16 +201,19 @@ export default function EscalationListPage() {
   };
 
   useEffect(() => {
-    if (!isLoading && user && !canReadEscalation) {
+    // My Hub self-service view only needs my_hub.escalation.read; the full
+    // escalations module requires escalation.read.
+    const hasAccess = canReadEscalation || (isMyHub && canReadMyHubEscalation);
+    if (!isLoading && user && !hasAccess) {
       router.push('/dashboard');
     }
-  }, [user, isLoading, canReadEscalation, router]);
+  }, [user, isLoading, canReadEscalation, canReadMyHubEscalation, isMyHub, router]);
 
   useEffect(() => {
-    if (canReadEscalation) {
+    if (canReadEscalation || (isMyHub && canReadMyHubEscalation)) {
       fetchEscalations();
     }
-  }, [canReadEscalation]);
+  }, [canReadEscalation, canReadMyHubEscalation, isMyHub]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

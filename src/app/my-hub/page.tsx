@@ -11,6 +11,8 @@ import {
   Banknote,
   CircleUser,
   ChevronRight,
+  FolderOpen,
+  ReceiptText,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +35,15 @@ interface HubCard {
 // My Hub is a launcher, not a set of duplicated pages. Keep this list in sync
 // with the MY_HUB module items in navigationConfig.tsx.
 const HUB_CARDS: HubCard[] = [
+  {
+    key: "profile",
+    label: "My Profile",
+    description: "Personal details & settings",
+    path: "/my-hub/profile",
+    icon: <CircleUser size={22} strokeWidth={1.75} />,
+    accent: "#ec4899",
+    anyPermission: [Permissions.MY_HUB_PROFILE_READ],
+  },
   {
     key: "apply-leave",
     label: "Apply Leave",
@@ -79,13 +90,22 @@ const HUB_CARDS: HubCard[] = [
     anyPermission: [Permissions.MY_HUB_PAYSLIPS_READ],
   },
   {
-    key: "profile",
-    label: "My Profile",
-    description: "Personal details & settings",
-    path: "/profile",
-    icon: <CircleUser size={22} strokeWidth={1.75} />,
-    accent: "#ec4899",
-    anyPermission: [Permissions.MY_HUB_PROFILE_READ],
+    key: "claims",
+    label: "My Claims",
+    description: "Submit & track your expenses",
+    path: "/my-hub/claims",
+    icon: <ReceiptText size={22} strokeWidth={1.75} />,
+    accent: "#059669",
+    anyPermission: [Permissions.MY_HUB_CLAIMS_READ],
+  },
+  {
+    key: "documents",
+    label: "My Documents",
+    description: "View & download HR documents",
+    path: "/my-hub/documents",
+    icon: <FolderOpen size={22} strokeWidth={1.75} />,
+    accent: "#3b82f6",
+    anyPermission: [Permissions.MY_HUB_DOCUMENTS_READ],
   },
 ];
 

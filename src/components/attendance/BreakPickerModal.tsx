@@ -70,7 +70,7 @@ export default function BreakPickerModal({
       closable={false}
       width={520}
       centered
-      destroyOnClose
+      destroyOnHidden
       styles={{
         body: { padding: 0 },
         content: { padding: 0, overflow: 'hidden', borderRadius: 16 },

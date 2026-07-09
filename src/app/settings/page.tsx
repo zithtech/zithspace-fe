@@ -55,13 +55,15 @@ import {
   PictureOutlined,
   ThunderboltFilled,
   LinkOutlined,
-  CloseOutlined
+  CloseOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { CompanyLocationService } from '@/services/companyLocationService';
 import { MailService, MailProvider } from '@/services/mailService';
+import { dashboardService } from '@/services/dashboardService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
 import { History } from 'lucide-react';
@@ -164,6 +166,8 @@ export default function SettingsPage() {
   // State management
   const [activeTab, setActiveTab] = useState('system');
   const [loading, setLoading] = useState(false);
+
+
 
   const hasShownMailError = React.useRef(false);
   useEffect(() => {
@@ -385,6 +389,7 @@ export default function SettingsPage() {
     }
   };
 
+
   // Load data based on active tab
   useEffect(() => {
     if (user && activeTab === 'attendance') {
@@ -399,6 +404,7 @@ export default function SettingsPage() {
     if (user && activeTab === 'mail') {
       fetchInvoiceMailSettings();
     }
+
   }, [user, activeTab]);
 
 
@@ -453,15 +459,12 @@ export default function SettingsPage() {
       fetchShifts();
     } catch (error) {
       console.error('Failed to delete shift:', error);
-      if (error instanceof ApiError) {
-        messageApi.error(error.message);
-      } else {
-        messageApi.error('Failed to delete shift');
-      }
+      messageApi.error('Failed to delete shift');
     } finally {
       setFormLoading(false);
     }
   };
+
 
   // Handle system settings submission
   const handleSystemSubmit = async (values: { name: string }) => {
@@ -1455,6 +1458,7 @@ export default function SettingsPage() {
         </div>
       )
     },
+
     {
       key: 'mail',
       label: (

@@ -19,6 +19,7 @@ import {
   Typography,
   Upload,
   message,
+  Pagination,
 } from 'antd';
 import {
   CloudUploadOutlined,
@@ -36,10 +37,10 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
-
   Clock,
   FileText,
   FolderOpen,
+  Plus,
 } from 'lucide-react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
@@ -400,6 +401,8 @@ export default function OnboardingDocumentsPanel() {
   const [filterEmployee, setFilterEmployee] = useState<string | undefined>();
   const [filterType, setFilterType] = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -483,6 +486,8 @@ export default function OnboardingDocumentsPanel() {
     return doc.status;
   };
 
+  const pagedDocs = documents.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+
   return (
     <div className="ob-doc-wrap">
       {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -493,9 +498,8 @@ export default function OnboardingDocumentsPanel() {
         </div>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          className="ob-doc-add-btn"
+          icon={<Plus size={16} />}
+          className="onb-add-btn"
           onClick={() => setWizardOpen(true)}
         >
           Add Document
@@ -536,6 +540,7 @@ export default function OnboardingDocumentsPanel() {
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <div className="ob-doc-filters">
+        <div className="ob-doc-filter-label">Filters</div>
         <Input
           placeholder="Search by name or document…"
           prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
@@ -596,7 +601,7 @@ export default function OnboardingDocumentsPanel() {
             />
           </div>
         ) : (
-          documents.map((doc) => {
+          pagedDocs.map((doc) => {
             const st = effectiveStatus(doc);
             const stCfg = STATUS_CONFIG[st] || STATUS_CONFIG.uploaded;
             return (
@@ -663,6 +668,29 @@ export default function OnboardingDocumentsPanel() {
         )}
       </div>
 
+      {documents.length > 0 && (
+        <div className="bd2-pagination">
+          <Text className="bd2-pagination-meta">
+            <b>{documents.length === 0 ? 0 : (tablePage - 1) * tablePageSize + 1}</b>–
+            <b>{Math.min(tablePage * tablePageSize, documents.length)}</b> of{' '}
+            <b>{documents.length}</b>{' '}
+            {documents.length === 1 ? 'document' : 'documents'}
+          </Text>
+          <Pagination
+            current={tablePage}
+            pageSize={tablePageSize}
+            total={documents.length}
+            onChange={(p, s) => {
+              setTablePage(p);
+              if (s) setTablePageSize(s);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 25, 50, 100]}
+            size="small"
+          />
+        </div>
+      )}
+
       {/* ── Wizard ──────────────────────────────────────────────────────── */}
       <AddDocumentWizard
         open={wizardOpen}
@@ -689,7 +717,11 @@ export default function OnboardingDocumentsPanel() {
           align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          padding: 6px 0 2px;
+          margin: -12px -22px 4px;
+          padding: 12px 24px 14px 28px;
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
         }
         .ob-doc-title {
           margin: 0;
@@ -722,6 +754,7 @@ export default function OnboardingDocumentsPanel() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 12px;
+          margin-bottom: 4px;
         }
         @media (max-width: 900px) { .ob-doc-stats { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 540px) { .ob-doc-stats { grid-template-columns: 1fr; } }
@@ -770,6 +803,19 @@ export default function OnboardingDocumentsPanel() {
           background: var(--bg-secondary);
           border: 1px solid var(--border-slate-200);
           border-radius: 0px;
+        }
+        .ob-doc-filters .ant-input-affix-wrapper,
+        .ob-doc-filters .sd-trigger {
+          height: 36px !important;
+          border-radius: 8px !important;
+        }
+        .ob-doc-filter-label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-slate-500);
+          margin-right: 4px;
         }
 
         /* ── Table ── */
@@ -1007,6 +1053,41 @@ export default function OnboardingDocumentsPanel() {
           margin-top: 4px;
           padding-top: 12px;
           border-top: 1px solid var(--border-slate-100);
+        }
+
+        .onb-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; display: inline-flex !important; align-items: center !important; }
+
+        /* Sticky pagination */
+        .bd2-pagination {
+          position: sticky;
+          bottom: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: auto -22px 0;
+          padding: 6px 28px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-100);
+          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
+        }
+        [data-theme='dark'] .bd2-pagination {
+          background: #0d1117 !important;
+          border-top-color: #1f2937 !important;
+        }
+        .bd2-pagination-meta {
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-500) !important;
+          letter-spacing: -0.005em;
+        }
+        .bd2-pagination-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .bd2-pagination-meta b {
+          color: #f1f5f9 !important;
         }
       `}</style>
     </div>

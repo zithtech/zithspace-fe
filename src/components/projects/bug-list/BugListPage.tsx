@@ -624,6 +624,49 @@ export default function BugListPage() {
         />
       )}
 
+      <style>{`
+        /* Premium action dropdown */
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0 !important; min-width: 236px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+
+        /* Dark Theme Action Popup */
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+          background: #0B0F1A !important;
+          border-color: #1E293B !important;
+        }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: rgba(255,255,255,0.04) !important;
+        }
+        [data-theme='dark'] .pp-menu-title { color: #E2E8F0; }
+        [data-theme='dark'] .pp-menu-desc { color: #64748B; }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider { background: #1E293B; }
+        
+        /* Selected item overrides for dark mode */
+        [data-theme='dark'] .pp-menu-item[style*="var(--bg-slate-50"] {
+          background: rgba(255,255,255,0.08) !important;
+        }
+      `}</style>
+
       <main className="hb-main">
         <header className="hb-header">
           <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
@@ -663,20 +706,20 @@ export default function BugListPage() {
                     ...(projects || []).map(p => ({
                       key: p.value,
                       label: (
-                        <div className={`hb-project-dropdown-item ${p.value === selectedProjectId ? 'hb-selected' : ''}`}>
-                          <div className="hb-project-code-badge" style={{
-                            background: p.value === selectedProjectId ? 'var(--hb-accent)' : `hsla(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%, 0.1)`,
-                            color: p.value === selectedProjectId ? '#fff' : `hsl(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%)`
+                        <div className="pp-menu-item" style={{ background: p.value === selectedProjectId ? 'var(--bg-slate-50, #f8fafc)' : undefined }}>
+                          <span className="pp-menu-ic" style={{ 
+                            background: p.value === selectedProjectId ? 'var(--hb-accent, #3b82f6)' : `hsla(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%, 0.1)`,
+                            color: p.value === selectedProjectId ? '#fff' : `hsl(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%)`,
+                            fontSize: 10, fontWeight: 800
                           }}>
-                            {p.code?.toUpperCase() || "PRJ"}
-                          </div>
-                          <div className="hb-project-info">
-                            <div className="hb-project-label">{p.label}</div>
-                            <div className="hb-project-code">#{p.code || "N/A"}</div>
-                          </div>
-                          {p.value === selectedProjectId && (
-                            <div className="hb-selected-dot" />
-                          )}
+                            {p.code?.substring(0, 3).toUpperCase() || "PRJ"}
+                          </span>
+                          <span className="pp-menu-text">
+                            <span className="pp-menu-title" style={{ color: p.value === selectedProjectId ? 'var(--hb-accent, #3b82f6)' : undefined }}>
+                              {p.label}
+                            </span>
+                            <span className="pp-menu-desc">#{p.code || "N/A"}</span>
+                          </span>
                         </div>
                       ),
                       onClick: () => {
@@ -686,8 +729,8 @@ export default function BugListPage() {
                       }
                     }))
                   ],
-                  style: { padding: 8, borderRadius: 16, border: '1px solid var(--hb-border)', boxShadow: '0 12px 48px rgba(0,0,0,0.3)', minWidth: 260 }
                 }}
+                overlayClassName="pp-action-pop"
               >
                 <div className="hb-project-trigger">
                   <div className="hb-project-trigger-main">

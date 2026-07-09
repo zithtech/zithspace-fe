@@ -16,6 +16,8 @@ import {
     MoreHorizontal,
     Trash,
     ArrowLeft,
+    ArrowRight,
+    Download,
     BookOpen,
     Circle,
     Info,
@@ -65,6 +67,9 @@ function TreeNode({
     canCreate,
     canUpdate,
     canDelete,
+    onMoveNode,
+    allFolders,
+    onDownloadNode,
 }: {
     item: TreeItem
     selectedId: string
@@ -86,6 +91,9 @@ function TreeNode({
     canCreate?: boolean
     canUpdate?: boolean
     canDelete?: boolean
+    onMoveNode?: (id: string, newParentId: string | null) => void
+    allFolders?: { id: string, title: string }[]
+    onDownloadNode?: (id: string, title: string, type: string, documentId?: string | null) => void
 }) {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedIds.has(item.id)
@@ -110,21 +118,52 @@ function TreeNode({
         }
     };
 
+    const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+        <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+            <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color, background: tint }}>
+                {icon}
+            </span>
+            <span className="flex flex-col min-w-0 leading-tight">
+                <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">{title}</span>
+                <span className="text-[11px] text-slate-400 mt-[1px]">{desc}</span>
+            </span>
+        </div>
+    );
+
+    const moveChildren = [
+        {
+            key: 'move-to-root',
+            label: menuLabel('Workspace Root', 'Move to top level', <Folder className="w-4 h-4" />, '#8b5cf6', 'rgba(139,92,246,0.12)'),
+            onClick: (e: any) => {
+                e.domEvent.stopPropagation();
+                if (onMoveNode) onMoveNode(item.id, null);
+            }
+        },
+        ...(allFolders || [])
+            .filter((f: any) => f.id !== item.id) // Cannot move into itself
+            .map((f: any) => ({
+                key: `move-to-${f.id}`,
+                label: menuLabel(f.title, 'Folder', <Folder className="w-4 h-4" />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+                onClick: (e: any) => {
+                    e.domEvent.stopPropagation();
+                    if (onMoveNode) onMoveNode(item.id, f.id);
+                }
+            }))
+    ];
+
     const menuItems: MenuProps['items'] = [
         ...(canCreate && item.type !== 'file' ? [
-            ...(item.type !== 'folder' ? [{
+            {
                 key: 'add-folder',
-                label: 'Add Folder',
-                icon: <Folder className="w-4 h-4" />,
+                label: menuLabel('Add Folder', 'Create a subfolder', <Folder className="w-4 h-4" />, '#3b82f6', 'rgba(59,130,246,0.12)'),
                 onClick: (e: any) => {
                     e.domEvent.stopPropagation();
                     onAddNode(item.id, 'folder');
                 }
-            }] : []),
+            },
             {
                 key: 'add-file',
-                label: 'Add File',
-                icon: <FileText className="w-4 h-4" />,
+                label: menuLabel('Add File', 'Create a new document', <FileText className="w-4 h-4" />, '#64748b', 'rgba(100,116,139,0.12)'),
                 onClick: (e: any) => {
                     e.domEvent.stopPropagation();
                     onAddNode(item.id, 'file');
@@ -132,21 +171,35 @@ function TreeNode({
             }
         ] : []),
         ...(canUpdate ? [
+            { type: 'divider' as const },
+            {
+                key: 'move-node',
+                label: menuLabel('Move', 'Move to folder', <ArrowRight className="w-4 h-4" />, '#8b5cf6', 'rgba(139,92,246,0.12)'),
+                children: moveChildren,
+                popupClassName: 'dh-action-pop dh-move-pop'
+            },
             {
                 key: 'rename-node',
-                label: 'Rename',
-                icon: <EditOutlined style={{ fontSize: 14 }} />,
+                label: menuLabel('Rename', 'Change item name', <EditOutlined />, '#64748b', 'rgba(100,116,139,0.12)'),
                 onClick: (e: any) => {
                     e.domEvent.stopPropagation();
                     setIsEditing(true);
                 }
             }
         ] : []),
+        {
+            key: 'download-node',
+            label: menuLabel('Download', 'Download to device', <Download className="w-4 h-4" />, '#10b981', 'rgba(16,185,129,0.12)'),
+            onClick: (e: any) => {
+                e.domEvent.stopPropagation();
+                if (onDownloadNode) onDownloadNode(item.id, item.title, item.type, item.documentId);
+            }
+        },
         ...(canDelete ? [
+            { type: 'divider' as const },
             {
                 key: 'delete-node',
-                label: 'Delete',
-                icon: <Trash className="w-4 h-4 text-red-500" />,
+                label: menuLabel('Delete', 'Move to trash', <Trash className="w-4 h-4" />, '#ef4444', 'rgba(239,68,68,0.12)'),
                 danger: true,
                 onClick: (e: any) => {
                     e.domEvent.stopPropagation();
@@ -286,7 +339,7 @@ function TreeNode({
                 </div>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+                    <Dropdown menu={{ items: menuItems }} trigger={['click']} overlayClassName="dh-action-pop">
                         <div
                             className="p-1 rounded-md flex items-center justify-center transition-colors"
                             style={{ color: 'var(--text-slate-400)' }}
@@ -324,6 +377,9 @@ function TreeNode({
                             canCreate={canCreate}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
+                            onMoveNode={onMoveNode}
+                            allFolders={allFolders}
+                            onDownloadNode={onDownloadNode}
                         />
                     ))}
                 </div>
@@ -1224,6 +1280,65 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     };
 
+    const extractTextFromBlocks = (blocks: any[]): string => {
+        let text = '';
+        for (const block of blocks) {
+            if (block.content) {
+                if (Array.isArray(block.content)) {
+                    text += block.content.map((c: any) => c.text || '').join('') + '\n';
+                } else if (typeof block.content === 'string') {
+                    text += block.content + '\n';
+                }
+            } else {
+                text += '\n';
+            }
+            if (block.children && block.children.length > 0) {
+                text += extractTextFromBlocks(block.children);
+            }
+        }
+        return text;
+    };
+
+    const handleDownloadNode = async (id: string, title: string, type: string, docId?: string | null) => {
+        if (type === 'file' && docId) {
+            messageApi.loading({ content: `Downloading ${title}...`, key: 'download' });
+            try {
+                const rawBlob = await DocumentHubService.downloadDocumentPdf(docId);
+                const pdfBlob = new Blob([rawBlob], { type: 'application/pdf' });
+                const url = window.URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${title.replace(/[^a-zA-Z0-9-_\.]/g, '_')}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                messageApi.success({ content: `Downloaded ${title}.pdf`, key: 'download' });
+            } catch (error) {
+                console.error('Download failed', error);
+                messageApi.error({ content: `Failed to download ${title}`, key: 'download' });
+            }
+        } else if (type === 'folder' || type === 'section') {
+            messageApi.loading({ content: `Downloading folder ${title}...`, key: 'download' });
+            try {
+                const folderInfo = `Folder: ${title}\nType: ${type}\nID: ${id}\n\nNote: Downloading all folder contents is not yet supported.`;
+                const blob = new Blob([folderInfo], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${title}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                messageApi.success({ content: `Downloaded ${title}`, key: 'download' });
+            } catch (error) {
+                console.error('Download failed', error);
+                messageApi.error({ content: `Failed to download ${title}`, key: 'download' });
+            }
+        }
+    };
+
     // ------------------------- Drag & drop ----------------------------------
     // Track the node currently being dragged so we can disable invalid drop
     // targets (descendants of the source) and show visual feedback.
@@ -1556,6 +1671,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             canCreate={canCreateDocument}
                                             canUpdate={canUpdateDocument}
                                             canDelete={canDeleteDocument}
+                                            onMoveNode={handleMoveNode}
+                                            allFolders={documentHub?.treeNodes?.filter((n: any) => n.type !== 'file').map((n: any) => ({ id: n.id, title: n.title }))}
+                                            onDownloadNode={handleDownloadNode}
                                         />
                                     ))}
                                 </div>
@@ -1754,64 +1872,67 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     )}
                                     <Popover
                                         placement="bottom"
+                                        overlayClassName="dh-action-pop dh-info-pop"
+                                        showArrow={false}
                                         content={
-                                            <div className="flex flex-col min-w-[240px] p-1">
-                                                <div className="pb-3 mb-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
-                                                    <Info className="w-4 h-4" style={{ color: 'var(--drawer-icon-text-blue)' }} />
-                                                    <span className="font-semibold text-[13px]" style={{ color: 'var(--text-slate-900)' }}>Hub Details</span>
+                                            <div className="flex flex-col min-w-[236px]">
+                                                <div className="flex items-center gap-[11px] px-[9px] pb-[9px] mb-[2px]" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
+                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}>
+                                                        <Info className="w-4 h-4" />
+                                                    </span>
+                                                    <span className="text-[13px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--text-slate-900)' }}>Hub Details</span>
                                                 </div>
-                                                <div className="flex flex-col gap-3.5">
+                                                <div className="flex flex-col py-1">
                                                     {documentHub?.createdBy?.name && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-blue)', color: 'var(--drawer-icon-text-blue)' }}>
-                                                                <User className="w-3.5 h-3.5" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Created By</span>
-                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.createdBy.name}</span>
-                                                            </div>
+                                                        <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                            <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}>
+                                                                <User className="w-4 h-4" />
+                                                            </span>
+                                                            <span className="flex flex-col min-w-0 leading-tight">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500" style={{ color: 'var(--text-slate-500)' }}>Created By</span>
+                                                                <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em] mt-[1px]" style={{ color: 'var(--text-slate-900)' }}>{documentHub.createdBy.name}</span>
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {documentHub?.ticket && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-indigo)', color: 'var(--drawer-icon-text-indigo)' }}>
-                                                                <Ticket className="w-3.5 h-3.5" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Ticket</span>
-                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.ticket.ticketNumber}</span>
-                                                                <span className="text-[12px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-600)' }}>{documentHub.ticket.title}</span>
-                                                            </div>
+                                                        <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                            <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}>
+                                                                <Ticket className="w-4 h-4" />
+                                                            </span>
+                                                            <span className="flex flex-col min-w-0 leading-tight">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500" style={{ color: 'var(--text-slate-500)' }}>Ticket</span>
+                                                                <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em] mt-[1px]" style={{ color: 'var(--text-slate-900)' }}>{documentHub.ticket.ticketNumber}</span>
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {documentHub?.project && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-emerald)', color: 'var(--drawer-icon-text-emerald)' }}>
-                                                                <Folder className="w-3.5 h-3.5" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Project</span>
-                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.project.name}</span>
-                                                            </div>
+                                                        <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                            <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                                                                <Folder className="w-4 h-4" />
+                                                            </span>
+                                                            <span className="flex flex-col min-w-0 leading-tight">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500" style={{ color: 'var(--text-slate-500)' }}>Project</span>
+                                                                <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em] mt-[1px]" style={{ color: 'var(--text-slate-900)' }}>{documentHub.project.name}</span>
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {documentHub?.createdAt && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--bg-slate-50)', color: 'var(--text-slate-500)' }}>
-                                                                <CalendarDays className="w-3.5 h-3.5" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Date Created</span>
-                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>
+                                                        <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                            <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}>
+                                                                <CalendarDays className="w-4 h-4" />
+                                                            </span>
+                                                            <span className="flex flex-col min-w-0 leading-tight">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500" style={{ color: 'var(--text-slate-500)' }}>Date Created</span>
+                                                                <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em] mt-[1px]" style={{ color: 'var(--text-slate-900)' }}>
                                                                     {new Date(documentHub.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                                                                 </span>
-                                                            </div>
+                                                            </span>
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                         }
-                                        trigger="hover"
+                                        trigger="click"
                                     >
                                         <Button
                                             type="text"
@@ -2382,6 +2503,54 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </Button>
                 </div>
             </Modal>
+            <style jsx global>{`
+                .dh-action-pop .ant-dropdown-menu {
+                    padding: 6px; border-radius: 0 !important; min-width: 236px;
+                    overflow: hidden !important;
+                    background: var(--bg-pure-white);
+                    border: 1px solid var(--border-slate-100);
+                    box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+                }
+                .dh-move-pop .ant-dropdown-menu {
+                    min-width: 140px !important;
+                }
+                .dh-action-pop .ant-dropdown-menu-item,
+                .dh-action-pop .ant-dropdown-menu-submenu-title {
+                    padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+                    transition: background .12s ease;
+                }
+                .dh-action-pop .ant-dropdown-menu-item:hover,
+                .dh-action-pop .ant-dropdown-menu-submenu-title:hover { background: var(--bg-slate-50) !important; }
+                .dh-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+                .dh-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+                .dh-action-pop .ant-dropdown-menu-item-danger .text-slate-900 { color: #ef4444 !important; }
+
+                /* Popover styles */
+                .dh-info-pop .ant-popover-arrow { display: none !important; }
+                .dh-info-pop .ant-popover-inner {
+                    padding: 8px 0; border-radius: 0 !important;
+                    background: var(--bg-pure-white);
+                    border: 1px solid var(--border-slate-100);
+                    box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+                }
+                
+                [data-theme='dark'] .dh-action-pop .ant-dropdown-menu {
+                    background: #0B0F1A !important;
+                    border-radius: 0 !important;
+                    overflow: hidden !important;
+                    border: 1px solid #1E293B !important;
+                }
+                [data-theme='dark'] .dh-action-pop .ant-dropdown-menu-item:hover,
+                [data-theme='dark'] .dh-action-pop .ant-dropdown-menu-submenu-title:hover { background: #161B22 !important; }
+                [data-theme='dark'] .dh-action-pop .ant-dropdown-menu-item-divider { background: #1E293B !important; }
+                [data-theme='dark'] .dh-action-pop .text-slate-900 { color: #cbd5e1 !important; }
+                [data-theme='dark'] .dh-action-pop .text-slate-400 { color: #64748b !important; }
+
+                [data-theme='dark'] .dh-info-pop .ant-popover-inner {
+                    background: #0B0F1A !important;
+                    border: 1px solid #1E293B !important;
+                }
+            `}</style>
         </MainLayout>
     )
 }

@@ -587,7 +587,7 @@ const OnboardingContent = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 12px 28px;
+          padding: 6px 28px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);

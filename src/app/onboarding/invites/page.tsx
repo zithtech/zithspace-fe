@@ -977,7 +977,7 @@ function InvitesContent() {
           justify-content: space-between;
           gap: 12px;
           margin: auto -22px 0;
-          padding: 12px 28px;
+          padding: 6px 28px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-100);
           box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);

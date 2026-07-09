@@ -4,6 +4,7 @@ import { Button, Drawer, Form, Input, Upload, message, Typography, Select, DateP
 import { Plus, Trash2, FileText, UploadCloud } from "lucide-react";
 import dayjs from "dayjs";
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Text } = Typography;
 
@@ -253,11 +254,11 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
                   label={<span style={labelStyle}>Document Type</span>}
                   rules={[{ required: true, message: "Type is required" }]}
                 >
-                  <Select placeholder="Select type" showSearch>
-                    {DOC_TYPES.map((t) => (
-                      <Select.Option key={t} value={t}>{t}</Select.Option>
-                    ))}
-                  </Select>
+                  <SearchableDropdown
+                    style={{ height: "40px", minHeight: "40px" }}
+                    placeholder="Select type"
+                    options={DOC_TYPES.map((t) => ({ label: t, value: t }))}
+                  />
                 </Form.Item>
 
                 <Form.Item

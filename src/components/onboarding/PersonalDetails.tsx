@@ -3,7 +3,7 @@ import { UserOutlined, EnvironmentOutlined, PhoneOutlined, IdcardOutlined } from
 import { Users } from "lucide-react";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
-
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 const { Option } = Select;
 
 const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
@@ -159,12 +159,11 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "24px" }}>
       {/* Basic Information */}
-      <Card
-        title={<Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={basicForm}
           layout="vertical"
@@ -217,11 +216,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 name="gender"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Gender">
-                  <Option value="male">Male</Option>
-                  <Option value="female">Female</Option>
-                  <Option value="other">Other</Option>
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Gender"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={[
+                    { label: "Male", value: "male" },
+                    { label: "Female", value: "female" },
+                    { label: "Other", value: "other" }
+                  ]}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -239,11 +242,11 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 name="bloodGroup"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Blood Group">
-                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
-                    <Option key={bg} value={bg}>{bg}</Option>
-                  ))}
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Blood Group"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => ({ label: bg, value: bg }))}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -286,15 +289,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       {/* Address Information */}
-      <Card
-        title={<Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={addressForm}
           layout="vertical"
@@ -467,25 +470,29 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       <Row gutter={24}>
         <Col xs={24} md={12}>
           {/* Relationship & Emergency Contact */}
-          <Card
-            title={<Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
+          <div style={{ height: "100%", background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+            <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+              <Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>
+            </div>
+            <div style={{ padding: "24px 40px" }}>
             <Form form={emergencyInfoForm} layout="vertical" requiredMark={false}>
               <Form.Item label={<span style={labelStyle}>Relationship</span>} name="relationship" rules={[{ required: true }]}>
-                <Select placeholder="Select Relationship">
-                  <Option value="father">Father</Option>
-                  <Option value="mother">Mother</Option>
-                  <Option value="spouse">Spouse</Option>
-                  <Option value="guardian">Guardian</Option>
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Relationship"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={[
+                    { label: "Father", value: "father" },
+                    { label: "Mother", value: "mother" },
+                    { label: "Spouse", value: "spouse" },
+                    { label: "Guardian", value: "guardian" }
+                  ]}
+                />
               </Form.Item>
               <Form.Item
                 label={<span style={labelStyle}>Name</span>}
@@ -522,17 +529,17 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Form>
-          </Card>
+            </div>
+          </div>
         </Col>
 
         <Col xs={24} md={12}>
           {/* Identity Information */}
-          <Card
-            title={<Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
+          <div style={{ height: "100%", background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+            <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+              <Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>
+            </div>
+            <div style={{ padding: "24px 40px" }}>
             <Form form={identityForm} layout="vertical" requiredMark={false}>
               <Form.Item
                 label={<span style={labelStyle}>Aadhaar Number</span>}
@@ -570,7 +577,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 </Col>
               </Row>
             </Form>
-          </Card>
+            </div>
+          </div>
         </Col>
       </Row>
     </div>

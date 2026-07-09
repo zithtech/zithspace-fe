@@ -40,6 +40,7 @@ import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { EmployeeOnboardingService } from '@/services/onboardingService';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -111,75 +112,6 @@ const fmtDate = (v?: string | null): string => {
 const fieldLabel = (t: string) => (
   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{t}</span>
 );
-
-// Section card — mirrors LeaveTypePanel's drawer section pattern.
-function SectionCard({
-  icon,
-  tint,
-  color,
-  title,
-  subtitle,
-  step,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  step: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 0,
-        padding: '18px 24px 20px',
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 0,
-            background: tint,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 999,
-            background: 'var(--bg-secondary, #f1f5f9)',
-            color: 'var(--text-slate-500)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {step}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function InvitesContent() {
   const { canCreateOnboarding } = usePermission();
@@ -522,8 +454,8 @@ function InvitesContent() {
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div className="onbi-header">
         <div className="onbi-header-about">
-          <button 
-            className="ob-mobile-menu-btn" 
+          <button
+            className="ob-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
             aria-label="Open menu"
           >
@@ -625,33 +557,13 @@ function InvitesContent() {
 
       {/* ── CREATE DRAWER ───────────────────────────────────────────────── */}
       <Drawer
-        title={null}
+        {...commonDrawerProps}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={580}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
-        }}
       >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
           {/* Header */}
-          <div
-            style={{
-              padding: '16px 18px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-pure-white)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}
-          >
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div
                 style={{
@@ -687,12 +599,10 @@ function InvitesContent() {
           </div>
 
           {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={form} layout="vertical" requiredMark="optional" className="onbi-drawer-form">
+          <div className="flex-1 overflow-y-auto p-5">
+            <Form form={form} layout="vertical" requiredMark="optional" className="customer-drawer-form onbi-drawer-form">
               <SectionCard
                 icon={<User size={16} />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
                 title="Employee Details"
                 subtitle="The basics we need to create their draft profile"
                 step="STEP 1"
@@ -785,18 +695,7 @@ function InvitesContent() {
           </div>
 
           {/* Footer */}
-          <div
-            style={{
-              padding: '14px 22px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-pure-white)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              bottom: 0,
-            }}
-          >
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-between items-center shrink-0">
             <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
               Fields marked required must be filled
             </span>
@@ -820,21 +719,13 @@ function InvitesContent() {
 
       {/* ── EDIT DRAWER (name + emails) ─────────────────────────────────── */}
       <Drawer
-        title={null}
+        {...commonDrawerProps}
         open={!!editing}
         onClose={() => setEditing(null)}
-        width={460}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
-        }}
       >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
           {/* Header */}
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Pencil size={18} />
@@ -852,12 +743,10 @@ function InvitesContent() {
           </div>
 
           {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={editForm} layout="vertical" requiredMark="optional" className="onbi-drawer-form">
+          <div className="flex-1 overflow-y-auto p-5">
+            <Form form={editForm} layout="vertical" requiredMark="optional" className="customer-drawer-form onbi-drawer-form">
               <SectionCard
                 icon={<User size={16} />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
                 title="Employee Details"
                 subtitle="Update the new hire's name and email addresses"
                 step="EDIT"
@@ -899,7 +788,7 @@ function InvitesContent() {
           </div>
 
           {/* Footer */}
-          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-end items-center gap-[10px] shrink-0">
             <Button onClick={() => setEditing(null)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
               Cancel
             </Button>
@@ -1165,6 +1054,7 @@ function InvitesContent() {
           }
         }
       `}</style>
+      <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
     </div>
   );
 }

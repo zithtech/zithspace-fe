@@ -26554,4 +26554,6 @@ select:-webkit-autofill:focus {
   align-items: center;
   gap: 6px;
 }
-
+
+/* Force remove grey background from inputs */
+.ant-input, .ant-select-selector, .ant-picker { background-color: transparent !important; }

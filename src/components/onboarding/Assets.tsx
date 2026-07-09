@@ -34,6 +34,8 @@ import {
   CheckCircle2,
   Info
 } from "lucide-react";
+import { SectionCard, commonDrawerProps, drawerFormStyles } from "@/components/common/DrawerSection";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -392,7 +394,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             </div>
           </div>
         }
-        width={480}
+        {...commonDrawerProps}
         onClose={() => {
           setOpen(false);
           setEditIndex(null);
@@ -420,6 +422,11 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
           footer: { borderTop: "1px solid var(--border-slate-100)" }
         }}
       >
+        <SectionCard 
+          icon={<Briefcase size={18} style={{ color: "var(--premium-blue)" }} />} 
+          title="Asset Details" 
+          subtitle="Manage hardware assignment information"
+        >
         <Form form={assetsform} layout="vertical">
           <SectionHeader icon={Briefcase} title="Asset Category" subtitle="Select the type of hardware assigned" />
           <Form.Item
@@ -427,20 +434,20 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             name="item"
             rules={[{ required: true, message: "Please select an item" }]}
           >
-            <Select
+            <SearchableDropdown
+              style={{ height: "40px", minHeight: "40px" }}
               placeholder="Select asset type"
-              style={{ height: "40px", borderRadius: "8px" }}
-              dropdownStyle={{ borderRadius: "8px" }}
-            >
-              <Select.Option value="Mobile">Smartphones</Select.Option>
-              <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
-              <Select.Option value="Tab">Tablet Device</Select.Option>
-              <Select.Option value="Monitor">External Monitor</Select.Option>
-              <Select.Option value="Keyboard">Mechanical Keyboard</Select.Option>
-              <Select.Option value="Mouse">Wireless Mouse</Select.Option>
-              <Select.Option value="Bag">Office Bag</Select.Option>
-              <Select.Option value="Headphone">Headphones / Mic</Select.Option>
-            </Select>
+              options={[
+                { label: "Smartphones", value: "Mobile" },
+                { label: "Laptop / Notebook", value: "Laptop" },
+                { label: "Tablet Device", value: "Tab" },
+                { label: "External Monitor", value: "Monitor" },
+                { label: "Mechanical Keyboard", value: "Keyboard" },
+                { label: "Wireless Mouse", value: "Mouse" },
+                { label: "Office Bag", value: "Bag" },
+                { label: "Headphones / Mic", value: "Headphone" }
+              ]}
+            />
           </Form.Item>
 
           <Divider style={{ margin: "24px 0" }} />
@@ -506,6 +513,8 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             </div>
           </div>
         </Form>
+        </SectionCard>
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
       </Drawer>
     </div>
   );

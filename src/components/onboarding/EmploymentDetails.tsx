@@ -18,7 +18,9 @@ import {
   Table,
   TimePicker,
   Button,
+  InputNumber,
 } from "antd";
+import { useTheme } from "@/context/ThemeContext";
 import {
   BankOutlined,
   ProjectOutlined,
@@ -35,6 +37,7 @@ import { ProjectService } from "@/services/projectService";
 import { add } from "@dnd-kit/utilities";
 import form from "antd/es/form";
 import { PositionService } from "@/services/positionService";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 // import { Model } from "mongoose";
 
 const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
@@ -66,6 +69,21 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const [selectAll, setSelectAll] = useState(false);
   const [commonStart, setCommonStart] = useState<any>(null);
   const [commonEnd, setCommonEnd] = useState<any>(null);
+  const [commonAvg, setCommonAvg] = useState<number | null>(null);
+  const { theme } = useTheme();
+
+  const calculateAvg = (start: any, end: any): number => {
+    if (!start || !end) return 0;
+    const s = typeof start === 'string' ? dayjs(start, "HH:mm") : start;
+    const e = typeof end === 'string' ? dayjs(end, "HH:mm") : end;
+    let diffHrs = e.diff(s, "hour", true);
+    if (diffHrs < 0) diffHrs += 24;
+    let deduction = 0;
+    if (diffHrs > 8) deduction = 1.5;
+    else if (diffHrs >= 4) deduction = 1.0;
+    else deduction = 0.5;
+    return Number(Math.max(0, diffHrs - deduction).toFixed(1));
+  };
 
   const [projects, setProjects] = useState<any[]>([]);
 
@@ -134,10 +152,11 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             setSelectAll(true);
             setCommonStart(parsed.start ? dayjs(parsed.start, "HH:mm") : null);
             setCommonEnd(parsed.end ? dayjs(parsed.end, "HH:mm") : null);
+            setCommonAvg(parsed.avg || null);
             setSelectedDays(weekDays);
             const newShiftData: any = {};
             weekDays.forEach((day) => {
-              newShiftData[day] = { start: parsed.start, end: parsed.end };
+              newShiftData[day] = { start: parsed.start, end: parsed.end, avg: parsed.avg || null };
             });
             setShiftData(newShiftData);
           } else if (parsed.type === "custom") {
@@ -269,6 +288,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       setShiftData({});
       setCommonStart(null);
       setCommonEnd(null);
+      setCommonAvg(null);
     }
   };
   const handleCheckboxChange = (day: string, checked: boolean) => {
@@ -301,11 +321,15 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const applyCommonTime = (start: any, end: any) => {
     if (!start || !end) return;
 
+    const avg = calculateAvg(start, end);
+    setCommonAvg(avg);
+
     const newData: any = {};
     weekDays.forEach((day) => {
       newData[day] = {
         start,
         end,
+        avg,
       };
     });
 
@@ -344,6 +368,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     {
       title: "Week Day",
       dataIndex: "day",
+      render: (text: string) => <span style={{ fontWeight: 600, color: theme === "dark" ? "#f1f5f9" : "#334155" }}>{text}</span>
     },
     {
       title: "Start Time",
@@ -357,13 +382,18 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
           disabled={!selectedDays.includes(record.day)}
           onChange={(time) => {
-            setShiftData((prev: any) => ({
-              ...prev,
-              [record.day]: {
-                ...prev[record.day],
-                start: time ? time.format("HH:mm") : null,
-              },
-            }));
+            setShiftData((prev: any) => {
+              const currentEnd = prev[record.day]?.end;
+              const formattedStart = time ? time.format("HH:mm") : null;
+              return {
+                ...prev,
+                [record.day]: {
+                  ...prev[record.day],
+                  start: formattedStart,
+                  avg: calculateAvg(formattedStart, currentEnd),
+                },
+              };
+            });
           }}
         />
       ),
@@ -380,17 +410,60 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
           disabled={!selectedDays.includes(record.day)}
           onChange={(time) => {
-            setShiftData((prev: any) => ({
-              ...prev,
-              [record.day]: {
-                ...prev[record.day],
-                end: time ? time.format("HH:mm") : null,
-              },
-            }));
+            setShiftData((prev: any) => {
+              const currentStart = prev[record.day]?.start;
+              const formattedEnd = time ? time.format("HH:mm") : null;
+              return {
+                ...prev,
+                [record.day]: {
+                  ...prev[record.day],
+                  end: formattedEnd,
+                  avg: calculateAvg(currentStart, formattedEnd),
+                },
+              };
+            });
           }}
         />
       ),
     },
+    {
+      title: "Daily Hours",
+      render: (_: any, record: any) => {
+        const start = shiftData[record.day]?.start;
+        const end = shiftData[record.day]?.end;
+        if (start && end) {
+          const s = typeof start === 'string' ? dayjs(start, "HH:mm") : start;
+          const e = typeof end === 'string' ? dayjs(end, "HH:mm") : end;
+          let diffHrs = e.diff(s, "hour", true);
+          if (diffHrs < 0) diffHrs += 24;
+          const totalHoursStr = diffHrs.toFixed(1);
+          
+          return (
+            <div style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, whiteSpace: "nowrap" }}>
+              <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{totalHoursStr}h</span> <span style={{ marginLeft: "4px" }}>total</span> 
+              <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span> 
+              <InputNumber 
+                size="small" 
+                value={shiftData[record.day]?.avg !== undefined ? shiftData[record.day].avg : calculateAvg(start, end)} 
+                onChange={(val) => {
+                  setShiftData((prev: any) => ({
+                    ...prev,
+                    [record.day]: {
+                      ...prev[record.day],
+                      avg: val,
+                    }
+                  }));
+                }} 
+                style={{ width: "60px", marginRight: "4px" }} 
+                step={0.5} 
+                min={0}
+              /> <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>h</span> <span style={{ marginLeft: "4px" }}>avg</span>
+            </div>
+          );
+        }
+        return <span style={{ color: theme === "dark" ? "#475569" : "#cbd5e1", fontSize: "12px", fontStyle: "italic" }}>Not set</span>;
+      }
+    }
   ];
 
   const dataSource = weekDays.map((day) => ({
@@ -409,6 +482,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         allDaysData[day] = {
           start: commonStart.format("HH:mm"),
           end: commonEnd.format("HH:mm"),
+          avg: commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd),
         };
       });
 
@@ -416,6 +490,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         type: "all",
         start: commonStart.format("HH:mm"),
         end: commonEnd.format("HH:mm"),
+        avg: commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd),
         days: weekDays,
         data: allDaysData,
       };
@@ -442,6 +517,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               typeof dayShift.end === "string"
                 ? dayShift.end
                 : dayjs(dayShift.end).format("HH:mm"),
+            avg: dayShift.avg !== undefined ? dayShift.avg : calculateAvg(dayShift.start, dayShift.end),
           };
         } else {
           message.error(`Please set start and end time for ${day}.`);
@@ -467,12 +543,11 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       {contextHolder}
 
       {/* Work Details */}
-      <Card
-        title={<Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           layout="vertical"
           form={workForm}
@@ -492,9 +567,9 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 name="positionId"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
                   placeholder="Select Position"
-                  loading={loading}
                   options={positions.map((pos) => ({
                     label: pos.name,
                     value: pos.id,
@@ -509,11 +584,15 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 name="employeeType"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Type">
-                  <Option value="Full Time">Full Time</Option>
-                  <Option value="Part Time">Part Time</Option>
-                  <Option value="Internship">Intern</Option>
-                </Select>
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
+                  placeholder="Select Type"
+                  options={[
+                    { label: "Full Time", value: "Full Time" },
+                    { label: "Part Time", value: "Part Time" },
+                    { label: "Intern", value: "Internship" }
+                  ]}
+                />
               </Form.Item>
             </Col>
 
@@ -533,7 +612,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 name="workType"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
                   placeholder="Select Work Type"
                   onChange={(value) => {
                     setWorkType(value);
@@ -542,11 +622,12 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                     setGeneralDays(null);
                     setGeneralHours(null);
                   }}
-                >
-                  <Option value="Work From Home">Work From Home</Option>
-                  <Option value="Work From Office">Work From Office</Option>
-                  <Option value="Hybrid">Hybrid</Option>
-                </Select>
+                  options={[
+                    { label: "Work From Home", value: "Work From Home" },
+                    { label: "Work From Office", value: "Work From Office" },
+                    { label: "Hybrid", value: "Hybrid" }
+                  ]}
+                />
               </Form.Item>
             </Col>
 
@@ -649,15 +730,15 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       {/* Employee Timeline */}
-      <Card
-        title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "8px 40px 24px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>
+        </div>
+        <div style={{ padding: "8px 40px 24px" }}>
         <Form
           layout="vertical"
           form={empoyeeTimelineForm}
@@ -684,27 +765,30 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
-                <Select showSearch placeholder="Select Manager" optionFilterProp="children">
-                  {members?.map((member) => (
-                    <Select.Option key={member.value} value={member.value}>{member.label}</Select.Option>
-                  ))}
-                </Select>
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
+                  placeholder="Select Manager"
+                  options={members || []}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
-                <Select mode="multiple" allowClear placeholder="Select Projects" maxTagCount="responsive">
-                  {projects.map((project) => (
-                    <Select.Option key={project.id} value={project.id}>
-                      {project.name} ({project.code})
-                    </Select.Option>
-                  ))}
-                </Select>
+                <SearchableDropdown
+                  style={{ minHeight: '40px' }}
+                  mode="multiple"
+                  placeholder="Select Projects"
+                  options={projects.map((project) => ({
+                    label: `${project.name} (${project.code})`,
+                    value: project.id
+                  }))}
+                />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -778,8 +862,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               <Clock size={17} />
             </div>
             <div>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>Work Shift Configuration</div>
-              <div style={{ fontSize: "12px", fontWeight: 400, color: "#64748b" }}>Define daily hours &amp; weekly schedule.</div>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: theme === "dark" ? "#f1f5f9" : "#1e293b", lineHeight: 1.2 }}>Work Shift Configuration</div>
+              <div style={{ fontSize: "12px", fontWeight: 400, color: theme === "dark" ? "#94a3b8" : "#64748b" }}>Define daily hours &amp; weekly schedule.</div>
             </div>
           </div>
         }
@@ -789,28 +873,33 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Button key="close" onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>,
           <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: "8px", background: "#3b82f6", border: "none" }}>Save Shift</Button>,
         ]}
-        width={560}
+        className="work-shift-modal"
+        centered
+        width={800}
         styles={{
-          header: { borderBottom: "1px solid #f1f5f9", padding: "12px 20px" },
-          body: { padding: "16px 20px" }
+          header: { background: "transparent", borderBottom: `1px solid ${theme === "dark" ? "#1e293b" : "#f1f5f9"}`, padding: "12px 20px" },
+          footer: { background: "transparent", borderTop: "none" },
+          body: { padding: "4px 16px 12px 16px", maxHeight: "65vh", overflowY: "auto" }
         }}
       >
-        <div style={{ background: "#f8fafc", padding: "9px 12px", borderRadius: "8px", border: "1px solid #f1f5f9", marginBottom: "12px" }}>
+        <div style={{ background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "6px 12px", borderRadius: "8px", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, marginBottom: "8px" }}>
           <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
             <Info size={14} style={{ color: "#3b82f6", marginTop: "2px", flexShrink: 0 }} />
-            <div style={{ fontSize: "11.5px", color: "#64748b", lineHeight: "1.5" }}>
+            <div style={{ fontSize: "11.5px", color: theme === "dark" ? "#cbd5e1" : "#64748b", lineHeight: "1.5" }}>
               Set a shift per day, or apply a common time to all selected days. Used for attendance &amp; monthly hours.
             </div>
           </div>
         </div>
         {/* ✅ Select All + Common Time */}
-        <Row gutter={12} style={{ marginBottom: 12 }} align="middle">
-          <Col>
+        <div style={{ padding: "10px 14px", background: theme === "dark" ? "#0f172a" : "linear-gradient(to right, #f8fafc, #f1f5f9)", borderRadius: "10px", border: `1px solid ${theme === "dark" ? "#1e293b" : "#e2e8f0"}`, marginBottom: "12px", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: theme === "dark" ? "#94a3b8" : "#475569", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Global Schedule Configuration</div>
+          <Row gutter={12} align="middle" wrap={false}>
+            <Col>
             <Checkbox
               checked={selectAll}
               onChange={(e) => handleSelectAll(e.target.checked)}
             >
-              Select All
+              <span style={{ whiteSpace: "nowrap", color: theme === "dark" ? "#f1f5f9" : "inherit" }}>Select All</span>
             </Checkbox>
           </Col>
 
@@ -838,11 +927,74 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                   }}
                 />
               </Col>
+              {commonStart && commonEnd && (
+                <Col>
+                  {(() => {
+                    let diffHrs = commonEnd.diff(commonStart, "hour", true);
+                    if (diffHrs < 0) diffHrs += 24;
+                    const totalHoursStr = diffHrs.toFixed(1);
+                    return (
+                      <div style={{ padding: "4px 10px", background: theme === "dark" ? "#1e293b" : "#f1f5f9", borderRadius: "6px", fontSize: "13px", color: theme === "dark" ? "#f1f5f9" : "#334155", display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", border: `1px solid ${theme === "dark" ? "#334155" : "transparent"}` }}>
+                        <span style={{ fontWeight: 600 }}>Total:</span> <span style={{ marginLeft: "4px" }}>{totalHoursStr}h</span> 
+                        <span style={{ margin: "0 8px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
+                        <InputNumber 
+                          size="small" 
+                          value={commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd)} 
+                          onChange={(val) => {
+                            setCommonAvg(val);
+                            setShiftData((prev: any) => {
+                              const newData = { ...prev };
+                              weekDays.forEach(day => {
+                                if (newData[day]) {
+                                  newData[day].avg = val;
+                                }
+                              });
+                              return newData;
+                            });
+                          }} 
+                          style={{ width: "60px", marginRight: "4px" }} 
+                          step={0.5} 
+                          min={0}
+                        />
+                        <span style={{ fontWeight: 600 }}>h</span> <span style={{ marginLeft: "4px" }}>avg</span>
+                      </div>
+                    );
+                  })()}
+                </Col>
+              )}
             </>
           )}
-        </Row>
+          </Row>
+        </div>
 
+        <style>{`
+          .custom-shift-table .ant-table-thead > tr > th {
+            background: transparent !important;
+            color: ${theme === "dark" ? "#94a3b8" : "#64748b"} !important;
+            font-weight: 600 !important;
+            border-bottom: 2px solid ${theme === "dark" ? "#1e293b" : "#e2e8f0"} !important;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            padding: 8px 10px !important;
+          }
+          .custom-shift-table .ant-table-tbody > tr > td {
+            border-bottom: 1px dashed ${theme === "dark" ? "#334155" : "#e2e8f0"} !important;
+            padding: 5px 10px !important;
+          }
+          .custom-shift-table .ant-table-tbody > tr:hover > td {
+            background: ${theme === "dark" ? "#0f172a" : "#f8fafc"} !important;
+          }
+          .work-shift-modal .ant-modal-body::-webkit-scrollbar {
+            display: none;
+          }
+          .work-shift-modal .ant-modal-body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
         <Table
+          className="custom-shift-table"
           columns={columns}
           dataSource={weekDays.map((day) => ({
             key: day,

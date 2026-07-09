@@ -1,5 +1,6 @@
 import { Form, Input, Row, Col, Select, Card } from "antd";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   const [bankdetailes, setBankDetailes] = useState({});
@@ -69,12 +70,11 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", padding: "24px", background: "transparent" }}>
       {/* Bank Details */}
-      <Card
-        title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>🏦 Bank Details</span>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>🏦 Bank Details</span>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={bankform}
           layout="vertical"
@@ -177,23 +177,27 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Account Type</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Type">
-                  <Select.Option value="savings">Savings</Select.Option>
-                  <Select.Option value="current">Current</Select.Option>
-                </Select>
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
+                  placeholder="Select Type"
+                  options={[
+                    { label: "Savings", value: "savings" },
+                    { label: "Current", value: "current" }
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       {/* Payroll Identifiers */}
-      <Card
-        title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>💰 Payroll Identifiers</span>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>💰 Payroll Identifiers</span>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={payrollform}
           onValuesChange={(_, allValues) =>
@@ -267,10 +271,14 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500 }}>Tax Regime</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Regime">
-                  <Select.Option value="Old">Old Regime</Select.Option>
-                  <Select.Option value="new">New Regime</Select.Option>
-                </Select>
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
+                  placeholder="Select Regime"
+                  options={[
+                    { label: "Old Regime", value: "Old" },
+                    { label: "New Regime", value: "new" }
+                  ]}
+                />
               </Form.Item>
             </Col>
 
@@ -280,15 +288,20 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Payment Type</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Type">
-                  <Select.Option value="bank">Bank Transfer</Select.Option>
-                  <Select.Option value="cash">Cash</Select.Option>
-                </Select>
+                <SearchableDropdown
+                  style={{ height: '40px', minHeight: '40px' }}
+                  placeholder="Select Type"
+                  options={[
+                    { label: "Bank Transfer", value: "bank" },
+                    { label: "Cash", value: "cash" }
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 });

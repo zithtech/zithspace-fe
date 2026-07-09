@@ -267,6 +267,37 @@ class DocumentHubService {
     }
   }
 
+  static async downloadDocumentPdf(documentId: string): Promise<Blob> {
+    try {
+      const token = localStorage.getItem('accessToken');
+      let headers: Record<string, string> = {
+        'Authorization': `Bearer ${token}`
+      };
+      
+      const savedTenant = localStorage.getItem('currentTenant');
+      if (savedTenant) {
+        const tenant = JSON.parse(savedTenant);
+        if (tenant.tenantId) headers['X-Tenant-ID'] = tenant.tenantId;
+        if (tenant.subdomain) headers['X-Tenant-Subdomain'] = tenant.subdomain;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/documenthub/document/${documentId}/pdf`, {
+        method: 'GET',
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
+      }
+      
+      return await response.blob();
+    } catch (error: any) {
+      console.error("Error downloading document PDF:", error);
+      throw error;
+    }
+  }
+
   static async updateDocument(
     documentId: string,
     data: { content?: any; title?: string; expectedVersion?: number },

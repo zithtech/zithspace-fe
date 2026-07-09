@@ -138,12 +138,12 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       (o) =>
         o.label.toLowerCase().includes(q) ||
         (o.description?.toLowerCase().includes(q) ?? false) ||
-        o.value.toLowerCase().includes(q),
+        String(o.value).toLowerCase().includes(q),
     );
   }, [listOptions, search]);
 
   const exactMatch = useMemo(
-    () => options.find((o) => o.value.toLowerCase() === search.trim().toLowerCase()),
+    () => options.find((o) => String(o.value).toLowerCase() === search.trim().toLowerCase()),
     [options, search],
   );
   const showFreeTextRow =

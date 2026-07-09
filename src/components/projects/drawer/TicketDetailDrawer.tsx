@@ -1963,8 +1963,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     placeholder="Due By"
                                   />
                                   {ticket.endDate && (() => {
-                                    const due = dayjs(ticket.endDate);
-                                    const now = dayjs();
+                                    const due = dayjs(ticket.endDate).startOf('day');
+                                    const now = dayjs().startOf('day');
                                     const diff = due.diff(now, 'day');
                                     const overdue = diff < 0;
                                     const isDone = ticket.status === 'completed';

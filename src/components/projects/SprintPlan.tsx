@@ -2207,23 +2207,23 @@ export default function SprintPlanComponent() {
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Sprint Name</Text>}
                   name="name"
                   rules={[{ required: true, message: "Sprint Name is required" }]}
-                 
+
                 >
                   <Input placeholder="e.g. Q2 Core Infrastructure - Sprint 04" size="middle" />
                 </Form.Item>
 
-                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>} name="project" rules={[{ required: true }]}>
-                      <Select
-                        placeholder="Select project"
-                        size="middle"
-                        onChange={handleProjectChange}
-                        disabled={!!editingPlan}
-                        options={projects}
-                      />
-                    </Form.Item>
-                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Objective</Text>} name="goal">
-                      <Input placeholder="High-level goal..." size="middle" />
-                    </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>} name="project" rules={[{ required: true }]}>
+                  <Select
+                    placeholder="Select project"
+                    size="middle"
+                    onChange={handleProjectChange}
+                    disabled={!!editingPlan}
+                    options={projects}
+                  />
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Objective</Text>} name="goal">
+                  <Input placeholder="High-level goal..." size="middle" />
+                </Form.Item>
               </SectionCard>
 
               {/* Section: Timeline & Planning */}
@@ -2250,12 +2250,12 @@ export default function SprintPlanComponent() {
                   </Select>
                 </Form.Item>
 
-                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>} name="startDate" rules={[{ required: true }]}>
-                      <DatePicker size="middle" style={{ width: "100%" }} />
-                    </Form.Item>
-                    <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>End Date</Text>} name="endDate" rules={[{ required: true }]}>
-                      <DatePicker size="middle" style={{ width: "100%" }} />
-                    </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>} name="startDate" rules={[{ required: true }]}>
+                  <DatePicker size="middle" style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>End Date</Text>} name="endDate" rules={[{ required: true }]}>
+                  <DatePicker size="middle" style={{ width: "100%" }} />
+                </Form.Item>
               </SectionCard>
 
               {/* Section: Backlog Allocation */}
@@ -2265,7 +2265,7 @@ export default function SprintPlanComponent() {
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assign Selected Issues</Text>}
                   name="tickets"
                   tooltip="Map existing backlog tickets to this sprint session"
-                 
+
                 >
                   <Select
                     mode="multiple"

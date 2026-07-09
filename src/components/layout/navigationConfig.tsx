@@ -94,6 +94,9 @@ import {
   Layers,
   PieChart,
   BarChart3,
+  Mail,
+  Folder,
+  ReceiptText,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -173,6 +176,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PERFORMANCE_READ,
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
+      Permissions.MY_HUB_CLAIMS_READ,
     ],
     items: [
       {
@@ -181,6 +185,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(LayoutGrid),
         path: "/my-hub",
         requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
+      },
+      {
+        key: "/my-hub/profile",
+        label: "My Profile",
+        icon: I(CircleUser),
+        path: "/my-hub/profile",
+        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
       },
       {
         key: "/my-hub/apply-leave",
@@ -220,11 +231,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
       },
       {
-        key: "/profile",
-        label: "My Profile",
-        icon: I(CircleUser),
-        path: "/profile",
-        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
+        key: "/my-hub/claims",
+        label: "My Claims",
+        icon: I(ReceiptText),
+        path: "/my-hub/claims",
+        requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
       },
     ],
   },
@@ -252,6 +263,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Plug2),
         path: "/integrations",
         requiredPermission: Permissions.INTEGRATION_READ,
+      },
+      {
+        key: "/dashboard/settings",
+        label: "Dashboard Settings",
+        icon: I(Settings2),
+        path: "/dashboard/settings",
+        requiredPermission: Permissions.SETTINGS_UPDATE,
       },
     ],
   },
@@ -844,37 +862,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
 
       {
-        key: "Onbording",
+        key: "/onboarding/onboarded",
         icon: I(UserPlus),
-        label: "Onbording",
+        label: "Onboarding",
+        path: "/onboarding/onboarded",
         requiredAnyPermission: [
           Permissions.ONBOARDING_READ,
           Permissions.ONBOARDING_CREATE,
           Permissions.ONBOARDING_UPDATE,
           Permissions.ONBOARDING_DELETE,
-        ],
-        children: [
-          {
-            key: "/onbording/create",
-            icon: I(UserPlus2),
-            label: "Create",
-            path: "/onboarding/create",
-            requiredPermission: Permissions.ONBOARDING_CREATE,
-          },
-          {
-            key: "/onbording/onboarded",
-            icon: I(UserCheck),
-            label: "Onborded",
-            path: "/onboarding/onboarded",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onbording/settings",
-            icon: I(Settings),
-            label: "Settings",
-            path: "/onboarding/settings",
-            requiredPermission: Permissions.ONBOARDING_SETTING_READ,
-          },
         ],
       },
 

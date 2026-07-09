@@ -22,8 +22,8 @@ import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '
 
 export default function ClaimsPanel() {
   const perms = usePermission() as any;
-  const canRead = perms.canReadReimbursement || perms.canManageReimbursements;
-  const canCreate = perms.canCreateReimbursement || perms.canManageReimbursements;
+  const canRead = perms.canReadReimbursement || perms.canManageReimbursements || perms.canReadMyHubClaims;
+  const canCreate = perms.canCreateReimbursement || perms.canManageReimbursements || perms.canReadMyHubClaims;
 
   const [rows, setRows] = useState<Claim[]>([]);
   const [cats, setCats] = useState<ExpenseCategory[]>([]);

@@ -22,9 +22,15 @@ import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { ClientV2Service } from "@/services/clientV2Service";
+import LeaveV2Service from "@/services/leaveV2Service";
+import PayrollV2Service, { PayPayslip } from "@/services/payrollV2Service";
 import { useSocket } from "@/providers/SocketProvider";
-
+import { usePermission } from "@/hooks/usePermission";
 import {
+  Drawer,
+  Form,
+  Switch,
+  message,
   Card,
   Row,
   Col,
@@ -40,8 +46,10 @@ import {
   Segmented,
   Empty,
   theme,
+  Select,
 } from "antd";
 import {
+  SettingOutlined,
   TeamOutlined,
   UserOutlined,
   ClockCircleOutlined,
@@ -52,6 +60,8 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   CaretRightOutlined,
+  FilePdfFilled,
+  DownloadOutlined,
   CheckSquareOutlined,
   CoffeeOutlined,
   LoginOutlined,
@@ -72,7 +82,8 @@ import {
   StarFilled,
   SyncOutlined,
   ExperimentOutlined,
-  SafetyCertificateFilled
+  SafetyCertificateFilled,
+  GiftOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -82,6 +93,7 @@ const { Title, Text } = Typography;
 function DashboardContent() {
   const { token } = theme.useToken();
   const { user } = useAuth();
+  const { canUpdateSettings } = usePermission();
   const { socket } = useSocket();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
@@ -89,6 +101,7 @@ function DashboardContent() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dashboardSettings, setDashboardSettings] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [todayUpdates, setTodayUpdates] = useState<{
     bod: any | null;
@@ -119,6 +132,8 @@ function DashboardContent() {
   const [clientStats, setClientStats] = useState({ active: 0, total: 0 });
 
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
+  const [payslips, setPayslips] = useState<PayPayslip[]>([]);
+  const [selectedPayslipId, setSelectedPayslipId] = useState<string | null>(null);
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
@@ -225,7 +240,7 @@ function DashboardContent() {
             try {
               const parsed = JSON.parse(m.rrule);
               mMasterId = parsed.seriesMasterId;
-            } catch (e) {}
+            } catch (e) { }
           }
           const mCleanExternalId = mMasterId || m.externalId?.split('_occ_')[0]?.split('_RID')[0];
           const cleanExternalId = event.externalId?.split('_occ_')[0]?.split('_RID')[0];
@@ -248,6 +263,23 @@ function DashboardContent() {
       setSelectedProjectId(dashboardData.projectProgress[0].id);
     }
   }, [dashboardData]);
+
+
+
+  useEffect(() => {
+    if (dashboardSettings?.cardSalarySlip !== false) {
+      const fetchPayslips = async () => {
+        try {
+          const res = await PayrollV2Service.getMyPayslips();
+          setPayslips(res);
+          if (res.length > 0) setSelectedPayslipId(res[0].id);
+        } catch (e) {
+          console.error("Failed to fetch payslips", e);
+        }
+      };
+      fetchPayslips();
+    }
+  }, [dashboardSettings?.cardSalarySlip]);
 
   useEffect(() => {
     const fetchTodayAttendance = async () => {
@@ -292,6 +324,36 @@ function DashboardContent() {
     };
 
     fetchDashboardData();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDashboardSettings = async () => {
+      if (user) {
+        try {
+          const data = await dashboardService.getSettings();
+          if (data && data.visibleCards) {
+            setDashboardSettings(data.visibleCards);
+          } else {
+            // Default settings if null
+            setDashboardSettings({
+              heroSection: true,
+              quickActions: true,
+              attendanceStats: true,
+              myTicketsProgress: true,
+              recentTickets: true,
+              freelancerStats: true,
+              recentLeads: true,
+              recentInvoices: true,
+              calendar: true,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to fetch dashboard settings", error);
+        }
+      }
+    };
+    
+    fetchDashboardSettings();
   }, [user]);
 
   useEffect(() => {
@@ -440,12 +502,12 @@ function DashboardContent() {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 60)
-      return `${diffMins}m ago`;
-    if (diffHours < 24)
-      return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
+      if (diffMins < 60)
+        return `${diffMins}m ago`;
+      if (diffHours < 24)
+        return `${diffHours}h ago`;
+      return `${diffDays}d ago`;
+    };
 
   const handleClockIn = async () => {
     setIsClocking(true);
@@ -724,6 +786,89 @@ function DashboardContent() {
     </Card>
   );
 
+  const isHeroVisible = dashboardSettings?.heroSection !== false;
+  const isQuickActionsVisible = dashboardSettings?.quickActions !== false;
+  const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false;
+  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false;
+  const isRecentTicketsVisible = dashboardSettings?.recentTickets !== false;
+  const isFreelancerStatsVisible = dashboardSettings?.freelancerStats !== false;
+  const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false;
+  const isRecentInvoicesVisible = dashboardSettings?.recentInvoices !== false;
+  const isCalendarVisible = dashboardSettings?.calendar !== false;
+  const isCardSalarySlipVisible = dashboardSettings?.cardSalarySlip !== false;
+  const isDailyAttendanceVisible = dashboardSettings?.dailyAttendanceCard !== false;
+  const isMetricDailyUpdatesVisible = dashboardSettings?.metricDailyUpdates !== false;
+  const isMetricAvgHoursVisible = dashboardSettings?.metricAvgHours !== false;
+  const isMetricMyTicketsVisible = dashboardSettings?.metricMyTickets !== false;
+  const isMetricTeamTodayVisible = dashboardSettings?.metricTeamToday !== false;
+
+  // ─── Today Leaves render ──────────────────────────────────────────
+
+  // ─── Salary Slip render ───────────────────────────────────────────
+  const renderSalarySlip = () => {
+    if (payslips.length === 0) {
+      return (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: `linear-gradient(135deg, ${token.colorFillAlter} 0%, transparent 100%)`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorTextTertiary, marginBottom: 12 }}>
+            <FileTextOutlined style={{ fontSize: 20 }} />
+          </div>
+          <Text strong style={{ fontSize: 13, color: token.colorText, display: "block", marginBottom: 4 }}>No Salary Slips</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>You have no salary slips available yet.</Text>
+        </div>
+      );
+    }
+
+    const selectedSlip = payslips.find(p => p.id === selectedPayslipId) || payslips[0];
+
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <Text strong style={{ fontSize: 16 }}>Salary Slip</Text>
+          <Select
+            size="small"
+            value={selectedSlip.id}
+            onChange={(val) => setSelectedPayslipId(val)}
+            style={{ width: 130 }}
+            options={payslips.map(p => ({ label: p.periodLabel || `${p.month}/${p.year}`, value: p.id }))}
+          />
+        </div>
+
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <div style={{
+            width: 90, height: 90, borderRadius: 16, background: `${token.colorError}15`,
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <FilePdfFilled style={{ fontSize: 40, color: token.colorError }} />
+          </div>
+          <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>
+            Salary-Slip of {selectedSlip.periodLabel || `${selectedSlip.month}/${selectedSlip.year}`}
+          </Text>
+        </div>
+
+        <Button
+          type="primary"
+          icon={<DownloadOutlined />}
+          style={{ width: "100%", marginTop: 24, borderRadius: 8, height: 40, background: "#4338CA", borderColor: "#4338CA" }}
+          onClick={() => {
+            if (selectedSlip.fileUrl) {
+              const fileName = `Salary_Slip_${selectedSlip.periodLabel || `${selectedSlip.month}_${selectedSlip.year}`}.pdf`;
+              const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(selectedSlip.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+              const a = document.createElement("a");
+              a.href = proxyUrl;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+          }}
+          disabled={!selectedSlip.fileUrl}
+        >
+          Download
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <MainLayout>
       <div
@@ -746,9 +891,11 @@ function DashboardContent() {
           }}
         >
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div
-              style={{
-                display: "flex",
+            {isHeroVisible && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
                 alignItems: "center",
                 gap: 12,
                 flexWrap: "wrap",
@@ -807,15 +954,18 @@ function DashboardContent() {
                 display: "block",
               }}
             >
-              {heroSubtext}
-            </Text>
+                {heroSubtext}
+              </Text>
+              </>
+            )}
           </div>
 
-          <div
-            className="dash-switch"
-            role="tablist"
-            aria-label="Dashboard view"
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              className="dash-switch"
+              role="tablist"
+              aria-label="Dashboard view"
+            >
             {[
               {
                 value: "me" as const,
@@ -824,13 +974,6 @@ function DashboardContent() {
                 accent: "#3B82F6",
                 accentLight: "#60A5FA",
               },
-              // {
-              //   value: "freelancer" as const,
-              //   title: "Freelancer",
-              //   icon: <SolutionOutlined />,
-              //   accent: "#10B981",
-              //   accentLight: "#34D399",
-              // },
               {
                 value: "organization" as const,
                 title: "Organization",
@@ -864,6 +1007,15 @@ function DashboardContent() {
                 </button>
               );
             })}
+            </div>
+            {canUpdateSettings && (
+              <Button 
+                type="text" 
+                icon={<SettingOutlined />} 
+                onClick={() => router.push('/dashboard/settings')}
+                style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              />
+            )}
           </div>
         </div>
 
@@ -933,9 +1085,20 @@ function DashboardContent() {
             ) : dashboardData ? (
               <>
                 {/* ─── KPI Strip ──────────────────────────────────── */}
+                {(() => {
+                  const visibleMetrics = [
+                    isMetricDailyUpdatesVisible,
+                    isMetricAvgHoursVisible,
+                    isMetricMyTicketsVisible,
+                    isMetricTeamTodayVisible
+                  ].filter(Boolean).length;
+                  const metricsSpan = visibleMetrics === 1 ? 24 : visibleMetrics === 2 ? 12 : visibleMetrics === 3 ? 8 : 6;
+
+                  return (
                 <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                   {/* BOD / EOD */}
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricDailyUpdatesVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const submittedCount =
                         (todayUpdates.bod ? 1 : 0) + (todayUpdates.eod ? 1 : 0);
@@ -1023,9 +1186,11 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Avg Working Hours */}
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricAvgHoursVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const [hh = 0, mm = 0, ss = 0] = String(averageWorkHours || "0:0:0")
                         .split(":")
@@ -1085,9 +1250,11 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* My Tickets */}
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricMyTicketsVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const closed = myTicketsStats.closed;
                       const totalT = myTicketsStats.total;
@@ -1196,9 +1363,11 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Today's Attendance */}
-                  <Col xs={24} sm={12} lg={6}>
+                  {isMetricTeamTodayVisible && (
+                  <Col xs={24} sm={12} lg={metricsSpan}>
                     {(() => {
                       const present = dashboardData.stats.attendance.present;
                       const total = dashboardData.stats.totalMembers;
@@ -1258,12 +1427,46 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
+                  );
+                })()}
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
-                <Row gutter={[12, 12]}>
-                  {/* Time Tracker */}
-                  <Col xs={24} lg={8}>
+                {(() => {
+                  const visibleKeys = [
+                    isDailyAttendanceVisible && "attendance",
+                    isCalendarVisible && "calendar",
+                    isQuickActionsVisible && "quickActions",
+                    isCardSalarySlipVisible && "salarySlip",
+                    isMyTicketsVisible && "tickets",
+                    isRecentTicketsVisible && "recentTickets"
+                  ].filter(Boolean) as string[];
+
+                  const N = visibleKeys.length;
+                  const spanMap: Record<string, number> = {};
+
+                  if (N >= 6) {
+                    for (let i = 0; i < N; i++) spanMap[visibleKeys[i]] = 8;
+                  } else if (N === 5) {
+                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+                    spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
+                  } else if (N === 4) {
+                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12; 
+                    spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
+                  } else if (N === 3) {
+                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+                  } else if (N === 2) {
+                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
+                  } else if (N === 1) {
+                    spanMap[visibleKeys[0]] = 24;
+                  }
+
+                  return (
+                    <Row gutter={[12, 12]}>
+                      {/* Time Tracker */}
+                      {isDailyAttendanceVisible && (
+                      <Col xs={24} md={spanMap["attendance"]} lg={spanMap["attendance"]} xl={spanMap["attendance"]}>
                     <Card
                       style={{
                         ...cardBase,
@@ -1683,6 +1886,251 @@ function DashboardContent() {
                         <Skeleton active paragraph={{ rows: 3 }} />
                       )}
                     </Card>
+                  </Col>
+                  )}
+
+                  {/* Calendar Integration - Takes up 2 columns */}
+                  {isCalendarVisible && (
+                  <Col xs={24} md={spanMap["calendar"]} lg={spanMap["calendar"]} xl={spanMap["calendar"]}>
+                    <Card
+                      style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
+                          title={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                minWidth: 0,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: `#3B82F614`,
+                                  border: `1px solid #3B82F633`,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#3B82F6",
+                                  fontSize: 13,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <VideoCameraOutlined />
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    color: token.colorText,
+                                    letterSpacing: "-0.1px",
+                                    lineHeight: 1.2,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  Today's Meetings
+                                </span>
+                                {todaysMeetings.length > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.4px",
+                                      color: "#3B82F6",
+                                      background: `#3B82F614`,
+                                      border: `1px solid #3B82F633`,
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                      fontVariantNumeric: "tabular-nums",
+                                      width: "fit-content",
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    {todaysMeetings.length} TODAY
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          }
+                      extra={
+                        connectedProvider ? (
+                          <Space size={4}>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={
+                                <ClockCircleOutlined
+                                  style={{ fontSize: 11 }}
+                                />
+                              }
+                              onClick={() =>
+                                syncCalendar(connectedProvider)
+                              }
+                              loading={calendarSyncing}
+                              style={{ fontSize: 11 }}
+                            >
+                              Sync
+                            </Button>
+                            <Button
+                              type="text"
+                              size="small"
+                              onClick={() => router.push("/calendar")}
+                              style={{ fontSize: 11 }}
+                            >
+                              View
+                            </Button>
+                          </Space>
+                        ) : (
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => router.push("/integrations")}
+                            style={{ fontSize: 11 }}
+                          >
+                            Connect
+                          </Button>
+                        )
+                      }
+                    >
+                      <div
+                        style={{
+                          flex: 1,
+                          overflowY: "auto",
+                          padding: 0,
+                          position: "relative",
+                          zIndex: 1,
+                        }}
+                        className="no-scrollbar"
+                      >
+                        {calendarLoading ? (
+                          <div style={{ padding: 16 }}>
+                            <Skeleton active paragraph={{ rows: 3 }} />
+                          </div>
+                        ) : !connectedProvider ? (
+                          <div
+                            style={{
+                              padding: 24,
+                              textAlign: "center",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: 14,
+                                background: token.colorFillAlter,
+                                margin: "0 auto 12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: token.colorTextTertiary,
+                              }}
+                            >
+                              <VideoCameraOutlined
+                                style={{ fontSize: 22 }}
+                              />
+                            </div>
+                            <Text
+                              type="secondary"
+                              style={{
+                                fontSize: 12,
+                                display: "block",
+                                marginBottom: 12,
+                              }}
+                            >
+                              Connect your calendar to see today's meetings
+                            </Text>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() =>
+                                router.push("/integrations")
+                              }
+                              style={{ borderRadius: 8 }}
+                            >
+                              Connect Calendar
+                            </Button>
+                          </div>
+                        ) : todaysMeetings.length > 0 ? (
+                          (() => {
+                            const now = dayjs();
+                            const sorted = [...todaysMeetings].sort(
+                              (a: any, b: any) =>
+                                dayjs(a.startTime).valueOf() -
+                                dayjs(b.startTime).valueOf(),
+                            );
+                            const isLive = (m: any) =>
+                              dayjs(m.startTime).isBefore(now) &&
+                              dayjs(m.endTime).isAfter(now);
+                            const isPast = (m: any) =>
+                              dayjs(m.endTime).isBefore(now);
+                            const liveMeeting = sorted.find(isLive);
+                            const upcoming = sorted.filter((m: any) =>
+                              dayjs(m.startTime).isAfter(now),
+                            );
+                            const ended = sorted.filter(isPast);
+                            const heroMeeting = liveMeeting || upcoming[0];
+                            const restMeetings = sorted.filter(
+                              (m: any) => m !== heroMeeting,
+                            );
+
+                            const formatRelative = (m: any) => {
+                              const s = dayjs(m.startTime);
+                              const e = dayjs(m.endTime);
+                              if (s.isBefore(now) && e.isAfter(now)) {
+                                const minLeft = e.diff(now, "minute");
+                                return `${minLeft}m left`;
+                              }
+                              if (s.isAfter(now)) {
+                                const diff = s.diff(now, "minute");
+                                if (diff < 60) return `in ${diff}m`;
+                                const h = Math.floor(diff / 60);
+                                const mm = diff % 60;
+                                return mm
+                                  ? `in ${h}h ${mm}m`
+                                  : `in ${h}h`;
+                              }
+                              return "Finished";
+                            };
+
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                {heroMeeting && (
+                                  <div style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? "#EFF6FF" : "transparent" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                      {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
+                                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
+                                        {liveMeeting ? "LIVE NOW" : `UP NEXT · ${formatRelative(heroMeeting)}`}
+                                      </Text>
+                                    </div>
+                                    <Text strong style={{ fontSize: 14, display: "block", color: token.colorText }}>{heroMeeting.title}</Text>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(heroMeeting.startTime).format("h:mm A")} - {dayjs(heroMeeting.endTime).format("h:mm A")}</Text>
+                                  </div>
+                                )}
+                                {restMeetings.map((m: any) => (
+                                  <div key={m.id} style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <Text style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</Text>
+                                      <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(m.startTime).format("h:mm A")}</Text>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div style={{ padding: 24, textAlign: "center" }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>No meetings scheduled for today.</Text>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
                     <BreakPickerModal
                       open={breakModalOpen}
                       loading={isClocking}
@@ -1693,11 +2141,1230 @@ function DashboardContent() {
                       }}
                     />
                   </Col>
+                  )}
 
-                  {/* Today's Meetings */}
+                  {isQuickActionsVisible && (
+                  <Col xs={24} md={spanMap["quickActions"]} lg={spanMap["quickActions"]} xl={spanMap["quickActions"]}>
+                    {(() => {
+                      const accentQA = "#10B981";
+                      const quickActions = [
+                        {
+                          icon: <PlusCircleOutlined />,
+                          title: "Create Ticket",
+                          desc: "Log a new task or issue",
+                          accent: "#3B82F6",
+                          onClick: () => router.push("/tickets/create"),
+                          shortcut: "T",
+                        },
+                        {
+                          icon: <FolderOpenOutlined />,
+                          title: "Document Hub",
+                          desc: "Browse and manage docs",
+                          accent: "#10B981",
+                          onClick: () => router.push("/documenthub"),
+                          shortcut: "D",
+                        },
+                        {
+                          icon: <AppstoreOutlined />,
+                          title: "Project",
+                          desc: "Manage and track all projects",
+                          accent: "#3B82F6",
+                          onClick: () => router.push("/projects/manage"),
+                          shortcut: "P",
+                        },
+                      ];
+                      return (
+                        <Card
+                          style={{
+                            ...cardBase,
+                            height: "100%",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                          styles={{
+                            body: {
+                              padding: 16,
+                              position: "relative",
+                              zIndex: 1,
+                            },
+                          }}
+                          title={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                minWidth: 0,
+                              }}
+                            >
+                              {sectionTitle(
+                                <ThunderboltFilled />,
+                                "Quick Actions",
+                                accentQA,
+                              )}
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: "0.4px",
+                                  color: accentQA,
+                                  background: `${accentQA}14`,
+                                  border: `1px solid ${accentQA}33`,
+                                  padding: "2px 7px",
+                                  borderRadius: 999,
+                                }}
+                              >
+                                SHORTCUTS
+                              </span>
+                            </div>
+                          }
+                        >
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                            }}
+                          >
+                            {quickActions.map((a) => (
+                              <div
+                                key={a.title}
+                                onClick={a.onClick}
+                                className="dash-qa-row"
+                                style={
+                                  {
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    padding: "10px 12px 10px 14px",
+                                    borderRadius: 12,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    background: token.colorBgContainer,
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    ["--qa-accent" as any]: a.accent,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: 3,
+                                    background: a.accent,
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: `${a.accent}14`,
+                                    border: `1px solid ${a.accent}33`,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: a.accent,
+                                    fontSize: 16,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {a.icon}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <Text
+                                    strong
+                                    style={{
+                                      fontSize: 13,
+                                      color: token.colorText,
+                                      display: "block",
+                                      lineHeight: 1.3,
+                                      letterSpacing: "-0.1px",
+                                    }}
+                                  >
+                                    {a.title}
+                                  </Text>
+                                  <Text
+                                    type="secondary"
+                                    style={{
+                                      fontSize: 11,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {a.desc}
+                                  </Text>
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: token.colorTextTertiary,
+                                    background: token.colorFillAlter,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    fontVariantNumeric: "tabular-nums",
+                                    letterSpacing: "0.4px",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  ⌘ {a.shortcut}
+                                </span>
+                                <ArrowRightOutlined
+                                  style={{
+                                    fontSize: 11,
+                                    color: token.colorTextTertiary,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                  )}
+
+                  {isCardSalarySlipVisible && (
+                    <Col xs={24} md={spanMap["salarySlip"]} lg={spanMap["salarySlip"]} xl={spanMap["salarySlip"]}>
+                      <Card
+                        style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                        styles={{
+                          body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
+                        }}
+                      >
+                        {renderSalarySlip()}
+                      </Card>
+                    </Col>
+                  )}
+
+
+                  {/* My Tickets Stats */}
+                  {isMyTicketsVisible && (
+                  <Col xs={24} md={spanMap["tickets"]} lg={spanMap["tickets"]} xl={spanMap["tickets"]}>
+                    {(() => {
+                      const segments = [
+                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
+                      ];
+                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
+                      return (
+                        <Card
+                          style={{ ...cardBase, minHeight: 330, height: "100%", overflow: "hidden" }}
+                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
+                        >
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+                              <div>
+                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
+                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
+                                    {completionRate}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                                  {completedTickets}
+                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
+                                </div>
+                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
+                              {segments.filter((s) => s.value > 0).map((s) => (
+                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
+                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
+                                </Tooltip>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                              {segments.map((s) => {
+                                const segmentPct = pct(s.value);
+                                return (
+                                  <div
+                                    key={s.key}
+                                    style={{
+                                      position: "relative",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "6px 12px",
+                                      borderRadius: 10,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Progress background */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${segmentPct}%`,
+                                        background: `${s.color}0D`,
+                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
+                                      }}
+                                    />
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                                      <div
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          borderRadius: 8,
+                                          background: `${s.color}14`,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          border: `1px solid ${s.color}26`,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: s.color,
+                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
+                                          }}
+                                        >
+                                          {s.icon}
+                                        </div>
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
+                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
+                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                  )}
+
+                  {/* Recent Tickets */}
+                  {isRecentTicketsVisible && (
+                  <Col xs={24} md={spanMap["recentTickets"]} lg={spanMap["recentTickets"]} xl={spanMap["recentTickets"]}>
+                    {(() => {
+                      const accent = "#3B82F6";
+                      const testingCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
+                      }).length;
+                      const activeCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "in_progress" || s === "doing";
+                      }).length;
+                      const notStartedCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "not_started";
+                      }).length;
+                      return (
+                        <Card
+                          style={{
+                            ...cardBase,
+                            height: 330,
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                          styles={{
+                            body: {
+                              padding: 16,
+                              display: "flex",
+                              flexDirection: "column",
+                              position: "relative",
+                              zIndex: 1,
+                              flex: 1,
+                              minHeight: 0,
+                            },
+                          }}
+                          title={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                flexWrap: "wrap",
+                                minWidth: 0,
+                              }}
+                            >
+                              {sectionTitle(
+                                <FileTextOutlined />,
+                                "Recent Tickets",
+                                accent,
+                              )}
+                              {recentTickets.length > 0 && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.4px",
+                                    color: accent,
+                                    background: `${accent}14`,
+                                    border: `1px solid ${accent}33`,
+                                    padding: "2px 7px",
+                                    borderRadius: 999,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {recentTickets.length} TOTAL
+                                </span>
+                              )}
+                            </div>
+                          }
+                          extra={
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => router.push("/tickets/select")}
+                              style={{ fontSize: 11, fontWeight: 600 }}
+                            >
+                              View all{" "}
+                              <ArrowRightOutlined style={{ fontSize: 10 }} />
+                            </Button>
+                          }
+                        >
+
+                          {recentTickets.length === 0 ? (
+                            <div
+                              style={{
+                                padding: 40,
+                                textAlign: "center",
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 10,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 52,
+                                  height: 52,
+                                  borderRadius: 16,
+                                  background: `${accent}14`,
+                                  border: `1px solid ${accent}33`,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: accent,
+                                  fontSize: 22,
+                                }}
+                              >
+                                <FileTextOutlined />
+                              </div>
+                              <Text
+                                strong
+                                style={{
+                                  fontSize: 13,
+                                  color: token.colorText,
+                                }}
+                              >
+                                No tickets yet
+                              </Text>
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 11 }}
+                              >
+                                Recent assignments will appear here
+                              </Text>
+                            </div>
+                          ) : (
+                            <div
+                              className="no-scrollbar"
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 12,
+                                flex: 1,
+                                overflowY: "auto",
+                                paddingRight: 4,
+                                alignContent: "start",
+                              }}
+                            >
+                              {recentTickets.map((item: any) => {
+                                const status = item.status?.toLowerCase();
+                                const statusMeta: Record<
+                                  string,
+                                  { label: string; color: string; bg: string }
+                                > = {
+                                  completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
+                                  live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
+                                  done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
+                                  in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                  doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                  in_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  live_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  "live testing": { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
+                                  not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
+                                };
+                                const sm =
+                                  statusMeta[status] || {
+                                    label: (item.status || "—")
+                                      .replace(/_/g, " ")
+                                      .toUpperCase(),
+                                    color: token.colorTextSecondary,
+                                    bg: token.colorFillAlter,
+                                  };
+                                const priorityColor = getPriorityColor(item.priority);
+                                const priority = (item.priority || "")
+                                  .toString()
+                                  .toUpperCase();
+                                const projectLabel =
+                                  typeof item.project === "string"
+                                    ? item.project
+                                    : item.project?.code || item.project?.name || "—";
+
+                                const isLive =
+                                  status === "in_progress" ||
+                                  status === "doing";
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() =>
+                                      setSelectedTicketId(item.id)
+                                    }
+                                    className="dash-rt-card"
+                                    style={
+                                      {
+                                        position: "relative",
+                                        cursor: "pointer",
+                                        borderRadius: 14,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
+                                        background: token.colorBgContainer,
+                                        padding: "14px 14px 12px 18px",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 10,
+                                        flexShrink: 0,
+                                        overflow: "hidden",
+                                        ["--rt-glow" as any]: `${sm.color}55`,
+                                        ["--rt-border" as any]: `${sm.color}55`,
+                                      } as React.CSSProperties
+                                    }
+                                  >
+
+                                    {/* Priority left bar */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: 4,
+                                        background: priorityColor,
+                                        boxShadow: "none",
+                                      }}
+                                    />
+
+                                    {/* Header row */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                      }}
+                                    >
+                                      <Space size={6} align="center">
+                                        <span
+                                          style={{
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            letterSpacing: "0.4px",
+                                            color: token.colorTextSecondary,
+                                            background: token.colorFillAlter,
+                                            border: `1px solid ${token.colorBorderSecondary}`,
+                                            padding: "2px 6px",
+                                            borderRadius: 6,
+                                            fontVariantNumeric: "tabular-nums",
+                                          }}
+                                        >
+                                          {item.ticketNumber}
+                                        </span>
+                                        {projectLabel && projectLabel !== "—" && (
+                                          <span
+                                            style={{
+                                              fontSize: 10,
+                                              fontWeight: 600,
+                                              color: token.colorTextTertiary,
+                                              maxWidth: 100,
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                              whiteSpace: "nowrap",
+                                            }}
+                                          >
+                                            · {projectLabel}
+                                          </span>
+                                        )}
+                                      </Space>
+                                      {priority && (
+                                        <Tooltip title={`Priority: ${priority}`}>
+                                          <span
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 4,
+                                              fontSize: 9,
+                                              fontWeight: 700,
+                                              letterSpacing: "0.4px",
+                                              color: priorityColor,
+                                              padding: "2px 6px",
+                                              borderRadius: 999,
+                                              background: `${priorityColor}14`,
+                                              border: `1px solid ${priorityColor}33`,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                width: 5,
+                                                height: 5,
+                                                borderRadius: "50%",
+                                                background: priorityColor,
+                                              }}
+                                            />
+                                            {priority}
+                                          </span>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+
+                                    {/* Title */}
+                                    <Tooltip title={item.title}>
+                                      <div
+                                        style={{
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                          color: token.colorText,
+                                          lineHeight: 1.35,
+                                          letterSpacing: "-0.1px",
+                                          display: "-webkit-box",
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: "vertical",
+                                          overflow: "hidden",
+                                          minHeight: 36,
+                                        }}
+                                      >
+                                        {item.title}
+                                      </div>
+                                    </Tooltip>
+
+                                    {/* Footer row */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                        paddingTop: 8,
+                                        borderTop: `1px dashed ${token.colorBorderSecondary}`,
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.3px",
+                                          color: sm.color,
+                                          background: sm.bg,
+                                          padding: "3px 8px",
+                                          borderRadius: 999,
+                                          border: `1px solid ${sm.color}26`,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 5,
+                                            height: 5,
+                                            borderRadius: "50%",
+                                            background: sm.color,
+                                            boxShadow: "none",
+                                            animation: isLive
+                                              ? "pulse-soft 2s infinite ease-in-out"
+                                              : undefined,
+                                          }}
+                                        />
+                                        {sm.label.toUpperCase()}
+                                      </span>
+
+                                      <Space size={8} align="center">
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: token.colorTextTertiary,
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {formatTimeAgo(item.createdAt)}
+                                        </Text>
+                                        {item.assignee && (
+                                          <Tooltip
+                                            title={`Assignee: ${item.assignee.name}`}
+                                          >
+                                            <Avatar
+                                              size={22}
+                                              src={item.assignee.avatar}
+                                              style={{
+                                                backgroundColor: "#3B82F6",
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                                border: `2px solid ${token.colorBgContainer}`,
+                                                boxShadow: "none",
+                                              }}
+                                            >
+                                              {item.assignee.name
+                                                ?.charAt(0)
+                                                .toUpperCase()}
+                                            </Avatar>
+                                          </Tooltip>
+                                        )}
+                                      </Space>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                  )}
+
+                    </Row>
+                  );
+                })()}
+              </>
+            ) : null}
+          </>
+        )}
+
+        {/* ─── FREELANCER SEGMENT ─────────────────────────────── */}
+        {activeSegment === "freelancer" && (
+          <>
+            {loading ? (
+              <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Col xs={24} sm={12} lg={6} key={i}>
+                    <Card size="small" style={{ ...cardBase }} styles={{ body: { padding: 14 } }}>
+                      <Skeleton active paragraph={{ rows: 1 }} />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <>
+                {/* ─── KPI Strip ──────────────────────────────────── */}
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                  {isMyTicketsVisible && (
+                  <Col xs={24} sm={12} lg={6}>
+                    {(() => {
+                      const closed = myTicketsStats.closed;
+                      const totalT = myTicketsStats.total;
+                      const open = Math.max(0, totalT - closed);
+                      const pctDone = totalT > 0 ? Math.round((closed / totalT) * 100) : 0;
+                      const accent = "#3B82F6";
+                      return (
+                        <KpiCard
+                          eyebrow="My Tickets"
+                          value={`${closed} / ${totalT}`}
+                          icon={<TrophyOutlined />}
+                          accent={accent}
+                          subtle={
+                            totalT > 0
+                              ? `${pctDone}% completion · ${open} open`
+                              : "No tickets assigned"
+                          }
+                          chart={
+                            totalT > 0 ? (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: 6,
+                                    borderRadius: 999,
+                                    display: "flex",
+                                    overflow: "hidden",
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    background: token.colorFillAlter,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: `${(closed / totalT) * 100}%`,
+                                      background: accent,
+                                      display: "block",
+                                      height: "100%",
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      width: `${(open / totalT) * 100}%`,
+                                      background: "#93C5FD",
+                                      display: "block",
+                                      height: "100%",
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                </div>
+                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 11,
+                                      color: token.colorTextSecondary,
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: accent,
+                                      }}
+                                    />
+                                    {closed} closed
+                                  </span>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 11,
+                                      color: token.colorTextSecondary,
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: "#93C5FD",
+                                      }}
+                                    />
+                                    {open} open
+                                  </span>
+                                </div>
+                              </div>
+                            ) : null
+                          }
+                        />
+                      );
+                    })()}
+                  </Col>
+                  )}
+                  {isRecentLeadsVisible && (
+                  <Col xs={24} sm={12} lg={6}>
+                    {(() => {
+                      const accent = "#10B981";
+                      const count = recentLeads.length;
+                      const pct = Math.min(100, count * 10);
+                      return (
+                        <KpiCard
+                          eyebrow="Recent Leads"
+                          value={count}
+                          icon={<RocketOutlined />}
+                          accent={accent}
+                          subtle={
+                            count > 0
+                              ? `${pct}% of pipeline capacity`
+                              : "No leads yet"
+                          }
+                          chart={
+                            count > 0 ? (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    height: 6,
+                                    background: `${accent}1F`,
+                                    borderRadius: 999,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      display: "block",
+                                      height: "100%",
+                                      width: `${pct}%`,
+                                      background: accent,
+                                      borderRadius: 999,
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: token.colorTextSecondary,
+                                    fontVariantNumeric: "tabular-nums",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {pct}%
+                                </span>
+                              </div>
+                            ) : null
+                          }
+                        />
+                      );
+                    })()}
+                  </Col>
+                  )}
+                  {isFreelancerStatsVisible && (
+                  <Col xs={24} sm={12} lg={6}>
+                    {(() => {
+                      const activeC = clientStats.active;
+                      const totalC = clientStats.total;
+                      const inactiveC = Math.max(0, totalC - activeC);
+                      const pctActive =
+                        totalC > 0 ? Math.round((activeC / totalC) * 100) : 0;
+                      const accent = "#10B981";
+                      return (
+                        <KpiCard
+                          eyebrow="Clients"
+                          value={`${activeC} / ${totalC}`}
+                          icon={<ContactsOutlined />}
+                          accent={accent}
+                          subtle={
+                            totalC > 0
+                              ? `${pctActive}% active · ${inactiveC} inactive`
+                              : "No clients yet"
+                          }
+                          chart={
+                            totalC > 0 ? (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: 6,
+                                    borderRadius: 999,
+                                    display: "flex",
+                                    overflow: "hidden",
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    background: token.colorFillAlter,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: `${(activeC / totalC) * 100}%`,
+                                      background: accent,
+                                      display: "block",
+                                      height: "100%",
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      width: `${(inactiveC / totalC) * 100}%`,
+                                      background: "#A7F3D0",
+                                      display: "block",
+                                      height: "100%",
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 11,
+                                      color: token.colorTextSecondary,
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: accent,
+                                      }}
+                                    />
+                                    {activeC} active
+                                  </span>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 11,
+                                      color: token.colorTextSecondary,
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: "#A7F3D0",
+                                      }}
+                                    />
+                                    {inactiveC} inactive
+                                  </span>
+                                </div>
+                              </div>
+                            ) : null
+                          }
+                        />
+                      );
+                    })()}
+                  </Col>
+                  )}
+                  {isFreelancerStatsVisible && (
+                  <Col xs={24} sm={12} lg={6}>
+                    {(() => {
+                      const active = dashboardData?.stats.activeProjects || 0;
+                      const growth = dashboardData?.trends.projectGrowth || "0%";
+                      const accent = "#3B82F6";
+                      return (
+                        <KpiCard
+                          eyebrow="Active Projects"
+                          value={active}
+                          icon={<AppstoreOutlined />}
+                          accent={accent}
+                          subtle={`Growth ${growth} this period`}
+                          chart={
+                            active > 0 ? (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    height: 6,
+                                    background: `${accent}1F`,
+                                    borderRadius: 999,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      display: "block",
+                                      height: "100%",
+                                      width: `${Math.min(100, active * 12)}%`,
+                                      background: accent,
+                                      borderRadius: 999,
+                                      transition: "width .4s ease",
+                                    }}
+                                  />
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: token.colorTextSecondary,
+                                    fontVariantNumeric: "tabular-nums",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {active} live
+                                </span>
+                              </div>
+                            ) : null
+                          }
+                        />
+                      );
+                    })()}
+                  </Col>
+                  )}
+                </Row>
+
+                {/* ─── Main Grid ──────────────────────────────────── */}
+                <Row gutter={[12, 12]}>
+                  {/* My Tickets Stats */}
+                  {isMyTicketsVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
-                      const accentTM = "#3B82F6";
+                      const segments = [
+                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
+                      ];
+                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
+                      return (
+                        <Card
+                          style={{ ...cardBase, minHeight: 330, height: "100%", overflow: "hidden" }}
+                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
+                        >
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+                              <div>
+                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
+                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
+                                    {completionRate}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                                  {completedTickets}
+                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
+                                </div>
+                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
+                              {segments.filter((s) => s.value > 0).map((s) => (
+                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
+                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
+                                </Tooltip>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                              {segments.map((s) => {
+                                const segmentPct = pct(s.value);
+                                return (
+                                  <div
+                                    key={s.key}
+                                    style={{
+                                      position: "relative",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "6px 12px",
+                                      borderRadius: 10,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Progress background */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${segmentPct}%`,
+                                        background: `${s.color}0D`,
+                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
+                                      }}
+                                    />
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                                      <div
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          borderRadius: 8,
+                                          background: `${s.color}14`,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          border: `1px solid ${s.color}26`,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: s.color,
+                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
+                                          }}
+                                        >
+                                          {s.icon}
+                                        </div>
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
+                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
+                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                  )}
+
+                  {/* Today's Meetings */}
+                  {isCalendarVisible && (
+                  <Col xs={24} lg={8}>
+                    {(() => {
+                      const accentTM = "#7C3AED";
                       const tmCount = todaysMeetings.length;
                       const liveTM = todaysMeetings.find((m: any) => {
                         const now = dayjs();
@@ -1711,39 +3378,69 @@ function DashboardContent() {
                       ).length;
                       return (
                         <Card
-                          style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                          style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
                           styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
                           title={
                             <div
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
+                                gap: 10,
                                 minWidth: 0,
                               }}
                             >
-                              {sectionTitle(
-                                <VideoCameraOutlined />,
-                                "Today's Meetings",
-                                accentTM,
-                              )}
-                              {tmCount > 0 && (
+                              <div
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: `${accentTM}14`,
+                                  border: `1px solid ${accentTM}33`,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: accentTM,
+                                  fontSize: 13,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <VideoCameraOutlined />
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                                 <span
                                   style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accentTM,
-                                    background: `${accentTM}14`,
-                                    border: `1px solid ${accentTM}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    color: token.colorText,
+                                    letterSpacing: "-0.1px",
+                                    lineHeight: 1.2,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
                                   }}
                                 >
-                                  {tmCount} TODAY
+                                  Today's Meetings
                                 </span>
-                              )}
+                                {tmCount > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.4px",
+                                      color: accentTM,
+                                      background: `${accentTM}14`,
+                                      border: `1px solid ${accentTM}33`,
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                      fontVariantNumeric: "tabular-nums",
+                                      width: "fit-content",
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    {tmCount} TODAY
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           }
                           extra={
@@ -1786,14 +3483,11 @@ function DashboardContent() {
                             )
                           }
                         >
-
                           <div
                             style={{
                               flex: 1,
                               overflowY: "auto",
                               padding: 0,
-                              position: "relative",
-                              zIndex: 1,
                             }}
                             className="no-scrollbar"
                           >
@@ -2355,1932 +4049,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const segments = [
-                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
-                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
-                      ];
-                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
-                      return (
-                        <Card
-                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
-                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
-                        >
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
-                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
-                              <div>
-                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
-                                    {completionRate}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                                  {completedTickets}
-                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
-                                </div>
-                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
-                              </div>
-                            </div>
-                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
-                              {segments.filter((s) => s.value > 0).map((s) => (
-                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
-                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
-                                </Tooltip>
-                              ))}
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                              {segments.map((s) => {
-                                const segmentPct = pct(s.value);
-                                return (
-                                  <div
-                                    key={s.key}
-                                    style={{
-                                      position: "relative",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      padding: "6px 12px",
-                                      borderRadius: 10,
-                                      background: token.colorFillAlter,
-                                      border: `1px solid ${token.colorBorderSecondary}`,
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {/* Progress background */}
-                                    <div
-                                      aria-hidden
-                                      style={{
-                                        position: "absolute",
-                                        left: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        width: `${segmentPct}%`,
-                                        background: `${s.color}0D`,
-                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
-                                      }}
-                                    />
-
-                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                                      <div
-                                        style={{
-                                          width: 26,
-                                          height: 26,
-                                          borderRadius: 8,
-                                          background: `${s.color}14`,
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          border: `1px solid ${s.color}26`,
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: s.color,
-                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
-                                          }}
-                                        >
-                                          {s.icon}
-                                        </div>
-                                      </div>
-                                      <div style={{ display: "flex", flexDirection: "column" }}>
-                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
-                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
-                                      </div>
-                                    </div>
-
-                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
-                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
-                </Row>
-
-                {/* Bottom Row: Recent Tickets + Quick Actions */}
-                <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
-                  <Col xs={24} lg={16}>
-                    {(() => {
-                      const accent = "#3B82F6";
-                      const testingCount = recentTickets.filter((t: any) => {
-                        const s = t.status?.toLowerCase();
-                        return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
-                      }).length;
-                      const activeCount = recentTickets.filter((t: any) => {
-                        const s = t.status?.toLowerCase();
-                        return s === "in_progress" || s === "doing";
-                      }).length;
-                      const notStartedCount = recentTickets.filter((t: any) => {
-                        const s = t.status?.toLowerCase();
-                        return s === "not_started";
-                      }).length;
-                      return (
-                        <Card
-                          style={{
-                            ...cardBase,
-                            height: "100%",
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                          styles={{
-                            body: {
-                              padding: 16,
-                              display: "flex",
-                              flexDirection: "column",
-                              position: "relative",
-                              zIndex: 1,
-                            },
-                          }}
-                          title={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                flexWrap: "wrap",
-                                minWidth: 0,
-                              }}
-                            >
-                              {sectionTitle(
-                                <FileTextOutlined />,
-                                "Recent Tickets",
-                                accent,
-                              )}
-                              {recentTickets.length > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accent,
-                                    background: `${accent}14`,
-                                    border: `1px solid ${accent}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {recentTickets.length} TOTAL
-                                </span>
-                              )}
-                              {activeCount > 0 && (
-                                <Tooltip title={`${activeCount} in progress`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#3B82F6",
-                                      background: "#EFF6FF",
-                                      border: "1px solid #3B82F633",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#3B82F6",
-                                        boxShadow: "none",
-                                        animation:
-                                          "pulse-soft 2s infinite ease-in-out",
-                                      }}
-                                    />
-                                    {activeCount} ACTIVE
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {testingCount > 0 && (
-                                <Tooltip title={`${testingCount} in testing`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#10B981",
-                                      background: "#ECFDF5",
-                                      border: "1px solid #10B98133",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#10B981",
-                                      }}
-                                    />
-                                    {testingCount} TESTING
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {notStartedCount > 0 && (
-                                <Tooltip title={`${notStartedCount} not started`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.3px",
-                                      color: "#94A3B8",
-                                      background: token.colorFillAlter,
-                                      border: `1px solid ${token.colorBorderSecondary}`,
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 5,
-                                        height: 5,
-                                        borderRadius: "50%",
-                                        background: "#94A3B8",
-                                      }}
-                                    />
-                                    {notStartedCount} NOT STARTED
-                                  </span>
-                                </Tooltip>
-                              )}
-                            </div>
-                          }
-                          extra={
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={() => router.push("/tickets/select")}
-                              style={{ fontSize: 11, fontWeight: 600 }}
-                            >
-                              View all{" "}
-                              <ArrowRightOutlined style={{ fontSize: 10 }} />
-                            </Button>
-                          }
-                        >
-
-                          {recentTickets.length === 0 ? (
-                            <div
-                              style={{
-                                padding: 40,
-                                textAlign: "center",
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 52,
-                                  height: 52,
-                                  borderRadius: 16,
-                                  background: `${accent}14`,
-                                  border: `1px solid ${accent}33`,
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: accent,
-                                  fontSize: 22,
-                                }}
-                              >
-                                <FileTextOutlined />
-                              </div>
-                              <Text
-                                strong
-                                style={{
-                                  fontSize: 13,
-                                  color: token.colorText,
-                                }}
-                              >
-                                No tickets yet
-                              </Text>
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: 11 }}
-                              >
-                                Recent assignments will appear here
-                              </Text>
-                            </div>
-                          ) : (
-                            <div
-                              style={{
-                                display: "grid",
-                                gridTemplateColumns:
-                                  "repeat(auto-fill, minmax(240px, 1fr))",
-                                gap: 12,
-                              }}
-                            >
-                              {recentTickets.map((item: any) => {
-                                const status = item.status?.toLowerCase();
-                                const statusMeta: Record<
-                                  string,
-                                  { label: string; color: string; bg: string }
-                                > = {
-                                  completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
-                                  live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
-                                  done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
-                                  in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                  doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                  in_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                  testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                  live_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                  "live testing": { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                  not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
-                                };
-                                const sm =
-                                  statusMeta[status] || {
-                                    label: (item.status || "—")
-                                      .replace(/_/g, " ")
-                                      .toUpperCase(),
-                                    color: token.colorTextSecondary,
-                                    bg: token.colorFillAlter,
-                                  };
-                                const priorityColor = getPriorityColor(item.priority);
-                                const priority = (item.priority || "")
-                                  .toString()
-                                  .toUpperCase();
-                                const projectLabel =
-                                  typeof item.project === "string"
-                                    ? item.project
-                                    : item.project?.code || item.project?.name || "—";
-
-                                const isLive =
-                                  status === "in_progress" ||
-                                  status === "doing";
-                                return (
-                                  <div
-                                    key={item.id}
-                                    onClick={() =>
-                                      setSelectedTicketId(item.id)
-                                    }
-                                    className="dash-rt-card"
-                                    style={
-                                      {
-                                        position: "relative",
-                                        cursor: "pointer",
-                                        borderRadius: 14,
-                                        border: `1px solid ${token.colorBorderSecondary}`,
-                                        background: token.colorBgContainer,
-                                        padding: "14px 14px 12px 18px",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 10,
-                                        overflow: "hidden",
-                                        ["--rt-glow" as any]: `${sm.color}55`,
-                                        ["--rt-border" as any]: `${sm.color}55`,
-                                      } as React.CSSProperties
-                                    }
-                                  >
-
-                                    {/* Priority left bar */}
-                                    <div
-                                      aria-hidden
-                                      style={{
-                                        position: "absolute",
-                                        left: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        width: 4,
-                                        background: priorityColor,
-                                        boxShadow: "none",
-                                      }}
-                                    />
-
-                                    {/* Header row */}
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        gap: 8,
-                                      }}
-                                    >
-                                      <Space size={6} align="center">
-                                        <span
-                                          style={{
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            letterSpacing: "0.4px",
-                                            color: token.colorTextSecondary,
-                                            background: token.colorFillAlter,
-                                            border: `1px solid ${token.colorBorderSecondary}`,
-                                            padding: "2px 6px",
-                                            borderRadius: 6,
-                                            fontVariantNumeric: "tabular-nums",
-                                          }}
-                                        >
-                                          {item.ticketNumber}
-                                        </span>
-                                        {projectLabel && projectLabel !== "—" && (
-                                          <span
-                                            style={{
-                                              fontSize: 10,
-                                              fontWeight: 600,
-                                              color: token.colorTextTertiary,
-                                              maxWidth: 100,
-                                              overflow: "hidden",
-                                              textOverflow: "ellipsis",
-                                              whiteSpace: "nowrap",
-                                            }}
-                                          >
-                                            · {projectLabel}
-                                          </span>
-                                        )}
-                                      </Space>
-                                      {priority && (
-                                        <Tooltip title={`Priority: ${priority}`}>
-                                          <span
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 4,
-                                              fontSize: 9,
-                                              fontWeight: 700,
-                                              letterSpacing: "0.4px",
-                                              color: priorityColor,
-                                              padding: "2px 6px",
-                                              borderRadius: 999,
-                                              background: `${priorityColor}14`,
-                                              border: `1px solid ${priorityColor}33`,
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                width: 5,
-                                                height: 5,
-                                                borderRadius: "50%",
-                                                background: priorityColor,
-                                              }}
-                                            />
-                                            {priority}
-                                          </span>
-                                        </Tooltip>
-                                      )}
-                                    </div>
-
-                                    {/* Title */}
-                                    <Tooltip title={item.title}>
-                                      <div
-                                        style={{
-                                          fontSize: 13,
-                                          fontWeight: 600,
-                                          color: token.colorText,
-                                          lineHeight: 1.35,
-                                          letterSpacing: "-0.1px",
-                                          display: "-webkit-box",
-                                          WebkitLineClamp: 2,
-                                          WebkitBoxOrient: "vertical",
-                                          overflow: "hidden",
-                                          minHeight: 36,
-                                        }}
-                                      >
-                                        {item.title}
-                                      </div>
-                                    </Tooltip>
-
-                                    {/* Footer row */}
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        gap: 8,
-                                        paddingTop: 8,
-                                        borderTop: `1px dashed ${token.colorBorderSecondary}`,
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          gap: 6,
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          letterSpacing: "0.3px",
-                                          color: sm.color,
-                                          background: sm.bg,
-                                          padding: "3px 8px",
-                                          borderRadius: 999,
-                                          border: `1px solid ${sm.color}26`,
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            width: 5,
-                                            height: 5,
-                                            borderRadius: "50%",
-                                            background: sm.color,
-                                            boxShadow: "none",
-                                            animation: isLive
-                                              ? "pulse-soft 2s infinite ease-in-out"
-                                              : undefined,
-                                          }}
-                                        />
-                                        {sm.label.toUpperCase()}
-                                      </span>
-
-                                      <Space size={8} align="center">
-                                        <Text
-                                          style={{
-                                            fontSize: 10,
-                                            color: token.colorTextTertiary,
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {formatTimeAgo(item.createdAt)}
-                                        </Text>
-                                        {item.assignee && (
-                                          <Tooltip
-                                            title={`Assignee: ${item.assignee.name}`}
-                                          >
-                                            <Avatar
-                                              size={22}
-                                              src={item.assignee.avatar}
-                                              style={{
-                                                backgroundColor: "#3B82F6",
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                border: `2px solid ${token.colorBgContainer}`,
-                                                boxShadow: "none",
-                                              }}
-                                            >
-                                              {item.assignee.name
-                                                ?.charAt(0)
-                                                .toUpperCase()}
-                                            </Avatar>
-                                          </Tooltip>
-                                        )}
-                                      </Space>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </Card>
-                      );
-                    })()}
-                  </Col>
-
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const accentQA = "#10B981";
-                      const quickActions = [
-                        {
-                          icon: <PlusCircleOutlined />,
-                          title: "Create Ticket",
-                          desc: "Log a new task or issue",
-                          accent: "#3B82F6",
-                          onClick: () => router.push("/tickets/create"),
-                          shortcut: "T",
-                        },
-                        {
-                          icon: <FolderOpenOutlined />,
-                          title: "Document Hub",
-                          desc: "Browse and manage docs",
-                          accent: "#10B981",
-                          onClick: () => router.push("/documenthub"),
-                          shortcut: "D",
-                        },
-                        {
-                          icon: <AppstoreOutlined />,
-                          title: "Project",
-                          desc: "Manage and track all projects",
-                          accent: "#3B82F6",
-                          onClick: () => router.push("/projects/manage"),
-                          shortcut: "P",
-                        },
-                      ];
-                      return (
-                        <Card
-                          style={{
-                            ...cardBase,
-                            height: "100%",
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                          styles={{
-                            body: {
-                              padding: 16,
-                              position: "relative",
-                              zIndex: 1,
-                            },
-                          }}
-                          title={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                minWidth: 0,
-                              }}
-                            >
-                              {sectionTitle(
-                                <ThunderboltFilled />,
-                                "Quick Actions",
-                                accentQA,
-                              )}
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  letterSpacing: "0.4px",
-                                  color: accentQA,
-                                  background: `${accentQA}14`,
-                                  border: `1px solid ${accentQA}33`,
-                                  padding: "2px 7px",
-                                  borderRadius: 999,
-                                }}
-                              >
-                                SHORTCUTS
-                              </span>
-                            </div>
-                          }
-                        >
-
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 8,
-                            }}
-                          >
-                            {quickActions.map((a) => (
-                              <div
-                                key={a.title}
-                                onClick={a.onClick}
-                                className="dash-qa-row"
-                                style={
-                                  {
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 12,
-                                    padding: "10px 12px 10px 14px",
-                                    borderRadius: 12,
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    background: token.colorBgContainer,
-                                    position: "relative",
-                                    overflow: "hidden",
-                                    ["--qa-accent" as any]: a.accent,
-                                  } as React.CSSProperties
-                                }
-                              >
-                                <span
-                                  aria-hidden
-                                  style={{
-                                    position: "absolute",
-                                    left: 0,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: 3,
-                                    background: a.accent,
-                                  }}
-                                />
-                                <div
-                                  style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 10,
-                                    background: `${a.accent}14`,
-                                    border: `1px solid ${a.accent}33`,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: a.accent,
-                                    fontSize: 16,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {a.icon}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <Text
-                                    strong
-                                    style={{
-                                      fontSize: 13,
-                                      color: token.colorText,
-                                      display: "block",
-                                      lineHeight: 1.3,
-                                      letterSpacing: "-0.1px",
-                                    }}
-                                  >
-                                    {a.title}
-                                  </Text>
-                                  <Text
-                                    type="secondary"
-                                    style={{
-                                      fontSize: 11,
-                                      lineHeight: 1.3,
-                                    }}
-                                  >
-                                    {a.desc}
-                                  </Text>
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: token.colorTextTertiary,
-                                    background: token.colorFillAlter,
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    padding: "2px 6px",
-                                    borderRadius: 6,
-                                    fontVariantNumeric: "tabular-nums",
-                                    letterSpacing: "0.4px",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  ⌘ {a.shortcut}
-                                </span>
-                                <ArrowRightOutlined
-                                  style={{
-                                    fontSize: 11,
-                                    color: token.colorTextTertiary,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
-                </Row>
-              </>
-            ) : null}
-          </>
-        )}
-
-        {/* ─── FREELANCER SEGMENT ─────────────────────────────── */}
-        {activeSegment === "freelancer" && (
-          <>
-            {loading ? (
-              <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                {[1, 2, 3, 4].map((i) => (
-                  <Col xs={24} sm={12} lg={6} key={i}>
-                    <Card size="small" style={{ ...cardBase }} styles={{ body: { padding: 14 } }}>
-                      <Skeleton active paragraph={{ rows: 1 }} />
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            ) : (
-              <>
-                {/* ─── KPI Strip ──────────────────────────────────── */}
-                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                  <Col xs={24} sm={12} lg={6}>
-                    {(() => {
-                      const closed = myTicketsStats.closed;
-                      const totalT = myTicketsStats.total;
-                      const open = Math.max(0, totalT - closed);
-                      const pctDone = totalT > 0 ? Math.round((closed / totalT) * 100) : 0;
-                      const accent = "#3B82F6";
-                      return (
-                        <KpiCard
-                          eyebrow="My Tickets"
-                          value={`${closed} / ${totalT}`}
-                          icon={<TrophyOutlined />}
-                          accent={accent}
-                          subtle={
-                            totalT > 0
-                              ? `${pctDone}% completion · ${open} open`
-                              : "No tickets assigned"
-                          }
-                          chart={
-                            totalT > 0 ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    height: 6,
-                                    borderRadius: 999,
-                                    display: "flex",
-                                    overflow: "hidden",
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    background: token.colorFillAlter,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      width: `${(closed / totalT) * 100}%`,
-                                      background: accent,
-                                      display: "block",
-                                      height: "100%",
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                  <span
-                                    style={{
-                                      width: `${(open / totalT) * 100}%`,
-                                      background: "#93C5FD",
-                                      display: "block",
-                                      height: "100%",
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                </div>
-                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 11,
-                                      color: token.colorTextSecondary,
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 7,
-                                        height: 7,
-                                        borderRadius: 2,
-                                        background: accent,
-                                      }}
-                                    />
-                                    {closed} closed
-                                  </span>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 11,
-                                      color: token.colorTextSecondary,
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 7,
-                                        height: 7,
-                                        borderRadius: 2,
-                                        background: "#93C5FD",
-                                      }}
-                                    />
-                                    {open} open
-                                  </span>
-                                </div>
-                              </div>
-                            ) : null
-                          }
-                        />
-                      );
-                    })()}
-                  </Col>
-                  <Col xs={24} sm={12} lg={6}>
-                    {(() => {
-                      const accent = "#10B981";
-                      const count = recentLeads.length;
-                      const pct = Math.min(100, count * 10);
-                      return (
-                        <KpiCard
-                          eyebrow="Recent Leads"
-                          value={count}
-                          icon={<RocketOutlined />}
-                          accent={accent}
-                          subtle={
-                            count > 0
-                              ? `${pct}% of pipeline capacity`
-                              : "No leads yet"
-                          }
-                          chart={
-                            count > 0 ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 10,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    flex: 1,
-                                    height: 6,
-                                    background: `${accent}1F`,
-                                    borderRadius: 999,
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      display: "block",
-                                      height: "100%",
-                                      width: `${pct}%`,
-                                      background: accent,
-                                      borderRadius: 999,
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    color: token.colorTextSecondary,
-                                    fontVariantNumeric: "tabular-nums",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {pct}%
-                                </span>
-                              </div>
-                            ) : null
-                          }
-                        />
-                      );
-                    })()}
-                  </Col>
-                  <Col xs={24} sm={12} lg={6}>
-                    {(() => {
-                      const activeC = clientStats.active;
-                      const totalC = clientStats.total;
-                      const inactiveC = Math.max(0, totalC - activeC);
-                      const pctActive =
-                        totalC > 0 ? Math.round((activeC / totalC) * 100) : 0;
-                      const accent = "#10B981";
-                      return (
-                        <KpiCard
-                          eyebrow="Clients"
-                          value={`${activeC} / ${totalC}`}
-                          icon={<ContactsOutlined />}
-                          accent={accent}
-                          subtle={
-                            totalC > 0
-                              ? `${pctActive}% active · ${inactiveC} inactive`
-                              : "No clients yet"
-                          }
-                          chart={
-                            totalC > 0 ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    height: 6,
-                                    borderRadius: 999,
-                                    display: "flex",
-                                    overflow: "hidden",
-                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                    background: token.colorFillAlter,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      width: `${(activeC / totalC) * 100}%`,
-                                      background: accent,
-                                      display: "block",
-                                      height: "100%",
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                  <span
-                                    style={{
-                                      width: `${(inactiveC / totalC) * 100}%`,
-                                      background: "#A7F3D0",
-                                      display: "block",
-                                      height: "100%",
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: 12,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 11,
-                                      color: token.colorTextSecondary,
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 7,
-                                        height: 7,
-                                        borderRadius: 2,
-                                        background: accent,
-                                      }}
-                                    />
-                                    {activeC} active
-                                  </span>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 11,
-                                      color: token.colorTextSecondary,
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 7,
-                                        height: 7,
-                                        borderRadius: 2,
-                                        background: "#A7F3D0",
-                                      }}
-                                    />
-                                    {inactiveC} inactive
-                                  </span>
-                                </div>
-                              </div>
-                            ) : null
-                          }
-                        />
-                      );
-                    })()}
-                  </Col>
-                  <Col xs={24} sm={12} lg={6}>
-                    {(() => {
-                      const active = dashboardData?.stats.activeProjects || 0;
-                      const growth = dashboardData?.trends.projectGrowth || "0%";
-                      const accent = "#3B82F6";
-                      return (
-                        <KpiCard
-                          eyebrow="Active Projects"
-                          value={active}
-                          icon={<AppstoreOutlined />}
-                          accent={accent}
-                          subtle={`Growth ${growth} this period`}
-                          chart={
-                            active > 0 ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 10,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    flex: 1,
-                                    height: 6,
-                                    background: `${accent}1F`,
-                                    borderRadius: 999,
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      display: "block",
-                                      height: "100%",
-                                      width: `${Math.min(100, active * 12)}%`,
-                                      background: accent,
-                                      borderRadius: 999,
-                                      transition: "width .4s ease",
-                                    }}
-                                  />
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    color: token.colorTextSecondary,
-                                    fontVariantNumeric: "tabular-nums",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {active} live
-                                </span>
-                              </div>
-                            ) : null
-                          }
-                        />
-                      );
-                    })()}
-                  </Col>
-                </Row>
-
-                {/* ─── Main Grid ──────────────────────────────────── */}
-                <Row gutter={[12, 12]}>
-                  {/* My Tickets Stats */}
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const segments = [
-                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                        { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
-                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
-                      ];
-                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
-                      return (
-                        <Card
-                          style={{ ...cardBase, height: 300, overflow: "hidden" }}
-                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
-                        >
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
-                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
-                              <div>
-                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                  <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
-                                    {completionRate}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                                  {completedTickets}
-                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
-                                </div>
-                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
-                              </div>
-                            </div>
-                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
-                              {segments.filter((s) => s.value > 0).map((s) => (
-                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
-                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
-                                </Tooltip>
-                              ))}
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                              {segments.map((s) => {
-                                const segmentPct = pct(s.value);
-                                return (
-                                  <div
-                                    key={s.key}
-                                    style={{
-                                      position: "relative",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      padding: "6px 12px",
-                                      borderRadius: 10,
-                                      background: token.colorFillAlter,
-                                      border: `1px solid ${token.colorBorderSecondary}`,
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {/* Progress background */}
-                                    <div
-                                      aria-hidden
-                                      style={{
-                                        position: "absolute",
-                                        left: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        width: `${segmentPct}%`,
-                                        background: `${s.color}0D`,
-                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
-                                      }}
-                                    />
-
-                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                                      <div
-                                        style={{
-                                          width: 26,
-                                          height: 26,
-                                          borderRadius: 8,
-                                          background: `${s.color}14`,
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          border: `1px solid ${s.color}26`,
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: s.color,
-                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
-                                          }}
-                                        >
-                                          {s.icon}
-                                        </div>
-                                      </div>
-                                      <div style={{ display: "flex", flexDirection: "column" }}>
-                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
-                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
-                                      </div>
-                                    </div>
-
-                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
-                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
-
-                  {/* Today's Meetings */}
-                  <Col xs={24} lg={8}>
-                    {(() => {
-                      const accentTM = "#7C3AED";
-                      const tmCount = todaysMeetings.length;
-                      const liveTM = todaysMeetings.find((m: any) => {
-                        const now = dayjs();
-                        return (
-                          dayjs(m.startTime).isBefore(now) &&
-                          dayjs(m.endTime).isAfter(now)
-                        );
-                      });
-                      const upcomingTM = todaysMeetings.filter((m: any) =>
-                        dayjs(m.startTime).isAfter(dayjs()),
-                      ).length;
-                      return (
-                        <Card
-                          style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
-                          styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                          title={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                minWidth: 0,
-                              }}
-                            >
-                              {sectionTitle(
-                                <VideoCameraOutlined />,
-                                "Today's Meetings",
-                                accentTM,
-                              )}
-                              {tmCount > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accentTM,
-                                    background: `${accentTM}14`,
-                                    border: `1px solid ${accentTM}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {tmCount} TODAY
-                                </span>
-                              )}
-                            </div>
-                          }
-                      extra={
-                        connectedProvider ? (
-                          <Space size={4}>
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={
-                                <ClockCircleOutlined
-                                  style={{ fontSize: 11 }}
-                                />
-                              }
-                              onClick={() =>
-                                syncCalendar(connectedProvider)
-                              }
-                              loading={calendarSyncing}
-                              style={{ fontSize: 11 }}
-                            >
-                              Sync
-                            </Button>
-                            <Button
-                              type="text"
-                              size="small"
-                              onClick={() => router.push("/calendar")}
-                              style={{ fontSize: 11 }}
-                            >
-                              View
-                            </Button>
-                          </Space>
-                        ) : (
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => router.push("/integrations")}
-                            style={{ fontSize: 11 }}
-                          >
-                            Connect
-                          </Button>
-                        )
-                      }
-                    >
-                      <div
-                        style={{
-                          flex: 1,
-                          overflowY: "auto",
-                          padding: 0,
-                        }}
-                        className="no-scrollbar"
-                      >
-                        {calendarLoading ? (
-                          <div style={{ padding: 16 }}>
-                            <Skeleton active paragraph={{ rows: 3 }} />
-                          </div>
-                        ) : !connectedProvider ? (
-                          <div
-                            style={{
-                              padding: 24,
-                              textAlign: "center",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 14,
-                                background: token.colorFillAlter,
-                                margin: "0 auto 12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: token.colorTextTertiary,
-                              }}
-                            >
-                              <VideoCameraOutlined
-                                style={{ fontSize: 22 }}
-                              />
-                            </div>
-                            <Text
-                              type="secondary"
-                              style={{
-                                fontSize: 12,
-                                display: "block",
-                                marginBottom: 12,
-                              }}
-                            >
-                              Connect your calendar to see today's meetings
-                            </Text>
-                            <Button
-                              type="primary"
-                              size="small"
-                              onClick={() =>
-                                router.push("/integrations")
-                              }
-                              style={{ borderRadius: 8 }}
-                            >
-                              Connect Calendar
-                            </Button>
-                          </div>
-                        ) : todaysMeetings.length > 0 ? (
-                          (() => {
-                            const now = dayjs();
-                            const sorted = [...todaysMeetings].sort(
-                              (a: any, b: any) =>
-                                dayjs(a.startTime).valueOf() -
-                                dayjs(b.startTime).valueOf(),
-                            );
-                            const isLive = (m: any) =>
-                              dayjs(m.startTime).isBefore(now) &&
-                              dayjs(m.endTime).isAfter(now);
-                            const isPast = (m: any) =>
-                              dayjs(m.endTime).isBefore(now);
-                            const liveMeeting = sorted.find(isLive);
-                            const upcoming = sorted.filter((m: any) =>
-                              dayjs(m.startTime).isAfter(now),
-                            );
-                            const ended = sorted.filter(isPast);
-                            const heroMeeting = liveMeeting || upcoming[0];
-                            const restMeetings = sorted.filter(
-                              (m: any) => m !== heroMeeting,
-                            );
-
-                            const formatRelative = (m: any) => {
-                              const s = dayjs(m.startTime);
-                              const e = dayjs(m.endTime);
-                              if (s.isBefore(now) && e.isAfter(now)) {
-                                const minLeft = e.diff(now, "minute");
-                                return `${minLeft}m left`;
-                              }
-                              if (s.isAfter(now)) {
-                                const diff = s.diff(now, "minute");
-                                if (diff < 60) return `in ${diff}m`;
-                                const h = Math.floor(diff / 60);
-                                const mm = diff % 60;
-                                return mm
-                                  ? `in ${h}h ${mm}m`
-                                  : `in ${h}h`;
-                              }
-                              const minAgo = now.diff(e, "minute");
-                              if (minAgo < 60) return `${minAgo}m ago`;
-                              return `${Math.floor(minAgo / 60)}h ago`;
-                            };
-
-                            return (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 10,
-                                  padding: "12px 14px 14px",
-                                }}
-                              >
-                                    {/* Sub-header status bar */}
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        background: "var(--bg-slate-50)",
-                                        border: "1px solid var(--border-color)",
-                                        borderRadius: 8,
-                                        padding: "6px 12px",
-                                        marginBottom: 2,
-                                      }}
-                                    >
-                                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                        {liveTM ? (
-                                          <span
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 6,
-                                              fontSize: 11,
-                                              fontWeight: 700,
-                                              color: "#047857",
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                width: 6,
-                                                height: 6,
-                                                borderRadius: "50%",
-                                                background: "#10B981",
-                                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.2)",
-                                                animation: "pulse-soft 2s infinite ease-in-out",
-                                              }}
-                                            />
-                                            Live now
-                                          </span>
-                                        ) : upcomingTM > 0 ? (
-                                          <span
-                                            style={{
-                                              fontSize: 11,
-                                              fontWeight: 700,
-                                              color: "#4F46E5",
-                                            }}
-                                          >
-                                            {upcomingTM} upcoming
-                                          </span>
-                                        ) : (
-                                          <span style={{ fontSize: 11, color: token.colorTextTertiary, fontStyle: "italic", fontWeight: 600 }}>
-                                            No more meetings
-                                          </span>
-                                        )}
-                                      </div>
-                                      {ended.length > 0 && (
-                                        <Text
-                                          style={{
-                                            fontSize: 10.5,
-                                            color: token.colorTextTertiary,
-                                            fontWeight: 600,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.2px",
-                                          }}
-                                        >
-                                          {ended.length} done
-                                        </Text>
-                                      )}
-                                    </div>
-
-                                {/* Hero meeting */}
-                                {heroMeeting &&
-                                  (() => {
-                                    const live = isLive(heroMeeting);
-                                    const start = dayjs(heroMeeting.startTime);
-                                    const end = dayjs(heroMeeting.endTime);
-                                    const totalMin = Math.max(
-                                      1,
-                                      end.diff(start, "minute"),
-                                    );
-                                    const progressPct = live
-                                      ? Math.min(
-                                        100,
-                                        Math.round(
-                                          (now.diff(start, "minute") /
-                                            totalMin) *
-                                          100,
-                                        ),
-                                      )
-                                      : 0;
-                                    return (
-                                      <div
-                                        style={{
-                                          position: "relative",
-                                          borderRadius: 12,
-                                          padding: 12,
-                                          background: token.colorFillAlter,
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                          overflow: "hidden",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 8,
-                                            marginBottom: 4,
-                                          }}
-                                        >
-                                          <Tooltip title={heroMeeting.title}>
-                                            <div
-                                              style={{
-                                                flex: 1,
-                                                minWidth: 0,
-                                                fontSize: 14,
-                                                fontWeight: 700,
-                                                color: token.colorText,
-                                                letterSpacing: "-0.2px",
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                              }}
-                                            >
-                                              {heroMeeting.title}
-                                            </div>
-                                          </Tooltip>
-                                          <span
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 5,
-                                              padding: "2px 8px",
-                                              borderRadius: 999,
-                                              background: live
-                                                ? "#ECFDF5"
-                                                : "rgba(79,70,229,0.10)",
-                                              border: live
-                                                ? "1px solid #A7F3D0"
-                                                : "1px solid rgba(79,70,229,0.25)",
-                                              color: live
-                                                ? "#047857"
-                                                : "#3B82F6",
-                                              fontSize: 9,
-                                              fontWeight: 700,
-                                              letterSpacing: "0.6px",
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            <span
-                                              className={
-                                                live ? "live-pulse" : ""
-                                              }
-                                              style={{
-                                                width: 5,
-                                                height: 5,
-                                                borderRadius: "50%",
-                                                background: live
-                                                  ? "#10B981"
-                                                  : "#3B82F6",
-                                              }}
-                                            />
-                                            {live ? "LIVE NOW" : "NEXT UP"}
-                                          </span>
-                                          <Text
-                                            style={{
-                                              fontSize: 10,
-                                              color: token.colorTextSecondary,
-                                              fontWeight: 600,
-                                              fontVariantNumeric:
-                                                "tabular-nums",
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            {formatRelative(heroMeeting)}
-                                          </Text>
-                                        </div>
-
-                                        <Text
-                                          style={{
-                                            fontSize: 11,
-                                            color: token.colorTextSecondary,
-                                            fontVariantNumeric:
-                                              "tabular-nums",
-                                            fontWeight: 500,
-                                            display: "block",
-                                          }}
-                                        >
-                                          {start.format("h:mm A")} —{" "}
-                                          {end.format("h:mm A")} ·{" "}
-                                          {totalMin}m
-                                        </Text>
-
-                                        {live && (
-                                          <div
-                                            style={{
-                                              marginTop: 8,
-                                              height: 4,
-                                              background: token.colorBgContainer,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
-                                              borderRadius: 999,
-                                              overflow: "hidden",
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                height: "100%",
-                                                width: `${progressPct}%`,
-                                                background: token.colorPrimary,
-                                                borderRadius: 999,
-                                                transition:
-                                                  "width 1s linear",
-                                              }}
-                                            />
-                                          </div>
-                                        )}
-
-                                        <Tooltip
-                                          title={
-                                            heroMeeting.meetingLink
-                                              ? "Join Meeting"
-                                              : "No meeting link"
-                                          }
-                                        >
-                                          <Button
-                                            type="primary"
-                                            block
-                                            size="small"
-                                            icon={<VideoCameraOutlined />}
-                                            onClick={() =>
-                                              heroMeeting.meetingLink &&
-                                              window.open(
-                                                heroMeeting.meetingLink,
-                                                "_blank",
-                                              )
-                                            }
-                                            disabled={!heroMeeting.meetingLink}
-                                            style={{
-                                              marginTop: 10,
-                                              borderRadius: 8,
-                                              height: 30,
-                                              fontSize: 12,
-                                              fontWeight: 600,
-                                            }}
-                                          >
-                                            {live ? "Join now" : "Join meeting"}
-                                          </Button>
-                                        </Tooltip>
-                                      </div>
-                                    );
-                                  })()}
-
-                                {/* Rest list */}
-                                {restMeetings.length > 0 && (
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: 6,
-                                    }}
-                                  >
-                                    {restMeetings.map(
-                                      (m: any, idx: number) => {
-                                        const start = dayjs(m.startTime);
-                                        const end = dayjs(m.endTime);
-                                        const past = isPast(m);
-                                        const totalMin = Math.max(
-                                          1,
-                                          end.diff(start, "minute"),
-                                        );
-                                        return (
-                                          <div
-                                            key={m.id || idx}
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              gap: 10,
-                                              padding: "6px 10px",
-                                              borderRadius: 10,
-                                              background:
-                                                token.colorFillAlter,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
-                                              opacity: past ? 0.55 : 1,
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                minWidth: 42,
-                                                textAlign: "center",
-                                                padding: "3px 0",
-                                                borderRadius: 8,
-                                                background:
-                                                  token.colorBgContainer,
-                                                border: `1px solid ${token.colorBorderSecondary}`,
-                                              }}
-                                            >
-                                              <div
-                                                style={{
-                                                  fontSize: 11,
-                                                  fontWeight: 700,
-                                                  color: token.colorText,
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                  lineHeight: 1,
-                                                }}
-                                              >
-                                                {start.format("h:mm")}
-                                              </div>
-                                              <div
-                                                style={{
-                                                  fontSize: 8,
-                                                  fontWeight: 700,
-                                                  color:
-                                                    token.colorTextTertiary,
-                                                  letterSpacing: "0.5px",
-                                                  marginTop: 1,
-                                                }}
-                                              >
-                                                {start.format("A")}
-                                              </div>
-                                            </div>
-
-                                            <div
-                                              style={{
-                                                flex: 1,
-                                                minWidth: 0,
-                                              }}
-                                            >
-                                              <Tooltip title={m.title}>
-                                                <div
-                                                  style={{
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
-                                                    color:
-                                                      token.colorText,
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow:
-                                                      "ellipsis",
-                                                    lineHeight: 1.3,
-                                                  }}
-                                                >
-                                                  {m.title}
-                                                </div>
-                                              </Tooltip>
-                                              <Text
-                                                style={{
-                                                  fontSize: 10,
-                                                  color:
-                                                    token.colorTextTertiary,
-                                                  fontWeight: 500,
-                                                }}
-                                              >
-                                                {totalMin}m ·{" "}
-                                                {formatRelative(m)}
-                                              </Text>
-                                            </div>
-
-                                            <Tooltip
-                                              title={
-                                                m.meetingLink
-                                                  ? past
-                                                    ? "Meeting ended"
-                                                    : "Join Meeting"
-                                                  : "No meeting link"
-                                              }
-                                            >
-                                              <Button
-                                                type={
-                                                  m.meetingLink && !past
-                                                    ? "primary"
-                                                    : "default"
-                                                }
-                                                size="small"
-                                                icon={
-                                                  <VideoCameraOutlined
-                                                    style={{
-                                                      fontSize: 11,
-                                                    }}
-                                                  />
-                                                }
-                                                onClick={() =>
-                                                  m.meetingLink &&
-                                                  window.open(
-                                                    m.meetingLink,
-                                                    "_blank",
-                                                  )
-                                                }
-                                                disabled={
-                                                  !m.meetingLink || past
-                                                }
-                                                style={{
-                                                  borderRadius: 8,
-                                                  height: 26,
-                                                  fontSize: 11,
-                                                  fontWeight: 600,
-                                                }}
-                                              >
-                                                Join
-                                              </Button>
-                                            </Tooltip>
-                                          </div>
-                                        );
-                                      },
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          <div
-                            style={{
-                              padding: 24,
-                              textAlign: "center",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 14,
-                                background: "#EFF6FF",
-                                border: "1px solid #BFDBFE",
-                                margin: "0 auto 10px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#3B82F6",
-                              }}
-                            >
-                              <CalendarOutlined
-                                style={{ fontSize: 22 }}
-                              />
-                            </div>
-                            <Text
-                              strong
-                              style={{
-                                fontSize: 13,
-                                display: "block",
-                                color: token.colorText,
-                                marginBottom: 2,
-                              }}
-                            >
-                              No meetings today
-                            </Text>
-                            <Text
-                              type="secondary"
-                              style={{ fontSize: 11 }}
-                            >
-                              Enjoy the deep focus time 🌿
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                        </Card>
-                      );
-                    })()}
-                  </Col>
+                  )}
 
                   {/* Recent Tickets List */}
+                  {isRecentTicketsVisible && (
                   <Col xs={24} lg={8}>
                     {(() => {
                       const accent = "#3B82F6";
@@ -4687,8 +4459,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Recent Leads */}
+                  {isRecentLeadsVisible && (
                   <Col xs={24} lg={12}>
                     {(() => {
                       const accent = "#10B981";
@@ -5245,8 +5019,10 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
 
                   {/* Created Invoices */}
+                  {isRecentInvoicesVisible && (
                   <Col xs={24} lg={12}>
                     {(() => {
                       const accent = "#10B981";
@@ -5742,6 +5518,7 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
+                  )}
                 </Row>
               </>
             )}
@@ -5749,7 +5526,7 @@ function DashboardContent() {
         )}
 
         {/* ─── ORGANIZATION SEGMENT ─────────────────────────────── */}
-        {activeSegment === "organization" && <Organization />}
+        {activeSegment === "organization" && <Organization dashboardSettings={dashboardSettings} />}
 
         <TicketDetailDrawer
           ticketId={selectedTicketId}
@@ -5759,8 +5536,8 @@ function DashboardContent() {
           onNavigate={(id) => setSelectedTicketId(id)}
         />
       </div>
-    </MainLayout>
 
+    </MainLayout>
   );
 }
 

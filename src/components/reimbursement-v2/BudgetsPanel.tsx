@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, Switch, DatePicker, Tooltip, message,
+  Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, Switch, DatePicker, Tooltip, message, Alert
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -13,7 +13,10 @@ import { usePermission } from '@/hooks/usePermission';
 import { Permissions } from '@/types/permissions';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Budget, ExpenseCategory, SaveBudgetInput } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, CurrencySelect, currencySymbol, tablePaginationConfig } from './ui';
+import { userService } from '@/services/userService';
+import { DepartmentService } from '@/services/departmentService';
+import { ProjectService } from '@/services/projectService';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, CurrencySelect, currencySymbol, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 const SCOPES = [
@@ -42,9 +45,14 @@ export default function BudgetsPanel() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [form] = Form.useForm();
   const scopeType = Form.useWatch('scopeType', form);
   const cur = Form.useWatch('currency', form);
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,7 +66,30 @@ export default function BudgetsPanel() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (canRead) load(); }, [canRead, load]);
+  const loadOptions = useCallback(async () => {
+    try {
+      const [uRes, dRes, pRes] = await Promise.all([
+        userService.getUsers(),
+        DepartmentService.getAll(),
+        ProjectService.getProjectsForSelect(),
+      ]);
+      const u = (uRes as any).data?.data || (uRes as any).data || uRes;
+      const d = (dRes as any).data?.data || (dRes as any).data || dRes;
+      const p = (pRes as any).data?.data || (pRes as any).data || pRes;
+      setUsers(Array.isArray(u) ? u : []);
+      setDepartments(Array.isArray(d) ? d : []);
+      setProjects(Array.isArray(p) ? p : []);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => { 
+    if (canRead) {
+      load();
+      loadOptions();
+    }
+  }, [canRead, load, loadOptions]);
 
   const stats = useMemo(() => ({
     total: rows.length,
@@ -73,12 +104,15 @@ export default function BudgetsPanel() {
   }, [rows, search]);
 
   const openCreate = () => {
-    setEditingId(null); form.resetFields();
+    setEditingId(null); 
+    setSubmitError(null);
+    form.resetFields();
     form.setFieldsValue({ scopeType: 'org', currency: 'INR', isActive: true });
     setDrawerOpen(true);
   };
   const openEdit = (r: Budget) => {
     setEditingId(r.id);
+    setSubmitError(null);
     form.setFieldsValue({
       name: r.name, scopeType: r.scopeType, scopeId: r.scopeId ?? undefined,
       period: [dayjs(r.periodStart), dayjs(r.periodEnd)], amount: r.amount, currency: r.currency, isActive: r.isActive,
@@ -99,7 +133,10 @@ export default function BudgetsPanel() {
       if (editingId) { await ReimbursementV2Service.updateBudget(editingId, payload); message.success('Budget updated'); }
       else { await ReimbursementV2Service.createBudget(payload); message.success('Budget created'); }
       setDrawerOpen(false); await load();
-    } catch (e: any) { message.error(e?.response?.data?.error || 'Failed to save budget'); }
+    } catch (e: any) { 
+      const errMsg = e?.response?.data?.error || e?.message || 'Failed to save budget';
+      setSubmitError(errMsg);
+    }
     finally { setSaving(false); }
   };
 
@@ -247,6 +284,16 @@ export default function BudgetsPanel() {
         </div>
 
         <div className="px-6 py-6 space-y-5 pb-24">
+          {submitError && (
+            <Alert 
+              message={submitError} 
+              type="error" 
+              showIcon 
+              closable 
+              onClose={() => setSubmitError(null)} 
+              style={{ marginBottom: 16 }} 
+            />
+          )}
           <Form
             form={form}
             layout="horizontal"
@@ -258,7 +305,7 @@ export default function BudgetsPanel() {
             className="customer-drawer-form"
           >
           <SectionCard icon={<AimOutlined />} title="Budget" subtitle="Scope, period and cap">
-            <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
+            <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
               <Input placeholder="e.g. Q3 Travel Budget" />
             </Form.Item>
             <Form.Item name="scopeType" label="Scope"><Select options={SCOPES} /></Form.Item>
@@ -267,18 +314,33 @@ export default function BudgetsPanel() {
                 <Select showSearch optionFilterProp="label" options={cats.map((c) => ({ value: c.id, label: c.name }))} />
               </Form.Item>
             )}
-            {scopeType && scopeType !== 'org' && scopeType !== 'category' && (
+            {scopeType === 'user' && (
+              <Form.Item name="scopeId" label="User" rules={[{ required: true, message: 'Pick a user' }]}>
+                <Select showSearch optionFilterProp="label" options={users.map((u) => ({ value: u.id, label: u.name }))} />
+              </Form.Item>
+            )}
+            {scopeType === 'department' && (
+              <Form.Item name="scopeId" label="Department" rules={[{ required: true, message: 'Pick a department' }]}>
+                <Select showSearch optionFilterProp="label" options={departments.map((d) => ({ value: d.id, label: d.name }))} />
+              </Form.Item>
+            )}
+            {scopeType === 'project' && (
+              <Form.Item name="scopeId" label="Project" rules={[{ required: true, message: 'Pick a project' }]}>
+                <Select showSearch optionFilterProp="label" options={projects.map((p) => ({ value: p.value || p.id, label: p.label || p.name }))} />
+              </Form.Item>
+            )}
+            {scopeType && !['org', 'category', 'user', 'department', 'project'].includes(scopeType) && (
               <Form.Item name="scopeId" label={`${SCOPES.find((s) => s.value === scopeType)?.label} ID`} rules={[{ required: true, message: 'ID required' }]}>
                 <Input placeholder="Target ID (UUID)" />
               </Form.Item>
             )}
             <Form.Item name="period" label="Period" rules={[{ required: true, message: 'Period required' }]}>
-              <DatePicker.RangePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              <DatePicker.RangePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />
             </Form.Item>
             <>
               <Form.Item name="amount" label="Amount"
                 rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
-                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} />
+                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
               <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
             </>

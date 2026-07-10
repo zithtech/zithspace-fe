@@ -11,7 +11,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Advance } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, tablePaginationConfig } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 export default function AdvancesPanel() {
@@ -205,15 +205,15 @@ export default function AdvancesPanel() {
             className="customer-drawer-form"
           >
           <SectionCard icon={<WalletOutlined />} title="Advance details" subtitle="Sent to your reporting manager">
-            <Form.Item name="purpose" label="Purpose"><Input.TextArea rows={2} placeholder="e.g. Onsite travel to Bangalore" /></Form.Item>
+            <Form.Item name="purpose" label="Purpose" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input.TextArea rows={2} placeholder="e.g. Onsite travel to Bangalore" /></Form.Item>
             <>
               <Form.Item name="amount" label="Amount"
                 rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
-                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} />
+                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
               <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
             </>
-            <Form.Item name="neededBy" label="Needed by"><DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" /></Form.Item>
+            <Form.Item name="neededBy" label="Needed by"><DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" /></Form.Item>
           </SectionCard>
           </Form>
         </div>

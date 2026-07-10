@@ -15,7 +15,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   ExpenseCategory, ReimbursementPolicyListItem, SavePolicyInput, ScopeOption,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 const SCOPE_OPTIONS = [
@@ -298,7 +298,7 @@ export default function PoliciesPanel() {
           <SectionCard icon={<InfoCircleOutlined />}
             title="Basics" subtitle="Identity and auto-approval" step="STEP 1">
             <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }]}>
+              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
               <Input placeholder="e.g. Field Staff Policy"
                 onChange={(e) => form.setFieldsValue({ code: toCode(e.target.value) })} />
             </Form.Item>
@@ -308,7 +308,7 @@ export default function PoliciesPanel() {
                 { pattern: /^[A-Z0-9_-]+$/, message: 'Invalid code' }]}>
               <Input placeholder="FIELD_STAFF_POLICY" disabled />
             </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }]}>
+            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
               <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
             </Form.Item>
             <Form.Item name="autoApproveBelow"
@@ -317,7 +317,7 @@ export default function PoliciesPanel() {
                 'An amount threshold. If a submitted claim’s total is at or below this value, it is approved automatically and skips the manager. Leave empty to always require approval.'
               )}
               rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-              <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="e.g. 500 — leave empty to always require approval" />
+              <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="e.g. 500 — leave empty to always require approval" onKeyDown={preventInvalidNumberKeys as any} />
             </Form.Item>
             <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
           </SectionCard>
@@ -378,22 +378,22 @@ export default function PoliciesPanel() {
                         <Form.Item name={[f.name, 'maxPerClaim']} style={{ marginBottom: 0 }}
                           label={labelInfo('Per-claim limit', 'Max amount for a single expense of this category.')}
                           rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" />
+                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
                         </Form.Item>
                         <Form.Item name={[f.name, 'perDayLimit']} style={{ marginBottom: 0 }}
                           label={labelInfo('Per-day limit', 'Max total amount per day for this category.')}
                           rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" />
+                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
                         </Form.Item>
                         <Form.Item name={[f.name, 'monthlyLimit']} style={{ marginBottom: 0 }}
                           label={labelInfo('Monthly limit', 'Max total amount per calendar month for this category.')}
                           rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" />
+                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
                         </Form.Item>
                         <Form.Item name={[f.name, 'yearlyLimit']} style={{ marginBottom: 0 }}
                           label={labelInfo('Yearly limit', 'Max total amount per calendar year for this category.')}
                           rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" />
+                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
                         </Form.Item>
                       </div>
                     </div>

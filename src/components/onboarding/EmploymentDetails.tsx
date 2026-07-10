@@ -19,6 +19,7 @@ import {
   TimePicker,
   Button,
   InputNumber,
+  Collapse,
 } from "antd";
 import { useTheme } from "@/context/ThemeContext";
 import {
@@ -29,7 +30,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import moment from "moment";
-import { Clock, Settings, Info, CheckCircle2 } from "lucide-react";
+import { Clock, Settings, Info, CheckCircle2, Check, X, Pencil } from "lucide-react";
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { MembersService } from "@/services/membersService";
@@ -63,6 +64,9 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const [api, contextHolder] = notification.useNotification();
   //const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  const [isWorkShiftExpanded, setIsWorkShiftExpanded] = useState(false);
+  const [isEditingAvg, setIsEditingAvg] = useState(false);
+  const [editedAvg, setEditedAvg] = useState<number | null>(null);
 
   const [shiftData, setShiftData] = useState<any>({});
   const [workShift, setWorkShift] = useState("");
@@ -83,6 +87,51 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     else if (diffHrs >= 4) deduction = 1.0;
     else deduction = 0.5;
     return Number(Math.max(0, diffHrs - deduction).toFixed(1));
+  };
+
+  const calculateDailyTotals = () => {
+    let dTotal = 0;
+    let dAvg = 0;
+    if (selectedDays.length > 0) {
+      // Show hours for a single day rather than summing all days
+      const firstDay = selectedDays[0];
+      const shift = shiftData[firstDay];
+      if (shift && shift.start && shift.end) {
+        const s = typeof shift.start === 'string' ? dayjs(shift.start, "HH:mm") : shift.start;
+        const e = typeof shift.end === 'string' ? dayjs(shift.end, "HH:mm") : shift.end;
+        let diffHrs = e.diff(s, "hour", true);
+        if (diffHrs < 0) diffHrs += 24;
+        dTotal = diffHrs;
+        dAvg = shift.avg !== undefined ? shift.avg : calculateAvg(shift.start, shift.end);
+      }
+    }
+    return { dTotal, dAvg };
+  };
+
+  const handleSaveAvg = () => {
+    if (editedAvg !== null && selectedDays.length > 0) {
+      const newShiftData = { ...shiftData };
+      selectedDays.forEach((day) => {
+        if (newShiftData[day]) {
+          newShiftData[day] = { ...newShiftData[day], avg: editedAvg };
+        }
+      });
+      setShiftData(newShiftData);
+
+      // Save to parent via workForm & employmentData
+      const payloadType = selectAll ? "all" : "custom";
+      const payload = {
+        type: payloadType,
+        data: payloadType === "custom" ? newShiftData : undefined,
+        start: payloadType === "all" ? commonStart?.format("HH:mm") : undefined,
+        end: payloadType === "all" ? commonEnd?.format("HH:mm") : undefined,
+        avg: payloadType === "all" ? editedAvg : undefined,
+      };
+      const workShiftValue = JSON.stringify(payload);
+      workForm.setFieldsValue({ workShift: workShiftValue });
+      setEmploymentData((pre: any) => ({ ...pre, workShift: workShiftValue }));
+    }
+    setIsEditingAvg(false);
   };
 
   const [projects, setProjects] = useState<any[]>([]);
@@ -141,6 +190,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       // Parse workShift for display and modal state
       if (data.workShift) {
+        setIsWorkShiftExpanded(true);
         try {
           const parsed =
             typeof data.workShift === "string"
@@ -437,14 +487,14 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           let diffHrs = e.diff(s, "hour", true);
           if (diffHrs < 0) diffHrs += 24;
           const totalHoursStr = diffHrs.toFixed(1);
-          
+
           return (
             <div style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, whiteSpace: "nowrap" }}>
-              <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{totalHoursStr}h</span> <span style={{ marginLeft: "4px" }}>total</span> 
-              <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span> 
-              <InputNumber 
-                size="small" 
-                value={shiftData[record.day]?.avg !== undefined ? shiftData[record.day].avg : calculateAvg(start, end)} 
+              <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{totalHoursStr}h</span> <span style={{ marginLeft: "4px" }}>total</span>
+              <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
+              <InputNumber
+                size="small"
+                value={shiftData[record.day]?.avg !== undefined ? shiftData[record.day].avg : calculateAvg(start, end)}
                 onChange={(val) => {
                   setShiftData((prev: any) => ({
                     ...prev,
@@ -453,9 +503,9 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                       avg: val,
                     }
                   }));
-                }} 
-                style={{ width: "60px", marginRight: "4px" }} 
-                step={0.5} 
+                }}
+                style={{ width: "60px", marginRight: "4px" }}
+                step={0.5}
                 min={0}
               /> <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>h</span> <span style={{ marginLeft: "4px" }}>avg</span>
             </div>
@@ -534,6 +584,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     console.log("Modal data to save:", payload);
     const workShiftValue = JSON.stringify(payload);
     workForm.setFieldsValue({ workShift: workShiftValue });
+    setEmploymentData((pre: any) => ({ ...pre, workShift: workShiftValue }));
     setWorkShift(displayString);
     setOpen(false);
   };
@@ -548,188 +599,249 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>
         </div>
         <div style={{ padding: "24px 40px" }}>
-        <Form
-          layout="vertical"
-          form={workForm}
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setEmploymentData((pre: any) => ({
-              ...pre,
-              ...allValues,
-              employeeJoiningDate: allValues.employeeJoiningDate?.format("YYYY-MM-DD"),
-            }))
-          }
-        >
-          <Row gutter={24}>
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Position</span>}
-                name="positionId"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <SearchableDropdown
-                  style={{ height: '40px', minHeight: '40px' }}
-                  placeholder="Select Position"
-                  options={positions.map((pos) => ({
-                    label: pos.name,
-                    value: pos.id,
-                  }))}
-                />
-              </Form.Item>
-            </Col>
+          <Form
+            layout="vertical"
+            form={workForm}
+            requiredMark={false}
+            onValuesChange={(_, allValues) =>
+              setEmploymentData((pre: any) => ({
+                ...pre,
+                ...allValues,
+                employeeJoiningDate: allValues.employeeJoiningDate?.format("YYYY-MM-DD"),
+              }))
+            }
+          >
+            <Row gutter={24}>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Position</span>}
+                  name="positionId"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Position"
+                    options={positions.map((pos) => ({
+                      label: pos.name,
+                      value: pos.id,
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Employee Type</span>}
-                name="employeeType"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <SearchableDropdown
-                  style={{ height: '40px', minHeight: '40px' }}
-                  placeholder="Select Type"
-                  options={[
-                    { label: "Full Time", value: "Full Time" },
-                    { label: "Part Time", value: "Part Time" },
-                    { label: "Intern", value: "Internship" }
-                  ]}
-                />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Employee Type</span>}
+                  name="employeeType"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Type"
+                    options={[
+                      { label: "Full Time", value: "Full Time" },
+                      { label: "Part Time", value: "Part Time" },
+                      { label: "Intern", value: "Internship" }
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Location</span>}
-                name="workLocation"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input placeholder="Enter Location" />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Location</span>}
+                  name="workLocation"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="Enter Location" />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Type</span>}
-                name="workType"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <SearchableDropdown
-                  style={{ height: '40px', minHeight: '40px' }}
-                  placeholder="Select Work Type"
-                  onChange={(value) => {
-                    setWorkType(value);
-                    setHybridMode("General");
-                    setSelectedDays([]);
-                    setGeneralDays(null);
-                    setGeneralHours(null);
-                  }}
-                  options={[
-                    { label: "Work From Home", value: "Work From Home" },
-                    { label: "Work From Office", value: "Work From Office" },
-                    { label: "Hybrid", value: "Hybrid" }
-                  ]}
-                />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Type</span>}
+                  name="workType"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Work Type"
+                    onChange={(value) => {
+                      setWorkType(value);
+                      setHybridMode("General");
+                      setSelectedDays([]);
+                      setGeneralDays(null);
+                      setGeneralHours(null);
+                    }}
+                    options={[
+                      { label: "Work From Home", value: "Work From Home" },
+                      { label: "Work From Office", value: "Work From Office" },
+                      { label: "Hybrid", value: "Hybrid" }
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Joining Date</span>}
-                name="employeeJoiningDate"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <DatePicker format="DD-MM-YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Joining Date</span>}
+                  name="employeeJoiningDate"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <DatePicker format="DD-MM-YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Notice Period</span>}
-                name="noticePeriod"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input type="number" placeholder="Notice Period" />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Notice Period</span>}
+                  name="noticePeriod"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input type="number" placeholder="Notice Period" />
+                </Form.Item>
+              </Col>
 
-            <Col xs={24} md={24}>
-              {workType === "Hybrid" && (
-                <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                    <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
-                    <Switch
-                      checkedChildren="Fixed"
-                      unCheckedChildren="General"
-                      checked={hybridMode === "Fixed"}
-                      onChange={(checked) => {
-                        const mode = checked ? "Fixed" : "General";
-                        setHybridMode(mode);
-                        if (mode === "Fixed") {
-                          setGeneralDays(null);
-                          setGeneralHours(null);
-                          setIsHybridModalOpen(true);
-                        } else {
-                          setSelectedDays([]);
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {hybridMode === "Fixed" ? (
-                    selectedDays.length > 0 && (
-                      <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
-                        Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
-                        Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
-                      </div>
-                    )
-                  ) : (
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <span>General Availability:</span>
-                      <Input
-                        type="number"
-                        placeholder="Days"
-                        value={generalDays ?? ""}
-                        onChange={(e) => {
-                          const days = Number(e.target.value);
-                          setGeneralDays(days);
-                          setGeneralHours(days ? days * 8 : 0);
+              <Col xs={24} md={24}>
+                {workType === "Hybrid" && (
+                  <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                      <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
+                      <Switch
+                        checkedChildren="Fixed"
+                        unCheckedChildren="General"
+                        checked={hybridMode === "Fixed"}
+                        onChange={(checked) => {
+                          const mode = checked ? "Fixed" : "General";
+                          setHybridMode(mode);
+                          if (mode === "Fixed") {
+                            setGeneralDays(null);
+                            setGeneralHours(null);
+                            setIsHybridModalOpen(true);
+                          } else {
+                            setSelectedDays([]);
+                          }
                         }}
-                        style={{ width: "100px" }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Hours"
-                        value={generalHours ?? ""}
-                        suffix="hrs"
-                        onChange={(e) => setGeneralHours(Number(e.target.value))}
-                        style={{ width: "120px" }}
                       />
                     </div>
-                  )}
-                </div>
-              )}
-            </Col>
 
-            <Col xs={24} md={24}>
-              <Form.Item name="workShift" hidden>
-                <Input />
-              </Form.Item>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Shift</span>}
-                required
-                validateStatus={workForm.getFieldError("workShift")?.length ? "error" : ""}
-                help={workForm.getFieldError("workShift")?.[0]}
-              >
-                <Input
-                  placeholder="Select Work Shift"
-                  readOnly
-                  value={workShift}
-                  onClick={() => setOpen(true)}
-                  style={{ cursor: "pointer" }}
+                    {hybridMode === "Fixed" ? (
+                      selectedDays.length > 0 && (
+                        <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
+                          Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
+                          Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
+                        </div>
+                      )
+                    ) : (
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <span>General Availability:</span>
+                        <Input
+                          type="number"
+                          placeholder="Days"
+                          value={generalDays ?? ""}
+                          onChange={(e) => {
+                            const days = Number(e.target.value);
+                            setGeneralDays(days);
+                            setGeneralHours(days ? days * 8 : 0);
+                          }}
+                          style={{ width: "100px" }}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Hours"
+                          value={generalHours ?? ""}
+                          suffix="hrs"
+                          onChange={(e) => setGeneralHours(Number(e.target.value))}
+                          style={{ width: "120px" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Col>
+
+              <Col xs={24} md={24}>
+                <Form.Item name="workShift" hidden>
+                  <Input />
+                </Form.Item>
+                <Collapse
+                  activeKey={isWorkShiftExpanded ? ['1'] : []}
+                  ghost
+                  className="work-shift-collapse"
+                  style={{ background: "transparent", padding: 0 }}
+                  expandIconPosition="end"
+                  onChange={(keys) => setIsWorkShiftExpanded(keys.length > 0)}
+                  items={[{
+                    key: '1',
+                    label: <span style={{ fontWeight: 500 }}>Work Shift</span>,
+                    extra: isWorkShiftExpanded && selectedDays.length > 0 ? (
+                      <div onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        {isEditingAvg ? (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "2px 8px", borderRadius: "6px", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, display: "flex", alignItems: "center" }}>
+                              <InputNumber
+                                value={editedAvg}
+                                onChange={(val) => setEditedAvg(val)}
+                                size="small"
+                                style={{ width: "60px", marginRight: "4px" }}
+                                step={0.5}
+                              />
+                              <span>avg</span>
+                            </div>
+                            <div
+                              onClick={handleSaveAvg}
+                              style={{ background: "#10b981", color: "white", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                            >
+                              <Check size={14} />
+                            </div>
+                            <div
+                              onClick={() => setIsEditingAvg(false)}
+                              style={{ background: "#f1f5f9", color: "#64748b", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                            >
+                              <X size={14} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, pointerEvents: "none" }}
+                          >
+                            <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{calculateDailyTotals().dTotal.toFixed(1)}h</span> <span style={{ marginLeft: "4px" }}>total</span>
+                            <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
+                            <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{calculateDailyTotals().dAvg.toFixed(1)}h</span> <span style={{ marginLeft: "4px", marginRight: "8px" }}>avg</span>
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); setIsEditingAvg(true); setEditedAvg(calculateDailyTotals().dAvg); }}
+                              style={{ pointerEvents: "auto", cursor: "pointer", display: "flex", alignItems: "center", color: "#94a3b8" }}
+                              title="Edit Average Hours"
+                            >
+                              <Pencil size={12} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : null,
+                    children: (
+                      <div style={{ padding: "8px 0" }}>
+                        <Form.Item
+                          required
+                          validateStatus={workForm.getFieldError("workShift")?.length ? "error" : ""}
+                          help={workForm.getFieldError("workShift")?.[0]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            placeholder="Select Work Shift"
+                            readOnly
+                            value={workShift}
+                            onClick={() => setOpen(true)}
+                            style={{ cursor: "pointer" }}
+                          />
+                        </Form.Item>
+                      </div>
+                    )
+                  }]}
                 />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
+              </Col>
+            </Row>
+          </Form>
         </div>
       </div>
 
@@ -739,54 +851,54 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>
         </div>
         <div style={{ padding: "8px 40px 24px" }}>
-        <Form
-          layout="vertical"
-          form={empoyeeTimelineForm}
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setEmploymentData((pre: any) => ({
-              ...pre,
-              ...allValues,
-              trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
-              joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
-            }))
-          }
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
-                <SearchableDropdown
-                  style={{ height: '40px', minHeight: '40px' }}
-                  placeholder="Select Manager"
-                  options={members || []}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
-                <SearchableDropdown
-                  style={{ minHeight: '40px' }}
-                  mode="multiple"
-                  placeholder="Select Projects"
-                  options={projects.map((project) => ({
-                    label: `${project.name} (${project.code})`,
-                    value: project.id
-                  }))}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
+          <Form
+            layout="vertical"
+            form={empoyeeTimelineForm}
+            requiredMark={false}
+            onValuesChange={(_, allValues) =>
+              setEmploymentData((pre: any) => ({
+                ...pre,
+                ...allValues,
+                trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
+                joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
+              }))
+            }
+          >
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Manager"
+                    options={members || []}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
+                  <SearchableDropdown
+                    style={{ minHeight: '40px' }}
+                    mode="multiple"
+                    placeholder="Select Projects"
+                    options={projects.map((project) => ({
+                      label: `${project.name} (${project.code})`,
+                      value: project.id
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
         </div>
       </div>
       <Modal
@@ -895,75 +1007,41 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <div style={{ fontSize: "12px", fontWeight: 700, color: theme === "dark" ? "#94a3b8" : "#475569", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Global Schedule Configuration</div>
           <Row gutter={12} align="middle" wrap={false}>
             <Col>
-            <Checkbox
-              checked={selectAll}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            >
-              <span style={{ whiteSpace: "nowrap", color: theme === "dark" ? "#f1f5f9" : "inherit" }}>Select All</span>
-            </Checkbox>
-          </Col>
+              <Checkbox
+                checked={selectAll}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              >
+                <span style={{ whiteSpace: "nowrap", color: theme === "dark" ? "#f1f5f9" : "inherit" }}>Select All</span>
+              </Checkbox>
+            </Col>
 
-          {selectAll && (
-            <>
-              <Col>
-                <TimePicker
-                  format="HH:mm"
-                  placeholder="Common Start"
-                  value={commonStart}
-                  onChange={(time) => {
-                    setCommonStart(time);
-                    applyCommonTime(time, commonEnd);
-                  }}
-                />
-              </Col>
-              <Col>
-                <TimePicker
-                  format="HH:mm"
-                  placeholder="Common End"
-                  value={commonEnd}
-                  onChange={(time) => {
-                    setCommonEnd(time);
-                    applyCommonTime(commonStart, time);
-                  }}
-                />
-              </Col>
-              {commonStart && commonEnd && (
+            {selectAll && (
+              <>
                 <Col>
-                  {(() => {
-                    let diffHrs = commonEnd.diff(commonStart, "hour", true);
-                    if (diffHrs < 0) diffHrs += 24;
-                    const totalHoursStr = diffHrs.toFixed(1);
-                    return (
-                      <div style={{ padding: "4px 10px", background: theme === "dark" ? "#1e293b" : "#f1f5f9", borderRadius: "6px", fontSize: "13px", color: theme === "dark" ? "#f1f5f9" : "#334155", display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", border: `1px solid ${theme === "dark" ? "#334155" : "transparent"}` }}>
-                        <span style={{ fontWeight: 600 }}>Total:</span> <span style={{ marginLeft: "4px" }}>{totalHoursStr}h</span> 
-                        <span style={{ margin: "0 8px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
-                        <InputNumber 
-                          size="small" 
-                          value={commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd)} 
-                          onChange={(val) => {
-                            setCommonAvg(val);
-                            setShiftData((prev: any) => {
-                              const newData = { ...prev };
-                              weekDays.forEach(day => {
-                                if (newData[day]) {
-                                  newData[day].avg = val;
-                                }
-                              });
-                              return newData;
-                            });
-                          }} 
-                          style={{ width: "60px", marginRight: "4px" }} 
-                          step={0.5} 
-                          min={0}
-                        />
-                        <span style={{ fontWeight: 600 }}>h</span> <span style={{ marginLeft: "4px" }}>avg</span>
-                      </div>
-                    );
-                  })()}
+                  <TimePicker
+                    format="HH:mm"
+                    placeholder="Common Start"
+                    value={commonStart}
+                    onChange={(time) => {
+                      setCommonStart(time);
+                      applyCommonTime(time, commonEnd);
+                    }}
+                  />
                 </Col>
-              )}
-            </>
-          )}
+                <Col>
+                  <TimePicker
+                    format="HH:mm"
+                    placeholder="Common End"
+                    value={commonEnd}
+                    onChange={(time) => {
+                      setCommonEnd(time);
+                      applyCommonTime(commonStart, time);
+                    }}
+                  />
+                </Col>
+
+              </>
+            )}
           </Row>
         </div>
 

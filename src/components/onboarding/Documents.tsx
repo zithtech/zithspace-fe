@@ -246,16 +246,35 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto" style={{ padding: 16 }}>
-            <Form form={form} layout="vertical">
-              <SectionCard title="Document Details" icon={<FileText size={16} />}>
+          <div className="flex-1 overflow-y-auto" style={{ padding: 24, background: "white" }}>
+            <div style={{ border: "1px solid var(--border-slate-200)", borderRadius: "12px", background: "white", padding: "24px" }}>
+              <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ width: "40px", height: "40px", background: "#eff6ff", borderRadius: "8px", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontWeight: 700, fontSize: "16px" }}>
+                  01
+                </div>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)" }}>Document Details</div>
+                  <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>Enter the basic information for this document</div>
+                </div>
+              </div>
+              <div style={{ borderBottom: "1px dashed var(--border-slate-200)", marginBottom: "24px" }} />
+              
+              <Form 
+                form={form} 
+                layout="horizontal" 
+                labelCol={{ span: 6 }} 
+                wrapperCol={{ span: 18 }}
+                labelAlign="left"
+                colon={false}
+              >
                 <Form.Item
                   name="documentType"
-                  label={<span style={labelStyle}>Document Type</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Document Type</span>}
                   rules={[{ required: true, message: "Type is required" }]}
+                  style={{ marginBottom: "24px" }}
                 >
                   <SearchableDropdown
-                    style={{ height: "40px", minHeight: "40px" }}
+                    style={{ height: "44px", borderRadius: "8px" }}
                     placeholder="Select type"
                     options={DOC_TYPES.map((t) => ({ label: t, value: t }))}
                   />
@@ -263,10 +282,11 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
 
                 <Form.Item
                   name="file"
-                  label={<span style={labelStyle}>Upload File</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Upload File</span>}
                   valuePropName="fileList"
                   getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
                   rules={[{ required: true, message: "File is required" }]}
+                  style={{ marginBottom: "24px" }}
                 >
                   <Upload.Dragger
                     beforeUpload={handleBeforeUpload}
@@ -283,12 +303,13 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
 
                 <Form.Item
                   name="notes"
-                  label={<span style={labelStyle}>Notes (Optional)</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Notes (Optional)</span>}
+                  style={{ marginBottom: "0" }}
                 >
-                  <Input.TextArea rows={3} placeholder="Add any additional notes here..." />
+                  <Input.TextArea rows={3} placeholder="Add any additional notes here..." style={{ borderRadius: "8px", fontSize: "14px" }} />
                 </Form.Item>
-              </SectionCard>
-            </Form>
+              </Form>
+            </div>
           </div>
 
           <div

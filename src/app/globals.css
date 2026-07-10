@@ -26618,3 +26618,13 @@ select:-webkit-autofill:focus {
   background-color: transparent !important;
 }
 
+/* Fix alignment of Work Shift accordion */
+.work-shift-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.work-shift-collapse > .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}

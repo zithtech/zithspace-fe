@@ -19,7 +19,7 @@ import {
   Typography,
   Upload,
 } from "antd";
-import { PlusOutlined, DeleteOutlined, UploadOutlined, PaperClipOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, UploadOutlined, PaperClipOutlined, HomeOutlined, ContactsOutlined, IdcardOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { PublicOnboardingService } from "@/services/onboardingService";
 
@@ -98,7 +98,9 @@ const sectionHeaderStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 12,
-  margin: "28px 0 16px",
+  margin: "36px 0 24px",
+  paddingBottom: 16,
+  borderBottom: "1px solid var(--border-slate-200)",
 };
 
 const stepBadgeStyle: React.CSSProperties = {
@@ -695,10 +697,42 @@ export default function PublicOnboardPage() {
   const showBank = !sections.length || sections.includes("bank");
   const showHistory = !sections.length || sections.includes("history");
 
-  const inputStyle: React.CSSProperties = { borderRadius: 8 };
+  const sectionContainerStyle: React.CSSProperties = {
+    padding: 28,
+    backgroundColor: "var(--bg-pure-white, #ffffff)",
+    border: "1px solid var(--border-slate-200)",
+    borderRadius: 0,
+    marginBottom: 20,
+  };
+
+  const inputStyle: React.CSSProperties = { 
+    borderRadius: 8,
+    backgroundColor: "transparent",
+    borderColor: "var(--border-slate-200, #e2e8f0)",
+  };
 
   return (
     <div style={pageWrap}>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .ant-select-selector, 
+          .ant-picker, 
+          .ant-input, 
+          .ant-input-number, 
+          .ant-btn,
+          .ant-input-affix-wrapper {
+            border-radius: 8px !important;
+          }
+          
+          .ant-select-selector, 
+          .ant-picker, 
+          .ant-input, 
+          .ant-input-number,
+          .ant-input-affix-wrapper {
+            background-color: transparent !important;
+          }
+        `
+      }} />
       <div style={{ width: "100%", maxWidth: 960 }}>
         {/* Brand / header */}
         <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -716,7 +750,7 @@ export default function PublicOnboardPage() {
           <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>New Hire Onboarding</Text>
         </div>
 
-        <Card style={{ borderRadius: 16, boxShadow: "0 4px 24px rgba(15,23,42,0.06)" }} styles={{ body: { padding: 28 } }}>
+        <div style={sectionContainerStyle}>
           {/* Greeting */}
           <div style={{ marginBottom: 8 }}>
             <Title level={4} style={{ margin: 0, color: "var(--text-slate-900)" }}>
@@ -734,11 +768,12 @@ export default function PublicOnboardPage() {
               </div>
             )}
           </div>
+        </div>
 
-          <Form form={form} layout="vertical" requiredMark="optional" scrollToFirstError>
+        <Form form={form} layout="vertical" requiredMark="optional" scrollToFirstError size="large">
             {/* ----------------- 1. PERSONAL ----------------- */}
             {showPersonal && (
-              <>
+              <div style={sectionContainerStyle}>
                 <SectionHeader step={1} title="Personal Details" subtitle="Your basic and identity information" />
                 <Row gutter={16}>
                   <Col xs={24} sm={8}>
@@ -827,7 +862,7 @@ export default function PublicOnboardPage() {
                 </Row>
 
                 <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  Current Address
+                  <EnvironmentOutlined style={{ marginRight: 6 }} /> Current Address
                 </Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
@@ -881,7 +916,7 @@ export default function PublicOnboardPage() {
                     borderBottom: "1px solid var(--border-slate-200)",
                   }}
                 >
-                  <span style={{ color: "var(--text-slate-400)", fontSize: 13, fontWeight: 500 }}>Permanent Address</span>
+                  <span style={{ color: "var(--text-slate-400)", fontSize: 13, fontWeight: 500 }}><HomeOutlined style={{ marginRight: 6 }} />Permanent Address</span>
                   <Checkbox
                     checked={sameAsCurrent}
                     onChange={(e) => handleSameAsCurrent(e.target.checked)}
@@ -932,7 +967,7 @@ export default function PublicOnboardPage() {
                 </Row>
 
                 <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  Emergency Contact
+                  <ContactsOutlined style={{ marginRight: 6 }} /> Emergency Contact
                 </Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={8}>
@@ -964,7 +999,7 @@ export default function PublicOnboardPage() {
                 </Row>
 
                 <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  Identity Documents
+                  <IdcardOutlined style={{ marginRight: 6 }} /> Identity Documents
                 </Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={8}>
@@ -991,12 +1026,12 @@ export default function PublicOnboardPage() {
                     </Form.Item>
                   </Col>
                 </Row>
-              </>
+                </div>
             )}
 
             {/* ----------------- 2. BANK & PAYROLL ----------------- */}
             {showBank && (
-              <>
+              <div style={sectionContainerStyle}>
                 <SectionHeader step={2} title="Bank & Payroll" subtitle="Salary account and statutory details" />
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
@@ -1093,12 +1128,12 @@ export default function PublicOnboardPage() {
                     </Form.Item>
                   </Col>
                 </Row>
-              </>
+                </div>
             )}
 
             {/* ----------------- 3. EMPLOYEE HISTORY ----------------- */}
             {showHistory && (
-              <>
+              <div style={sectionContainerStyle}>
                 <SectionHeader step={3} title="Employment History" subtitle="Your previous companies (optional)" />
                 <Form.List name="history">
                   {(fields, { add, remove }) => {
@@ -1288,10 +1323,10 @@ export default function PublicOnboardPage() {
                     );
                   }}
                 </Form.List>
-              </>
+                </div>
             )}
 
-            <Divider style={{ margin: "28px 0 20px" }} />
+            <div style={sectionContainerStyle}>
             <Button
               type="primary"
               size="large"
@@ -1307,8 +1342,8 @@ export default function PublicOnboardPage() {
                 Your information is securely transmitted to your employer's HR team.
               </Text>
             </div>
+            </div>
           </Form>
-        </Card>
 
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>Powered by Zukvo</Text>

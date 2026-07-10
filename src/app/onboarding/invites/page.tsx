@@ -35,11 +35,13 @@ import {
   Smartphone,
   ShieldCheck,
   Menu,
+  Clock,
 } from 'lucide-react';
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { EmployeeOnboardingService } from '@/services/onboardingService';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -111,75 +113,6 @@ const fmtDate = (v?: string | null): string => {
 const fieldLabel = (t: string) => (
   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{t}</span>
 );
-
-// Section card — mirrors LeaveTypePanel's drawer section pattern.
-function SectionCard({
-  icon,
-  tint,
-  color,
-  title,
-  subtitle,
-  step,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  step: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 0,
-        padding: '18px 24px 20px',
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 0,
-            background: tint,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 999,
-            background: 'var(--bg-secondary, #f1f5f9)',
-            color: 'var(--text-slate-500)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {step}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function InvitesContent() {
   const { canCreateOnboarding } = usePermission();
@@ -522,8 +455,8 @@ function InvitesContent() {
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div className="onbi-header">
         <div className="onbi-header-about">
-          <button 
-            className="ob-mobile-menu-btn" 
+          <button
+            className="ob-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
             aria-label="Open menu"
           >
@@ -625,33 +558,13 @@ function InvitesContent() {
 
       {/* ── CREATE DRAWER ───────────────────────────────────────────────── */}
       <Drawer
-        title={null}
+        {...commonDrawerProps}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={580}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
-        }}
       >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
           {/* Header */}
-          <div
-            style={{
-              padding: '16px 18px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-pure-white)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}
-          >
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div
                 style={{
@@ -687,116 +600,95 @@ function InvitesContent() {
           </div>
 
           {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={form} layout="vertical" requiredMark="optional" className="onbi-drawer-form">
+          <div className="flex-1 overflow-y-auto p-5">
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              className="customer-drawer-form onbi-drawer-form"
+            >
               <SectionCard
                 icon={<User size={16} />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
                 title="Employee Details"
                 subtitle="The basics we need to create their draft profile"
                 step="STEP 1"
               >
-                <Row gutter={[20, 6]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      style={{ marginBottom: 18 }}
-                      name="firstName"
-                      label={fieldLabel('First name')}
-                      rules={[
-                        { required: true, message: 'First name is required' },
-                        { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
-                      ]}
-                    >
-                      <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      style={{ marginBottom: 18 }}
-                      name="lastName"
-                      label={fieldLabel('Last name')}
-                      rules={[
-                        { required: true, message: 'Last name is required' },
-                        { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
-                      ]}
-                    >
-                      <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      style={{ marginBottom: 18 }}
-                      name="workEmail"
-                      label={fieldLabel('Work email')}
-                      rules={[
-                        { required: true, message: 'Work email is required' },
-                        { type: 'email', message: 'Enter a valid email address' },
-                      ]}
-                    >
-                      <Input
-                        size="large"
-                        maxLength={160}
-                        placeholder="jane.doe@company.com"
-                        prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      style={{ marginBottom: 18 }}
-                      name="personalEmail"
-                      label={fieldLabel('Personal email')}
-                      rules={[{ type: 'email', message: 'Enter a valid email address' }]}
-                    >
-                      <Input
-                        size="large"
-                        maxLength={160}
-                        placeholder="jane.doe@gmail.com"
-                        prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      style={{ marginBottom: 0 }}
-                      name="mobile"
-                      label={fieldLabel('Mobile')}
-                      rules={[{ pattern: /^[0-9]{7,15}$/, message: 'Must be 7-15 digits' }]}
-                    >
-                      <Input
-                        size="large"
-                        maxLength={15}
-                        placeholder="9876543210"
-                        prefix={<Smartphone size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                        onKeyPress={(e) => {
-                          if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                        }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <Form.Item
+                  name="firstName"
+                  label={fieldLabel('First name')}
+                  rules={[
+                    { required: true, message: 'First name is required' },
+                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                  ]}
+                >
+                  <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
+                    if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                  }} />
+                </Form.Item>
+                <Form.Item
+                  name="lastName"
+                  label={fieldLabel('Last name')}
+                  rules={[
+                    { required: true, message: 'Last name is required' },
+                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                  ]}
+                >
+                  <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
+                    if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                  }} />
+                </Form.Item>
+                <Form.Item
+                  name="workEmail"
+                  label={fieldLabel('Work email')}
+                  rules={[
+                    { required: true, message: 'Work email is required' },
+                    { type: 'email', message: 'Enter a valid email address' },
+                  ]}
+                >
+                  <Input
+                    size="large"
+                    maxLength={160}
+                    placeholder="jane.doe@company.com"
+                    prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="personalEmail"
+                  label={fieldLabel('Personal email')}
+                  rules={[{ type: 'email', message: 'Enter a valid email address' }]}
+                >
+                  <Input
+                    size="large"
+                    maxLength={160}
+                    placeholder="jane.doe@gmail.com"
+                    prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="mobile"
+                  label={fieldLabel('Mobile')}
+                  rules={[{ pattern: /^[0-9]{7,15}$/, message: 'Must be 7-15 digits' }]}
+                >
+                  <Input
+                    size="large"
+                    maxLength={15}
+                    placeholder="9876543210"
+                    prefix={<Smartphone size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }}
+                  />
+                </Form.Item>
               </SectionCard>
             </Form>
           </div>
 
           {/* Footer */}
-          <div
-            style={{
-              padding: '14px 22px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-pure-white)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              bottom: 0,
-            }}
-          >
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-between items-center shrink-0">
             <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
               Fields marked required must be filled
             </span>
@@ -820,21 +712,13 @@ function InvitesContent() {
 
       {/* ── EDIT DRAWER (name + emails) ─────────────────────────────────── */}
       <Drawer
-        title={null}
+        {...commonDrawerProps}
         open={!!editing}
         onClose={() => setEditing(null)}
-        width={460}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
-        }}
       >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
+        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
           {/* Header */}
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Pencil size={18} />
@@ -852,54 +736,51 @@ function InvitesContent() {
           </div>
 
           {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={editForm} layout="vertical" requiredMark="optional" className="onbi-drawer-form">
+          <div className="flex-1 overflow-y-auto p-5">
+            <Form
+              form={editForm}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              className="customer-drawer-form onbi-drawer-form"
+            >
               <SectionCard
                 icon={<User size={16} />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
                 title="Employee Details"
                 subtitle="Update the new hire's name and email addresses"
                 step="EDIT"
               >
-                <Row gutter={[20, 6]}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 18 }} name="firstName" label={fieldLabel('First name')} rules={[
-                      { required: true, message: 'First name is required' },
-                      { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
-                    ]}>
-                      <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 18 }} name="lastName" label={fieldLabel('Last name')} rules={[
-                      { required: true, message: 'Last name is required' },
-                      { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
-                    ]}>
-                      <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 18 }} name="workEmail" label={fieldLabel('Work email')} rules={[{ required: true, message: 'Work email is required' }, { type: 'email', message: 'Enter a valid email address' }]}>
-                      <Input size="large" maxLength={160} placeholder="jane.doe@company.com" prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item style={{ marginBottom: 0 }} name="personalEmail" label={fieldLabel('Personal email')} rules={[{ type: 'email', message: 'Enter a valid email address' }]}>
-                      <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />} />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <Form.Item name="firstName" label={fieldLabel('First name')} rules={[
+                  { required: true, message: 'First name is required' },
+                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                ]}>
+                  <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
+                    if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                  }} />
+                </Form.Item>
+                <Form.Item name="lastName" label={fieldLabel('Last name')} rules={[
+                  { required: true, message: 'Last name is required' },
+                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                ]}>
+                  <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
+                    if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                  }} />
+                </Form.Item>
+                <Form.Item name="workEmail" label={fieldLabel('Work email')} rules={[{ required: true, message: 'Work email is required' }, { type: 'email', message: 'Enter a valid email address' }]}>
+                  <Input size="large" maxLength={160} placeholder="jane.doe@company.com" prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />} />
+                </Form.Item>
+                <Form.Item name="personalEmail" label={fieldLabel('Personal email')} rules={[{ type: 'email', message: 'Enter a valid email address' }]}>
+                  <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />} />
+                </Form.Item>
               </SectionCard>
             </Form>
           </div>
 
           {/* Footer */}
-          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-pure-white)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-end items-center gap-[10px] shrink-0">
             <Button onClick={() => setEditing(null)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
               Cancel
             </Button>
@@ -915,99 +796,108 @@ function InvitesContent() {
         open={!!created}
         onCancel={() => setCreated(null)}
         footer={null}
-        width={460}
+        width={480}
         centered
         title={null}
         styles={{ body: { padding: 0 } }}
         classNames={{ content: 'onbi-modal' }}
       >
-        <div style={{ padding: '20px 22px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{ padding: '24px 28px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
             <div
               style={{
-                width: 40,
-                height: 40,
-                background: TINT.green,
-                color: PALETTE.green,
+                width: 48,
+                height: 48,
+                background: 'rgba(34, 197, 94, 0.1)',
+                color: '#22c55e',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={24} />
             </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)' }}>Invite ready</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
+            <div style={{ paddingTop: 2 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', marginBottom: 6 }}>
+                Invite ready
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--text-slate-500)', lineHeight: 1.5 }}>
                 {created?.emailed && created?.emailedTo?.length
-                  ? `We emailed the link to ${created.emailedTo.join(' and ')}. You can also copy it below — it’s shown only once.`
+                  ? `We emailed the link to ${Array.from(new Set(created.emailedTo)).join(' and ')}. You can also copy it below — it’s shown only once.`
                   : 'Share this private link with the employee. It’s shown only once.'}
               </div>
             </div>
           </div>
 
-          {created?.employeeCode && (
-            <div style={{ fontSize: 12, color: 'var(--text-slate-500)', marginBottom: 10 }}>
-              Employee code:{' '}
-              <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-slate-700)' }}>
-                {created.employeeCode}
-              </span>
-            </div>
-          )}
+          <div style={{ background: 'var(--bg-slate-50)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', marginBottom: 20 }}>
+            {created?.employeeCode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-slate-600)', fontWeight: 500 }}>Employee code</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text-slate-800)', background: 'var(--bg-white)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-color)' }}>
+                  {created.employeeCode}
+                </span>
+              </div>
+            )}
 
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: 6 }}>
-            Onboarding link
-          </div>
-          {createdLink ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Input
-                readOnly
-                value={createdLink}
-                onFocus={(e) => e.currentTarget.select()}
-                prefix={<Link2 size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                style={{ fontSize: 12.5 }}
-              />
-              <Button
-                type="primary"
-                icon={<Copy size={15} />}
-                onClick={() => copyLink(createdLink)}
-                style={{ borderRadius: 6, fontWeight: 600, flexShrink: 0 }}
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: 10 }}>
+              Onboarding link
+            </div>
+            {createdLink ? (
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Input
+                  readOnly
+                  value={createdLink}
+                  onFocus={(e) => e.currentTarget.select()}
+                  prefix={<Link2 size={16} style={{ color: 'var(--text-slate-400)' }} />}
+                  style={{ fontSize: 13.5, height: 42, borderRadius: 8 }}
+                />
+                <Button
+                  type="primary"
+                  icon={<Copy size={16} />}
+                  onClick={() => copyLink(createdLink)}
+                  style={{ height: 42, borderRadius: 8, fontWeight: 600, flexShrink: 0, padding: '0 20px' }}
+                >
+                  Copy
+                </Button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: 'var(--text-slate-500)',
+                  background: 'var(--bg-white)',
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  textAlign: 'center'
+                }}
               >
-                Copy link
-              </Button>
-            </div>
-          ) : (
-            <div
-              style={{
-                fontSize: 12.5,
-                color: 'var(--text-slate-500)',
-                background: 'var(--bg-secondary, #f8fafc)',
-                border: '1px solid var(--border-color)',
-                padding: '10px 12px',
-              }}
-            >
-              The invite was created, but no link was returned. You can revoke and re-create it if needed.
-            </div>
-          )}
+                The invite was created, but no link was returned. You can revoke and re-create it if needed.
+              </div>
+            )}
 
-          {created?.expiresAt && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-slate-400)', marginTop: 8 }}>
-              Expires {fmtDate(created.expiresAt)}
-            </div>
-          )}
+            {created?.expiresAt && (
+              <div style={{ fontSize: 12, color: 'var(--text-slate-400)', marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={14} style={{ color: 'var(--text-slate-400)' }} />
+                Expires {fmtDate(created.expiresAt)}
+              </div>
+            )}
+          </div>
         </div>
         <div
           style={{
             display: 'flex',
             justifyContent: 'flex-end',
-            padding: '12px 22px',
-            marginTop: 14,
+            padding: '16px 28px',
             borderTop: '1px solid var(--border-color)',
-            background: 'var(--bg-secondary, #f8fafc)',
+            background: 'var(--bg-slate-50)',
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px',
           }}
         >
-          <Button onClick={() => setCreated(null)} style={{ borderRadius: 6, fontWeight: 600 }}>
+          <Button type="default" onClick={() => setCreated(null)} style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: '0 28px' }}>
             Done
           </Button>
         </div>
@@ -1165,6 +1055,7 @@ function InvitesContent() {
           }
         }
       `}</style>
+      <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
     </div>
   );
 }

@@ -151,13 +151,7 @@ const ORG_CARDS = [
     icon: Activity,
     color: "#0EA5E9",
   },
-  {
-    name: "cardTodaysPulse",
-    title: "Today's Pulse",
-    description: "Overview of daily updates and operations.",
-    icon: Zap,
-    color: "#14B8A6",
-  },
+
   {
     name: "upcomingBirthdays",
     title: "Upcoming Birthdays",
@@ -172,13 +166,7 @@ const ORG_CARDS = [
     icon: CalendarClock,
     color: "#EC4899",
   },
-  {
-    name: "cardTeamInsights",
-    title: "Team Insights",
-    description: "Detailed statistics and performance insights.",
-    icon: Lightbulb,
-    color: "#8B5CF6",
-  },
+
   {
     name: "cardRecentActivities",
     title: "Recent Activities",
@@ -304,10 +292,10 @@ export default function DashboardSettingsPage() {
 
   return (
     <MainLayout noPadding>
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)', background: token.colorBgContainer }}>
+      <div style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden', background: token.colorBgContainer }}>
         
         {/* Left Sidebar */}
-        <div style={{ width: 260, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgContainer }}>
+        <div style={{ width: 260, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgContainer, overflowY: 'auto' }}>
           
           {/* Sidebar Header */}
           <div style={{ padding: '24px 20px' }}>
@@ -355,7 +343,7 @@ export default function DashboardSettingsPage() {
         </div>
 
         {/* Right Content Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgLayout, position: 'relative' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgLayout, position: 'relative', overflowY: 'auto' }}>
           
           {/* Top Header inside Content */}
           <div style={{ padding: '16px 32px', backgroundColor: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>

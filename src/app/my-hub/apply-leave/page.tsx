@@ -12,7 +12,7 @@ export default function MyHubApplyLeavePage() {
     <MainLayout>
       <MyHubContent>
         <LeaveGuard itemKey="apply">
-          <ApplyLeavePanel />
+          <ApplyLeavePanel hideSidebarToggle={true} />
         </LeaveGuard>
       </MyHubContent>
     </MainLayout>

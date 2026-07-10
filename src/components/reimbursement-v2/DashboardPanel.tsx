@@ -87,12 +87,12 @@ export default function DashboardPanel() {
       <Row gutter={16} className="rvp-dashboard-cards">
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table rowKey="categoryId" size="small" loading={loading} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" loading={loading} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by employee" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table rowKey="userId" size="small" loading={loading} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" loading={loading} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
           </Card>
         </Col>
       </Row>

@@ -141,6 +141,7 @@ export function PanelHeader({
   searchPlaceholder = 'Search…',
   onRefresh,
   loading,
+  hideSidebarToggle,
   children,
 }: {
   icon: React.ReactNode;
@@ -153,21 +154,24 @@ export function PanelHeader({
   searchPlaceholder?: string;
   onRefresh?: () => void;
   loading?: boolean;
+  hideSidebarToggle?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <div className="rvp-header">
       <div className="rvp-head-about">
-        <button 
-          className="rvp-mobile-toggle" 
-          onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        {!hideSidebarToggle && (
+          <button 
+            className="rvp-mobile-toggle" 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        )}
         <span className="rvp-head-icon" style={{ background: tint, color }}>
           {icon}
         </span>

@@ -90,7 +90,7 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
   return u;
 }
 
-export default function ApplyLeavePanel() {
+export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const { canReadLeave, canCreateLeave, canUpdateLeave, canReadMyHubApplyLeave } = usePermission();
   console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
@@ -462,14 +462,16 @@ export default function ApplyLeavePanel() {
       {/* HEADER */}
       <div className="lva-header">
         <div className="lva-header-about">
-          <button 
-            type="button"
-            className="lv-mobile-menu-btn" 
-            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
-            aria-label="Open menu"
-          >
-            <Menu size={18} />
-          </button>
+          {!hideSidebarToggle && (
+            <button 
+              type="button"
+              className="lv-mobile-menu-btn" 
+              onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <div className="lva-header-icon"><WalletOutlined /></div>
           <div>
             <div className="lva-header-title">Apply Leave</div>

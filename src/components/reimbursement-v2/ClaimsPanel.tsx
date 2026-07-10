@@ -20,7 +20,7 @@ import ReimbursementV2Service, {
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
-export default function ClaimsPanel() {
+export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const perms = usePermission() as any;
   const canRead = perms.canReadReimbursement || perms.canManageReimbursements || perms.canReadMyHubClaims;
   const canCreate = perms.canCreateReimbursement || perms.canManageReimbursements || perms.canReadMyHubClaims;
@@ -300,6 +300,7 @@ export default function ClaimsPanel() {
   return (
     <div className="rvp">
       <PanelHeader
+        hideSidebarToggle={hideSidebarToggle}
         icon={<SolutionOutlined />} color={PALETTE.green} tint={TINT.green}
         title="My Claims" subtitle="Create, submit and track expense claims"
         search={search} onSearch={setSearch} searchPlaceholder="Search claims…"

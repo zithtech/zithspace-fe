@@ -12,7 +12,7 @@ const TINT = { cyan: 'rgba(6,182,212,0.10)', green: 'rgba(16,185,129,0.10)' } as
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 
-export default function MyPayslipsPanel() {
+export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const [rows, setRows] = useState<PayPayslip[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,13 +50,15 @@ export default function MyPayslipsPanel() {
     <div className="mps">
       <div className="mps-header">
         <div className="mps-header-about">
-          <button
-            type="button"
-            className="pv-mobile-menu-btn"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
-          >
-            <Menu size={20} />
-          </button>
+          {!hideSidebarToggle && (
+            <button
+              type="button"
+              className="pv-mobile-menu-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+            >
+              <Menu size={20} />
+            </button>
+          )}
           <div className="mps-header-icon"><FileTextOutlined /></div>
           <div>
             <div className="mps-header-title">My Payslips</div>

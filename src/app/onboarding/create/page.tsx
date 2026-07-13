@@ -71,7 +71,16 @@ const OnboardingContent = () => {
     }
   }, [authLoading, canCreateOnboarding, canUpdateOnboarding, isEdit, router]);
 
-  const [current, setCurrent] = useState(0);
+  const stepKeys = ["personal", "employment", "bank", "history", "assets", "documents"];
+
+  const [current, setCurrent] = useState(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      const idx = stepKeys.indexOf(tabParam);
+      if (idx !== -1) return idx;
+    }
+    return 0;
+  });
   const [dataLoading, setDataLoading] = useState(false);
 
   const [allData, setAllData] = useState<any>({
@@ -83,8 +92,6 @@ const OnboardingContent = () => {
     documents: [],
   });
   const [resetKey, setResetKey] = useState(0);
-
-  const stepKeys = ["personal", "employment", "bank", "history", "assets", "documents"];
 
   const personalRef = useRef<any>(null);
   const employmentRef = useRef<any>(null);
@@ -592,7 +599,7 @@ const OnboardingContent = () => {
           gap: 10px;
         }
         .onb-btn {
-          height: 38px !important;
+          height: 40px !important;
           border-radius: 8px !important;
           font-weight: 600 !important;
           display: inline-flex;
@@ -611,6 +618,36 @@ const OnboardingContent = () => {
           background: ${PALETTE.blue} !important;
           border-color: ${PALETTE.blue} !important;
         }
+
+        /* Enforce 8px border-radius and exact uniform height on all form inputs */
+        .onb .ant-input,
+        .onb .ant-select-single .ant-select-selector,
+        .onb .ant-picker,
+        .onb .ant-input-number,
+        .onb .ant-input-password {
+          border-radius: 8px !important;
+          height: 40px !important;
+          display: flex;
+          align-items: center;
+        }
+        .onb .ant-select-multiple .ant-select-selector {
+          border-radius: 8px !important;
+          min-height: 40px !important;
+          height: auto !important;
+          padding-top: 2px !important;
+          padding-bottom: 2px !important;
+        }
+        .onb .ant-select-single .ant-select-selection-search-input {
+          height: 38px !important;
+        }
+        .onb .ant-select-single .ant-select-selection-item,
+        .onb .ant-select-single .ant-select-selection-placeholder {
+          line-height: 38px !important;
+        }
+        .onb .ant-picker-input > input {
+          height: 100% !important;
+        }
+
 
         @media (max-width: 900px) {
           .onb-header {

@@ -717,14 +717,15 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 if (initialNode && initialNode.type === 'file' && initialNode.documentId) {
                     setSelectedDoc(initialNode.documentId);
                     setSelectedTreeNodeId(initialNode.id);
+                } else if (initialNode) {
+                    // It's a folder or section. Select it in the tree but clear the document viewer.
+                    setSelectedDoc('api-ref');
+                    setSelectedTreeNodeId(initialNode.id);
                 } else {
-                    const firstFile = documentHub.treeNodes.find(n => n.type === 'file' && n.documentId);
+                    const firstFile = documentHub.treeNodes.find(n => n.documentId);
                     if (firstFile && firstFile.documentId) {
                         setSelectedDoc(firstFile.documentId);
                         setSelectedTreeNodeId(firstFile.id);
-                    }
-                    if (initialNode) {
-                        setSelectedTreeNodeId(initialNode.id);
                     }
                 }
             }
@@ -1036,7 +1037,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     type: addNodeType,
                     title: values.name,
                 });
-                if (addNodeType === 'file') {
+                if (node.documentId) {
                     createdFile = { treeNodeId: node.id, documentId: node.documentId };
                 }
                 await new Promise((resolve) => setTimeout(resolve, 300));
@@ -1054,12 +1055,15 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
                 if (addNodeType === 'folder') {
                     const folderName = (draft.hubName || values.prompt).slice(0, 60);
-                    await DocumentHubService.createTreeNode({
+                    const node = await DocumentHubService.createTreeNode({
                         documentHubId: documentId,
                         parentId: addNodeParentId,
                         type: 'folder',
                         title: folderName,
                     });
+                    if (node.documentId) {
+                        createdFile = { treeNodeId: node.id, documentId: node.documentId };
+                    }
                     messageApi.success('Folder created with Zai');
                 } else {
                     const fileTitle = (draft.fileTitle || values.prompt).slice(0, 60);
@@ -1231,9 +1235,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         confirmAction(() => {
             const node = documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === treeNodeId);
             setSelectedTreeNodeId(treeNodeId);
-            if (node && node.type === 'file' && node.documentId) {
+            if (node && node.documentId) {
                 setSelectedDoc(node.documentId);
                 setPreviewVersion(null); // Reset preview when switching docs
+            } else {
+                setSelectedDoc('api-ref');
             }
         });
     };

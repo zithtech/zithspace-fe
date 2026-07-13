@@ -57,9 +57,9 @@ const labelStyle = {
 
 const cardStyle: React.CSSProperties = {
   background: "transparent",
-  border: "none",
-  padding: "20px 40px",
-  marginBottom: "16px",
+  border: "1px solid var(--border-slate-100)",
+  borderRadius: "0px",
+  marginBottom: "24px",
 };
 
 const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
@@ -396,17 +396,11 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
   return (
     <div style={cardStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "40px", height: "40px", background: "var(--bg-blue-50)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)" }}>
-            <Building2 size={24} />
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-              {companyName || `Previous Company #${index + 1}`}
-            </h3>
-            <span style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>Experience Details</span>
-          </div>
+      <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>
+            🏢 {companyName || `Previous Company #${index + 1}`}
+          </span>
         </div>
         {length > 1 && (
           <Button
@@ -418,6 +412,8 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
           />
         )}
       </div>
+
+      <div style={{ padding: "24px 40px" }}>
 
       <Row gutter={24}>
         <Col xs={24} md={24}>
@@ -482,7 +478,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
         {/* Documents Section - Moved Below */}
         <Col xs={24} md={24}>
-          <div style={{ padding: "20px 40px", background: "transparent", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "20px" }}>
+          <div style={{ paddingTop: "24px", borderTop: "1px solid var(--border-slate-100)", marginBottom: "24px" }}>
             <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
 
             <Row gutter={[12, 12]}>
@@ -625,7 +621,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
         {/* Contact Details Section */}
         <Col xs={24} md={24}>
-          <div style={{ padding: "24px", borderTop: "1px solid var(--border-slate-100)" }}>
+          <div style={{ paddingTop: "24px", borderTop: "1px solid var(--border-slate-100)", marginBottom: "24px" }}>
             <SectionHeader icon={User} title="Verification Contacts" subtitle="Professional references from this tenure" />
             <Form.List name={[index, "contacts"]}>
               {(fields, { add, remove }) => (
@@ -677,13 +673,14 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
         </Col>
         {/* Declaration */}
         <Col xs={24} md={24}>
-          <div style={{ marginTop: "16px", padding: "16px", borderTop: "1px solid var(--border-slate-100)" }}>
+          <div style={{ paddingTop: "24px", borderTop: "1px solid var(--border-slate-100)" }}>
             <Checkbox style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
               I declare that the information provided above for this company is correct and verifiable.
             </Checkbox>
           </div>
         </Col>
       </Row>
+      </div>
     </div>
   );
 };
@@ -729,13 +726,7 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
   }));
 
   return (
-    <div style={{ padding: "0", background: "transparent" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "var(--text-slate-900)" }}>Employee History</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "14px", color: "var(--text-slate-500)" }}>Add your previous work experiences and relevant documents.</p>
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", padding: "24px", background: "transparent" }}>
 
       <Form
         form={form}

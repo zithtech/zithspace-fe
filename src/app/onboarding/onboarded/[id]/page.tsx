@@ -316,6 +316,19 @@ export default function OnboardedViewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("1");
+
+  const getEditTabName = (key: string) => {
+    switch (key) {
+      case "1": return "personal";
+      case "2": return "employment";
+      case "3": return "bank";
+      case "4": return "history";
+      case "5": return "assets";
+      case "6": return "documents";
+      default: return "personal";
+    }
+  };
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -485,7 +498,7 @@ export default function OnboardedViewPage() {
             </div>
             <Button
               icon={<Edit2 size={14} />}
-              onClick={() => router.push(`/onboarding/create?id=${id}`)}
+              onClick={() => router.push(`/onboarding/create?id=${id}&tab=${getEditTabName(activeTab)}`)}
               style={{ borderRadius: 8, height: 34, fontWeight: 600, fontSize: 13, flexShrink: 0 }}
             >
               Edit Profile
@@ -493,7 +506,8 @@ export default function OnboardedViewPage() {
           </div>
 
           <Tabs
-            defaultActiveKey="1"
+            activeKey={activeTab}
+            onChange={setActiveTab}
             className="premium-tabs"
             items={[
               {

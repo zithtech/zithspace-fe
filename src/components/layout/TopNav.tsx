@@ -1252,10 +1252,19 @@ export default function TopNav({
 
                 /* Premium navbar icon tooltip */
                 .navbar-icon-tooltip {
+                    --tooltip-bg: #ffffff;
+                    --tooltip-fg: var(--text-slate-900);
+                    --tooltip-sub: var(--text-slate-500);
+                    --tooltip-border: rgba(0, 0, 0, 0.06);
+                    --tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+                    z-index: 1100 !important;
+                }
+                [data-theme='dark'] .navbar-icon-tooltip {
                     --tooltip-bg: rgba(15, 23, 42, 0.95);
                     --tooltip-fg: #f8fafc;
                     --tooltip-sub: rgba(248, 250, 252, 0.65);
-                    z-index: 1100 !important;
+                    --tooltip-border: rgba(255, 255, 255, 0.08);
+                    --tooltip-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
                 }
                 .navbar-icon-tooltip .ant-tooltip-arrow::before,
                 .navbar-icon-tooltip .ant-tooltip-arrow::after {
@@ -1268,11 +1277,8 @@ export default function TopNav({
                     -webkit-backdrop-filter: blur(10px) saturate(160%);
                     padding: 8px 12px !important;
                     border-radius: 10px !important;
-                    box-shadow:
-                        0 8px 24px -8px rgba(0, 0, 0, 0.35),
-                        0 2px 6px rgba(0, 0, 0, 0.18),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: var(--tooltip-shadow) !important;
+                    border: 1px solid var(--tooltip-border);
                     min-width: 0;
                     font-size: 12px !important;
                     line-height: 1.35 !important;

@@ -75,7 +75,7 @@ export interface SearchableDropdownProps {
 export const initialsFor = (s: string): string => {
   if (!s) return "?";
   const parts = s
-    .replace(/[_\-]/g, " ")
+    .replace(/[_\-\(\)\[\]\{\}]/g, " ")
     .split(/(?=[A-Z])|\s+/)
     .filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();

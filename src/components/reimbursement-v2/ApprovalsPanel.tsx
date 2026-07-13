@@ -143,8 +143,81 @@ export default function ApprovalsPanel() {
         ]}
       />
 
-      <Modal open={!!pending} title={pending?.label} onCancel={() => setPending(null)} onOk={confirm} confirmLoading={busy} okText="Confirm">
-        <Input.TextArea rows={3} placeholder="Remarks (optional)" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+      <Modal
+        open={!!pending}
+        onCancel={() => setPending(null)}
+        title={null}
+        closable={false}
+        footer={null}
+        width={420}
+        styles={{
+          content: {
+            padding: 0,
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden',
+            borderRadius: 12,
+          },
+        }}
+      >
+        <div className="flex flex-col">
+          <div
+            className="px-5 py-4 border-b flex justify-between items-center"
+            style={{
+              borderColor: 'var(--border-color)',
+              background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            }}
+          >
+            <div className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+              {pending?.label}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPending(null)}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+            </button>
+          </div>
+
+          <div className="p-5">
+            <label className="block mb-2 text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Remarks (optional)
+            </label>
+            <Input.TextArea
+              rows={4}
+              placeholder="Add any remarks for this decision..."
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              style={{
+                background: 'var(--bg-primary)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+                boxShadow: 'none',
+              }}
+            />
+          </div>
+
+          <div
+            className="px-5 py-3 border-t flex justify-end gap-2"
+            style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+          >
+            <Button onClick={() => setPending(null)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={confirm}
+              loading={busy}
+              danger={pending?.action === 'reject'}
+              style={{ borderRadius: 8, height: 36 }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Drawer

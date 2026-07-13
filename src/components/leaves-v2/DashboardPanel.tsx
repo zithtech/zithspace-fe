@@ -20,6 +20,8 @@ import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/context/AuthContext';
 import LeaveV2Service, { Holiday, LeaveBalanceItem, LeaveRequest } from '@/services/leaveV2Service';
 
+import ApplyLeaveDrawer from './ApplyLeaveDrawer';
+
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
 
@@ -38,10 +40,13 @@ export default function DashboardPanel() {
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
   const [holidayCount, setHolidayCount] = useState(0);
   const [approvals, setApprovals] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAllBalances, setShowAllBalances] = useState(false);
+  
+  const [applyDrawerOpen, setApplyDrawerOpen] = useState(false);
 
   const BAL_LIMIT = 8; // collapse the balances grid past this many
 
@@ -55,6 +60,7 @@ export default function DashboardPanel() {
       ]);
       setBalances(b);
       setRequests(r);
+      setHolidaySet(new Set(hd));
       const today = dayjs().format('YYYY-MM-DD');
       setHolidayCount(hd.filter((d) => d >= today).length);
     } catch (err: any) {
@@ -125,7 +131,7 @@ export default function DashboardPanel() {
         </div>
         <div className="lvd-header-actions">
           <Tooltip title="Refresh"><button type="button" className="lvd-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
-          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push('/leaves-v2/apply')} className="lvd-add-btn">Apply Leave</Button>}
+          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={() => setApplyDrawerOpen(true)} className="lvd-add-btn">Apply Leave</Button>}
         </div>
       </div>
 
@@ -242,6 +248,13 @@ export default function DashboardPanel() {
           </div>
         )}
       </div>
+      <ApplyLeaveDrawer
+        open={applyDrawerOpen}
+        onClose={() => setApplyDrawerOpen(false)}
+        onSuccess={load}
+        balances={balances}
+        holidaySet={holidaySet}
+      />
 
       <style jsx global>{`
         .lvd { display: flex; flex-direction: column; }

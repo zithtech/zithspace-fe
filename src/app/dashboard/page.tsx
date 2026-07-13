@@ -1010,7 +1010,7 @@ function DashboardContent() {
               );
             })}
             </div>
-            {canUpdateSettings && (
+            {user?.role === 'super_admin' && (
               <Button 
                 type="text" 
                 icon={<SettingOutlined />} 

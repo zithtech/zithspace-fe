@@ -33,6 +33,7 @@ import {
 
 const { Text } = Typography;
 import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
@@ -542,14 +543,20 @@ export default function CreateBugDrawer({
 
               <SectionCard step="STEP 3" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Assignments & Tags" subtitle="Ownership and categorization">
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assignee</Text>}>
-                  <Select
-                    allowClear
-                    showSearch
+                  <SearchableDropdown
                     placeholder="Unassigned"
                     value={assigneeId}
-                    onChange={(v) => setAssigneeId(v)}
-                    options={members.map((m) => ({ value: m.value, label: m.label }))}
-                    filterOption={(input, option) => (option?.label as string).toLowerCase().includes(input.toLowerCase())}
+                    onChange={(v) => setAssigneeId(v as string)}
+                    options={members.map((m) => ({
+                      value: m.value,
+                      label: m.label,
+                      description: m.position,
+                      avatarUrl: m.avatarUrl || undefined,
+                    }))}
+                    itemNoun="assignees"
+                    showSelectedAvatar={true}
+                    style={{ width: '100%', height: 38 }}
+                    width={280}
                   />
                 </Form.Item>
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Tags</Text>}>

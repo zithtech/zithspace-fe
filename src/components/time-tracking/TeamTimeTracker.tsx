@@ -1033,9 +1033,15 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
               placeholder="All members"
               searchPlaceholder="Search by name"
               itemNoun="members"
+              showSelectedAvatar={true}
               width={240}
               style={{ width: 168, borderRadius: 6 }}
-              options={members.map(m => ({ value: m.value, label: m.label }))}
+              options={members.map((m: any) => ({
+                value: m.value,
+                label: m.label,
+                description: m.position,
+                avatarUrl: m.avatarUrl || undefined,
+              }))}
             />
 
             <SearchableDropdown

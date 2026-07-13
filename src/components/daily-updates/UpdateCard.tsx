@@ -180,9 +180,14 @@ export default function UpdateCard({
               width: 30, height: 30, borderRadius: 6, flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "var(--text-blue-700)", fontWeight: 800, fontSize: 12,
-              background: "var(--bg-blue-50)"
+              background: update.user?.avatarUrl ? "transparent" : "var(--bg-blue-50)",
+              overflow: "hidden"
             }}>
-              {update.user?.name.charAt(0).toUpperCase()}
+              {update.user?.avatarUrl ? (
+                <img src={update.user.avatarUrl} alt={update.user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                update.user?.name.charAt(0).toUpperCase()
+              )}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 3, flex: 1 }}>

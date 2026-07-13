@@ -15,7 +15,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   ExpenseCategory, SaveCategoryInput,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 
 // Common expense-category names shown as suggestions in the name field.
@@ -324,7 +324,7 @@ export default function CategoriesPanel() {
           <SectionCard icon={<InfoCircleOutlined />}
             title="Basics" subtitle="Identity and type" step="STEP 1">
             <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }]}>
+              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
               <AutoComplete
                 placeholder="Start typing, e.g. Flight Travel"
                 options={NAME_SUGGESTIONS.map((v) => ({ value: v }))}
@@ -356,7 +356,7 @@ export default function CategoriesPanel() {
                   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
               />
             </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }]}>
+            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
               <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
             </Form.Item>
             <Form.Item name="kind" label="Type">
@@ -368,7 +368,7 @@ export default function CategoriesPanel() {
                   label={labelInfo('Rate per unit', 'Amount reimbursed per unit of distance. Claim amount = distance × this rate.')}
                   rules={[{ required: true, message: 'Rate is required' },
                     { type: 'number', min: 0.01, message: 'Must be greater than 0' }]}>
-                  <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="12" />
+                  <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="12" onKeyDown={preventInvalidNumberKeys as any} />
                 </Form.Item>
                 <Form.Item name="mileageUnit" label="Unit"
                   rules={[{ required: true, message: 'Unit is required' },
@@ -385,23 +385,23 @@ export default function CategoriesPanel() {
               <Form.Item name="maxPerClaim"
                 label={labelInfo('Max per line item', 'The largest single expense allowed in this category. Claims above this are blocked at submission.')}
                 rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" />
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
             )}
             <>
               <Form.Item name="perDayLimit" label="Per-day limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" />
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
               <Form.Item name="monthlyLimit" label="Monthly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" />
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
               <Form.Item name="yearlyLimit" label="Yearly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" />
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
               <Form.Item name="receiptRequiredAbove"
                 label={labelInfo('Receipt required above', 'A receipt is required only when a single expense exceeds this amount. Leave empty to never require one this way.')}
                 rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" />
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" onKeyDown={preventInvalidNumberKeys as any} />
               </Form.Item>
             </>
             <Form.Item name="receiptRequired"

@@ -106,9 +106,13 @@ export default function DashboardPanel() {
         }
         .rvp-dashboard-cards .ant-table-thead > tr > th:first-child,
         .rvp-dashboard-cards .ant-table-thead > tr > th:last-child,
-        .rvp-dashboard-cards .ant-table-container > .ant-table-content > table > thead > tr > th:first-child,
         .rvp-dashboard-cards .ant-table-container > .ant-table-content > table > thead > tr > th:last-child {
           border-radius: 0 !important;
+        }
+        [data-theme='dark'] .rvp-dashboard-cards .ant-card,
+        [data-theme='dark'] .rvp-dashboard-cards .ant-card-head {
+          background: transparent !important;
+          border-color: #1f2937 !important;
         }
       `}</style>
     </div>

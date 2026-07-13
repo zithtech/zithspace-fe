@@ -83,6 +83,8 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
           Modal: {
             borderRadiusLG: 16,
             contentBg: theme === "dark" ? "#131B2D" : "#ffffff",
+            headerBg: "transparent",
+            footerBg: "transparent",
           },
           Card: {
             borderRadiusLG: 16,

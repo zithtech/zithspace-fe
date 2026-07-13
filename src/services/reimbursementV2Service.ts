@@ -364,6 +364,9 @@ export const ReimbursementV2Service = {
   },
 
   // ── Claims (self-service) ──────────────────────────────────────────────────
+  async validateClaim(input: CreateClaimInput): Promise<void> {
+    await apiClient.post(`${BASE}/claims/validate`, input);
+  },
   async listMyClaims(status?: ClaimStatus): Promise<Claim[]> {
     const res = await apiClient.get(`${BASE}/claims`, { params: status ? { status } : undefined });
     return unwrap<Claim[]>(res.data) ?? [];

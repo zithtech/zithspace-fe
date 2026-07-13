@@ -63,6 +63,8 @@ import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
 import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
+import type { Dayjs } from "dayjs";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import dayjs from "dayjs";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -70,7 +72,6 @@ import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
 
@@ -454,9 +455,17 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[
                 { required: true, message: "Please enter work email" },
                 { type: "email", message: "Please enter valid email" },
+                { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input placeholder="jane@company.com" />
+              <Input 
+                placeholder="jane@company.com" 
+                onKeyPress={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -465,9 +474,17 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[
                 { required: true, message: "Please enter personal email" },
                 { type: "email", message: "Please enter valid email" },
+                { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input placeholder="jane@personal.com" />
+              <Input 
+                placeholder="jane@personal.com" 
+                onKeyPress={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -512,23 +529,15 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[{ required: true, message: "Please select role" }]}
               initialValue="user"
             >
-              <Select placeholder="Select a role" optionLabelProp="label">
-                {ROLE_OPTIONS.map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value} label={opt.title}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
-                        {opt.icon}
-                      </span>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{opt.title}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
-                          {opt.desc}
-                        </div>
-                      </div>
-                    </div>
-                  </Select.Option>
-                ))}
-              </Select>
+              <SearchableDropdown
+                placeholder="Select a role"
+                options={ROLE_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: opt.title,
+                  description: opt.desc,
+                  badge: opt.icon,
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
@@ -552,18 +561,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 label="Position"
                 rules={[{ required: true, message: "Please select position" }]}
               >
-                <Select
+                <SearchableDropdown
                   placeholder="Select position"
                   loading={positionsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {positions.map((position) => (
-                    <Option key={position.id} value={position.id}>
-                      {position.title}
-                    </Option>
-                  ))}
-                </Select>
+                  options={positions.map((position) => ({
+                    value: position.id,
+                    label: position.title,
+                  }))}
+                />
               </Form.Item>
             ) : (
               <Form.Item
@@ -583,26 +588,16 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             )}
 
             <Form.Item name="reportsTo" label="Reports to">
-              <Select
+              <SearchableDropdown
                 placeholder="Select manager"
-                showSearch
-                allowClear
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.children ?? "")
-                    .toString()
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              >
-                {managers
+                options={managers
                   .filter((m) => m.id !== selectedMember?.id)
-                  .map((manager) => (
-                    <Option key={manager.id} value={manager.id}>
-                      {manager.name}
-                    </Option>
-                  ))}
-              </Select>
+                  .map((manager) => ({
+                    value: manager.id,
+                    label: manager.name,
+                    avatarUrl: manager.avatarUrl,
+                  }))}
+              />
             </Form.Item>
           </SectionCard>
 
@@ -614,13 +609,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           >
 
             <Form.Item name="assignedShift" label="Assigned shift">
-              <Select placeholder="Select shift (optional)" allowClear>
-                {shifts.map((shift) => (
-                  <Option key={shift.id} value={shift.id}>
-                    {shift.name} · {shift.startTime}–{shift.endTime}
-                  </Option>
-                ))}
-              </Select>
+              <SearchableDropdown
+                placeholder="Select shift (optional)"
+                options={shifts.map((shift) => ({
+                  value: shift.id,
+                  label: shift.name,
+                  description: `${shift.startTime}–${shift.endTime}`,
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
@@ -637,10 +633,13 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               initialValue={true}
               rules={[{ required: true, message: "Please select status" }]}
             >
-              <Select placeholder="Select status">
-                <Option value={true}>Active</Option>
-                <Option value={false}>Inactive</Option>
-              </Select>
+              <SearchableDropdown
+                placeholder="Select status"
+                options={[
+                  { value: true as any, label: "Active" },
+                  { value: false as any, label: "Inactive" },
+                ]}
+              />
             </Form.Item>
 
             <Form.Item
@@ -1285,7 +1284,7 @@ export default function MembersPage() {
     canManageUsers,
   } = usePermission();
   console.log("Forcing HMR reload for members page");
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const { dataSource: positions, loading: positionsLoading, fetchPositions } = usePositions();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [members, setMembers] = useState<Member[]>([]);
@@ -1545,6 +1544,7 @@ export default function MembersPage() {
       setSelectedMember(null);
       fetchMembers();
       fetchAllMembers();
+      fetchPositions();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, DatePicker, Tooltip,
-  message, Upload, Descriptions, Divider, Empty, Checkbox,
+  message, notification, Upload, Descriptions, Divider, Empty, Checkbox, Modal,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -17,8 +17,21 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   Claim, ClaimDetail, ExpenseCategory, Advance,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
+
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'partially_reconciled', label: 'Partially Reconciled' },
+  { value: 'reconciled', label: 'Reconciled' },
+];
 
 export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const perms = usePermission() as any;
@@ -30,6 +43,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const [advances, setAdvances] = useState<Advance[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [current, setCurrent] = useState<ClaimDetail | null>(null);
   const [creating, setCreating] = useState(false);
@@ -44,6 +58,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   }>>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [multiCurrency, setMultiCurrency] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
 
   const catById = useCallback((id: string) => cats.find((c) => c.id === id), [cats]);
   const selectedCatId = Form.useWatch('categoryId', itemForm);
@@ -77,8 +92,12 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.claimNo.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q));
-  }, [rows, search]);
+    return rows.filter((r) => {
+      const matchSearch = !q || r.claimNo.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [rows, search, statusFilter]);
 
   const openCreate = async () => {
     setCurrent(null);
@@ -137,6 +156,23 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
     let v: any;
     try { v = await headerForm.validateFields(); } catch { return; }
     if (submitAfter && newItems.length === 0) { message.warning('Add at least one item to submit'); return; }
+
+    // Validate limits on both Save Draft and Save & Submit
+    try {
+      await ReimbursementV2Service.validateClaim({
+          title: v.title, currency: v.currency, exchangeRate: v.exchangeRate ?? 1, advanceId: v.advanceId ?? null,
+          items: newItems.map((li) => ({
+            categoryId: li.categoryId, expenseDate: li.expenseDate,
+            amount: li.amount, distance: li.distance,
+            merchant: li.merchant, billNo: li.billNo, description: li.description,
+          })),
+        });
+      } catch (e: any) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to validate claim';
+        setLimitError(msg);
+        return;
+      }
+
     setBusy(true);
     try {
       const detail = await ReimbursementV2Service.createClaim({
@@ -147,18 +183,30 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
           merchant: li.merchant, billNo: li.billNo, description: li.description,
         })),
       });
-      if (newFiles.length) await ReimbursementV2Service.uploadReceipts(detail.id, newFiles); // claim-level
-      if (submitAfter) {
-        const done = await ReimbursementV2Service.submitClaim(detail.id);
-        message.success(done.status === 'approved' ? `Auto-approved (${done.claimNo})` : `Submitted ${done.claimNo}`);
-      } else {
-        message.success(`Draft ${detail.claimNo} saved`);
+      try {
+        if (newFiles.length) await ReimbursementV2Service.uploadReceipts(detail.id, newFiles); // claim-level
+        if (submitAfter) {
+          const done = await ReimbursementV2Service.submitClaim(detail.id);
+          message.success(done.status === 'approved' ? `Auto-approved (${done.claimNo})` : `Submitted ${done.claimNo}`);
+        } else {
+          message.success(`Draft ${detail.claimNo} saved`);
+        }
+      } catch (err: any) {
+        if (submitAfter) {
+          await ReimbursementV2Service.deleteClaim(detail.id).catch(() => {});
+        }
+        throw err;
       }
       setDrawerOpen(false);
       setNewItems([]); setNewFiles([]);
       await load();
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Failed to save claim');
+      const msg = e?.response?.data?.error || 'Failed to save claim';
+      if (msg.toLowerCase().includes('exceeds')) {
+        Modal.error({ title: 'Limit Exceeded', content: msg, zIndex: 2000 });
+      } else {
+        message.error(msg);
+      }
     } finally { setBusy(false); }
   };
 
@@ -171,20 +219,20 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
           notFoundContent={cats.length === 0 ? 'No categories yet — ask an admin to add expense categories' : 'No match'} />
       </Form.Item>
       <Form.Item name="expenseDate" label="Date" rules={[{ required: true, message: 'Date required' }]}>
-        <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+        <DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />
       </Form.Item>
       {selectedCat?.kind === 'mileage' ? (
         <Form.Item name="distance" label={`Distance (${selectedCat.mileageUnit || 'units'})`} rules={[{ required: true, message: 'Distance required' }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
         </Form.Item>
       ) : (
         <Form.Item name="amount" label="Amount" rules={[{ required: true, message: 'Amount required' }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber min={0} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
         </Form.Item>
       )}
-      <Form.Item name="merchant" label="Merchant"><Input placeholder="Optional" /></Form.Item>
-      <Form.Item name="billNo" label="Bill no."><Input placeholder="Optional" /></Form.Item>
-      <Form.Item name="description" label="Description"><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="merchant" label="Merchant" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="billNo" label="Bill no." rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
+      <Form.Item name="description" label="Description" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="Optional" /></Form.Item>
     </>
   );
 
@@ -239,6 +287,8 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
   const submitClaim = async () => {
     if (!current) return;
+
+
     setBusy(true);
     try {
       const detail = await ReimbursementV2Service.submitClaim(current.id);
@@ -246,7 +296,8 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       setDrawerOpen(false);
       await load();
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Failed to submit');
+      const msg = e?.response?.data?.error || e?.message || 'Failed to submit';
+      setLimitError(msg);
     } finally { setBusy(false); }
   };
 
@@ -306,6 +357,15 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         search={search} onSearch={setSearch} searchPlaceholder="Search claims…"
         onRefresh={load} loading={loading}
       >
+        <SearchableDropdown
+          placeholder="All statuses"
+          itemNoun="statuses"
+          value={statusFilter === 'all' ? undefined : statusFilter}
+          onChange={(v) => setStatusFilter((v as string) ?? 'all')}
+          options={STATUS_OPTIONS}
+          style={{ width: 160 }}
+          width={220}
+        />
         {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>New Claim</Button>}
       </PanelHeader>
 
@@ -425,7 +485,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
             <Form form={headerForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
               <SectionCard icon={<FileTextOutlined />}
                 title="Claim details" subtitle="What is this claim for? The total is calculated from the line items below." step="STEP 1">
-                <Form.Item name="title" label="Title"><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
+                <Form.Item name="title" label="Title" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
                 {advances.length > 0 && (
                   <Form.Item name="advanceId" label="Settle against advance (optional)">
                     <Select allowClear placeholder="Pick a paid advance"
@@ -447,7 +507,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
                     <Form.Item name="exchangeRate" label={<span>Exchange rate → INR{' '}
                       <Tooltip title="How many INR one unit of the chosen currency is worth. The claim is stored in INR for reporting."><span style={{ color: 'var(--text-slate-400)' }}>ⓘ</span></Tooltip>
                     </span>}>
-                      <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" />
+                      <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" onKeyDown={preventInvalidNumberKeys as any} />
                     </Form.Item>
                   </div>
                 )}
@@ -554,6 +614,98 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         )}
         </div>
       </Drawer>
+      <Modal
+        title={null}
+        open={!!limitError}
+        onOk={() => setLimitError(null)}
+        onCancel={() => setLimitError(null)}
+        zIndex={2000}
+        closeIcon={false}
+        width={400}
+        centered
+        styles={{
+          mask: { backdropFilter: 'blur(12px)', background: 'var(--modal-mask-bg, rgba(15, 23, 42, 0.65))' },
+          content: { 
+            background: 'var(--bg-pure-white, #FFFFFF)',
+            border: '1px solid var(--border-color, #e2e8f0)',
+            borderRadius: 24,
+            padding: '36px 28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.05) inset',
+            textAlign: 'center'
+          },
+          body: { padding: 0 },
+          footer: { display: 'none' }
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', marginBottom: 24 }}>
+            <div style={{ 
+              position: 'absolute', inset: -14, background: 'rgba(239, 68, 68, 0.15)',
+              borderRadius: '50%', filter: 'blur(16px)', zIndex: 0 
+            }} />
+            <div style={{
+              position: 'relative', zIndex: 1,
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+              border: '4px solid #ffffff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px -4px rgba(239, 68, 68, 0.25)'
+            }}>
+              <CloseCircleOutlined style={{ fontSize: 32, color: '#ef4444' }} />
+            </div>
+          </div>
+          
+          <h3 style={{ 
+            fontSize: 22, fontWeight: 700, color: 'var(--text-slate-900, #0f172a)', 
+            marginBottom: 12, letterSpacing: '-0.02em', lineHeight: 1.2
+          }}>
+            Policy Limit Exceeded
+          </h3>
+          
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.03) 0%, rgba(239, 68, 68, 0.08) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            borderRadius: 16,
+            padding: '16px 20px',
+            color: 'var(--text-slate-700, #334155)',
+            fontSize: 14.5,
+            lineHeight: 1.6,
+            fontWeight: 500,
+            marginBottom: 32,
+            width: '100%',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}>
+            {limitError}
+          </div>
+
+          <Button 
+            type="primary" 
+            onClick={() => setLimitError(null)}
+            block
+            style={{ 
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+              border: 'none',
+              borderRadius: 14,
+              fontWeight: 600,
+              fontSize: 16,
+              height: 50,
+              boxShadow: '0 8px 20px -6px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 24px -6px rgba(239, 68, 68, 0.65), inset 0 1px 0 rgba(255,255,255,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px -6px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)';
+            }}
+          >
+            Acknowledge & Close
+          </Button>
+        </div>
+      </Modal>
       <RmbStyles />
       <style jsx global>{`
         .rvp-line-item {

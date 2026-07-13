@@ -34,6 +34,8 @@ import {
   CheckCircle2,
   Info
 } from "lucide-react";
+import { SectionCard, commonDrawerProps, drawerFormStyles } from "@/components/common/DrawerSection";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -392,7 +394,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             </div>
           </div>
         }
-        width={480}
+        {...commonDrawerProps}
         onClose={() => {
           setOpen(false);
           setEditIndex(null);
@@ -420,92 +422,98 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
           footer: { borderTop: "1px solid var(--border-slate-100)" }
         }}
       >
-        <Form form={assetsform} layout="vertical">
-          <SectionHeader icon={Briefcase} title="Asset Category" subtitle="Select the type of hardware assigned" />
-          <Form.Item
-            label={<span style={labelStyle}>Item Type</span>}
-            name="item"
-            rules={[{ required: true, message: "Please select an item" }]}
-          >
-            <Select
-              placeholder="Select asset type"
-              style={{ height: "40px", borderRadius: "8px" }}
-              dropdownStyle={{ borderRadius: "8px" }}
-            >
-              <Select.Option value="Mobile">Smartphones</Select.Option>
-              <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
-              <Select.Option value="Tab">Tablet Device</Select.Option>
-              <Select.Option value="Monitor">External Monitor</Select.Option>
-              <Select.Option value="Keyboard">Mechanical Keyboard</Select.Option>
-              <Select.Option value="Mouse">Wireless Mouse</Select.Option>
-              <Select.Option value="Bag">Office Bag</Select.Option>
-              <Select.Option value="Headphone">Headphones / Mic</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Divider style={{ margin: "24px 0" }} />
-          <SectionHeader icon={Info} title="Device Information" subtitle="Brand and technical specifications" />
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Brand Name</span>}
-                name="brand"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input placeholder="e.g. Apple, Dell" style={{ height: "40px", borderRadius: "8px" }} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Model Name</span>}
-                name="model"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input placeholder="e.g. MacBook Pro M2" style={{ height: "40px", borderRadius: "8px" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label={<span style={labelStyle}>Serial / Model Number</span>}
-            name="modelNumber"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="e.g. SN-123456789" style={{ height: "40px", borderRadius: "8px" }} />
-          </Form.Item>
-
-          <Divider style={{ margin: "24px 0" }} />
-          <SectionHeader icon={ImageIcon} title="Visual Proof" subtitle="Upload a photograph of the physical asset" />
-
-          <Form.Item
-            name="image"
-            valuePropName="fileList"
-            getValueFromEvent={(e) => e?.fileList}
-          >
-            <Upload
-              listType="picture-card"
-              beforeUpload={handleBeforeUpload}
-              maxCount={1}
-              style={{ width: "100%" }}
-            >
-              <div style={{ textAlign: "center" }}>
-                <Plus size={20} style={{ color: "#3b82f6", marginBottom: "8px" }} />
-                <div style={{ fontSize: "13px", fontWeight: 600, color: "#64748b" }}>Upload Photo</div>
-                <div style={{ fontSize: "11px", color: "#94a3b8" }}>Max 5MB</div>
-              </div>
-            </Upload>
-          </Form.Item>
-
-          <div style={{ background: "var(--bg-slate-50)", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-slate-100)", marginTop: "24px" }}>
-            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-              <CheckCircle2 size={16} style={{ color: "var(--text-green-500)", marginTop: "2px" }} />
-              <div style={{ fontSize: "12px", color: "var(--text-slate-500)", lineHeight: "1.6" }}>
-                By registering this asset, you acknowledge responsibility for its maintenance and periodic verification.
-              </div>
+        <div style={{ border: "1px solid var(--border-slate-200)", borderRadius: "12px", background: "white", padding: "24px" }}>
+          <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
+            <div style={{ width: "40px", height: "40px", background: "#eff6ff", borderRadius: "8px", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontWeight: 700, fontSize: "16px" }}>
+              01
+            </div>
+            <div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)" }}>Asset Details</div>
+              <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>Enter the basic information for this asset</div>
             </div>
           </div>
-        </Form>
+          <div style={{ borderBottom: "1px dashed var(--border-slate-200)", marginBottom: "24px" }} />
+          
+          <Form 
+            form={assetsform} 
+            layout="horizontal" 
+            labelCol={{ span: 6 }} 
+            wrapperCol={{ span: 18 }}
+            labelAlign="left"
+            colon={false}
+          >
+            <Form.Item
+              label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Asset Category</span>}
+              name="item"
+              rules={[{ required: true, message: "Please select an item" }]}
+              style={{ marginBottom: "24px" }}
+            >
+              <SearchableDropdown
+                style={{ height: "44px", borderRadius: "8px" }}
+                placeholder="Select asset type"
+                options={[
+                  { label: "Smartphones", value: "Mobile" },
+                  { label: "Laptop / Notebook", value: "Laptop" },
+                  { label: "Tablet Device", value: "Tab" },
+                  { label: "External Monitor", value: "Monitor" },
+                  { label: "Mechanical Keyboard", value: "Keyboard" },
+                  { label: "Wireless Mouse", value: "Mouse" },
+                  { label: "Office Bag", value: "Bag" },
+                  { label: "Headphones / Mic", value: "Headphone" }
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Brand Name</span>}
+              name="brand"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: "24px" }}
+            >
+              <Input placeholder="e.g. Apple, Dell" style={{ height: "44px", borderRadius: "8px", fontSize: "14px" }} />
+            </Form.Item>
+            
+            <Form.Item
+              label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Model Name</span>}
+              name="model"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: "24px" }}
+            >
+              <Input placeholder="e.g. MacBook Pro M2" style={{ height: "44px", borderRadius: "8px", fontSize: "14px" }} />
+            </Form.Item>
+            
+            <Form.Item
+              label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Serial Number</span>}
+              name="modelNumber"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: "24px" }}
+            >
+              <Input placeholder="e.g. SN-123456789" style={{ height: "44px", borderRadius: "8px", fontSize: "14px" }} />
+            </Form.Item>
+
+            <Form.Item
+              label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Visual Proof</span>}
+              name="image"
+              valuePropName="fileList"
+              getValueFromEvent={(e) => e?.fileList}
+              style={{ marginBottom: "0" }}
+            >
+              <Upload
+                listType="picture-card"
+                beforeUpload={handleBeforeUpload}
+                maxCount={1}
+                style={{ width: "100%" }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <Plus size={20} style={{ color: "#3b82f6", marginBottom: "8px" }} />
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#64748b" }}>Upload Photo</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>Max 5MB</div>
+                </div>
+              </Upload>
+            </Form.Item>
+          </Form>
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
       </Drawer>
     </div>
   );

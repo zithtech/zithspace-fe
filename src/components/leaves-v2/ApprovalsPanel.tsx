@@ -84,9 +84,16 @@ export default function ApprovalsPanel() {
   ];
 
   const userOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    rows.forEach((r) => { if (r.userId && !seen.has(r.userId)) seen.set(r.userId, r.userName || r.userEmail || r.userId); });
-    return Array.from(seen, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    const seen = new Map<string, { label: string, avatarUrl: string | null }>();
+    rows.forEach((r) => { 
+      if (r.userId && !seen.has(r.userId)) {
+        seen.set(r.userId, { 
+          label: r.userName || r.userEmail || r.userId, 
+          avatarUrl: r.userAvatarUrl || null 
+        }); 
+      } 
+    });
+    return Array.from(seen, ([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl })).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
   const filtered = useMemo(() => {
@@ -160,7 +167,7 @@ export default function ApprovalsPanel() {
         <span className="lvap-detail-label">Approved by</span>
         {r.approverName ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Avatar size={22} style={{ background: TINT.green, color: PALETTE.green, fontSize: 10, fontWeight: 700 }}>{initials(r.approverName)}</Avatar>
+            <Avatar src={r.approverAvatarUrl} size={22} style={{ background: TINT.green, color: PALETTE.green, fontSize: 10, fontWeight: 700 }}>{initials(r.approverName)}</Avatar>
             <span>
               <span style={{ fontWeight: 600, fontSize: 12.5 }}>{r.approverName}</span>
               {r.decidedAt && <span style={{ fontSize: 11, color: 'var(--text-slate-400)', marginLeft: 6 }}>{fmtDateTime(r.decidedAt)}</span>}
@@ -194,7 +201,7 @@ export default function ApprovalsPanel() {
       key: 'emp',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Avatar size={26} style={{ background: TINT.blue, color: PALETTE.blue, fontSize: 11, fontWeight: 700 }}>{initials(r.userName)}</Avatar>
+          <Avatar src={r.userAvatarUrl} size={26} style={{ background: TINT.blue, color: PALETTE.blue, fontSize: 11, fontWeight: 700 }}>{initials(r.userName)}</Avatar>
           <div style={{ lineHeight: 1.25 }}>
             <div style={{ fontWeight: 600, fontSize: 12.5 }}>{r.userName || '—'}</div>
             {r.userEmail && <div style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>{r.userEmail}</div>}
@@ -373,6 +380,7 @@ export default function ApprovalsPanel() {
           value={userFilter}
           onChange={(v) => setUserFilter((v as string) ?? undefined)}
           options={userOptions}
+          showSelectedAvatar
           style={{ width: 190 }}
           width={240}
         />

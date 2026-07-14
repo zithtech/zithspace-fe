@@ -1595,7 +1595,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   value: member.value,
                   label: member.label,
                   description: member.position,
+                  avatarUrl: member.avatarUrl,
                 }))}
+                showSelectedAvatar
                 onChange={(value) => {
                   handleUpdateTicket(record.id, "assignee", value ?? null);
                   setEditingField(null);

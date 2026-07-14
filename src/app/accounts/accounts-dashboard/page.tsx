@@ -1243,15 +1243,16 @@ export default function AccountsPage() {
                 label="Transaction Type"
                 rules={[{ required: true, message: 'Please select transaction type' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Type"
+                <SearchableDropdown
                   placeholder="Select type"
                   searchPlaceholder="Search type..."
+                  itemNoun="types"
                   options={[
                     { value: "credit", label: "Credit (Money In)" },
                     { value: "debit", label: "Debit (Money Out)" }
                   ]}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 
@@ -1289,14 +1290,15 @@ export default function AccountsPage() {
                 label="Member"
                 rules={[{ required: true, message: 'Please select member' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Member"
+                <SearchableDropdown
                   placeholder="Select member"
                   searchPlaceholder="Search members..."
+                  itemNoun="members"
                   options={memberOptions}
-                  showAvatar={true}
+                  showSelectedAvatar={true}
                   disabled={modalType === 'edit'}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 
@@ -1305,12 +1307,13 @@ export default function AccountsPage() {
                 label="Category"
                 rules={[{ required: true, message: 'Please select category' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Category"
+                <SearchableDropdown
                   placeholder="Select category"
                   searchPlaceholder="Search categories..."
+                  itemNoun="categories"
                   options={categoryOptions}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 

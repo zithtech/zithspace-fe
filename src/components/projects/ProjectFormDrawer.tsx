@@ -385,7 +385,10 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                     options={members.map((member) => ({
                       label: member.label,
                       value: member.value,
+                      description: member.position,
+                      avatarUrl: member.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
                 <Form.Item
@@ -420,7 +423,10 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                     options={members.map((member) => ({
                       label: member.label,
                       value: member.value,
+                      description: member.position,
+                      avatarUrl: member.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
               </SectionCard>

@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 
 
 
@@ -360,31 +361,14 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                     rules={[{ required: true, message: 'Please select billing type' }]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select billing type"
-                      className="custom-select-template"
-                      style={{ height: 38 }}
-                      optionLabelProp="label"
-                    >
-                      {BILLING_TYPES.map((b) => (
-                        <Option key={b.value} value={b.value} label={b.label}>
-                          <div className="flex flex-col">
-                            <span
-                              className="text-[13px] font-medium"
-                              style={{ color: 'var(--text-primary)' }}
-                            >
-                              {b.label}
-                            </span>
-                            <span
-                              className="text-[11px]"
-                              style={{ color: 'var(--text-secondary)' }}
-                            >
-                              {b.description}
-                            </span>
-                          </div>
-                        </Option>
-                      ))}
-                    </Select>
+                      searchPlaceholder="Search billing types..."
+                      itemNoun="billing types"
+                      options={BILLING_TYPES.map((b) => ({ value: b.value, label: b.label, description: b.description }))}
+                      style={{ width: '100%', height: 38 }}
+                      width="100%"
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -584,18 +568,15 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0 }}
                                 >
-                                  <Select
+                                  <SearchableDropdown
                                     placeholder="Type"
-                                    size="small"
+                                    searchPlaceholder="Search types..."
+                                    itemNoun="types"
+                                    options={FIELD_TYPES}
                                     disabled={isSystem}
-                                    className="custom-select-template-sm"
-                                  >
-                                    {FIELD_TYPES.map((t) => (
-                                      <Option key={t.value} value={t.value}>
-                                        {t.label}
-                                      </Option>
-                                    ))}
-                                  </Select>
+                                    style={{ width: '100%', height: 32 }}
+                                    width="100%"
+                                  />
                                 </Form.Item>
 
                                 <Form.Item

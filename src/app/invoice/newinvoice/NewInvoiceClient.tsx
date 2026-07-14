@@ -1078,6 +1078,8 @@ export default function InvoiceNewinvoicePage() {
                     )}
                   </div>
 
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+
                   {/* Bill to */}
                   <div>
                     <div className="flex items-center gap-2">
@@ -1194,6 +1196,8 @@ export default function InvoiceNewinvoicePage() {
                     )}
                   </div>
 
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+
                   {/* Project dropdown */}
                   <div>
                     <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
@@ -1238,6 +1242,9 @@ export default function InvoiceNewinvoicePage() {
                         />
                       </Form.Item>
                     </div>
+
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+
                   {/* Details grid */}
                   <div>
                     <div className="flex items-center gap-2">

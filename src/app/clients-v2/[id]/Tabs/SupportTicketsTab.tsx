@@ -8,7 +8,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   message,
   Empty,
   Tooltip,
@@ -52,6 +51,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1317,42 +1317,68 @@ function CreateTicketModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={680}
-      c={c}
-      ribbonColor={c.accentText}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<LifeBuoy size={20} />}
-      title="Create support ticket"
-      subtitle="Opens a ticket on behalf of this client. The client will see it in their portal alongside their own tickets."
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to create">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<Plus size={14} />}
-          >
-            Create ticket
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <LifeBuoy size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Create support ticket</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Opens a ticket on behalf of this client. The client will see it in their portal alongside their own tickets.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="What's the issue"
-          description="A short subject and a first message — the client will see both."
-          icon={<Hash size={11} />}
-          plain
+          subtitle="A short subject and a first message — the client will see both."
+          icon={<Hash size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="subject"
-            label={<L c={c}>Subject</L>}
+            label="Subject"
             rules={[{ required: true, message: "Required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1364,7 +1390,7 @@ function CreateTicketModal({
 
           <Form.Item
             name="body"
-            label={<L c={c}>First message</L>}
+            label="First message"
             rules={[{ required: true, message: "Required" }]}
             style={{ marginBottom: 16 }}
           >
@@ -1376,64 +1402,51 @@ function CreateTicketModal({
               style={{ padding: "10px 12px" }}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Routing"
-          description="Category and priority shape the SLA. Project links the ticket to a project (optional)."
-          icon={<FolderKanban size={11} />}
+          subtitle="Category and priority shape the SLA. Project links the ticket to a project (optional)."
+          icon={<FolderKanban size={14} />}
+          step="STEP 2"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+          <Form.Item
+            name="category"
+            label="Category"
+            rules={[{ required: true }]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="category"
-              label={<L c={c}>Category</L>}
-              rules={[{ required: true }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={(Object.keys(CATEGORY_META) as TicketCategory[]).map(
-                  (k) => ({ value: k, label: CATEGORY_META[k].label }),
-                )}
-              />
-            </Form.Item>
-            <Form.Item
-              name="priority"
-              label={<L c={c}>Priority</L>}
-              rules={[{ required: true }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={(Object.keys(PRIORITY_META) as TicketPriority[]).map(
-                  (k) => ({ value: k, label: PRIORITY_META[k].label }),
-                )}
-              />
-            </Form.Item>
-          </div>
+            <SearchableDropdown
+              options={(Object.keys(CATEGORY_META) as TicketCategory[]).map(
+                (k) => ({ value: k, label: CATEGORY_META[k].label }),
+              )}
+            />
+          </Form.Item>
+          <Form.Item
+            name="priority"
+            label="Priority"
+            rules={[{ required: true }]}
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              options={(Object.keys(PRIORITY_META) as TicketPriority[]).map(
+                (k) => ({ value: k, label: PRIORITY_META[k].label }),
+              )}
+            />
+          </Form.Item>
 
           <Form.Item
             name="projectId"
-            label={
-              <L c={c}>
-                Project
-              </L>
-            }
+            label="Project"
             style={{ marginBottom: 0 }}
           >
-            <Select
-              allowClear
+            <SearchableDropdown
               placeholder={
                 projects.length
                   ? "Pick a project this ticket relates to"
                   : "No projects linked to this client yet"
               }
+              searchPlaceholder="Search projects..."
               disabled={projects.length === 0}
               options={projects.map((p) => ({
                 value: p.id,
@@ -1441,9 +1454,28 @@ function CreateTicketModal({
               }))}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<Plus size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Create ticket
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 

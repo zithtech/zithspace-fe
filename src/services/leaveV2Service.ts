@@ -145,7 +145,9 @@ export interface LeaveRequest {
   leaveTypeColor?: string | null;
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string | null;
   approverName?: string | null;
+  approverAvatarUrl?: string | null;
   // Withdrawal of an approved leave (release of unused days).
   actualUnits?: number | null;
   withdrawalStatus?: WithdrawalStatus | null;
@@ -246,6 +248,7 @@ export interface LeaveAdjustment {
   leaveTypeColor: string | null;
   userName: string;
   userEmail: string | null;
+  userAvatarUrl?: string | null;
 }
 
 export interface CreateAdjustmentInput {
@@ -261,6 +264,7 @@ export interface EmployeeOption {
   value: string;
   label: string;
   code: string | null;
+  avatarUrl?: string | null;
 }
 
 // ── Accrual (Configuration page) ─────────────────────────────────────────────

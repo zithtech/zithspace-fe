@@ -4263,51 +4263,45 @@ export default function LeadsPage() {
             <style>{drawerFormStyles}</style>
           <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 14 }} wrapperCol={{ span: 24 }}>
-              <Segmented
-                block
+            <Form.Item name="leadSourceKind" hidden initialValue="platform">
+              <Input />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
+              <Tabs
+                activeKey={leadSourceKindWatch}
+                onChange={(key) => form.setFieldValue('leadSourceKind', key)}
                 size="large"
-                options={[
+                type="line"
+                tabBarStyle={{
+                  background: 'transparent',
+                  marginBottom: 0,
+                }}
+                items={[
                   {
-                    value: 'platform',
+                    key: 'platform',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Briefcase size={14} />
-                          Online Platform
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Upwork · LinkedIn · Freelancer · Fiverr
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Briefcase size={16} />
+                        <span style={{ fontWeight: 600 }}>Online Platform</span>
+                      </Space>
                     ),
                   },
                   {
-                    value: 'website',
+                    key: 'website',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Globe size={14} />
-                          Website Inquiry
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Zukvo · Zithtech contact forms
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Globe size={16} />
+                        <span style={{ fontWeight: 600 }}>Website Inquiry</span>
+                      </Space>
                     ),
                   },
                   {
-                    value: 'intake',
+                    key: 'intake',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Building2 size={14} />
-                          Lead Intake
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Company profile · decision makers
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Building2 size={16} />
+                        <span style={{ fontWeight: 600 }}>Lead Intake</span>
+                      </Space>
                     ),
                   },
                 ]}
@@ -4724,7 +4718,7 @@ export default function LeadsPage() {
             /* ---------------- Proposals Page CSS matching styles ---------------- */
             .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
             .pp-stat-card {
-              background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+              background: transparent; border: 1px solid var(--border-slate-200);
               border-radius: 0; padding: 12px 14px; min-height: 92px;
               display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
               box-shadow: 0 1px 2px rgba(15,23,42,0.04);
@@ -4763,7 +4757,7 @@ export default function LeadsPage() {
             
             /* Dark theme overrides for pp- stats & search */
             [data-theme='dark'] .pp-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .pp-search-wrap {
@@ -6463,7 +6457,7 @@ export default function LeadsPage() {
 
             /* ---------- Dark theme overrides for new lm-* ---------- */
             [data-theme='dark'] .lm-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .lm-search-input.ant-input-affix-wrapper {

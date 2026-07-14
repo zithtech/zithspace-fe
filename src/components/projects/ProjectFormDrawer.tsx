@@ -45,6 +45,7 @@ interface Member {
   value: string;
   label: string;
   position: string;
+  avatarUrl?: string | null;
 }
 
 interface ProjectFormDrawerProps {

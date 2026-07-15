@@ -4,6 +4,7 @@ import React from "react";
 import { Drawer, Button } from "antd";
 import { ExportOutlined, EditOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ProposalLite {
   id: string;
@@ -20,6 +21,7 @@ interface Props {
 
 const ProposalPreviewDrawer: React.FC<Props> = ({ open, onClose, proposal, canEdit }) => {
   const router = useRouter();
+  const { theme } = useTheme();
 
   return (
     <Drawer
@@ -39,10 +41,10 @@ const ProposalPreviewDrawer: React.FC<Props> = ({ open, onClose, proposal, canEd
             <ExportOutlined style={{ fontSize: 14 }} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>
               {proposal?.title || "Proposal"}
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+            <div style={{ fontSize: 11, color: "#64748b" }}>
               {proposal?.client_name || "Preview"}
             </div>
           </div>
@@ -60,12 +62,16 @@ const ProposalPreviewDrawer: React.FC<Props> = ({ open, onClose, proposal, canEd
           </Button>
         ) : undefined
       }
-      styles={{ body: { padding: 0, background: "var(--bg-secondary)", overflow: "hidden" } }}
+      styles={{
+        body: { padding: 0, background: '#f8fafc', overflow: "hidden" },
+        header: { background: '#ffffff', borderBottom: '1px solid #e2e8f0', color: '#0f172a' },
+        wrapper: { background: '#ffffff' },
+      }}
     >
       {proposal && (
         <iframe
           key={proposal.id}
-          src={`/proposals/preview?proposalId=${proposal.id}&theme=light`}
+          src={`/proposals/preview?proposalId=${proposal.id}&theme=${theme === 'dark' ? 'dark' : 'light'}`}
           title="Proposal preview"
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
         />

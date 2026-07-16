@@ -267,7 +267,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard",
         icon: I(LayoutDashboard),
         path: "/dashboard",
-        requiredSubscriptionFeature: ["home_home_general"],
+        requiredSubscriptionFeature: ["home_home_general_dashboard"],
         requiredPermission: Permissions.DASHBOARD_READ,
       },
       {
@@ -275,7 +275,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Integrations",
         icon: I(Plug2),
         path: "/integrations",
-        requiredSubscriptionFeature: ["home_home_general"],
+        requiredSubscriptionFeature: ["home_home_general_integrations"],
         requiredPermission: Permissions.INTEGRATION_READ,
       },
       {
@@ -283,7 +283,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard Settings",
         icon: I(Settings2),
         path: "/dashboard/settings",
-        requiredSubscriptionFeature: ["home_home_general"],
+        requiredSubscriptionFeature: ["home_home_general_dashboard_settings"],
         requiredPermission: Permissions.SETTINGS_UPDATE,
       },
     ],

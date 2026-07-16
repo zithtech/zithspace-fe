@@ -12,7 +12,7 @@ export default function MyHubClaimsPage() {
     <MainLayout>
       <MyHubContent>
         <ReimbursementGuard itemKey="claims">
-          <ClaimsPanel />
+          <ClaimsPanel hideSidebarToggle={true} />
         </ReimbursementGuard>
       </MyHubContent>
     </MainLayout>

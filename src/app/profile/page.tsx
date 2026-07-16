@@ -478,7 +478,14 @@ export default function ProfilePage() {
                     <Form.Item
                       name="name"
                       label="Full name"
-                      rules={[{ required: true, message: "Required" }]}
+                      rules={[
+                        { required: true, message: "Required" },
+                        {
+                          pattern: /^[A-Za-z\s.-]+$/,
+                          message: "Please enter a valid name (letters, spaces, dots, and hyphens only)",
+                        },
+                      ]}
+                      getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s.-]/g, '')}
                     >
                       <Input
                         placeholder="Your full name"

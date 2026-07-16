@@ -19,6 +19,7 @@ import BreakPickerModal from "@/components/attendance/BreakPickerModal";
 import { breakLabel } from "@/components/attendance/breakTypes";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Organization from "@/components/organaization/Organization";
+import { ManualCreateTicketModal } from "@/components/projects/ManualCreateTicketModal";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { ClientV2Service } from "@/services/clientV2Service";
@@ -127,6 +128,7 @@ function DashboardContent() {
   const [isClocking, setIsClocking] = useState(false);
   const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
+  const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [createdInvoices, setCreatedInvoices] = useState<any[]>([]);
   const [clientStats, setClientStats] = useState({ active: 0, total: 0 });
@@ -1008,7 +1010,7 @@ function DashboardContent() {
               );
             })}
             </div>
-            {canUpdateSettings && (
+            {user?.role === 'super_admin' && (
               <Button 
                 type="text" 
                 icon={<SettingOutlined />} 
@@ -1466,7 +1468,7 @@ function DashboardContent() {
                     <Row gutter={[12, 12]}>
                       {/* Time Tracker */}
                       {isDailyAttendanceVisible && (
-                      <Col xs={24} md={spanMap["attendance"]} lg={spanMap["attendance"]} xl={spanMap["attendance"]}>
+                      <Col xs={24} md={spanMap["attendance"] === 8 ? 12 : spanMap["attendance"]} lg={spanMap["attendance"]} xl={spanMap["attendance"]}>
                     <Card
                       style={{
                         ...cardBase,
@@ -1891,7 +1893,7 @@ function DashboardContent() {
 
                   {/* Calendar Integration - Takes up 2 columns */}
                   {isCalendarVisible && (
-                  <Col xs={24} md={spanMap["calendar"]} lg={spanMap["calendar"]} xl={spanMap["calendar"]}>
+                  <Col xs={24} md={spanMap["calendar"] === 8 ? 12 : spanMap["calendar"]} lg={spanMap["calendar"]} xl={spanMap["calendar"]}>
                     <Card
                       style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
                       styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
@@ -2102,7 +2104,7 @@ function DashboardContent() {
                             return (
                               <div style={{ display: "flex", flexDirection: "column" }}>
                                 {heroMeeting && (
-                                  <div style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? "#EFF6FF" : "transparent" }}>
+                                  <div style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? token.colorPrimaryBg : "transparent" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                                       {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
                                       <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
@@ -2144,7 +2146,7 @@ function DashboardContent() {
                   )}
 
                   {isQuickActionsVisible && (
-                  <Col xs={24} md={spanMap["quickActions"]} lg={spanMap["quickActions"]} xl={spanMap["quickActions"]}>
+                  <Col xs={24} md={spanMap["quickActions"] === 8 ? 12 : spanMap["quickActions"]} lg={spanMap["quickActions"]} xl={spanMap["quickActions"]}>
                     {(() => {
                       const accentQA = "#10B981";
                       const quickActions = [
@@ -2153,7 +2155,7 @@ function DashboardContent() {
                           title: "Create Ticket",
                           desc: "Log a new task or issue",
                           accent: "#3B82F6",
-                          onClick: () => router.push("/tickets/create"),
+                          onClick: () => setIsCreateTicketModalOpen(true),
                           shortcut: "T",
                         },
                         {
@@ -2332,7 +2334,7 @@ function DashboardContent() {
                   )}
 
                   {isCardSalarySlipVisible && (
-                    <Col xs={24} md={spanMap["salarySlip"]} lg={spanMap["salarySlip"]} xl={spanMap["salarySlip"]}>
+                    <Col xs={24} md={spanMap["salarySlip"] === 8 ? 12 : spanMap["salarySlip"]} lg={spanMap["salarySlip"]} xl={spanMap["salarySlip"]}>
                       <Card
                         style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
                         styles={{
@@ -2347,7 +2349,7 @@ function DashboardContent() {
 
                   {/* My Tickets Stats */}
                   {isMyTicketsVisible && (
-                  <Col xs={24} md={spanMap["tickets"]} lg={spanMap["tickets"]} xl={spanMap["tickets"]}>
+                  <Col xs={24} md={spanMap["tickets"] === 8 ? 12 : spanMap["tickets"]} lg={spanMap["tickets"]} xl={spanMap["tickets"]}>
                     {(() => {
                       const segments = [
                         { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
@@ -2468,7 +2470,7 @@ function DashboardContent() {
 
                   {/* Recent Tickets */}
                   {isRecentTicketsVisible && (
-                  <Col xs={24} md={spanMap["recentTickets"]} lg={spanMap["recentTickets"]} xl={spanMap["recentTickets"]}>
+                  <Col xs={24} md={spanMap["recentTickets"] === 8 ? 12 : spanMap["recentTickets"]} lg={spanMap["recentTickets"]} xl={spanMap["recentTickets"]}>
                     {(() => {
                       const accent = "#3B82F6";
                       const testingCount = recentTickets.filter((t: any) => {
@@ -3725,13 +3727,13 @@ function DashboardContent() {
                                                   padding: "2px 8px",
                                                   borderRadius: 999,
                                                   background: live
-                                                    ? "#ECFDF5"
+                                                    ? token.colorSuccessBg
                                                     : "rgba(79,70,229,0.10)",
                                                   border: live
-                                                    ? "1px solid #A7F3D0"
+                                                    ? `1px solid ${token.colorSuccessBorder}`
                                                     : "1px solid rgba(79,70,229,0.25)",
                                                   color: live
-                                                    ? "#047857"
+                                                    ? token.colorSuccessText
                                                     : "#3B82F6",
                                                   fontSize: 9,
                                                   fontWeight: 700,
@@ -5534,6 +5536,11 @@ function DashboardContent() {
           onClose={() => setSelectedTicketId(null)}
           ticketIds={recentTickets.map((t: any) => t.id)}
           onNavigate={(id) => setSelectedTicketId(id)}
+        />
+        <ManualCreateTicketModal
+          open={isCreateTicketModalOpen}
+          onClose={() => setIsCreateTicketModalOpen(false)}
+          projectId=""
         />
       </div>
 

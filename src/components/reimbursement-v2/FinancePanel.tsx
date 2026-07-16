@@ -113,13 +113,96 @@ export default function FinancePanel() {
         ]}
       />
 
-      <Modal open={!!target} title={target?.label} onCancel={() => setTarget(null)} onOk={confirmPay} confirmLoading={busy} okText="Mark paid">
-        <Form form={form} layout="vertical">
-          <Form.Item name="paymentReference" label="Payment reference" rules={[{ required: true, message: 'Reference required' }]}>
-            <Input placeholder="e.g. NEFT-2024-00123" />
-          </Form.Item>
-          <Form.Item name="remarks" label="Remarks"><Input.TextArea rows={2} placeholder="Optional" /></Form.Item>
-        </Form>
+      <Modal
+        open={!!target}
+        onCancel={() => setTarget(null)}
+        title={null}
+        closable={false}
+        footer={null}
+        width={420}
+        styles={{
+          content: {
+            padding: 0,
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden',
+            borderRadius: 12,
+          },
+        }}
+      >
+        <div className="flex flex-col">
+          <div
+            className="px-5 py-4 border-b flex justify-between items-center"
+            style={{
+              borderColor: 'var(--border-color)',
+              background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            }}
+          >
+            <div className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+              {target?.label}
+            </div>
+            <button
+              type="button"
+              onClick={() => setTarget(null)}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span style={{ display: 'inline-block', transform: 'rotate(45deg)', fontSize: 18, lineHeight: 1 }}>+</span>
+            </button>
+          </div>
+
+          <div className="p-5 pb-1">
+            <Form form={form} layout="vertical" requiredMark={false}>
+              <Form.Item 
+                name="paymentReference" 
+                label={<span style={{ color: 'var(--text-secondary)' }}>Payment reference</span>} 
+                rules={[{ required: true, message: 'Reference required' }]}
+              >
+                <Input 
+                  placeholder="e.g. NEFT-2024-00123" 
+                  style={{
+                    background: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }} 
+                />
+              </Form.Item>
+              <Form.Item 
+                name="remarks" 
+                label={<span style={{ color: 'var(--text-secondary)' }}>Remarks</span>}
+              >
+                <Input.TextArea 
+                  rows={3} 
+                  placeholder="Optional" 
+                  style={{
+                    background: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                    boxShadow: 'none',
+                  }}
+                />
+              </Form.Item>
+            </Form>
+          </div>
+
+          <div
+            className="px-5 py-3 border-t flex justify-end gap-2"
+            style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+          >
+            <Button onClick={() => setTarget(null)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={confirmPay}
+              loading={busy}
+              style={{ borderRadius: 8, height: 36 }}
+            >
+              Mark paid
+            </Button>
+          </div>
+        </div>
       </Modal>
       <RmbStyles />
     </div>

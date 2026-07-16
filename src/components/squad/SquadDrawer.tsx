@@ -664,7 +664,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                                 value: m.value,
                                 label: m.label,
                                 description: m.position,
+                                avatarUrl: m.avatarUrl,
                               }))}
+                              showSelectedAvatar
                             />
                           </Form.Item>
                         </Col>
@@ -773,7 +775,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
 
@@ -792,7 +796,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
 
@@ -811,7 +817,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
               </SectionCard>

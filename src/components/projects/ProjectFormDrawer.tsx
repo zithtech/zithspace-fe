@@ -429,6 +429,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       description: member.position,
                       avatarUrl: member.avatarUrl || undefined,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
               </SectionCard>

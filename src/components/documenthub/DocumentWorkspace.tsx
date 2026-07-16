@@ -43,6 +43,7 @@ import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
 import { useAutosaveDocument } from '@/hooks/useAutosaveDocument'
 import { usePermission } from '@/hooks/usePermission'
 import { useActivitySource } from '@/hooks/useActivitySource'
+import ConfirmDialog from '../common/ConfirmDialog'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -78,7 +79,7 @@ function TreeNode({
     onToggleExpand: (id: string) => void
     onAddNode: (parentId: string, type: 'file' | 'folder') => void
     onRenameNode: (id: string, newTitle: string) => void
-    onDeleteDocument: (id: string, type: 'file' | 'folder' | 'section', documentId?: string) => void
+    onDeleteDocument: (id: string, type: 'file' | 'folder' | 'section', documentId?: string, skipConfirm?: boolean) => void
     draggedNodeId: string | null
     dropTargetId: string | 'root' | null
     onDragStartNode: (id: string) => void
@@ -131,16 +132,16 @@ function TreeNode({
     );
 
     const moveChildren = [
-        {
+        ...(item.parentId !== null ? [{
             key: 'move-to-root',
             label: menuLabel('Workspace Root', 'Move to top level', <Folder className="w-4 h-4" />, '#8b5cf6', 'rgba(139,92,246,0.12)'),
             onClick: (e: any) => {
                 e.domEvent.stopPropagation();
                 if (onMoveNode) onMoveNode(item.id, null);
             }
-        },
+        }] : []),
         ...(allFolders || [])
-            .filter((f: any) => f.id !== item.id) // Cannot move into itself
+            .filter((f: any) => f.id !== item.id && f.id !== item.parentId) // Cannot move into itself or its current parent
             .map((f: any) => ({
                 key: `move-to-${f.id}`,
                 label: menuLabel(f.title, 'Folder', <Folder className="w-4 h-4" />, '#3b82f6', 'rgba(59,130,246,0.12)'),
@@ -171,7 +172,6 @@ function TreeNode({
             }
         ] : []),
         ...(canUpdate ? [
-            { type: 'divider' as const },
             {
                 key: 'move-node',
                 label: menuLabel('Move', 'Move to folder', <ArrowRight className="w-4 h-4" />, '#8b5cf6', 'rgba(139,92,246,0.12)'),
@@ -199,12 +199,25 @@ function TreeNode({
             { type: 'divider' as const },
             {
                 key: 'delete-node',
-                label: menuLabel('Delete', 'Move to trash', <Trash className="w-4 h-4" />, '#ef4444', 'rgba(239,68,68,0.12)'),
+                label: (
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <ConfirmDialog
+                            tone="danger"
+                            title={`Delete ${item.type}?`}
+                            description="This action cannot be undone."
+                            confirmText="Delete"
+                            placement="right"
+                            onConfirm={async () => {
+                                await onDeleteDocument(item.id, item.type as 'file' | 'folder' | 'section', item.documentId || undefined, true);
+                            }}
+                        >
+                            <div style={{ margin: '-5px -12px', padding: '5px 12px' }}>
+                                {menuLabel('Delete', 'Move to trash', <Trash className="w-4 h-4" />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                            </div>
+                        </ConfirmDialog>
+                    </div>
+                ),
                 danger: true,
-                onClick: (e: any) => {
-                    e.domEvent.stopPropagation();
-                    onDeleteDocument(item.id, item.type as 'file' | 'folder' | 'section', item.documentId || undefined);
-                }
             }
         ] : [])
     ];
@@ -700,8 +713,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 if (nodeId) {
                     initialNode = documentHub.treeNodes.find(n => n.id === nodeId);
                 }
-                
-                if (initialNode && initialNode.documentId) {
+
+                if (initialNode && initialNode.type === 'file' && initialNode.documentId) {
                     setSelectedDoc(initialNode.documentId);
                     setSelectedTreeNodeId(initialNode.id);
                 } else if (initialNode) {
@@ -760,7 +773,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             contentToLoad = Array.isArray(previewVersion.content) ? previewVersion.content : [];
             editor.isEditable = false; // Read-only in preview
             isProgrammaticLoad = true;
-            
+
             if (isSwitchingDoc) {
                 lastLoadedIdRef.current = currentId;
                 lastSavedVersionRef.current = null;
@@ -1429,48 +1442,52 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     };
 
-    const handleDeleteDocument = async (id: string, type: 'file' | 'folder' | 'section', docId?: string) => {
+    const handleDeleteDocument = async (id: string, type: 'file' | 'folder' | 'section', docId?: string, skipConfirm: boolean = false) => {
         // For now only files (documents) deleting are implemented in backend fully as described
         // Folders are just nodes, but documents are separate entities.
         // My implementation of deleteDocument expects a documentId (not treeNodeId).
 
         if (type === 'file' && docId) {
-            modal.confirm({
-                title: 'Delete Document',
-                content: 'Are you sure you want to delete this document?',
-                okText: 'Delete',
-                okType: 'danger',
-                onOk: async () => {
-                    try {
-                        if (docId) {
-                            await DocumentHubService.deleteDocument(docId);
-                            messageApi.success('Document deleted');
-                            // Invalidate document hub to refresh tree (removes deleted node)
-                            const ticketsKey = [...globalDataKeys.tickets, documentId];
-                            const hubKey = [...globalDataKeys.documentHub, documentId];
-                            console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
+            const doDelete = async () => {
+                try {
+                    await DocumentHubService.deleteDocument(docId);
+                    messageApi.success('Document deleted');
+                    // Invalidate document hub to refresh tree (removes deleted node)
+                    const ticketsKey = [...globalDataKeys.tickets, documentId];
+                    const hubKey = [...globalDataKeys.documentHub, documentId];
+                    console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
 
-                            queryClient.invalidateQueries({ queryKey: ticketsKey });
-                            queryClient.refetchQueries({ queryKey: ticketsKey });
-                            queryClient.invalidateQueries({ queryKey: hubKey });
-                            queryClient.refetchQueries({ queryKey: hubKey });
-                            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
+                    queryClient.invalidateQueries({ queryKey: ticketsKey });
+                    queryClient.refetchQueries({ queryKey: ticketsKey });
+                    queryClient.invalidateQueries({ queryKey: hubKey });
+                    queryClient.refetchQueries({ queryKey: hubKey });
+                    queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
 
-                            // Invalidate the individual document cache
-                            queryClient.removeQueries({ queryKey: ['document', docId] });
-                            // Invalidate document history cache
-                            queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
-                            if (selectedDoc === docId) {
-                                setSelectedDoc('api-ref');
-                            }
-                        }
-                    } catch (error: any) {
-                        console.error(error);
-                        const errorMessage = error.response?.data?.error || error.message || 'Failed to delete document';
-                        messageApi.error(errorMessage);
+                    // Invalidate the individual document cache
+                    queryClient.removeQueries({ queryKey: ['document', docId] });
+                    // Invalidate document history cache
+                    queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
+                    if (selectedDoc === docId) {
+                        setSelectedDoc('api-ref');
                     }
+                } catch (error: any) {
+                    console.error(error);
+                    const errorMessage = error.response?.data?.error || error.message || 'Failed to delete document';
+                    messageApi.error(errorMessage);
                 }
-            });
+            };
+
+            if (skipConfirm) {
+                await doDelete();
+            } else {
+                modal.confirm({
+                    title: 'Delete Document',
+                    content: 'Are you sure you want to delete this document?',
+                    okText: 'Delete',
+                    okType: 'danger',
+                    onOk: doDelete
+                });
+            }
         } else if (type === 'folder' || type === 'section') {
             modal.confirm({
                 title: `Delete ${type.charAt(0).toUpperCase() + type.slice(1)}`,
@@ -1947,22 +1964,30 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                         />
                                     </Popover>
                                     {canDeleteDocument && (
-                                        <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
-                                            <Button
-                                                type="text"
-                                                icon={<Trash className="w-4 h-4" />}
-                                                style={{ color: '#ef4444' }}
-                                                onClick={() => {
-                                                    if (selectedNode) {
-                                                        handleDeleteDocument(
-                                                            selectedNode.id,
-                                                            selectedNode.type as any,
-                                                            selectedNode.documentId || undefined
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Tooltip>
+                                        <ConfirmDialog
+                                            tone="danger"
+                                            title={`Delete ${selectedNode?.type || 'item'}?`}
+                                            description="This action cannot be undone."
+                                            confirmText="Delete"
+                                            onConfirm={async () => {
+                                                if (selectedNode) {
+                                                    await handleDeleteDocument(
+                                                        selectedNode.id,
+                                                        selectedNode.type as any,
+                                                        selectedNode.documentId || undefined,
+                                                        true
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
+                                                <Button
+                                                    type="text"
+                                                    icon={<Trash className="w-4 h-4" />}
+                                                    style={{ color: '#ef4444' }}
+                                                />
+                                            </Tooltip>
+                                        </ConfirmDialog>
                                     )}
                                     <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                                 </>

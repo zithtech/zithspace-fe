@@ -176,19 +176,18 @@ export default function UpdateCard({
         >
           {/* Top Section */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 6, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "var(--text-blue-700)", fontWeight: 800, fontSize: 12,
-              background: update.user?.avatarUrl ? "transparent" : "var(--bg-blue-50)",
-              overflow: "hidden"
-            }}>
-              {update.user?.avatarUrl ? (
-                <img src={update.user.avatarUrl} alt={update.user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                update.user?.name.charAt(0).toUpperCase()
-              )}
-            </div>
+            <Avatar 
+              src={update.user?.avatarUrl}
+              shape="square"
+              style={{
+                width: 30, height: 30, borderRadius: 6, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--text-blue-700)", fontWeight: 800, fontSize: 12,
+                background: update.user?.avatarUrl ? "transparent" : "var(--bg-blue-50)",
+              }}
+            >
+              {!update.user?.avatarUrl && update.user?.name.charAt(0).toUpperCase()}
+            </Avatar>
 
             <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 3, flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

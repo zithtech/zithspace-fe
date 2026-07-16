@@ -28,6 +28,7 @@ import {
   KeyOutlined,
   LogoutOutlined,
   CheckCircleFilled,
+  CheckCircleOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
   ApartmentOutlined,
@@ -147,6 +148,7 @@ export default function ProfilePage() {
 
   // Password visibility hint via Form.useWatch
   const newPwd = Form.useWatch("newPassword", passwordForm) || "";
+  const confirmPwd = Form.useWatch("confirmPassword", passwordForm) || "";
   const strength = useMemo(() => passwordStrength(newPwd), [newPwd]);
 
   useEffect(() => {
@@ -618,7 +620,34 @@ export default function ProfilePage() {
                     />
                   </Form.Item>
 
-                  {newPwd && (
+
+                  <Form.Item
+                    name="confirmPassword"
+                    label="Confirm new password"
+                    dependencies={["newPassword"]}
+                    rules={[
+                      { required: true, message: "Required" },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || getFieldValue("newPassword") === value) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error("Passwords do not match"),
+                          );
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input.Password
+                      placeholder="Re-enter new password"
+                      iconRender={(visible) =>
+                        visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
+                      }
+                    />
+                  </Form.Item>
+
+                  {confirmPwd && (
                     <div style={{ marginTop: -8, marginBottom: 16 }}>
                       <div className="pp-strength-bar">
                         {[0, 1, 2, 3, 4].map((i) => (
@@ -651,32 +680,6 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  <Form.Item
-                    name="confirmPassword"
-                    label="Confirm new password"
-                    dependencies={["newPassword"]}
-                    rules={[
-                      { required: true, message: "Required" },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          if (!value || getFieldValue("newPassword") === value) {
-                            return Promise.resolve();
-                          }
-                          return Promise.reject(
-                            new Error("Passwords do not match"),
-                          );
-                        },
-                      }),
-                    ]}
-                  >
-                    <Input.Password
-                      placeholder="Re-enter new password"
-                      iconRender={(visible) =>
-                        visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
-                      }
-                    />
-                  </Form.Item>
-
                   <div style={{ marginTop: 4 }}>
                     <Button
                       type="primary"
@@ -699,23 +702,43 @@ export default function ProfilePage() {
               >
                 <ul className="pp-tips-list">
                   <li>
-                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    {newPwd && newPwd.length >= 12 ? (
+                      <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    ) : (
+                      <CheckCircleOutlined style={{ color: "var(--text-slate-300)", fontSize: 12 }} />
+                    )}
                     Use at least 12 characters
                   </li>
                   <li>
-                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    {newPwd && /[A-Z]/.test(newPwd) && /[a-z]/.test(newPwd) && /[0-9]/.test(newPwd) ? (
+                      <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    ) : (
+                      <CheckCircleOutlined style={{ color: "var(--text-slate-300)", fontSize: 12 }} />
+                    )}
                     Mix uppercase, lowercase, numbers
                   </li>
                   <li>
-                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    {newPwd && /[^A-Za-z0-9]/.test(newPwd) ? (
+                      <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    ) : (
+                      <CheckCircleOutlined style={{ color: "var(--text-slate-300)", fontSize: 12 }} />
+                    )}
                     Add a symbol (e.g. !, @, #)
                   </li>
                   <li>
-                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    {newPwd && newPwd.length > 0 ? (
+                      <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    ) : (
+                      <CheckCircleOutlined style={{ color: "var(--text-slate-300)", fontSize: 12 }} />
+                    )}
                     Avoid reusing passwords
                   </li>
                   <li>
-                    <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    {newPwd && newPwd.length > 0 ? (
+                      <CheckCircleFilled style={{ color: GREEN, fontSize: 12 }} />
+                    ) : (
+                      <CheckCircleOutlined style={{ color: "var(--text-slate-300)", fontSize: 12 }} />
+                    )}
                     Never share with anyone
                   </li>
                 </ul>

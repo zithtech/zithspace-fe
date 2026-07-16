@@ -648,6 +648,7 @@ function InvitesContent() {
                     { required: true, message: 'Work email is required' },
                     { type: 'email', message: 'Enter a valid email address' },
                   ]}
+                  getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
                 >
                   <Input
                     size="large"
@@ -660,6 +661,7 @@ function InvitesContent() {
                   name="personalEmail"
                   label={fieldLabel('Personal email')}
                   rules={[{ type: 'email', message: 'Enter a valid email address' }]}
+                  getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
                 >
                   <Input
                     size="large"
@@ -769,10 +771,10 @@ function InvitesContent() {
                     if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
                   }} />
                 </Form.Item>
-                <Form.Item name="workEmail" label={fieldLabel('Work email')} rules={[{ required: true, message: 'Work email is required' }, { type: 'email', message: 'Enter a valid email address' }]}>
+                <Form.Item name="workEmail" label={fieldLabel('Work email')} rules={[{ required: true, message: 'Work email is required' }, { type: 'email', message: 'Enter a valid email address' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                   <Input size="large" maxLength={160} placeholder="jane.doe@company.com" prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />} />
                 </Form.Item>
-                <Form.Item name="personalEmail" label={fieldLabel('Personal email')} rules={[{ type: 'email', message: 'Enter a valid email address' }]}>
+                <Form.Item name="personalEmail" label={fieldLabel('Personal email')} rules={[{ type: 'email', message: 'Enter a valid email address' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                   <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />} />
                 </Form.Item>
               </SectionCard>

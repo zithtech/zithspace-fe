@@ -1151,7 +1151,7 @@ export default function InvoiceSettingPage() {
 
       {/* CREATE MODE — fixed overlay */}
       {mode === "create" && (
-        <div style={{ position: "fixed", inset: 0, top: 54, zIndex: 50, background: "var(--bg-pure-white)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "var(--bg-pure-white)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div
             className="flex-1 min-h-0 px-8 pt-6 pb-24"
             style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}

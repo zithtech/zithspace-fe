@@ -7,7 +7,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   DatePicker,
   InputNumber,
   message,
@@ -68,6 +67,7 @@ import {
   FieldLabel as FLabel,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1366,67 +1366,77 @@ function CreateMeetingModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={720}
-      c={c}
-      ribbonColor={c.accent}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<Calendar size={20} />}
-      title={isEdit ? "Edit meeting" : "Log a meeting"}
-      subtitle={
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          marginTop: 6,
-          padding: "6px 12px",
-          background: `rgba(59,130,246,0.08)`,
-          border: `1px solid rgba(59,130,246,0.22)`,
-          borderRadius: 8,
-          fontSize: 12,
-          color: c.accentText,
-          lineHeight: 1.5,
-        }}>
-          <Calendar size={12} style={{ flexShrink: 0 }} />
-          Captured for the audit trail · shared with the portal when visibility is set to <strong style={{ marginLeft: 3 }}>Client</strong>
-        </div>
-      }
-      tip={
-        <span>
-          Convert any action item into a <strong>portal ticket</strong> or
-          <strong> change request</strong> after saving — one-click from the
-          meeting detail drawer.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to save">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            disabled={loadingDetail}
-            onClick={() => form.submit()}
-            icon={<Calendar size={14} />}
-          >
-            {isEdit ? "Save changes" : "Save meeting"}
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <Calendar size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">{isEdit ? "Edit meeting" : "Log a meeting"}</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  <Calendar size={12} style={{ flexShrink: 0 }} />
+                  Captured for the audit trail · shared with the portal when visibility is set to <strong style={{ marginLeft: 3 }}>Client</strong>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}` }}>
+              <Lightbulb size={16} className="shrink-0 mt-0.5" style={{ color: c.accentText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.accentText }}>
+                Convert any action item into a <strong>portal ticket</strong> or
+                <strong> change request</strong> after saving — one-click from the
+                meeting detail drawer.
+              </div>
+            </div>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="Meeting basics"
-          description="When it happened, who runs the work, where it was held."
-          icon={<Calendar size={11} />}
-          plain
+          subtitle="When it happened, who runs the work, where it was held."
+          icon={<Calendar size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="title"
-            label={<FLabel c={c}>Title</FLabel>}
+            label="Title"
             rules={[{ required: true, message: "Title is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1436,102 +1446,87 @@ function CreateMeetingModal({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.4fr 1fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="meetingDate"
+            label="Date / time"
+            rules={[{ required: true }]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="meetingDate"
-              label={<FLabel c={c}>Date / time</FLabel>}
-              rules={[{ required: true }]}
-              style={{ marginBottom: 12 }}
-            >
-              <DatePicker
-                showTime
-                style={{ width: "100%" }}
-                format="YYYY-MM-DD HH:mm"
-              />
-            </Form.Item>
-            <Form.Item
-              name="durationMinutes"
-              label={<FLabel c={c} hint="min">Duration</FLabel>}
-              style={{ marginBottom: 12 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={5}
-                max={600}
-                placeholder="60"
-              />
-            </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={<FLabel c={c} hint="optional">Project</FLabel>}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1.4fr 1fr",
-              gap: 10,
-            }}
+            <DatePicker
+              showTime
+              style={{ width: "100%" }}
+              format="YYYY-MM-DD HH:mm"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="durationMinutes"
+            label="Duration (min)"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="location"
-              label={<FLabel c={c}>Location</FLabel>}
-              style={{ marginBottom: 0 }}
-            >
-              <Input placeholder="Zoom · Google Meet · On-site" />
-            </Form.Item>
-            <Form.Item
-              name="recordingUrl"
-              label={<FLabel c={c} hint="optional">Recording URL</FLabel>}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                prefix={<Lightbulb size={13} color={c.textFaint} />}
-                placeholder="https://…"
-              />
-            </Form.Item>
-            <Form.Item
-              name="visibility"
-              label={<FLabel c={c}>Visibility</FLabel>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={[
-                  { value: "client", label: "Visible to client" },
-                  { value: "internal", label: "Internal only" },
-                ]}
-              />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <InputNumber
+              style={{ width: "100%" }}
+              min={5}
+              max={600}
+              placeholder="60"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="projectId"
+            label="Project (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="—"
+              searchPlaceholder="Search projects..."
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.code ? `${p.name} · ${p.code}` : p.name,
+              }))}
+            />
+          </Form.Item>
 
-        <ModalSection
-          c={c}
+          <Form.Item
+            name="location"
+            label="Location"
+            style={{ marginBottom: 12 }}
+          >
+            <Input placeholder="Zoom · Google Meet · On-site" />
+          </Form.Item>
+          <Form.Item
+            name="recordingUrl"
+            label="Recording URL (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <Input
+              prefix={<Lightbulb size={13} color={c.textFaint} />}
+              placeholder="https://…"
+            />
+          </Form.Item>
+          <Form.Item
+            name="visibility"
+            label="Visibility"
+            style={{ marginBottom: 0 }}
+          >
+            <SearchableDropdown
+              options={[
+                { value: "client", label: "Visible to client" },
+                { value: "internal", label: "Internal only" },
+              ]}
+            />
+          </Form.Item>
+        </SectionCard>
+
+        <SectionCard
           title="Summary & status"
-          description="Plain text — the rich text view comes later via the detail drawer."
-          icon={<Lightbulb size={11} />}
-          plain
+          subtitle="Plain text — the rich text view comes later via the detail drawer."
+          icon={<Lightbulb size={14} />}
+          step="STEP 2"
         >
           <Form.Item
             name="summary"
-            label={<FLabel c={c}>Summary</FLabel>}
+            label="Summary"
             style={{ marginBottom: 12 }}
           >
             <Input.TextArea rows={3} placeholder="What was discussed…" />
@@ -1539,23 +1534,23 @@ function CreateMeetingModal({
 
           <Form.Item
             name="status"
-            label={<FLabel c={c}>Status</FLabel>}
+            label="Status"
             style={{ marginBottom: 0 }}
           >
-            <Select
+            <SearchableDropdown
               options={[
                 { value: "published", label: "Published — visible to client" },
                 { value: "draft", label: "Draft — not shown yet" },
               ]}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Participants & outcomes"
-          description="Add attendees, decisions, and action items. Action items become trackable in the portal."
-          icon={<Users size={11} />}
+          subtitle="Add attendees, decisions, and action items. Action items become trackable in the portal."
+          icon={<Users size={14} />}
+          step="STEP 3"
         >
           {/* Attendees editor */}
           <RepeaterSection<MomAttendee>
@@ -1650,13 +1645,13 @@ function CreateMeetingModal({
               </div>
             )}
           />
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Attachments"
-          description="Upload a file or paste a DocumentHub / Figma / Drive link. Clients open both inside the portal."
-          icon={<Paperclip size={11} />}
+          subtitle="Upload a file or paste a DocumentHub / Figma / Drive link. Clients open both inside the portal."
+          icon={<Paperclip size={14} />}
+          step="STEP 4"
         >
           <AttachmentsEditor
             c={c}
@@ -1664,9 +1659,29 @@ function CreateMeetingModal({
             onChange={setAttachments}
             messageApi={messageApi}
           />
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        disabled={loadingDetail}
+        onClick={() => form.submit()}
+        icon={<Calendar size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        {isEdit ? "Save changes" : "Save meeting"}
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 
@@ -1706,8 +1721,7 @@ function AttendeeRow({
   const party = item.party || "client";
 
   const partySelect = (
-    <Select
-      size="small"
+    <SearchableDropdown
       value={party}
       onChange={(v) => {
         // Reset linked identity + cached display fields when switching tiers,
@@ -1770,16 +1784,10 @@ function AttendeeRow({
           gap: 8,
         }}
       >
-        <Select
-          size="small"
-          showSearch
-          allowClear
+        <SearchableDropdown
+          searchPlaceholder="Pick a staff member…"
           placeholder="Pick a staff member…"
-          // Identity lives on staffUserId; surface it as the controlled value.
           value={item.staffUserId || undefined}
-          filterOption={(input, option: any) =>
-            (option?.search || "").toLowerCase().includes(input.toLowerCase())
-          }
           onChange={(uid) => {
             if (!uid) {
               update({ staffUserId: null, name: "", email: null, role: null });
@@ -1787,35 +1795,16 @@ function AttendeeRow({
             }
             const picked = staffOptions.find((u) => u.id === uid);
             update({
-              staffUserId: uid,
+              staffUserId: uid as string,
               name: picked?.name || "",
               email: picked?.work_email || null,
             });
           }}
           options={staffOptions.map((u) => ({
             value: u.id,
-            search: `${u.name} ${u.work_email || ""}`,
-            label: (
-              <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500 }}>{u.name}</span>
-                {u.work_email && (
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>{u.work_email}</span>
-                )}
-              </span>
-            ),
+            label: u.name,
+            description: u.work_email || undefined,
           }))}
-          notFoundContent={
-            <div
-              style={{
-                padding: 8,
-                fontSize: 11.5,
-                color: c.textSubtle,
-                textAlign: "center",
-              }}
-            >
-              No staff users available.
-            </div>
-          }
         />
         <Input
           size="small"
@@ -1844,18 +1833,10 @@ function AttendeeRow({
         gap: 8,
       }}
     >
-      <Select
-        size="small"
-        showSearch
-        allowClear
+      <SearchableDropdown
+        searchPlaceholder="Pick a client contact…"
         placeholder="Pick a client contact…"
-        // Contacts don't have a dedicated FK on the attendee row; we identify
-        // the chosen contact in the picker by name match (sufficient for the
-        // controlled value here — the actual identity is denormalized).
         value={item.name || undefined}
-        filterOption={(input, option: any) =>
-          (option?.search || "").toLowerCase().includes(input.toLowerCase())
-        }
         onChange={(name) => {
           if (!name) {
             update({ name: "", email: null, role: null });
@@ -1865,7 +1846,7 @@ function AttendeeRow({
             (k) => `${k.firstName || ""} ${k.lastName || ""}`.trim() === name,
           );
           update({
-            name,
+            name: name as string,
             email: picked?.officialEmail || null,
             role: picked?.designation || null,
           });
@@ -1877,30 +1858,10 @@ function AttendeeRow({
             "Contact";
           return {
             value: fullName,
-            search: `${fullName} ${k.officialEmail || ""} ${k.designation || ""}`,
-            label: (
-              <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500 }}>{fullName}</span>
-                <span style={{ fontSize: 11, opacity: 0.7 }}>
-                  {k.officialEmail}
-                  {k.designation ? ` · ${k.designation}` : ""}
-                </span>
-              </span>
-            ),
+            label: fullName,
+            description: `${k.officialEmail || ""}${k.designation ? ` · ${k.designation}` : ""}`
           };
         })}
-        notFoundContent={
-          <div
-            style={{
-              padding: 8,
-              fontSize: 11.5,
-              color: c.textSubtle,
-              textAlign: "center",
-            }}
-          >
-            No contacts on this client. Add them in the Contacts tab first.
-          </div>
-        }
       />
       <Input
         size="small"
@@ -2913,10 +2874,9 @@ function MomDetailDrawer({
                           <div style={{ display: "flex", gap: 6 }}>
                             {!isConverted && (
                               <>
-                                <Select
-                                  size="small"
+                                <SearchableDropdown
                                   value={ai.status || "open"}
-                                  style={{ width: 130 }}
+                                  width={130}
                                   onChange={(v) =>
                                     handleStatusChange(ai.id!, v as any)
                                   }

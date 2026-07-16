@@ -62,6 +62,7 @@ import {
   UnorderedListOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
+  CopyOutlined,
   CaretDownOutlined,
   ClockCircleOutlined,
   CloseOutlined,
@@ -1436,11 +1437,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               background: 'var(--bg-blue-50)',
               borderRadius: '4px',
               border: '1px solid var(--border-blue-200)',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
-            className="hover:opacity-80 transition-opacity"
+            className="hover:opacity-80 transition-opacity pp-ticket-tag-group"
           >
             {text}
+            <CopyOutlined
+              style={{ fontSize: 10, opacity: 0.6 }}
+              className="hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(text);
+                message.success("Ticket ID copied!");
+              }}
+            />
           </span>
         ),
       },

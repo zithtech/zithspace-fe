@@ -380,7 +380,7 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
           <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
+        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
           <Input placeholder="priya@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item
@@ -511,7 +511,7 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
           <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]}>
+            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
               <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
             </Form.Item>
             <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
@@ -584,7 +584,7 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
                         <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
                   
-                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]}>
+                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                         <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
                       <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
@@ -4319,7 +4319,7 @@ export default function LeadsPage() {
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
                         <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
+                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                         <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                       <Form.Item

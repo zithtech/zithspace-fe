@@ -30,6 +30,7 @@ import {
   Check,
   History,
 } from "lucide-react";
+import TiptapEditor from "@/components/common/TiptapEditor";
 
 const { Text } = Typography;
 import { useMembersSelect } from "@/hooks/useMembersSelect";
@@ -108,9 +109,30 @@ export default function CreateBugDrawer({
   const [enhancingDescription, setEnhancingDescription] = useState(false);
   const [comments, setComments] = useState("");
   const [previewAttachment, setPreviewAttachment] = useState<BugAttachment | null>(null);
+  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  useEffect(() => {
+    if (!open) return;
+    let observer: ResizeObserver | null = null;
+    const timer = setTimeout(() => {
+      const trigger = document.querySelector('.customer-drawer-form .sd-trigger');
+      if (trigger) {
+        observer = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            setDropdownWidth(entry.contentRect.width);
+          }
+        });
+        observer.observe(trigger);
+        setDropdownWidth((trigger as HTMLElement).offsetWidth);
+      }
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -395,16 +417,16 @@ export default function CreateBugDrawer({
         extra={
           <Space size={8}>
             {editingBug && canReadActivityLog && (
-              <Button onClick={() => setHistoryOpen(true)} style={{ borderRadius: 0 }} icon={<HistoryOutlined />}>History</Button>
+              <Button onClick={() => setHistoryOpen(true)} style={{ borderRadius: 8 }} icon={<HistoryOutlined />}>History</Button>
             )}
-            <Button onClick={onClose} style={{ borderRadius: 0, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
+            <Button onClick={onClose} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
             <Button
               type="primary"
               loading={submitting}
               onClick={handleSubmit}
               icon={<CheckCircleOutlined style={{ fontSize: 13 }} />}
               style={{
-                borderRadius: 0,
+                borderRadius: 8,
                 fontSize: 12,
                 fontWeight: 700,
                 background: '#2563eb',
@@ -454,6 +476,15 @@ export default function CreateBugDrawer({
             )}
 
             <style>{drawerFormStyles}</style>
+            <style>{`
+              .sd-overlay-popover .sd-list::-webkit-scrollbar {
+                display: none;
+              }
+              .sd-overlay-popover .sd-list {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            `}</style>
             <Form
               layout="horizontal"
               labelCol={{ span: 8 }}
@@ -463,7 +494,7 @@ export default function CreateBugDrawer({
               className="lead-drawer-form customer-drawer-form"
             >
               <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="General Details" subtitle="Core bug information">
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Bug Title</Text>}>
+                <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Bug Title</Text>}>
                   <Input
                     placeholder="Bug title (optional — AI can refine)"
                     value={title}
@@ -471,27 +502,30 @@ export default function CreateBugDrawer({
                     maxLength={140}
                   />
                 </Form.Item>
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Description</Text>} required validateStatus={description.trim().length === 0 && descriptionTouched ? 'error' : ''} help={description.trim().length === 0 && descriptionTouched ? 'Description is required' : ''}>
-                  <Input.TextArea
-                    rows={4}
-                    placeholder="What went wrong? Steps to reproduce?"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    onBlur={() => setDescriptionTouched(true)}
-                  />
-                  <div style={{ marginTop: 8, textAlign: 'right' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
                     <Button
                       type="dashed"
                       size="small"
+                      style={{ borderRadius: 8 }}
                       icon={enhancingDescription ? <LoadingOutlined /> : <FormatPainterOutlined />}
-                      onClick={enhanceDescription}
+                      onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
                       disabled={enhancingDescription || !description.trim()}
                     >
                       {enhancingDescription ? "Polishing…" : "Enhance grammar"}
                     </Button>
                   </div>
-                </Form.Item>
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Comments</Text>}>
+                  <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Description</Text>} required validateStatus={description.trim().length === 0 && descriptionTouched ? 'error' : ''} help={description.trim().length === 0 && descriptionTouched ? 'Description is required' : ''}>
+                    <div onBlur={() => setDescriptionTouched(true)}>
+                      <TiptapEditor
+                        content={description}
+                        onChange={(html) => setDescription(html)}
+                        placeholder="What went wrong? Steps to reproduce?"
+                      />
+                    </div>
+                  </Form.Item>
+                </div>
+                <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Comments</Text>}>
                   <Input.TextArea
                     rows={2}
                     placeholder="Any additional internal comments or notes…"
@@ -503,29 +537,29 @@ export default function CreateBugDrawer({
 
               <SectionCard step="STEP 2" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Classification" subtitle="Severity and module">
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Severity</Text>} required validateStatus={!severity && descriptionTouched ? 'error' : ''}>
-                  <Select
-                    allowClear
+                  <SearchableDropdown
                     placeholder="Select severity"
+                    itemNoun="severities"
                     value={severity}
                     onChange={(v) => setSeverity(v)}
                     options={(severityOptions || []).filter((s) => s.isActive).map((s) => ({
                       value: s.key,
-                      label: (
-                        <Space>
-                          {s.color && <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />}
-                          {s.label}
-                        </Space>
-                      )
+                      label: s.label,
+                      badge: s.color ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} /> : undefined
                     }))}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
                 </Form.Item>
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Type</Text>} required validateStatus={!bugType && descriptionTouched ? 'error' : ''}>
-                  <Select
-                    allowClear
+                  <SearchableDropdown
                     placeholder="Select type"
+                    itemNoun="types"
                     value={bugType}
                     onChange={(v) => setBugType(v)}
                     options={(typeOptions || []).filter((t) => t.isActive).map((t) => ({ value: t.key, label: t.label }))}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
                 </Form.Item>
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Module</Text>}>
@@ -556,11 +590,12 @@ export default function CreateBugDrawer({
                       avatarUrl: m.avatarUrl 
                     }))}
                     showSelectedAvatar
-                    style={{ width: "100%", height: 32 }}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
                 </Form.Item>
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Tags</Text>}>
-                  <div style={{ border: '1px solid #d9d9d9', padding: '4px 8px', minHeight: 32, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: '4px 8px', minHeight: 32, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {tags.map((t) => (
                       <Tag key={t} closable onClose={() => removeTag(t)} style={{ margin: 0 }}>#{t}</Tag>
                     ))}
@@ -588,12 +623,12 @@ export default function CreateBugDrawer({
 
               <SectionCard step="STEP 4" icon={<PaperClipOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Attachments & Links" subtitle="Files and external resources">
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Files</Text>}>
-                  <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} style={{ marginBottom: 12 }}>Upload Files</Button>
+                  <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} style={{ marginBottom: 12, borderRadius: 8 }}>Upload Files</Button>
                   <input
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    hidden
+                    style={{ display: 'none' }}
                     accept="image/*,video/*,application/pdf,.log,.txt"
                     onChange={(e) => {
                       if (e.target.files) addFiles(e.target.files);
@@ -602,7 +637,7 @@ export default function CreateBugDrawer({
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {attachments.map((a, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)' }}>
                         <Space>
                           <FileTextOutlined style={{ color: 'var(--text-slate-400)' }} />
                           <Text style={{ fontSize: 12 }}>{a.fileName}</Text>

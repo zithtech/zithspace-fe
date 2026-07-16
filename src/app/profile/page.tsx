@@ -497,6 +497,7 @@ export default function ProfilePage() {
                       name="personalEmail"
                       label="Personal email"
                       rules={[{ type: "email", message: "Enter valid email" }]}
+                      getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
                     >
                       <Input
                         placeholder="you@personal.com"

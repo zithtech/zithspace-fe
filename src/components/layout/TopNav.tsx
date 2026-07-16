@@ -87,7 +87,7 @@ export default function TopNav({
   const pathname = usePathname();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
   const {
     canReadMail,
     canReadCalendar,
@@ -255,6 +255,14 @@ export default function TopNav({
   // lets us hide HRMS/FINANCE chips from normal users while their routes remain
   // reachable via My Hub shortcuts.
   const visibleModules = NAVIGATION_CONFIG.filter(module => {
+    // 1. If subscription is required for this module, check it FIRST
+    if (module.requiredSubscriptionFeature) {
+      if (!hasAnySubscriptionFeature(...module.requiredSubscriptionFeature)) {
+        return false;
+      }
+    }
+
+    // 2. Then check RBAC permissions
     if (module.requiredChipAnyPermission) return hasAnyPermission(...module.requiredChipAnyPermission);
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
     if (module.requiredPermission) return hasPermission(module.requiredPermission);
@@ -264,6 +272,12 @@ export default function TopNav({
 
   const getFirstAllowedPath = (items: NavItem[]): string | undefined => {
     for (const item of items) {
+      // 1. Subscription Check
+      if (item.requiredSubscriptionFeature && !hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)) {
+        continue;
+      }
+
+      // 2. RBAC Check
       let hasItemPermission = true;
       if (item.requiredPermission) {
         hasItemPermission = hasPermission(item.requiredPermission);

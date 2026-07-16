@@ -62,6 +62,7 @@ interface User {
   createdAt?: string;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
+  subscriptionFeatures?: string[];
 }
 
 interface AuthContextType {
@@ -81,6 +82,12 @@ interface AuthContextType {
   hasAllPermissions: (...permissions: string[]) => boolean;
   /** Returns true if the user has ANY of the given permissions */
   hasAnyPermission: (...permissions: string[]) => boolean;
+  /** Returns true if the tenant has the given subscription feature */
+  hasSubscriptionFeature: (feature: string) => boolean;
+  /** Returns true if the tenant has ANY of the given subscription features */
+  hasAnySubscriptionFeature: (...features: string[]) => boolean;
+  /** Returns true if there is at least one key that satisfies BOTH RBAC and Subscription */
+  hasAccessToAny: (...keys: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +155,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         createdAt: (response.user as any).createdAt,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
+        subscriptionFeatures: (response.user as any).subscriptionFeatures ?? [],
       };
 
       setUser(userData);
@@ -348,6 +356,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,
         createdAt: userProfile.createdAt,
         permissions: (userProfile as any).permissions ?? [],
+        subscriptionFeatures: (userProfile as any).subscriptionFeatures ?? [],
       };
 
       setUser(userData);
@@ -408,6 +417,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return permissions.some((p) => user.permissions.includes(p));
   };
 
+  const hasSubscriptionFeature = (feature: string): boolean => {
+    if (!user || !user.subscriptionFeatures) return true;
+    return user.subscriptionFeatures.includes(feature);
+  };
+
+  const hasAnySubscriptionFeature = (...features: string[]): boolean => {
+    if (!user || !user.subscriptionFeatures) return true;
+    // Hierarchical check: if the user requires 'my_hub', any feature starting with 'my_hub' satisfies it.
+    return features.some(k => 
+      user.subscriptionFeatures!.some(feature => feature.startsWith(k))
+    );
+  };
+
+  const hasAccessToAny = (...keys: string[]): boolean => {
+    if (!user) return false;
+    return keys.some(k => 
+      user.permissions.includes(k) && 
+      (!user.subscriptionFeatures || user.subscriptionFeatures.includes(k))
+    );
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -422,6 +452,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     hasPermission,
     hasAllPermissions,
     hasAnyPermission,
+    hasSubscriptionFeature,
+    hasAnySubscriptionFeature,
+    hasAccessToAny,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

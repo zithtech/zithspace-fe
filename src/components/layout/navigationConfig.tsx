@@ -116,6 +116,7 @@ export interface NavItem {
   requiredPermission?: string;
   /** Show if user has ANY of these permissions. */
   requiredAnyPermission?: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export interface ModuleConfig {
@@ -137,6 +138,7 @@ export interface ModuleConfig {
    * visibility; if absent, chip visibility falls back to requiredAnyPermission.
    */
   requiredChipAnyPermission?: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 /** Pages that aren't part of a specific module group but still need protection. */
@@ -166,6 +168,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: I(LayoutGrid),
     pathPrefixes: ["/my-hub"],
     defaultPath: "/my-hub",
+    requiredSubscriptionFeature: ["my_hub"],
     // Gated by the dedicated My Hub permissions (one per page). These are
     // auto-granted to every role, so My Hub is visible to everyone by default.
     requiredAnyPermission: [
@@ -184,6 +187,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Overview",
         icon: I(LayoutGrid),
         path: "/my-hub",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
       },
       {
@@ -191,6 +195,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Profile",
         icon: I(CircleUser),
         path: "/my-hub/profile",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_PROFILE_READ,
       },
       {
@@ -198,6 +203,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Apply Leave",
         icon: I(CalendarPlus),
         path: "/my-hub/apply-leave",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_APPLY_LEAVE_READ,
       },
       {
@@ -205,6 +211,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Attendance",
         icon: I(CalendarCheck),
         path: "/my-hub/attendance",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_ATTENDANCE_READ,
       },
       {
@@ -214,6 +221,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Escalations",
         icon: I(Siren),
         path: "/my-hub/escalations",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_ESCALATION_READ,
       },
       {
@@ -221,6 +229,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Performance Report",
         icon: I(TrendingUp),
         path: "/my-hub/performance",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_PERFORMANCE_READ,
       },
       {
@@ -228,6 +237,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Payslips",
         icon: I(Banknote),
         path: "/my-hub/payslips",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
       },
       {
@@ -235,6 +245,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Claims",
         icon: I(ReceiptText),
         path: "/my-hub/claims",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
       },
     ],
@@ -245,6 +256,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: I(Home),
     pathPrefixes: ["/dashboard", "/integrations"],
     defaultPath: "/dashboard",
+    requiredSubscriptionFeature: ["home"],
     requiredAnyPermission: [
       Permissions.DASHBOARD_READ,
       Permissions.INTEGRATION_READ,
@@ -255,6 +267,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard",
         icon: I(LayoutDashboard),
         path: "/dashboard",
+        requiredSubscriptionFeature: ["home_home_general"],
         requiredPermission: Permissions.DASHBOARD_READ,
       },
       {
@@ -262,6 +275,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Integrations",
         icon: I(Plug2),
         path: "/integrations",
+        requiredSubscriptionFeature: ["home_home_general"],
         requiredPermission: Permissions.INTEGRATION_READ,
       },
       {
@@ -269,6 +283,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard Settings",
         icon: I(Settings2),
         path: "/dashboard/settings",
+        requiredSubscriptionFeature: ["home_home_general"],
         requiredPermission: Permissions.SETTINGS_UPDATE,
       },
     ],
@@ -279,6 +294,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: I(Briefcase),
     pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking"],
     defaultPath: "/tickets/select",
+    requiredSubscriptionFeature: ["work"],
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
       Permissions.PROJECT_TRASH_READ,
@@ -309,9 +325,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     ],
     items: [
       {
-        key: "projects-group",
+        key: "tickets-group",
         label: "Tickets",
         icon: I(Ticket),
+        requiredSubscriptionFeature: ["work_tickets"],
         requiredAnyPermission: [
           Permissions.PROJECT_READ,
           Permissions.TICKET_READ,
@@ -392,6 +409,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "projects-manage-group",
         label: "Projects",
         icon: I(FolderKanban),
+        requiredSubscriptionFeature: ["work_projects"],
         children: [
           {
             key: "/projects/manage",
@@ -453,6 +471,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "time-tracking",
         label: "Time Tracking",
         icon: I(Timer),
+        requiredSubscriptionFeature: ["work_time_tracking", "work_timesheet"],
         requiredAnyPermission: [
           Permissions.TIME_TRACKING_READ,
           Permissions.TIME_TRACKING_TEAM_READ,
@@ -478,6 +497,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: I(NotebookPen),
+        requiredSubscriptionFeature: ["work_daily_updates"],
         requiredAnyPermission: [
           Permissions.DAILY_UPDATE_READ,
           Permissions.DAILY_UPDATE_CREATE,
@@ -504,12 +524,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Document Hub",
         icon: I(FolderOpen),
         path: "/documenthub",
+        requiredSubscriptionFeature: ["work_document_hub"],
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
         key: "proposals-group",
         label: "Proposals",
         icon: I(FileSignature),
+        requiredSubscriptionFeature: ["work_proposals"],
         requiredPermission: Permissions.PROPOSAL_READ,
         children: [
           {
@@ -554,12 +576,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Squads",
         icon: I(Users2),
         path: "/squad",
+        requiredSubscriptionFeature: ["work_squad_management"],
         requiredPermission: Permissions.SQUAD_READ,
       },
       {
         key: "escalations-group",
         label: "Escalations",
         icon: I(Siren),
+        requiredSubscriptionFeature: ["work_escalations"],
         requiredAnyPermission: [
           Permissions.ESCALATION_READ,
           Permissions.ESCALATION_CREATE,
@@ -607,6 +631,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),
+        requiredSubscriptionFeature: ["work_lead_management"],
         requiredAnyPermission: [
           Permissions.LEAD_READ,
           Permissions.LEAD_SETTING_READ,
@@ -641,6 +666,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "BidIq",
         icon: I(Zap),
         path: "/bidiq",
+        requiredSubscriptionFeature: ["work_bidiq"],
         requiredPermission: Permissions.BIDIQ_READ,
       },
     ],
@@ -660,6 +686,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/org-structure",
     ],
     defaultPath: "/clients-v2",
+    requiredSubscriptionFeature: ["admin"],
     requiredAnyPermission: [
       Permissions.CLIENT_READ,
       Permissions.SETTINGS_READ,
@@ -674,6 +701,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Clients V2",
         icon: I(Building2),
         path: "/clients-v2",
+        requiredSubscriptionFeature: ["admin_clients_v2"],
         requiredPermission: Permissions.CLIENT_READ,
       },
       {
@@ -681,6 +709,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "General Settings",
         icon: I(Settings),
         path: "/settings",
+        requiredSubscriptionFeature: ["admin_settings"],
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {
@@ -729,6 +758,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "members-group",
         label: "Members",
         icon: I(Users),
+        requiredSubscriptionFeature: ["admin_members"],
         requiredAnyPermission: [
           Permissions.USER_READ,
           Permissions.USER_TRASH_READ,
@@ -755,6 +785,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Roles & Permissions",
         icon: I(KeyRound),
         path: "/roles",
+        requiredSubscriptionFeature: ["admin_roles"],
         requiredPermission: Permissions.ROLE_READ,
       },
       {
@@ -765,6 +796,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Network),
         label: "Org Structure",
         path: "/org-structure/overview",
+        requiredSubscriptionFeature: ["admin_org_structure"],
         requiredPermission: Permissions.ORG_READ,
       },
     ],
@@ -797,6 +829,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/opening-management",
     ],
     defaultPath: "/profile",
+    requiredSubscriptionFeature: ["hrms"],
     requiredAnyPermission: [
       Permissions.PROFILE_READ,
       Permissions.ATTENDANCE_READ,
@@ -827,6 +860,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Profile",
         icon: I(CircleUser),
         path: "/profile",
+        requiredSubscriptionFeature: ["hrms_profile"],
         requiredPermission: Permissions.PROFILE_READ,
       },
       {
@@ -834,6 +868,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Profile 2.0",
         icon: I(IdCard),
         path: "/new-profile",
+        requiredSubscriptionFeature: ["hrms_new_profile"],
         requiredPermission: Permissions.PROFILE_READ,
       },
       {
@@ -841,6 +876,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Leaves",
         icon: I(CalendarDays),
         path: "/leaves-v2",
+        requiredSubscriptionFeature: ["hrms_leaves_v2"],
         requiredAnyPermission: [
           Permissions.LEAVE_READ,
           Permissions.LEAVE_MANAGE,
@@ -851,6 +887,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Attendance",
         icon: I(CalendarCheck),
         path: "/attendance",
+        requiredSubscriptionFeature: ["hrms_attendance"],
         requiredAnyPermission: [
           Permissions.ATTENDANCE_READ,
           Permissions.ATTENDANCE_DASHBOARD_READ,
@@ -866,6 +903,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(UserPlus),
         label: "Onboarding",
         path: "/onboarding/onboarded",
+        requiredSubscriptionFeature: ["hrms_onboarding"],
         requiredAnyPermission: [
           Permissions.ONBOARDING_READ,
           Permissions.ONBOARDING_CREATE,
@@ -878,6 +916,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "performance-report",
         icon: I(TrendingUp),
         label: "Performance Report",
+        requiredSubscriptionFeature: ["hrms_performance"],
         requiredAnyPermission: [
           Permissions.PERFORMANCE_REPORT_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_READ,
@@ -919,6 +958,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "employee-exit",
         icon: I(LogOut),
         label: "Employee Exit",
+        requiredSubscriptionFeature: ["hrms_employee_exit"],
         requiredPermission: Permissions.EXIT_READ,
         children: [
           {
@@ -942,6 +982,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Opening Management",
         icon: I(Megaphone),
         path: "/opening-management",
+        requiredSubscriptionFeature: ["hrms_opening_management"],
         requiredPermission: Permissions.OPENING_READ,
       },
     ],
@@ -952,6 +993,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: I(Wallet),
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts"],
     defaultPath: "/accounts/accounts-dashboard",
+    requiredSubscriptionFeature: ["finance"],
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,
       Permissions.INVOICE_READ,
@@ -987,6 +1029,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "/accounts",
         label: "Accounts",
         icon: I(Landmark),
+        requiredSubscriptionFeature: ["finance_accounts"],
         requiredPermission: Permissions.ACCOUNT_READ,
         children: [
           {
@@ -1010,6 +1053,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "invoice",
         label: "Invoice",
         icon: I(Receipt),
+        requiredSubscriptionFeature: ["finance_invoice"],
         requiredAnyPermission: [
           Permissions.INVOICE_READ,
           Permissions.INVOICE_DASHBOARD_READ,
@@ -1093,6 +1137,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Reimbursement 2.0",
         icon: I(HandCoins),
         path: "/reimbursement-v2",
+        requiredSubscriptionFeature: ["finance_reimbursement_v2"],
         requiredAnyPermission: [
           Permissions.REIMBURSEMENT_READ,
           Permissions.REIMBURSEMENT_CONFIG_READ,
@@ -1107,6 +1152,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Payroll 2.0",
         icon: I(Banknote),
         path: "/payroll-v2",
+        requiredSubscriptionFeature: ["finance_payroll_v2"],
         requiredAnyPermission: [
           Permissions.PAYROLL_SETTING_READ,
           Permissions.PAYROLL_READ,

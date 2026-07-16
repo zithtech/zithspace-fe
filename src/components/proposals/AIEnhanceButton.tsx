@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Modal, Input, message, Typography, Tag } from 'antd';
 import { Sparkles, Wand2, ArrowRight, Check, Zap } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
+import { useAuth } from '@/context/AuthContext';
 
 const { Text } = Typography;
 
@@ -32,6 +33,11 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [refinedData, setRefinedData] = useState<any>(null);
+
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_proposals_builder_prime');
+  
+  if (!hasPrime) return null;
 
   const isEmptyOriginal = !originalData ||
     (typeof originalData === 'object' && Object.values(originalData).every((v) => !v));

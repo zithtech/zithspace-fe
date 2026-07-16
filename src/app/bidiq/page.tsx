@@ -113,6 +113,10 @@ export default function BidIqPage() {
   const [tablePageSize, setTablePageSize] = useState(20);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_grid');
+
+
   // Route guard — gated by the dedicated BidIq read permission.
   useEffect(() => {
     if (!isLoading && user && !canReadBidiq) {
@@ -482,13 +486,15 @@ export default function BidIqPage() {
                     >
                       <ListIcon size={15} />
                     </button>
-                    <button
-                      className={layout === "grid" ? "is-active" : ""}
-                      onClick={() => setLayout("grid")}
-                      title="Grid view"
-                    >
-                      <LayoutGrid size={15} />
-                    </button>
+                    {hasGrid && (
+                      <button
+                        className={layout === "grid" ? "is-active" : ""}
+                        onClick={() => setLayout("grid")}
+                        title="Grid view"
+                      >
+                        <LayoutGrid size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -552,7 +558,7 @@ export default function BidIqPage() {
                       rowKey="id"
                       loading={loading}
                       dataSource={paged}
-                      columns={columns as any}
+                      columns={hasPrime ? (columns as any) : (columns.filter(c => c.key !== 'ai_score') as any)}
                       className="biq-table"
                       rowClassName="biq-row"
                       size="middle"
@@ -601,7 +607,7 @@ export default function BidIqPage() {
                                   className="biq-card-avatar"
                                   style={{ background: level.color }}
                                 >
-                                  {typeof record.ai_score === "number" ? record.ai_score : "—"}
+                                  {hasPrime && typeof record.ai_score === "number" ? record.ai_score : "—"}
                                 </div>
                                 <div className="biq-card-title-group">
                                   <div className="biq-card-title" title={record.title}>

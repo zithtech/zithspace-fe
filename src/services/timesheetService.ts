@@ -88,7 +88,7 @@ export class TimesheetsService {
     try {
       return await apiUtils.getPaginated<Timesheet>('/api/timesheets', filters);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch timesheets');
     }
   }
@@ -98,7 +98,7 @@ export class TimesheetsService {
     try {
       return await api.get<Timesheet>(`/api/timesheets/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch timesheet');
     }
   }
@@ -108,7 +108,7 @@ export class TimesheetsService {
     try {
       return await api.post<Timesheet>('/api/timesheets', data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to create timesheet');
     }
   }
@@ -118,7 +118,7 @@ export class TimesheetsService {
     try {
       return await api.put<Timesheet>(`/api/timesheets/${id}`, data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to update timesheet');
     }
   }
@@ -128,7 +128,7 @@ export class TimesheetsService {
     try {
       await api.delete(`/api/timesheets/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to delete timesheet');
     }
   }
@@ -138,7 +138,7 @@ export class TimesheetsService {
     try {
       return await api.put<Timesheet>(`/api/timesheets/${id}/approve`, { status, rejectReason });
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to approve/reject timesheet');
     }
   }

@@ -28,7 +28,7 @@ export class ApprovalWorkflowService {
       return [];
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch approval steps");
     }
@@ -44,7 +44,7 @@ export class ApprovalWorkflowService {
       return body.data || body;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create approval step");
     }
@@ -60,7 +60,7 @@ export class ApprovalWorkflowService {
       return body.data || body;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update approval step");
     }
@@ -74,7 +74,7 @@ export class ApprovalWorkflowService {
       await api.delete(`/api/exit/approval-workflow/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete approval step");
     }

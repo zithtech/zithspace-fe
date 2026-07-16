@@ -728,6 +728,8 @@ const HubCard: React.FC<{
 const DocumentHubPage = () => {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_grid');
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const {
@@ -1669,31 +1671,33 @@ const DocumentHubPage = () => {
           ) : (
             canCreateDocument && (
               <>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalVisible(true)}
-                  style={{
-                    height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  }}
-                >
-                  Create your first hub
-                </Button>
-                <Button
-                  onClick={() => setAiModalVisible(true)}
-                  icon={<span style={{ fontSize: 13 }}>✨</span>}
-                  style={{
-                    height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
-                    background: 'var(--bg-pure-white)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                >
-                  Generate with Zai
-                </Button>
+                {hasGrid && (
+                  <Button
+                    onClick={() => setModalVisible(true)}
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    style={{
+                      height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                    }}
+                  >
+                    Create your first hub
+                  </Button>
+                )}
+                {hasPrime && (
+                  <Button
+                    onClick={() => setAiModalVisible(true)}
+                    icon={<span style={{ fontSize: 13 }}>✨</span>}
+                    style={{
+                      height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
+                      background: 'var(--bg-pure-white)',
+                      border: '1px solid var(--border-slate-200)',
+                      color: 'var(--text-slate-700)',
+                    }}
+                  >
+                    Generate with Zai
+                  </Button>
+                )}
               </>
             )
           )}
@@ -2187,7 +2191,7 @@ const DocumentHubPage = () => {
                 overlayClassName="create-document-menu"
                 menu={{
                   items: [
-                    {
+                    ...(hasGrid ? [{
                       key: 'manual',
                       label: (
                         <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
@@ -2211,8 +2215,8 @@ const DocumentHubPage = () => {
                         </div>
                       ),
                       onClick: () => setModalVisible(true),
-                    },
-                    {
+                    }] : []),
+                    ...(hasPrime ? [{
                       key: 'zai',
                       label: (
                         <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
@@ -2244,7 +2248,7 @@ const DocumentHubPage = () => {
                         </div>
                       ),
                       onClick: () => setAiModalVisible(true),
-                    },
+                    }] : []),
                   ] as MenuProps['items'],
                 }}
               >
@@ -3109,11 +3113,11 @@ const DocumentHubPage = () => {
               title: 'Linked to projects & tickets',
               body: 'Attach a hub to a project or ticket and it shows up alongside the work everywhere.'
             },
-            {
+            ...(hasPrime ? [{
               icon: <RobotOutlined />, color: '#8B5CF6', tint: 'rgba(139,92,246,0.10)',
               title: 'Generate with Zai',
               body: 'Skip the blank page — describe what you need and Zai drafts the structure for you.'
-            },
+            }] : []),
           ].map((step, i) => (
             <div
               key={i}

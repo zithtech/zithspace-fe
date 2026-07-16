@@ -84,6 +84,8 @@ function BuilderContent() {
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
   const [endToEndOpen, setEndToEndOpen] = useState(false);
   const { user, isLoading } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_proposals_builder_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_proposals_builder_grid');
   const { canCreateProposal, canUpdateProposal } = usePermission();
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
@@ -996,7 +998,7 @@ function BuilderContent() {
               <kbd>K</kbd>
             </span>
           </button>
-          {!isTemplateMode && canUpdateProposal && (
+          {!isTemplateMode && canUpdateProposal && hasPrime && (
           <Button
             className="pb-zai-cta"
             onClick={() => setEndToEndOpen(true)}
@@ -1065,14 +1067,14 @@ function BuilderContent() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {isRailVisible && railPosition === 'top' && (
+          {isRailVisible && railPosition === 'top' && hasGrid && (
             <div className="builder-top-rail">
                <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
             </div>
           )}
 
           <div className="builder-main-container" style={{ display: 'flex', flex: 1, minHeight: 0, margin: 0, width: '100%', overflow: 'hidden' }}>
-            {isRailVisible && railPosition === 'left' && (
+            {isRailVisible && railPosition === 'left' && hasGrid && (
               <>
                 <div className="builder-side-pane" style={{ width: `${railWidth}px`, flexShrink: 0, height: '100%' }}>
                   <LeftRail onJumpToBlock={jumpToBlock} layout="vertical" />
@@ -1144,7 +1146,7 @@ function BuilderContent() {
         onSave={() => handleSave()}
         onTogglePreview={() => setPreviewOpen((v) => !v)}
         onExport={() => handleExport('pdf')}
-        onOpenZai={() => setEndToEndOpen(true)}
+        onOpenZai={hasPrime ? () => setEndToEndOpen(true) : undefined}
         onJumpToBlock={jumpToBlock}
       />
 

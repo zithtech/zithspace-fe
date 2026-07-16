@@ -43,6 +43,7 @@ import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
 import { useAutosaveDocument } from '@/hooks/useAutosaveDocument'
 import { usePermission } from '@/hooks/usePermission'
 import { useActivitySource } from '@/hooks/useActivitySource'
+import { useAuth } from '@/context/AuthContext'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -510,6 +511,9 @@ const SIDEBAR_DEFAULT_WIDTH = 260;
 const SIDEBAR_WIDTH_STORAGE_KEY = 'documenthub:sidebarWidth';
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
+    const { user } = useAuth();
+    const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+    const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_grid');
     const router = useRouter()
     const searchParams = useSearchParams()
     const { canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
@@ -566,7 +570,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [isAiEditOpen, setIsAiEditOpen] = useState(false);
     // AI toggle for the Create-Folder/File modal
-    const [useAiInAddModal, setUseAiInAddModal] = useState(false);
+    const [useAiInAddModal, setUseAiInAddModal] = useState(() => !hasGrid && hasPrime);
     const [isAiGenerating, setIsAiGenerating] = useState(false);
     const [selectedTreeNodeId, setSelectedTreeNodeId] = useState<string | null>(null);
 
@@ -1826,26 +1830,28 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 <>
                                     {canUpdateDocument && (
                                         <>
-                                            <Tooltip title="Generate or refine this page with Zai">
-                                                <Button
-                                                    onClick={() => setIsAiEditOpen(true)}
-                                                    style={{
-                                                        height: 32,
-                                                        borderRadius: 8,
-                                                        fontWeight: 600,
-                                                        paddingInline: 12,
-                                                        background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
-                                                        color: '#fff',
-                                                        border: 'none',
-                                                        boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                                                    }}
-                                                >
-                                                    <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
-                                                        <ThunderboltOutlined style={{ fontSize: 13 }} />
-                                                    </span>
-                                                    Create with Zai
-                                                </Button>
-                                            </Tooltip>
+                                            {hasPrime && (
+                                                <Tooltip title="Generate or refine this page with Zai">
+                                                    <Button
+                                                        onClick={() => setIsAiEditOpen(true)}
+                                                        style={{
+                                                            height: 32,
+                                                            borderRadius: 8,
+                                                            fontWeight: 600,
+                                                            paddingInline: 12,
+                                                            background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+                                                            color: '#fff',
+                                                            border: 'none',
+                                                            boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                                        }}
+                                                    >
+                                                        <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <ThunderboltOutlined style={{ fontSize: 13 }} />
+                                                        </span>
+                                                        Create with Zai
+                                                    </Button>
+                                                </Tooltip>
+                                            )}
                                             <Button
                                                 type="primary"
                                                 icon={<SaveOutlined className="w-4 h-4" />}
@@ -2296,75 +2302,77 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Body */}
                 <div className="px-6 pt-4 pb-5">
                     {/* Mode switch */}
-                    <div
-                        className="flex items-center p-1 rounded-xl mb-5"
-                        style={{
-                            background: 'var(--bg-slate-50)',
-                            border: '1px solid var(--border-slate-200)',
-                        }}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setUseAiInAddModal(false);
-                                form.resetFields();
-                            }}
-                            disabled={isCreatingNode || isAiGenerating}
+                    {hasGrid && hasPrime && (
+                        <div
+                            className="flex items-center p-1 rounded-xl mb-5"
                             style={{
-                                flex: 1,
-                                padding: '7px 12px',
-                                borderRadius: 9,
-                                border: 'none',
-                                cursor:
-                                    isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                color: !useAiInAddModal
-                                    ? 'var(--text-slate-900)'
-                                    : 'var(--text-slate-600)',
-                                background: !useAiInAddModal ? 'var(--bg-pure-white)' : 'transparent',
-                                boxShadow: !useAiInAddModal
-                                    ? '0 1px 2px rgba(15, 23, 42, 0.06)'
-                                    : 'none',
-                                transition: 'all 0.15s',
+                                background: 'var(--bg-slate-50)',
+                                border: '1px solid var(--border-slate-200)',
                             }}
                         >
-                            Manual
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setUseAiInAddModal(true);
-                                form.resetFields();
-                            }}
-                            disabled={isCreatingNode || isAiGenerating}
-                            style={{
-                                flex: 1,
-                                padding: '7px 12px',
-                                borderRadius: 9,
-                                border: 'none',
-                                cursor:
-                                    isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6,
-                                color: useAiInAddModal ? '#fff' : 'var(--text-slate-600)',
-                                background: useAiInAddModal
-                                    ? 'linear-gradient(135deg, #722ed1 0%, #391085 100%)'
-                                    : 'transparent',
-                                boxShadow: useAiInAddModal
-                                    ? '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)'
-                                    : 'none',
-                                transition: 'all 0.15s',
-                            }}
-                        >
-                            <ThunderboltOutlined style={{ fontSize: 12 }} />
-                            Create with Zai
-                        </button>
-                    </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUseAiInAddModal(false);
+                                    form.resetFields();
+                                }}
+                                disabled={isCreatingNode || isAiGenerating}
+                                style={{
+                                    flex: 1,
+                                    padding: '7px 12px',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    cursor:
+                                        isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
+                                    fontSize: 12.5,
+                                    fontWeight: 600,
+                                    color: !useAiInAddModal
+                                        ? 'var(--text-slate-900)'
+                                        : 'var(--text-slate-600)',
+                                    background: !useAiInAddModal ? 'var(--bg-pure-white)' : 'transparent',
+                                    boxShadow: !useAiInAddModal
+                                        ? '0 1px 2px rgba(15, 23, 42, 0.06)'
+                                        : 'none',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                Manual
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUseAiInAddModal(true);
+                                    form.resetFields();
+                                }}
+                                disabled={isCreatingNode || isAiGenerating}
+                                style={{
+                                    flex: 1,
+                                    padding: '7px 12px',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    cursor:
+                                        isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
+                                    fontSize: 12.5,
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                    color: useAiInAddModal ? '#fff' : 'var(--text-slate-600)',
+                                    background: useAiInAddModal
+                                        ? 'linear-gradient(135deg, #722ed1 0%, #391085 100%)'
+                                        : 'transparent',
+                                    boxShadow: useAiInAddModal
+                                        ? '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)'
+                                        : 'none',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                <ThunderboltOutlined style={{ fontSize: 12 }} />
+                                Create with Zai
+                            </button>
+                        </div>
+                    )}
 
                     <Form form={form} layout="vertical" onFinish={handleCreateNode}>
                         {!useAiInAddModal ? (

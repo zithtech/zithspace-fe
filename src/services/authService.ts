@@ -93,7 +93,7 @@ export class AuthService {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Login failed. Please try again.');
     }
@@ -120,7 +120,7 @@ export class AuthService {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Google login failed. Please try again.');
     }
@@ -147,7 +147,7 @@ export class AuthService {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Microsoft login failed. Please try again.');
     }
@@ -176,7 +176,7 @@ export class AuthService {
       return profile;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch user profile');
     }
@@ -190,7 +190,7 @@ export class AuthService {
       return await api.put<UserProfile>('/api/user/profile', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update profile');
     }
@@ -204,7 +204,7 @@ export class AuthService {
       await api.post('/api/user/change-password', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to change password');
     }

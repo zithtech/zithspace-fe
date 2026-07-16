@@ -49,7 +49,7 @@ export class EmployeeExitService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch exit requests");
     }
@@ -64,7 +64,7 @@ export class EmployeeExitService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch exit request");
     }
@@ -79,7 +79,7 @@ export class EmployeeExitService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create exit request");
     }
@@ -93,7 +93,7 @@ export class EmployeeExitService {
       await api.delete(`/api/exit/request/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete exit request");
     }
@@ -108,7 +108,7 @@ export class EmployeeExitService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employee assets");
     }
@@ -122,7 +122,7 @@ export class EmployeeExitService {
       return await api.post(`/api/employee-assets/${employeeId}`, { assets: [asset] });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to add employee asset");
     }
@@ -136,7 +136,7 @@ export class EmployeeExitService {
       return await api.put(`/api/employee-assets/${employeeId}/${assetId}`, { asset });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update employee asset");
     }
@@ -150,7 +150,7 @@ export class EmployeeExitService {
       await api.delete(`/api/employee-assets/${employeeId}/${assetId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete employee asset");
     }

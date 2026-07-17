@@ -1209,7 +1209,7 @@ export const hivebugStyles = `
 /* ============ Quick add ============ */
 .hb-quickadd {
   display: flex; align-items: center; gap: 10px;
-  margin: 10px 14px 0 0;
+  margin: 10px 14px 0 14px;
   padding: 10px 14px 10px 22px;
   background: var(--hb-bg-elev);
   border: 1px dashed var(--hb-border);

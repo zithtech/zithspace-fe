@@ -20,7 +20,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
-    const { hasPermission, hasAnyPermission } = useAuth();
+    const { hasPermission, hasAnyPermission, user } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
@@ -29,6 +29,11 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const filterItemsByPermission = (navItems: NavItem[]): NavItem[] => {
         return navItems
             .filter(item => {
+                // Check exact role requirement
+                if (item.requiredRole && user?.role !== item.requiredRole) {
+                    return false;
+                }
+
                 // No permission requirement = always visible
                 if (!item.requiredPermission && !item.requiredAnyPermission) return true;
 

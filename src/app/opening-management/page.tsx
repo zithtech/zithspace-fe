@@ -190,19 +190,19 @@ export default function OpeningManagementPage() {
                         width: 36,
                         height: 36,
                         borderRadius: '10px',
-                        background: '#eff6ff',
+                        background: 'var(--bg-slate-100)',
                         color: '#2563eb',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 600,
                         fontSize: 14,
-                        border: '1px solid #dbeafe'
+                        border: '1px solid var(--border-color)'
                     }}>
                         <Briefcase size={18} />
                     </div>
                     <div>
-                        <Text strong style={{ display: 'block', color: '#1e293b', fontSize: 14 }}>{record.jobTitle}</Text>
+                        <Text strong style={{ display: 'block', color: 'var(--text-slate-900)', fontSize: 14 }}>{record.jobTitle}</Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>{record.id?.substring(0, 8).toUpperCase()}</Text>
                     </div>
                 </Space>
@@ -240,7 +240,7 @@ export default function OpeningManagementPage() {
             key: 'totalOpenings',
             align: 'center' as const,
             render: (count: number) => (
-                <div style={{ fontWeight: 700, color: '#1e293b' }}>{count || 0}</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-slate-900)' }}>{count || 0}</div>
             )
         },
         {
@@ -255,7 +255,7 @@ export default function OpeningManagementPage() {
             dataIndex: 'noticePeriod',
             key: 'noticePeriod',
             render: (days: number) => (
-                <Text style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>
+                <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                     {days ? `${days} Days` : 'N/A'}
                 </Text>
             )
@@ -287,7 +287,7 @@ export default function OpeningManagementPage() {
                     <Tooltip title="View Details">
                         <Button
                             type="text"
-                            icon={<Eye size={18} style={{ color: "#64748b" }} />}
+                            icon={<Eye size={18} style={{ color: "var(--text-slate-500)" }} />}
                             onClick={() => router.push(`/opening-management/${record.id}`)}
                             className="action-btn"
                         />
@@ -295,7 +295,7 @@ export default function OpeningManagementPage() {
                     <Tooltip title="Edit Opening">
                         <Button
                             type="text"
-                            icon={<Edit size={18} style={{ color: "#64748b" }} />}
+                            icon={<Edit size={18} style={{ color: "var(--text-slate-500)" }} />}
                             onClick={() => handleOpenDrawer(record)}
                             className="action-btn"
                         />
@@ -321,14 +321,14 @@ export default function OpeningManagementPage() {
             styles={{ body: { padding: "16px 20px" } }}
             style={{
                 borderRadius: 12,
-                border: "1px solid #f1f5f9",
+                border: "1px solid var(--border-color)",
                 boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
             }}
         >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+                    <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
                 </div>
                 <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
                     <Icon size={20} />
@@ -340,17 +340,17 @@ export default function OpeningManagementPage() {
     return (
         <ProtectedRoute>
             <MainLayout>
-                <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+                <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>
                     {/* Header */}
                     <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div>
                             <Space size={12} align="center">
-                                <div style={{ background: "#eff6ff", padding: 10, borderRadius: 12, color: "#2563eb", display: "flex" }}>
+                                <div style={{ background: "var(--bg-slate-100)", padding: 10, borderRadius: 12, color: "#2563eb", display: "flex" }}>
                                     <ClipboardList size={24} />
                                 </div>
                                 <div>
-                                    <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Opening Management</Title>
-                                    <Text style={{ color: "#64748b", fontSize: 15 }}>Create, track, and manage all your organization's job openings.</Text>
+                                    <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Opening Management</Title>
+                                    <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Create, track, and manage all your organization's job openings.</Text>
                                 </div>
                             </Space>
                         </div>
@@ -364,13 +364,13 @@ export default function OpeningManagementPage() {
                                     className="creative-search"
                                     suffix={
                                         <div style={{
-                                            background: '#f1f5f9',
+                                            background: 'var(--border-color)',
                                             padding: '2px 6px',
                                             borderRadius: 6,
                                             fontSize: 11,
-                                            color: '#94a3b8',
+                                            color: 'var(--text-slate-400)',
                                             fontWeight: 600,
-                                            border: '1px solid #e2e8f0'
+                                            border: '1px solid var(--border-color)'
                                         }}>
                                             ⌘K
                                         </div>
@@ -432,13 +432,13 @@ export default function OpeningManagementPage() {
                         style={{
                             marginBottom: 24,
                             borderRadius: 16,
-                            border: '1px solid #f1f5f9',
-                            background: '#ffffff',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-pure-white)',
                             boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.02)'
                         }}
                     >
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <Text strong style={{ marginRight: 8, color: '#64748b', fontSize: 13 }}>Quick Filters:</Text>
+                            <Text strong style={{ marginRight: 8, color: 'var(--text-slate-500)', fontSize: 13 }}>Quick Filters:</Text>
                             <Select
                                 placeholder="Location"
                                 style={{ width: 180 }}
@@ -478,7 +478,7 @@ export default function OpeningManagementPage() {
                                     <div style={{ width: 280, padding: '12px 8px' }}>
                                         <div style={{ marginBottom: 20 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                                <Text strong style={{ fontSize: 13, color: '#1e293b' }}>Experience: {filters.experience[0]}–{filters.experience[1]} yrs</Text>
+                                                <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>Experience: {filters.experience[0]}–{filters.experience[1]} yrs</Text>
                                             </div>
                                             <Slider
                                                 range
@@ -513,7 +513,7 @@ export default function OpeningManagementPage() {
                     </Card>
 
                     {/* Table */}
-                    <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: 'none' }}>
+                    <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'none' }}>
                         <Table
                             columns={columns}
                             dataSource={filteredOpenings}
@@ -529,20 +529,20 @@ export default function OpeningManagementPage() {
                         title={
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                 <div style={{
-                                    background: '#eff6ff',
+                                    background: 'var(--bg-slate-100)',
                                     padding: 10,
                                     borderRadius: 12,
                                     color: '#2563eb',
                                     display: 'flex',
-                                    boxShadow: '0 0 0 1px #dbeafe'
+                                    boxShadow: '0 0 0 1px var(--border-color)'
                                 }}>
                                     <Briefcase size={20} />
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>
                                         {editingOpening ? 'Edit Opening' : 'New Opening Request'}
                                     </div>
-                                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                                    <div style={{ fontSize: 13, color: 'var(--text-slate-500)', marginTop: 2 }}>
                                         {editingOpening ? 'Update existing job opening details' : 'Initiate a new recruitment process'}
                                     </div>
                                 </div>
@@ -560,28 +560,28 @@ export default function OpeningManagementPage() {
                             </div>
                         }
                         styles={{
-                            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 32px' },
+                            header: { borderBottom: '1px solid var(--border-color)', padding: '16px 32px' },
                             body: { padding: '0' },
-                            footer: { borderTop: '1px solid #f1f5f9', padding: '16px 24px' }
+                            footer: { borderTop: '1px solid var(--border-color)', padding: '16px 24px' }
                         }}
                     >
                         <Form form={form} layout="vertical" requiredMark={false}>
                             {/* Section 1: Basic Info */}
-                            <div style={{ padding: "24px 32px", borderBottom: "1px solid #f1f5f9" }}>
+                            <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-color)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                                     <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                                    <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                                    <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                                         Basic Job Information
                                     </Text>
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={24}>
-                                        <Form.Item name="jobTitle" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Title</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="jobTitle" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Job Title</Text>} rules={[{ required: true }]}>
                                             <Input placeholder="e.g. Senior Frontend Engineer" style={{ height: 44, borderRadius: 8 }} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={10}>
-                                        <Form.Item name="roleType" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Role Category</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="roleType" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Role Category</Text>} rules={[{ required: true }]}>
                                             <Select
                                                 placeholder="Select role"
                                                 onChange={() => form.setFieldsValue({ departmentId: undefined })}
@@ -601,7 +601,7 @@ export default function OpeningManagementPage() {
                                                 return (
                                                     <Form.Item
                                                         name="departmentId"
-                                                        label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{label}</Text>}
+                                                        label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>{label}</Text>}
                                                         rules={[{ required: true }]}
                                                     >
                                                         <Select placeholder={`Select ${label.toLowerCase()}`} showSearch optionFilterProp="children" style={{ height: 44 }}>
@@ -615,7 +615,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="hiringManagerId" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Hiring Manager</Text>}>
+                                        <Form.Item name="hiringManagerId" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Hiring Manager</Text>}>
                                             <Select showSearch placeholder="Assign a hiring manager" optionFilterProp="children" style={{ height: 44 }}>
                                                 {members.map(member => (
                                                     <Option key={member.value} value={member.value}>
@@ -629,26 +629,26 @@ export default function OpeningManagementPage() {
                             </div>
 
                             {/* Section 2: Requirements */}
-                            <div style={{ padding: "24px 32px", borderBottom: "1px solid #f1f5f9", background: "#fbfcfd" }}>
+                            <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                                     <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                                    <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                                    <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                                         Job Requirements
                                     </Text>
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={12}>
-                                        <Form.Item name="minExperience" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Min Experience (Years)</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="minExperience" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Min Experience (Years)</Text>} rules={[{ required: true }]}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={0} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="maxExperience" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Max Experience (Years)</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="maxExperience" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Max Experience (Years)</Text>} rules={[{ required: true }]}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={0} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="primarySkills" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Primary Skills</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="primarySkills" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Primary Skills</Text>} rules={[{ required: true }]}>
                                             <Select mode="tags" placeholder="Select or type key skills..." style={{ width: '100%', borderRadius: 8 }}>
                                                 <Option value="React">React</Option>
                                                 <Option value="Next.js">Next.js</Option>
@@ -667,12 +667,12 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="noticePeriod" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Notice Period (Days)</Text>}>
+                                        <Form.Item name="noticePeriod" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Notice Period (Days)</Text>}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={0} placeholder="e.g. 30" />
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="jobDescription" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Description</Text>}>
+                                        <Form.Item name="jobDescription" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Job Description</Text>}>
                                             <TextArea rows={4} placeholder="Summarize the role and responsibilities..." style={{ borderRadius: 8, padding: '12px' }} />
                                         </Form.Item>
                                     </Col>
@@ -680,16 +680,16 @@ export default function OpeningManagementPage() {
                             </div>
 
                             {/* Section 3: Logistics */}
-                            <div style={{ padding: "24px 32px", borderBottom: "1px solid #f1f5f9" }}>
+                            <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-color)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                                     <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                                    <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                                    <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                                         Location & Logistics
                                     </Text>
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={12}>
-                                        <Form.Item name="baseLocation" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Base Location</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="baseLocation" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Base Location</Text>} rules={[{ required: true }]}>
                                             <Select placeholder="Select office" style={{ height: 44 }}>
                                                 {locations.map((loc) => (
                                                     <Option key={loc.id} value={loc.id}>
@@ -700,7 +700,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="workArrangement" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Work Arrangement</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="workArrangement" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Work Arrangement</Text>} rules={[{ required: true }]}>
                                             <Select placeholder="Select type" style={{ height: 44 }}>
                                                 <Option value="Remote">Remote</Option>
                                                 <Option value="Onsite">Onsite</Option>
@@ -709,7 +709,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="employmentType" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Employment Type</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="employmentType" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Employment Type</Text>} rules={[{ required: true }]}>
                                             <Select placeholder="Select type" style={{ height: 44 }}>
                                                 <Option value="Full-time">Full-time</Option>
                                                 <Option value="Contract">Contract</Option>
@@ -719,7 +719,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="totalOpenings" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Total Openings</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="totalOpenings" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Total Openings</Text>} rules={[{ required: true }]}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={1} />
                                         </Form.Item>
                                     </Col>
@@ -727,26 +727,26 @@ export default function OpeningManagementPage() {
                             </div>
 
                             {/* Section 4: Budget */}
-                            <div style={{ padding: "24px 32px", background: "#fbfcfd" }}>
+                            <div style={{ padding: "24px 32px", background: "var(--bg-pure-white)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                                     <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                                    <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                                    <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                                         Budget & Status
                                     </Text>
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={8}>
-                                        <Form.Item name="minSalary" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Min Salary</Text>}>
+                                        <Form.Item name="minSalary" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Min Salary</Text>}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={8}>
-                                        <Form.Item name="maxSalary" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Max Salary</Text>}>
+                                        <Form.Item name="maxSalary" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Max Salary</Text>}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={8}>
-                                        <Form.Item name="currency" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Currency</Text>}>
+                                        <Form.Item name="currency" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Currency</Text>}>
                                             <Select style={{ height: 44 }}>
                                                 <Option value="INR">INR (₹)</Option>
                                                 <Option value="USD">USD ($)</Option>
@@ -759,7 +759,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="priorityLevel" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Priority Level</Text>}>
+                                        <Form.Item name="priorityLevel" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Priority Level</Text>}>
                                             <Select style={{ height: 44 }}>
                                                 <Option value="High">High</Option>
                                                 <Option value="Medium">Medium</Option>
@@ -768,7 +768,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="currentStatus" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Current Status</Text>}>
+                                        <Form.Item name="currentStatus" label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Current Status</Text>}>
                                             <Select style={{ height: 44 }}>
                                                 <Option value="Open">Open</Option>
                                                 <Option value="Closed">Closed</Option>
@@ -783,30 +783,30 @@ export default function OpeningManagementPage() {
 
                     <style dangerouslySetInnerHTML={{
                         __html: `
-              .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
-              .action-btn-danger:hover { background: #fff1f2 !important; }
+              .action-btn:hover { background: var(--border-color) !important; color: #2563eb !important; }
+              .action-btn-danger:hover { background: var(--bg-leave) !important; }
               .creative-search {
                 width: 320px;
                 border-radius: 12px !important;
                 height: 46px !important;
-                background: #f8fafc !important;
-                border: 1px solid #e2e8f0 !important;
+                background: var(--bg-table-header) !important;
+                border: 1px solid var(--border-color) !important;
                 transition: all 0.3s ease !important;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
               }
               .creative-search:hover {
-                border-color: #cbd5e1 !important;
-                background: #ffffff !important;
+                border-color: var(--border-slate-800) !important;
+                background: var(--bg-pure-white) !important;
               }
               .creative-search:focus, .creative-search-focused {
                 border-color: #2563eb !important;
-                background: #ffffff !important;
+                background: var(--bg-pure-white) !important;
                 box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
                 width: 380px !important;
               }
               .custom-table .ant-table-thead > tr > th {
-                background: #f8fafc !important;
-                color: #64748b !important;
+                background: var(--bg-table-header) !important;
+                color: var(--text-slate-500) !important;
                 font-weight: 600 !important;
                 text-transform: uppercase !important;
                 font-size: 11px !important;
@@ -820,7 +820,7 @@ export default function OpeningManagementPage() {
               .custom-table .ant-table-tbody > tr > td:last-child {
                 padding-right: 24px !important;
               }
-              .custom-table .ant-table-row:hover > td { background: #f8fafc !important; }
+              .custom-table .ant-table-row:hover > td { background: var(--bg-table-header) !important; }
               .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-input-number:focus { 
                 border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; 
               }

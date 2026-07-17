@@ -149,6 +149,7 @@ export function PanelHeader({
   searchPlaceholder = 'Search…',
   onRefresh,
   loading,
+  hideSidebarToggle,
   children,
 }: {
   icon: React.ReactNode;
@@ -161,21 +162,24 @@ export function PanelHeader({
   searchPlaceholder?: string;
   onRefresh?: () => void;
   loading?: boolean;
+  hideSidebarToggle?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <div className="rvp-header">
       <div className="rvp-head-about">
-        <button 
-          className="rvp-mobile-toggle" 
-          onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        {!hideSidebarToggle && (
+          <button 
+            className="rvp-mobile-toggle" 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        )}
         <span className="rvp-head-icon" style={{ background: tint, color }}>
           {icon}
         </span>
@@ -308,7 +312,13 @@ export function RmbStyles() {
       .rvp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
       .rvp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
       .rvp-stats {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+      }
+      @media (max-width: 1024px) {
+        .rvp-stats { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (max-width: 640px) {
+        .rvp-stats { grid-template-columns: 1fr; }
       }
       .rvp-stat-card {
         display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 0;

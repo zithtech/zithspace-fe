@@ -274,6 +274,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={labelStyle}>Personal Email</span>}
                 name="personalEmail"
                 rules={[{ required: true, type: "email", message: "Invalid email" }]}
+                getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
               >
                 <Input placeholder="Personal Email" />
               </Form.Item>
@@ -283,6 +284,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={labelStyle}>Work Email</span>}
                 name="workEmail"
                 rules={[{ required: true, type: "email", message: "Invalid email" }]}
+                getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
               >
                 <Input placeholder="Work Email" />
               </Form.Item>

@@ -12,7 +12,7 @@ export default function MyHubPayslipsPage() {
     <MainLayout>
       <MyHubContent>
         <PayrollGuard itemKey="my-payslips">
-          <MyPayslipsPanel />
+          <MyPayslipsPanel hideSidebarToggle={true} />
         </PayrollGuard>
       </MyHubContent>
     </MainLayout>

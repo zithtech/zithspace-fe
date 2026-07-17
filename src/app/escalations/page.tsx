@@ -832,12 +832,14 @@ export default function EscalationListPage() {
           )}
           <div className="es-topbar">
             <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
-              <Button
-                className="es-mobile-menu-btn"
-                type="text"
-                icon={<Menu size={18} />}
-                onClick={() => setMobileSidebarOpen(true)}
-              />
+              {!isMyHub && (
+                <Button
+                  className="es-mobile-menu-btn"
+                  type="text"
+                  icon={<Menu size={18} />}
+                  onClick={() => setMobileSidebarOpen(true)}
+                />
+              )}
               <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
                 <SearchOutlined className="es-search-icon" />
                 <input

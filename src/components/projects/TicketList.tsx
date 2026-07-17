@@ -1603,14 +1603,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 placeholder="Select assignee"
                 searchPlaceholder="Search by name or role…"
                 itemNoun="members"
+                showSelectedAvatar={true}
                 style={{ width: "100%", minWidth: 0, height: 32 }}
                 options={members.map((member) => ({
                   value: member.value,
                   label: member.label,
                   description: member.position,
-                  avatarUrl: member.avatarUrl,
+                  avatarUrl: member.avatarUrl || undefined,
                 }))}
-                showSelectedAvatar
                 onChange={(value) => {
                   handleUpdateTicket(record.id, "assignee", value ?? null);
                   setEditingField(null);

@@ -116,6 +116,8 @@ export interface NavItem {
   requiredPermission?: string;
   /** Show if user has ANY of these permissions. */
   requiredAnyPermission?: string[];
+  /** Show if user has this exact role (e.g. 'super_admin') */
+  requiredRole?: string;
 }
 
 export interface ModuleConfig {
@@ -269,7 +271,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard Settings",
         icon: I(Settings2),
         path: "/dashboard/settings",
-        requiredPermission: Permissions.SETTINGS_UPDATE,
+        requiredRole: "super_admin",
       },
     ],
   },

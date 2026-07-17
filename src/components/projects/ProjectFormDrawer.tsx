@@ -382,14 +382,15 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                     placeholder="Select lead"
                     style={{ borderRadius: 6 }}
                     width="100%"
+                    itemNoun="managers"
+                    showSelectedAvatar={true}
                     onChange={handleProjectManagerChange}
                     options={members.map((member) => ({
                       label: member.label,
                       value: member.value,
                       description: member.position,
-                      avatarUrl: member.avatarUrl,
+                      avatarUrl: member.avatarUrl || undefined,
                     }))}
-                    showSelectedAvatar
                   />
                 </Form.Item>
                 <Form.Item
@@ -420,12 +421,13 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                     placeholder="Add contributors"
                     style={{ borderRadius: 6 }}
                     width="100%"
+                    itemNoun="members"
                     onChange={handleTeamMembersChange}
                     options={members.map((member) => ({
                       label: member.label,
                       value: member.value,
                       description: member.position,
-                      avatarUrl: member.avatarUrl,
+                      avatarUrl: member.avatarUrl || undefined,
                     }))}
                     showSelectedAvatar
                   />

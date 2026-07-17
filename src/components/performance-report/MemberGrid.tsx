@@ -189,8 +189,9 @@ export default function MemberGrid({
         .mg-wrap *, .mg-wrap *::before, .mg-wrap *::after { border-radius: 0 !important; }
         .mg-wrap .ant-avatar, .mg-wrap .mg-avatar-ring { border-radius: 50% !important; }
         /* Match the project dropdown height to the search bar. */
-        .mg-filters .mg-search { height: 44px; }
-        .mg-filters .sd-trigger { height: 44px !important; }
+        .mg-filters .mg-search { height: 38px; background: transparent !important; }
+        .mg-filters .mg-search .ant-input { background: transparent !important; }
+        .mg-filters .sd-trigger { height: 38px !important; background: transparent !important; }
         /* Deliberate corner mix: box-shaped container/cards, soft-rounded controls. */
         .mg-wrap .mg-filters .mg-search,
         .mg-wrap .mg-filters .mg-search .ant-input,
@@ -206,7 +207,7 @@ export default function MemberGrid({
 
         .mg-filters {
           display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-          padding: 12px 14px; border: 1px solid var(--border-slate-200); background: var(--bg-secondary);
+          padding: 12px 14px; border: 1px solid var(--border-slate-200); background: transparent;
           margin-bottom: 16px;
         }
         .mg-filters .sd-trigger { min-width: 220px; }
@@ -227,7 +228,7 @@ export default function MemberGrid({
           position: relative;
           display: flex; flex-direction: row; align-items: center; text-align: left; gap: 14px;
           padding: 16px 18px; border: 1px solid var(--border-slate-200); border-radius: 18px;
-          background: var(--bg-secondary); cursor: pointer; overflow: hidden;
+          background: var(--bg-pure-white); cursor: pointer; overflow: hidden;
           transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
         }
         .mg-card:hover {
@@ -285,10 +286,13 @@ export default function MemberGrid({
         .mg-footer {
           position: sticky; bottom: 0; z-index: 5;
           display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 14px 16px; margin: 8px 0 0;
+          padding: 14px 32px; margin: 8px -32px 0;
           border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
-          background: var(--bg-secondary);
+          background: var(--bg-pure-white);
           box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);
+        }
+        @media (max-width: 1024px) {
+          .mg-footer { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
         }
         .mg-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
       `}</style>

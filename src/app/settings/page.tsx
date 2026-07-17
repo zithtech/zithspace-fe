@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import ComingSoon from '@/components/common/ComingSoon';
@@ -92,6 +93,7 @@ interface ShiftFormData {
 export default function SettingsPage() {
   useActivitySource({ section: "ADMIN", module: "GeneralSettings", page: "GeneralSettingsView" });
   const { token } = theme.useToken();
+  const { theme: appTheme } = useTheme();
   const { user, isLoading: authLoading, updateUser } = useAuth();
 
   // Dynamic UI Styles
@@ -121,10 +123,10 @@ export default function SettingsPage() {
       borderRadius: "0px",
       border: `1px solid ${token.colorBorder}`,
       boxShadow: "none",
-      background: token.colorBgContainer
+      background: 'transparent'
     },
     tabStyle: {
-      background: token.colorBgContainer,
+      background: 'transparent',
       marginBottom: "0",
       padding: "0 8px"
     },
@@ -777,7 +779,7 @@ export default function SettingsPage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "var(--bg-pure-white)",
+          background: "transparent",
           minHeight: "calc(100vh - 64px)",
           textAlign: 'center'
         }}>
@@ -832,7 +834,7 @@ export default function SettingsPage() {
             position: 'relative',
             overflow: 'hidden',
             borderRadius: 0,
-            background: token.colorBgContainer,
+            background: 'transparent',
             padding: '16px 24px',
             color: token.colorText,
             border: `1px solid ${token.colorBorder}`,
@@ -956,13 +958,14 @@ export default function SettingsPage() {
           {/* Branding Card */}
           <Card
             variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
-            styles={{ body: { padding: 0 } }}
+            className="transparent-card"
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0, background: 'transparent' }}
+            styles={{ body: { padding: 0, background: 'transparent' } }}
           >
             <div style={{
               padding: "12px 20px",
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
+              background: 'transparent',
               borderTopLeftRadius: 0,
               borderTopRightRadius: 0
             }}>
@@ -1034,7 +1037,7 @@ export default function SettingsPage() {
                       style={{ marginBottom: 20 }}
                     >
                       <div style={{
-                        background: token.colorFillAlter,
+                        background: 'transparent',
                         borderRadius: 14,
                         padding: 16,
                         border: `1px dashed ${token.colorBorder}`
@@ -1169,7 +1172,7 @@ export default function SettingsPage() {
                                   ? `2px solid ${token.colorPrimary}`
                                   : `1px solid ${token.colorBorder}`,
                                 position: 'relative',
-                                background: token.colorBgContainer,
+                                background: 'transparent',
                                 transition: 'all 0.25s ease',
                                 boxShadow: "none"
                               }}
@@ -1214,7 +1217,7 @@ export default function SettingsPage() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                background: token.colorBgContainer
+                                background: 'transparent'
                               }}>
                                 <Text style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
                                   Version {index + 1}
@@ -1483,6 +1486,7 @@ export default function SettingsPage() {
           {/* Default Invoice Mail Card */}
           <Card
             variant="borderless"
+            className="transparent-card"
             style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
             styles={{ body: { padding: 0 } }}
           >
@@ -1900,11 +1904,11 @@ export default function SettingsPage() {
   return (
     <MainLayout>
       {contextHolder}
-      <div className="settings-main-wrapper" style={{ background: token.colorBgContainer }}>
+      <div className="settings-main-wrapper" style={{ background: 'transparent' }}>
         {/* Premium Header */}
         <TimeTrackingHeader
           className="settings-page-header"
-          style={{ background: token.colorBgContainer }}
+          style={{ background: 'transparent' }}
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
@@ -1930,7 +1934,7 @@ export default function SettingsPage() {
             type="line"
             tabBarStyle={{
               ...styles.tabStyle,
-              background: token.colorBgContainer,
+              background: 'transparent',
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
               padding: "0 4px"
             }}
@@ -2242,6 +2246,15 @@ export default function SettingsPage() {
         )}
 
         <style jsx global>{`
+        /* --- Transparent Card Overrides --- */
+        [data-theme='dark'] .transparent-card,
+        [data-theme='dark'] .transparent-card .ant-card-body,
+        [data-theme='dark'] .settings-main-wrapper,
+        [data-theme='dark'] .settings-tab-container .ant-tabs-nav,
+        [data-theme='dark'] .settings-tab-container .ant-tabs-content-holder {
+          background: transparent !important;
+        }
+
         /* --- Member Drawer Style Overrides --- */
         .mm-drawer .ant-form-item-label > label {
           color: #475569 !important;

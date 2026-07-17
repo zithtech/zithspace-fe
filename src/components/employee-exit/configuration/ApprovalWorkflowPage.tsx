@@ -29,9 +29,11 @@ import {
   Edit,
   ArrowRight,
   Briefcase,
+  X,
 } from 'lucide-react';
 import { ApprovalWorkflowService, ExitApprovalStep } from '@/services/approvalWorkflowService';
 import { PositionService } from '@/services/positionService';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 const { Title, Text } = Typography;
 
@@ -286,97 +288,136 @@ const ApprovalWorkflowPage: React.FC = () => {
       />
 
       <Drawer
-        title={
-          <Space size={12}>
-            <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
-              <Settings2 size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                {editingStep ? "Edit Approval Step" : "Create Approval Step"}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
-                Define sequence and responsibility mapping
-              </div>
-            </div>
-          </Space>
-        }
-        width={520}
+        {...commonDrawerProps}
         open={modalVisible}
         onClose={() => setModalVisible(false)}
         footer={
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
-            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
             <Button 
               type="primary" 
               loading={loading} 
               onClick={handleSubmit} 
-              style={{ borderRadius: 8, height: 40, padding: "0 24px" }}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
             >
               {editingStep ? 'Update Step' : 'Save Step'}
             </Button>
           </div>
         }
-        className="config-drawer"
       >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ background: "var(--bg-pure-white)" }}>
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Step Details</Title>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="stepOrder"
-                  label={<Text strong style={{ fontSize: 13 }}>Processing Order</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 1" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="mandatory"
-                  label={<Text strong style={{ fontSize: 13 }}>Mandatory Enforcement</Text>}
-                  valuePropName="checked"
-                >
-                  <Switch checkedChildren="REQUIRED" unCheckedChildren="OPTIONAL" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          <Divider />
-
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Authorized Entities</Title>
-            <Form.Item
-              name="roleIds"
-              label={<Text strong style={{ fontSize: 13 }}>Approver Positions</Text>}
-              rules={[{ required: true, message: 'Please select at least one position' }]}
-              help="All selected positions will have authority to approve this step."
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
+        
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--bg-blue-50)',
+                color: 'var(--text-blue-700)',
+                border: '1px solid var(--border-blue-200)',
+              }}
             >
-              <Select
-                mode="multiple"
-                placeholder="Search and select positions"
-                options={positions.map(p => ({ label: p.title, value: p.id }))}
-                showSearch
-                style={{ width: "100%" }}
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-              />
-            </Form.Item>
-          </div>
-
-          <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)", marginTop: 24 }}>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ color: "var(--premium-blue)" }}><ShieldCheck size={20} /></div>
-              <div>
-                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Workflow Logic</Text>
-                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-                  Requests will flow sequentially through steps. Mandatory steps cannot be skipped.
-                </Text>
+              <Settings2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editingStep ? "Edit Approval Step" : "Create Approval Step"}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Define sequence and responsibility mapping
               </div>
             </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setModalVisible(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)] cursor-pointer"
+            style={{ color: 'var(--text-secondary)', border: 'none', background: 'transparent' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <Form form={form} layout="vertical" requiredMark={false} className="customer-drawer-form">
+          <div className="px-6 py-6 space-y-5 pb-24">
+            
+            <SectionCard title="Step Details" icon={<Settings2 size={16} />}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="stepOrder"
+                    label={<Text strong style={{ fontSize: 13 }}>Processing Order</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber min={1} style={{ width: '100%', height: 38, paddingTop: 3 }} placeholder="e.g. 1" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="mandatory"
+                    label={<Text strong style={{ fontSize: 13 }}>Mandatory Enforcement</Text>}
+                    valuePropName="checked"
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Switch checkedChildren="REQUIRED" unCheckedChildren="OPTIONAL" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </SectionCard>
+
+            <SectionCard title="Authorized Entities" icon={<ShieldCheck size={16} />}>
+              <Form.Item
+                name="roleIds"
+                label={<Text strong style={{ fontSize: 13 }}>Approver Positions</Text>}
+                rules={[{ required: true, message: 'Please select at least one position' }]}
+                help="All selected positions will have authority to approve this step."
+                style={{ marginBottom: 0 }}
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Search and select positions"
+                  options={positions.map(p => ({ label: p.title, value: p.id }))}
+                  showSearch
+                  style={{ width: "100%" }}
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+            </SectionCard>
+
+            <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ color: "var(--premium-blue)" }}><ShieldCheck size={20} /></div>
+                <div>
+                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Workflow Logic</Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                    Requests will flow sequentially through steps. Mandatory steps cannot be skipped.
+                  </Text>
+                </div>
+              </div>
+            </div>
+
           </div>
         </Form>
       </Drawer>
@@ -393,8 +434,6 @@ const ApprovalWorkflowPage: React.FC = () => {
           letter-spacing: 0.05em !important;
         }
         .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
-        .config-drawer .ant-drawer-header { border-bottom: 1px solid var(--border-slate-100) !important; padding: 24px !important; }
-        .config-drawer .ant-drawer-footer { border-top: 1px solid var(--border-slate-100) !important; padding: 16px 24px !important; }
       `}} />
     </div>
   );

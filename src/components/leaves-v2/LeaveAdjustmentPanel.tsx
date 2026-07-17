@@ -514,7 +514,7 @@ export default function LeaveAdjustmentPanel() {
         .lvadj-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvadj-table .ant-table-tbody > tr.lvadj-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvadj-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lvadj-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lvadj-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvadj-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvadj-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvadj-pager { display: flex; align-items: center; gap: 3px; }

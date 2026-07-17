@@ -165,7 +165,7 @@ export default function LeaveTypePanel() {
   const [search, setSearch] = useState('');
   const [unitFilter, setUnitFilter] = useState<UnitFilter>('all');
   const [paidFilter, setPaidFilter] = useState<PaidFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -223,13 +223,13 @@ export default function LeaveTypePanel() {
   }, [rows, search, unitFilter, paidFilter, statusFilter]);
 
   const hasActiveFilters =
-    !!search || unitFilter !== 'all' || paidFilter !== 'all' || statusFilter !== 'active';
+    !!search || unitFilter !== 'all' || paidFilter !== 'all' || statusFilter !== 'all';
 
   const clearFilters = () => {
     setSearch('');
     setUnitFilter('all');
     setPaidFilter('all');
-    setStatusFilter('active');
+    setStatusFilter('all');
   };
 
   // ── Pagination (sticky footer, proposal-style) ────────────────────────────
@@ -824,8 +824,10 @@ export default function LeaveTypePanel() {
           height: 52px; box-sizing: border-box;
         }
         .lvt-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px;
-          background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+          position: sticky; bottom: 0; z-index: 20;
+          margin: 20px -32px 0; padding: 0 32px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }
         .lvt-footer-info { font-size: 12px; color: var(--text-slate-500); }

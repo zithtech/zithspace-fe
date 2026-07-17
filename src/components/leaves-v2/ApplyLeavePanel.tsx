@@ -967,7 +967,7 @@ export default function ApplyLeavePanel() {
         .lva-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
         .lva-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
         .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lva-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lva-pager { display: flex; align-items: center; gap: 3px; }

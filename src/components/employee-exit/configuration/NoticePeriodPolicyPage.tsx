@@ -29,10 +29,12 @@ import {
   Settings2,
   Trash2,
   Edit,
+  X,
 } from 'lucide-react';
 import { NoticePolicy, NoticePolicyService, NoticePolicyPayload } from '@/services/noticePolicyService';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position } from '@/services/positionService';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -359,167 +361,204 @@ export default function NoticePeriodPolicyPage() {
       />
 
       <Drawer
-        title={
-          <Space size={12}>
-            <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
-              <Settings2 size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                {editingPolicy ? "Edit Rule" : "Create New Rule"}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
-                Configure notice periods and level mappings
-              </div>
-            </div>
-          </Space>
-        }
-        width={520}
+        {...commonDrawerProps}
         open={modalVisible}
         onClose={() => setModalVisible(false)}
         footer={
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
-            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          >
+            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
             <Button
               type="primary"
               loading={isSaving}
               onClick={handleSave}
-              style={{ borderRadius: 8, height: 40, padding: "0 24px" }}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
             >
               {editingPolicy ? 'Update Configuration' : 'Save Configuration'}
             </Button>
           </div>
         }
-        className="config-drawer"
       >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ background: "var(--bg-pure-white)" }}>
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Notice Strategy</Title>
-            <Row gutter={16}>
-              <Col span={14}>
-                <Form.Item
-                  name="policy_name"
-                  label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} />
-                </Form.Item>
-              </Col>
-              <Col span={10}>
-                <Form.Item
-                  name="code"
-                  label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <Input placeholder="Auto-gen" disabled />
-                </Form.Item>
-              </Col>
-            </Row>
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
+        
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--bg-blue-50)',
+                color: 'var(--text-blue-700)',
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              <Settings2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editingPolicy ? "Edit Rule" : "Create New Rule"}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Configure notice periods and level mappings
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setModalVisible(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)] cursor-pointer"
+            style={{ color: 'var(--text-secondary)', border: 'none', background: 'transparent' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="level_type"
-                  label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <Select
-                    placeholder="Select level"
-                    onChange={(val) => {
-                      setLevelType(val);
-                      form.setFieldsValue({ level_id: undefined });
-                      updateGeneratedCode();
-                    }}
+        <Form form={form} layout="vertical" requiredMark={false} className="customer-drawer-form">
+          <div className="px-6 py-6 space-y-5 pb-24">
+            
+            <SectionCard title="Notice Strategy" icon={<Settings2 size={16} />}>
+              <Row gutter={16}>
+                <Col span={14}>
+                  <Form.Item
+                    name="policy_name"
+                    label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 12 }}
                   >
-                    <Select.Option value="Grades">Grades</Select.Option>
-                    <Select.Option value="Positions">Positions</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="level_id"
-                  label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <Select
-                    placeholder="Select value"
-                    showSearch
-                    optionFilterProp="children"
-                    options={levelOptions}
-                    disabled={!levelType}
-                    onChange={updateGeneratedCode}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
+                    <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} style={{ height: 38 }} />
+                  </Form.Item>
+                </Col>
+                <Col span={10}>
+                  <Form.Item
+                    name="code"
+                    label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Input placeholder="Auto-gen" disabled style={{ height: 38 }} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-          <Divider />
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="level_type"
+                    label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      placeholder="Select level"
+                      onChange={(val) => {
+                        setLevelType(val);
+                        form.setFieldsValue({ level_id: undefined });
+                        updateGeneratedCode();
+                      }}
+                      style={{ height: 38 }}
+                    >
+                      <Select.Option value="Grades">Grades</Select.Option>
+                      <Select.Option value="Positions">Positions</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="level_id"
+                    label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      placeholder="Select value"
+                      showSearch
+                      optionFilterProp="children"
+                      options={levelOptions}
+                      disabled={!levelType}
+                      onChange={updateGeneratedCode}
+                      style={{ height: 38 }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </SectionCard>
 
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Period Durations</Title>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  name="notice_period_days"
-                  label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <InputNumber style={{ width: '100%' }} min={0} placeholder="e.g. 60" />
+            <SectionCard title="Period Durations" icon={<Clock size={16} />}>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    name="notice_period_days"
+                    label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
+                    rules={[{ required: true, message: 'Required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="e.g. 60" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="probotion_period_days"
+                    label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="probation_notice_days"
+                    label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </SectionCard>
+
+            <SectionCard title="Policy Controls" icon={<ShieldCheck size={16} />}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
+                <div>
+                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Gross Buyout</Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Calculate buyout based on Gross instead of Basic.</Text>
+                </div>
+                <Form.Item name="buyout_calculating_type" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="ON" unCheckedChildren="OFF" />
                 </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="probotion_period_days"
-                  label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
-                >
-                  <InputNumber style={{ width: '100%' }} min={0} placeholder="Days" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="probation_notice_days"
-                  label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
-                >
-                  <InputNumber style={{ width: '100%' }} min={0} placeholder="Days" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          <Divider />
-
-          <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
-            <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "var(--text-slate-900)" }}>Policy Controls</Title>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Gross Buyout</Text>
-                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Calculate buyout based on Gross instead of Basic.</Text>
               </div>
-              <Form.Item name="buyout_calculating_type" valuePropName="checked" noStyle>
-                <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-              </Form.Item>
-            </div>
 
-            <Divider style={{ margin: "16px 0" }} />
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Policy</Text>
-                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Allow this rule to be applied to new requests.</Text>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16 }}>
+                <div>
+                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Policy</Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Allow this rule to be applied to new requests.</Text>
+                </div>
+                <Form.Item name="status" valuePropName="checked" noStyle>
+                  <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+                </Form.Item>
               </div>
-              <Form.Item name="status" valuePropName="checked" noStyle>
-                <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-              </Form.Item>
-            </div>
-          </div>
+            </SectionCard>
 
-          <div style={{ marginTop: 24 }}>
             <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Additional Context</Text>}>
-              <TextArea rows={3} placeholder="Provide details about this policy rule..." />
+              <TextArea rows={3} placeholder="Provide details about this policy rule..." style={{ borderRadius: 8 }} />
             </Form.Item>
+
           </div>
         </Form>
       </Drawer>
@@ -537,8 +576,6 @@ export default function NoticePeriodPolicyPage() {
           letter-spacing: 0.05em !important;
         }
         .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
-        .config-drawer .ant-drawer-header { border-bottom: 1px solid var(--border-slate-100) !important; padding: 24px !important; }
-        .config-drawer .ant-drawer-footer { border-top: 1px solid var(--border-slate-100) !important; padding: 16px 24px !important; }
       `}} />
     </div>
   );

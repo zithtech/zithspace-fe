@@ -950,7 +950,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: I(Wallet),
-    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts"],
+    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts", "/payroll-v2"],
     defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,

@@ -1248,8 +1248,30 @@ export default function AccountsPage() {
                   searchPlaceholder="Search type..."
                   itemNoun="types"
                   options={[
-                    { value: "credit", label: "Credit (Money In)" },
-                    { value: "debit", label: "Debit (Money Out)" }
+                    {
+                      value: "credit",
+                      label: "Credit (Money In)",
+                      badge: (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '100%',
+                          backgroundColor: '#8b5cf6', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 800
+                        }}>C</div>
+                      )
+                    },
+                    {
+                      value: "debit",
+                      label: "Debit (Money Out)",
+                      badge: (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '100%',
+                          backgroundColor: '#3b82f6', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 800
+                        }}>D</div>
+                      )
+                    }
                   ]}
                   style={{ width: '100%', height: 40 }}
                   width="100%"

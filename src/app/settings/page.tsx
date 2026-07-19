@@ -57,7 +57,8 @@ import {
   ThunderboltFilled,
   LinkOutlined,
   CloseOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
@@ -74,6 +75,7 @@ import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import AiSettingsPanel from "@/components/settings/AiSettingsPanel";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -1896,6 +1898,20 @@ export default function SettingsPage() {
               )}
             </div>
           </Card>
+        </div>
+      )
+    },
+    {
+      key: 'ai',
+      label: (
+        <Space size={8} style={{ padding: "4px 8px" }}>
+          <RobotOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>AI Provider</span>
+        </Space>
+      ),
+      children: (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 8px 40px 8px" }}>
+          <AiSettingsPanel canManage={canManageSettings} />
         </div>
       )
     },

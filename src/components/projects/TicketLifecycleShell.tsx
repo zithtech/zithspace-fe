@@ -286,9 +286,10 @@ export default TicketLifecycleShell;
 
 const TICKET_LIFECYCLE_CSS = `
 .tlc-page {
-  margin: 0 -24px;
+  margin: 0 -8px;
   background: var(--bg-pure-white);
-  min-height: calc(100vh - 54px);
+  height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -609,12 +610,17 @@ const TICKET_LIFECYCLE_CSS = `
 /* ── Main ───────────────────────────────────────────── */
 .tlc-main {
   min-width: 0;
+  min-height: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
   overflow-y: auto;
-  height: calc(100vh - 54px - 56px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tlc-main::-webkit-scrollbar {
+  display: none;
 }
 .tlc-toolbar {
   position: sticky;

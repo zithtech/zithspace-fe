@@ -188,6 +188,10 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
             z-index: 20;
             background: var(--bg-pure-white);
             box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
+            margin-left: -22px;
+            margin-right: -22px;
+            padding-left: 22px;
+            padding-right: 22px;
           }
           
           /* ---------------- Mobile ---------------- */

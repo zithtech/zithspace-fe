@@ -440,6 +440,7 @@ export default function TicketsArchivedPage() {
             onChange: setSelectedRowKeys,
           }}
           className="ar2-table"
+
           locale={{
             emptyText: isLoading ? null : (
               <div className="ar2-empty">

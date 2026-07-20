@@ -1,5 +1,6 @@
 "use client";
 import dayjs from "dayjs";
+import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -207,7 +208,7 @@ export default function BugListPage() {
     projectId: selectedProjectId || undefined,
   });
 
-  const [sidebarWidth, setSidebarWidth] = useState(230);
+  const [sidebarWidth, setSidebarWidth] = useState(240);
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -542,17 +543,22 @@ export default function BugListPage() {
 
       {isMobile ? (
         <Drawer
-          className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}
+          className={theme === "dark" ? "hb-dark" : "hb-light"}
           placement="left"
           open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
-          styles={{ body: { padding: 0 }, header: { display: "none" } }}
-          width={210}
+          styles={{ 
+            body: { padding: 0, background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }, 
+            header: { display: "none" },
+            mask: { background: "rgba(0, 0, 0, 0.45)" },
+            content: { background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }
+          }}
+          width={260}
           closeIcon={null}
         >
           <HivebugSidebar
             scope={scope}
-            width={210}
+            width={260}
             onResizerMouseDown={startResizing}
             onScopeChange={setScope}
             selectedFolderId={selectedFolderId}
@@ -672,19 +678,25 @@ export default function BugListPage() {
           <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
             {isMobile ? (
               <button
-                className="hb-btn hb-btn-icon hb-btn-ghost"
+                className="hb-sidebar-toggle"
                 onClick={() => setMobileMenuOpen(true)}
-                style={{ marginRight: 8, padding: "4px 8px" }}
+                aria-label="Open menu"
+                aria-pressed={mobileMenuOpen}
               >
-                <Menu size={18} />
+                <MenuFoldOutlined style={{ fontSize: 14 }} />
               </button>
             ) : (
               <button
-                className="hb-btn hb-btn-icon hb-btn-ghost"
+                className="hb-sidebar-toggle"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                style={{ marginRight: 8, padding: "4px 8px" }}
+                aria-label={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+                aria-pressed={!sidebarCollapsed}
               >
-                {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+                {sidebarCollapsed ? (
+                  <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                ) : (
+                  <MenuFoldOutlined style={{ fontSize: 14 }} />
+                )}
               </button>
             )}
             <div className="hb-project-switcher-header">

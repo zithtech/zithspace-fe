@@ -27,7 +27,7 @@ function PreviewContent() {
         try {
           const proposal = await ProposalService.getProposalById(proposalId);
           const rawBlocks = proposal.blocks_data || [];
-          
+
           // Convert to ProposalBlock format
           const proposalBlocks: ProposalBlock[] = rawBlocks.map((block: any, index: number) => ({
             id: block.id || `block-${index}`,
@@ -35,13 +35,13 @@ function PreviewContent() {
             data: block.data || {},
             order: index
           }));
-          
+
           setBlocks(proposalBlocks);
         } catch (error) {
           console.error('Failed to fetch proposal data:', error);
         }
       };
-      
+
       fetchProposalData();
     } else {
       // Listen for messages from parent window (builder scenario)
@@ -198,7 +198,7 @@ function PreviewContent() {
               {coverBlock && (
                 <div dangerouslySetInnerHTML={{ __html: generateCoverHtml(coverBlock) }} />
               )}
-              
+
               {blocks.length > 1 && (
                 <div dangerouslySetInnerHTML={{ __html: generateTocHtml(blocks, proposalTitle) }} />
               )}

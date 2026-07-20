@@ -423,7 +423,7 @@ export default function ReportsPanel() {
               onClick: ({ key }) => handleDownload(key as 'pdf' | 'word'),
               items: [
                 { key: 'pdf', icon: <FilePdfOutlined />, label: 'Download as PDF' },
-                { key: 'word', icon: <FileWordOutlined />, label: 'Download as Word' },
+                // { key: 'word', icon: <FileWordOutlined />, label: 'Download as Word' },
               ],
             }}
           >

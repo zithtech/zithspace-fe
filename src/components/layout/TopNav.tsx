@@ -1130,6 +1130,15 @@ export default function TopNav({
                 .module-text {
                     transition: all 0.2s ease;
                 }
+                @media (max-width: 1440px) {
+                    .module-text-7 { display: none !important; }
+                }
+                @media (max-width: 1360px) {
+                    .module-text-6 { display: none !important; }
+                }
+                @media (max-width: 1280px) {
+                    .module-text-5 { display: none !important; }
+                }
                 @media (max-width: 1200px) {
                     .module-text-4 { display: none !important; }
                 }

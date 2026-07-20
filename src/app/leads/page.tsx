@@ -684,7 +684,7 @@ export default function LeadsPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal" | "my_leads">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
@@ -2020,7 +2020,7 @@ export default function LeadsPage() {
       } else if (activeSegment === "with_proposal") {
         matchesSegment = !!item.proposal_id;
       } else if (activeSegment === "my_leads") {
-        matchesSegment = item.created_by === user?.id;
+        matchesSegment = (item as any).created_by === user?.id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
@@ -2308,7 +2308,7 @@ export default function LeadsPage() {
   }, [leads]);
 
   const myLeadsCount = useMemo(() => {
-    return leads.filter(l => l.created_by === user?.id).length;
+    return leads.filter(l => (l as any).created_by === user?.id).length;
   }, [leads, user]);
 
   const leadsThisWeek = useMemo(() => {

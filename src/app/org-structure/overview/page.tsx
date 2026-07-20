@@ -376,7 +376,7 @@ export default function OverviewPage() {
         <TimeTrackingHeader
           icon={<Layout size={20} color="#3b82f6" />}
           title="Organization Overview"
-          description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
+          description="View company hierarchy, reporting lines, and grades."
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
             padding: '9px 32px',
@@ -658,12 +658,12 @@ export default function OverviewPage() {
         .hx-row.is-grade {
           min-height: 50px;
           margin-bottom: 4px;
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.07), rgba(99, 102, 241, 0.04));
+          background: rgba(59, 130, 246, 0.07);
           border: 1px solid rgba(59, 130, 246, 0.18);
           box-shadow: 0 6px 16px -12px rgba(37, 99, 235, 0.4);
         }
         .hx-row.is-grade:hover {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.06));
+          background: rgba(59, 130, 246, 0.1);
         }
 
         /* Expand chevron */

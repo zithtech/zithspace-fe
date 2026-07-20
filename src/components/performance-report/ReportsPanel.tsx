@@ -743,7 +743,7 @@ export default function ReportsPanel() {
         .prr-member-head { display: flex; align-items: center; gap: 14px; }
         .prr-back {
           width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
-          border: 1px solid var(--border-slate-200); background: var(--bg-secondary); color: var(--text-slate-700); cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: transparent; color: var(--text-slate-700); cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
           transition: all .14s ease;
         }
@@ -751,7 +751,7 @@ export default function ReportsPanel() {
 
         .prr-filters {
           display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
-          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary);
+          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: transparent;
         }
         .prr-field { display: flex; flex-direction: column; gap: 6px; }
         .prr-field-label {
@@ -768,8 +768,8 @@ export default function ReportsPanel() {
           padding: 5px;
           margin-bottom: 16px;
           align-self: flex-start;
-          background: linear-gradient(180deg, var(--bg-slate-50) 0%, var(--bg-slate-100) 100%);
-          border: 1px solid #eaeef4;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
           border-radius: 14px;
           box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
           max-width: 100%;
@@ -808,8 +808,8 @@ export default function ReportsPanel() {
         .prr-tab:hover .prr-tab-ic { color: var(--text-slate-700); }
         .prr-tab.is-active {
           color: var(--text-slate-900);
-          background: var(--bg-secondary);
-          border-color: var(--border-slate-100);
+          background: transparent;
+          border-color: var(--border-slate-200);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px rgba(15, 23, 42, 0.07);
         }
         .prr-tab.is-active .prr-tab-ic {
@@ -826,7 +826,7 @@ export default function ReportsPanel() {
           display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;
         }
         .prr-stat {
-          border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px; background: transparent; padding: 12px 14px;
           display: flex; flex-direction: column; gap: 4px; min-width: 0;
         }
         @media (max-width: 640px) {
@@ -835,7 +835,7 @@ export default function ReportsPanel() {
         @media (max-width: 480px) {
           .prr-statbar { grid-template-columns: 1fr; }
         }
-        .prr-stat--points { border-color: #c7d2fe; background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 60%); }
+        .prr-stat--points { border-color: #c7d2fe; background: transparent; }
         .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }
         .prr-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
         .prr-stat-num { font-size: 24px; font-weight: 800; color: var(--text-slate-900); line-height: 1; letter-spacing: -0.02em; }

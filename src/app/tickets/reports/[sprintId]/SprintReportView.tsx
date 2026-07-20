@@ -209,7 +209,28 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el != null);
     els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+
+    const handleScroll = () => {
+      const scrollHeight = root ? root.scrollHeight : document.documentElement.scrollHeight;
+      const clientHeight = root ? root.clientHeight : window.innerHeight;
+      const scrollTop = root ? root.scrollTop : window.scrollY;
+
+      // Force the last section to be active if we hit the bottom of the page
+      if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 2) {
+        const lastId = ids[ids.length - 1];
+        if (lastId) setActive(lastId);
+      }
+    };
+
+    const target = root ?? window;
+    target.addEventListener("scroll", handleScroll, { passive: true });
+    // Run once on mount in case we are already at the bottom
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      target.removeEventListener("scroll", handleScroll);
+    };
   }, [key, offset, root]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return active;

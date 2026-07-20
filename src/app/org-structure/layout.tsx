@@ -280,9 +280,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
             border-bottom: 1px solid var(--border-slate-200) !important;
             padding: 9.5px 32px !important;
           }
-          .osx-main .saas-header-container .ant-row {
-            flex-wrap: wrap !important;
-          }
+
           [data-theme='dark'] .osx-main .saas-header-container {
             background: var(--bg-pure-white) !important;
             border-bottom-color: var(--border-slate-100) !important;

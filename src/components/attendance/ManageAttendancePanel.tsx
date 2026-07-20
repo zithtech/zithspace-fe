@@ -44,6 +44,7 @@ import { SearchableDropdown, initialsFor, avatarColorFor } from '@/components/co
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from '@/components/common/DrawerSection';
 import { AttendanceService, Attendance } from '@/services/attendanceService';
+import LeaveV2Service from '@/services/leaveV2Service';
 import { MembersService, Member } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
 import { useSocket } from '@/providers/SocketProvider';
@@ -165,7 +166,6 @@ export default function ManageAttendancePanel() {
     canUpdateAttendance,
     canDeleteAttendance,
   } = usePermission();
-  console.log("Forcing HMR reload for ManageAttendancePanel");
 
   const [rows, setRows] = useState<ExtendedAttendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -203,6 +203,9 @@ export default function ManageAttendancePanel() {
   const [reopenTarget, setReopenTarget] = useState<ExtendedAttendance | null>(null);
   const [reopenTime, setReopenTime] = useState<dayjs.Dayjs | null>(null);
   const [reopenSaving, setReopenSaving] = useState(false);
+
+  // validation modal
+  const [overlapModalVisible, setOverlapModalVisible] = useState(false);
 
   // Reference data (members + projects) loaded once.
   useEffect(() => {
@@ -379,6 +382,38 @@ export default function ManageAttendancePanel() {
     setSaving(true);
     try {
       const selectedDate = dayjs(values.date);
+
+      // Validate if the member has an approved leave on this date using the new LeaveV2Service
+      const allLeaveRequests = await LeaveV2Service.getApprovals();
+      
+      let hasOverlap = false;
+      
+      if (allLeaveRequests && allLeaveRequests.length > 0) {
+        const selectedDateStr = selectedDate.format('YYYY-MM-DD');
+        for (const leave of allLeaveRequests) {
+          // Filter by the selected member's user ID
+          if (leave.userId !== values.member) continue;
+          
+          const lStatus = leave.status || 'unknown';
+          const lStart = dayjs(leave.fromDate).format('YYYY-MM-DD');
+          const lEnd = dayjs(leave.toDate).format('YYYY-MM-DD');
+          
+          // Check locally if the leave is approved (case-insensitive)
+          if (lStatus.toLowerCase() !== 'approved') continue;
+          
+          if (selectedDateStr >= lStart && selectedDateStr <= lEnd) {
+            hasOverlap = true;
+            break;
+          }
+        }
+      }
+
+      if (hasOverlap) {
+        setOverlapModalVisible(true);
+        setSaving(false);
+        return;
+      }
+
       const atDate = (t: dayjs.Dayjs) =>
         selectedDate.hour(t.hour()).minute(t.minute()).second(0).millisecond(0);
 
@@ -1327,6 +1362,27 @@ export default function ManageAttendancePanel() {
             Reopen day
           </Button>
         </div>
+      </Modal>
+
+      <Modal
+        title={<span style={{ color: '#1e293b' }}>Cannot Manage Attendance</span>}
+        open={overlapModalVisible}
+        onOk={() => setOverlapModalVisible(false)}
+        onCancel={() => setOverlapModalVisible(false)}
+        okText="OK"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        zIndex={2000}
+        width={400}
+        styles={{
+          mask: { zIndex: 2000 },
+          content: { background: '#ffffff', color: '#1e293b', borderRadius: '12px', padding: '16px 20px' },
+          header: { background: '#ffffff', borderBottom: 'none', paddingBottom: '4px', marginBottom: '8px' },
+          footer: { background: '#ffffff', borderTop: 'none', paddingTop: '12px', marginTop: '4px' }
+        }}
+      >
+        <p style={{ color: '#475569', margin: 0, fontSize: '13.5px', lineHeight: 1.5 }}>
+          This employee has an approved leave on the selected date. Attendance cannot be created for that day.
+        </p>
       </Modal>
 
       <style jsx global>{`

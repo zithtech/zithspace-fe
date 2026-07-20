@@ -25,6 +25,7 @@ import {
   Skeleton,
   Segmented,
   InputNumber,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
@@ -1626,6 +1627,25 @@ export default function MembersPage() {
     </div>
   );
 
+  // Track in-flight AI-access toggles so we can show a per-row spinner.
+  const [aiTogglingId, setAiTogglingId] = useState<string | null>(null);
+
+  const handleToggleAiAccess = async (record: Member, checked: boolean) => {
+    setAiTogglingId(record.id);
+    // Optimistic update.
+    setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: checked } : m)));
+    try {
+      await MembersService.setAiAccess(record.id, checked);
+      messageApi.success(`AI ${checked ? "enabled" : "disabled"} for ${record.name}`);
+    } catch (error: any) {
+      // Revert on failure.
+      setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: !checked } : m)));
+      messageApi.error(error?.message || "Failed to update AI access");
+    } finally {
+      setAiTogglingId(null);
+    }
+  };
+
   const columns: ColumnsType<Member> = [
     {
       title: "Member",
@@ -1864,6 +1884,31 @@ export default function MembersPage() {
           </span>
         );
       },
+    },
+    {
+      title: "AI Access",
+      key: "aiAccess",
+      width: 110,
+      align: "center",
+      render: (_, record: Member) => (
+        <Tooltip
+          title={
+            !canManageUsers
+              ? "AI access"
+              : record.aiEnabled === false
+                ? "AI disabled — click to enable"
+                : "AI enabled — click to disable"
+          }
+        >
+          <Switch
+            size="small"
+            checked={record.aiEnabled !== false}
+            loading={aiTogglingId === record.id}
+            disabled={!canManageUsers}
+            onChange={(checked) => handleToggleAiAccess(record, checked)}
+          />
+        </Tooltip>
+      ),
     },
     {
       title: "Actions",

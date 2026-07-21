@@ -36,7 +36,7 @@ export default function UpgradeModal() {
 
   const handleUpgrade = () => {
     setOpen(false);
-    router.push('/subscription');
+    router.push('/subscription?reason=limit');
   };
 
   return (
@@ -54,12 +54,8 @@ export default function UpgradeModal() {
       }}
     >
       {/* Container with Glassmorphism & Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800">
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
         
-        {/* Background Gradients */}
-        <div className="absolute -top-32 -left-32 w-64 h-64 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute -top-32 -right-32 w-64 h-64 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-20 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
         <div className="relative p-8 flex flex-col items-center text-center z-10">
           

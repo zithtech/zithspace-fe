@@ -347,7 +347,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         phone: userProfile.phone,
         reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
-        tenantId: userProfile.tenantId,
+        tenantId: (userProfile.tenantId || userProfile.tenant?.id) as string,
         avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
@@ -360,6 +360,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
+
+      // Phase X: Fetch Subscription State from Admin Backend
+      try {
+        const { api } = await import('@/lib/axios');
+        const resolvedTenantId = userProfile.tenantId || userProfile.tenant?.id;
+        const subRes = await api.get(`/api/subscriptions/tenant/${resolvedTenantId}`);
+        const subData = subRes; // api.get already unwraps response.data.data
+
+        if (typeof window !== 'undefined') {
+          const pathname = window.location.pathname;
+          
+          if (!subData) {
+            if (pathname !== '/subscription') router.push('/subscription?reason=new');
+          } else if (subData.status === 'EXPIRED' || subData.status === 'CANCELLED') {
+            if (pathname !== '/subscription') router.push(`/subscription?reason=expired&current_plan_id=${subData.plan_id}`);
+          } else if (subData.status === 'SUSPENDED') {
+            if (pathname !== '/access-denied') router.push('/access-denied');
+          } else if (subData.status === 'ACTIVE' || subData.status === 'TRIAL') {
+            if (pathname === '/subscription') router.push('/dashboard');
+          }
+        }
+      } catch (subErr) {
+        console.error("Failed to fetch subscription status:", subErr);
+      }
     } catch (error) {
       console.error("Auth check failed:", error);
 
@@ -424,9 +448,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const hasAnySubscriptionFeature = (...features: string[]): boolean => {
     if (!user || !user.subscriptionFeatures) return true;
-    // Hierarchical check: if the user requires 'my_hub', any feature starting with 'my_hub' satisfies it.
+    // Hierarchical check: if the user requires 'my_hub', any feature including 'my_hub' satisfies it.
     return features.some(k => 
-      user.subscriptionFeatures!.some(feature => feature.startsWith(k))
+      user.subscriptionFeatures!.some(feature => feature.includes(k))
     );
   };
 

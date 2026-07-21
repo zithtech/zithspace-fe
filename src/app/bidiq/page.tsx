@@ -248,7 +248,6 @@ export default function BidIqPage() {
       </div>
       {subtle && <span className="biq-stat-subtle">{subtle}</span>}
       {chart && <div className="biq-stat-chart">{chart}</div>}
-      <span className="biq-stat-accent" style={{ background: accent }} />
     </div>
   );
 
@@ -842,13 +841,12 @@ export default function BidIqPage() {
           @media (max-width: 1100px) { .biq-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
           @media (max-width: 600px) { .biq-stat-grid { grid-template-columns: 1fr; } }
           .biq-stat-card {
-            position: relative; background: var(--bg-pure-white);
+            position: relative; background: transparent;
             border: 1px solid var(--border-slate-100); border-radius: 0;
             padding: 6px 12px; overflow: hidden; transition: border-color .15s ease;
           }
           .biq-stat-card:hover { border-color: var(--border-slate-200); }
-          .biq-stat-card:hover .biq-stat-accent { opacity: 1; }
-          .biq-stat-accent { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; opacity: 0.55; transition: opacity .25s ease; pointer-events: none; }
+          .biq-stat-card:hover { border-color: var(--border-slate-200); }
           .biq-stat-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
           .biq-stat-icon { width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
           .biq-stat-label {
@@ -1034,7 +1032,6 @@ export default function BidIqPage() {
           /* Surfaces (page/shell/sidebar/grid-card/bottom-bar) use --bg-pure-white,
              which flips to #0B0F1A in dark automatically — no override needed.
              Only elevated cards + the table internals get explicit overrides. */
-          [data-theme='dark'] .biq-stat-card,
           [data-theme='dark'] .biq-table-card { background: var(--bg-secondary); border-color: var(--border-slate-100); }
           [data-theme='dark'] .biq-search-input.ant-input-affix-wrapper { background: var(--bg-secondary) !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > th,

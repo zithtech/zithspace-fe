@@ -62,6 +62,7 @@ import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { SettingsProfile } from "@/services/invoiceSettingsService";
 import DynamicLineItems, { Column } from "./DynamicLineItems";
 import InvoicePreview from "./InvoicePreview";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 interface CustomerDraft {
   id: string;
@@ -978,25 +979,25 @@ export default function InvoiceNewinvoicePage() {
             <div className="mx-auto max-w-[1600px] grid grid-cols-12 gap-6">
               {/* LEFT — meta sidebar (open layout, not a card) */}
               <aside
-                className="col-span-12 lg:col-span-3 lg:border-r lg:pr-7"
+                className="col-span-12 lg:col-span-3 lg:border-r lg:pr-8"
                 style={{ borderColor: "var(--border-color)" }}
               >
-                <div className="lg:sticky lg:top-12 lg:pt-3 lg:pb-6 space-y-2">
+                <div className="lg:sticky lg:top-12 lg:pt-3 lg:pb-6 space-y-3">
                   {/* From */}
                   <div className="pt-0">
                     <div className="flex items-center gap-2">
                       <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
                         style={{
                           background: "var(--bg-blue-50)",
                           color: "var(--text-blue-700)",
                           border: "1px solid var(--border-blue-200)",
                         }}
                       >
-                        <Building2 size={12} strokeWidth={2.25} />
+                        <Building2 size={14} strokeWidth={2.25} />
                       </span>
                       <div
-                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         From
@@ -1006,23 +1007,26 @@ export default function InvoiceNewinvoicePage() {
                       <Form.Item
                         name="settingsProfileId"
                         rules={[{ required: true, message: "Please select a profile" }]}
-                        style={{ marginBottom: 8, marginTop: 6 }}
+                        style={{ marginTop: 8, marginBottom: 0 }}
                       >
-                        <Select
+                        <SearchableDropdown
                           placeholder="Select issuer profile"
                           loading={isLoading}
-                          className="w-full custom-select-premium"
-                        >
-                          {activeProfiles.map((profile) => (
-                            <Select.Option key={profile.id} value={profile.id}>
-                              {profile.name}
-                            </Select.Option>
-                          ))}
-                        </Select>
+                          itemNoun="profiles"
+                          options={activeProfiles.map((p) => ({ value: p.id, label: p.name }))}
+                          style={{ height: 36, minWidth: 0 }}
+                        />
                       </Form.Item>
                     )}
                     {selectedProfile && (
-                      <div className="flex items-start gap-3 pt-1">
+                      <div 
+                        className="flex items-start gap-3 p-2 rounded-xl transition-all"
+                        style={{
+                          marginTop: 6,
+                          background: "var(--bg-slate-50)",
+                          border: "1px solid var(--border-color)",
+                        }}
+                      >
                         {selectedProfile.general?.companyLogo ? (
                           <div
                             className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden"
@@ -1074,27 +1078,23 @@ export default function InvoiceNewinvoicePage() {
                     )}
                   </div>
 
-                  {/* divider */}
-                  <div
-                    className="h-px"
-                    style={{ background: "var(--border-color)" }}
-                  />
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
 
                   {/* Bill to */}
                   <div>
                     <div className="flex items-center gap-2">
                       <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
                         style={{
                           background: "rgba(16, 185, 129, 0.1)",
                           color: "#059669",
                           border: "1px solid rgba(16, 185, 129, 0.25)",
                         }}
                       >
-                        <UserSquare2 size={12} strokeWidth={2.25} />
+                        <UserSquare2 size={14} strokeWidth={2.25} />
                       </span>
                       <div
-                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         Bill to
@@ -1104,19 +1104,15 @@ export default function InvoiceNewinvoicePage() {
                       <Form.Item
                         name="customer_id"
                         rules={[{ required: true, message: "Please select a customer" }]}
-                        style={{ marginBottom: 8, marginTop: 6 }}
+                        style={{ marginTop: 8, marginBottom: 0 }}
                       >
-                        <Select
+                        <SearchableDropdown
                           placeholder="Select customer"
                           loading={loadingCustomers}
-                          showSearch
-                          className="w-full custom-select-premium"
-                          filterOption={(input, option) =>
-                            String(option?.children ?? "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
-                          onSelect={(id) => {
+                          itemNoun="customers"
+                          options={customers.filter(c => c.isActive).map(c => ({ value: c.id, label: c.companyName }))}
+                          style={{ height: 36, minWidth: 0 }}
+                          onChange={(id) => {
                             const c = customers.find((x) => x.id === id);
                             if (c) {
                               form.setFieldsValue({
@@ -1135,15 +1131,7 @@ export default function InvoiceNewinvoicePage() {
                               });
                             }
                           }}
-                        >
-                          {customers
-                            .filter((c) => c.isActive)
-                            .map((c) => (
-                              <Select.Option key={c.id} value={c.id}>
-                                {c.companyName}
-                              </Select.Option>
-                            ))}
-                        </Select>
+                        />
                       </Form.Item>
                     )}
 
@@ -1155,7 +1143,12 @@ export default function InvoiceNewinvoicePage() {
                               setEditingCustomer(selectedCustomer);
                             }
                           }}
-                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer" : "cursor-default"} group flex items-start gap-3 pt-2`}
+                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer hover:border-blue-400" : "cursor-default"} group flex items-start gap-3 p-2 rounded-xl transition-all`}
+                          style={{
+                            marginTop: 6,
+                            background: "var(--bg-slate-50)",
+                            border: "1px solid var(--border-color)",
+                          }}
                         >
                           <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
@@ -1201,32 +1194,35 @@ export default function InvoiceNewinvoicePage() {
                         </div>
                       </Tooltip>
                     )}
+                  </div>
 
-                    {/* Project dropdown */}
-                    <div className="mt-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-md"
-                          style={{
-                            background: "rgba(99, 102, 241, 0.1)",
-                            color: "#4f46e5",
-                            border: "1px solid rgba(99, 102, 241, 0.25)",
-                          }}
-                        >
-                          <Briefcase size={12} strokeWidth={2.25} />
-                        </span>
-                        <div
-                          className="text-[11px] font-semibold uppercase tracking-[0.1em]"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          Project
-                        </div>
-                      </div>
-                      <Form.Item
-                        name="projectId"
-                        style={{ marginBottom: 0 }}
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+
+                  {/* Project dropdown */}
+                  <div>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+                      <span
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
+                        style={{
+                          background: "rgba(99, 102, 241, 0.1)",
+                          color: "#4f46e5",
+                          border: "1px solid rgba(99, 102, 241, 0.25)",
+                        }}
                       >
-                        <Select
+                        <Briefcase size={14} strokeWidth={2.25} />
+                      </span>
+                      <div
+                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Project
+                      </div>
+                    </div>
+                    <Form.Item
+                      name="projectId"
+                      style={{ marginBottom: 0 }}
+                    >
+                        <SearchableDropdown
                           placeholder={
                             !selectedCustomerId
                               ? "Select customer first"
@@ -1237,51 +1233,39 @@ export default function InvoiceNewinvoicePage() {
                           loading={loadingProjects}
                           disabled={!selectedCustomerId}
                           allowClear
-                          showSearch
-                          className="w-full custom-select-premium"
-                          filterOption={(input, option) =>
-                            String(option?.children ?? "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
-                        >
-                          {customerProjects.map((p) => (
-                            <Select.Option key={p.value} value={p.value}>
-                              {p.label} {p.code ? `(${p.code})` : ""}
-                            </Select.Option>
-                          ))}
-                        </Select>
+                          itemNoun="projects"
+                          options={customerProjects.map(p => ({
+                            value: p.value,
+                            label: `${p.label} ${p.code ? `(${p.code})` : ''}`.trim()
+                          }))}
+                          style={{ height: 36, minWidth: 0 }}
+                        />
                       </Form.Item>
                     </div>
-                  </div>
 
-                  {/* divider */}
-                  <div
-                    className="h-px mt-1"
-                    style={{ background: "var(--border-color)" }}
-                  />
+                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
 
                   {/* Details grid */}
                   <div>
                     <div className="flex items-center gap-2">
                       <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
                         style={{
                           background: "rgba(168, 85, 247, 0.1)",
                           color: "#9333ea",
                           border: "1px solid rgba(168, 85, 247, 0.25)",
                         }}
                       >
-                        <ScrollText size={12} strokeWidth={2.25} />
+                        <ScrollText size={14} strokeWidth={2.25} />
                       </span>
                       <div
-                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         Details
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3" style={{ marginTop: 10 }}>
                       <Form.Item
                         label={
                           <span
@@ -1318,13 +1302,17 @@ export default function InvoiceNewinvoicePage() {
                         rules={[{ required: true }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <Select className="w-full custom-select-premium">
-                          <Select.Option value="standard">Standard</Select.Option>
-                          <Select.Option value="proforma">Proforma</Select.Option>
-                          <Select.Option value="credit_note">Credit</Select.Option>
-                          <Select.Option value="debit_note">Debit</Select.Option>
-                          <Select.Option value="recurring">Recurring</Select.Option>
-                        </Select>
+                        <SearchableDropdown
+                          options={[
+                            { value: 'standard', label: 'Standard' },
+                            { value: 'proforma', label: 'Proforma' },
+                            { value: 'credit_note', label: 'Credit Note' },
+                            { value: 'debit_note', label: 'Debit Note' },
+                            { value: 'recurring', label: 'Recurring' },
+                          ]}
+                          allowClear={false}
+                          style={{ height: 36, minWidth: 0 }}
+                        />
                       </Form.Item>
                       <Form.Item
                         label={
@@ -1404,49 +1392,17 @@ export default function InvoiceNewinvoicePage() {
                         className="col-span-2"
                         style={{ marginBottom: 0 }}
                       >
-                        <Select
-                          className="w-full custom-select-premium"
-                          optionLabelProp="label"
-                        >
-                          {currencyOptions.map((c) => (
-                            <Select.Option
-                              key={c.value}
-                              value={c.value}
-                              label={
-                                <span className="flex items-center gap-2">
-                                  <span
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-semibold tabular-nums"
-                                    style={{
-                                      background: 'var(--bg-blue-50)',
-                                      color: 'var(--text-blue-700)',
-                                    }}
-                                  >
-                                    {c.symbol}
-                                  </span>
-                                  <span className="font-semibold tabular-nums">{c.value}</span>
-                                  <span style={{ color: 'var(--text-secondary)' }}>· {c.label}</span>
-                                </span>
-                              }
-                            >
-                              <div className="flex items-center gap-2 py-0.5">
-                                <span
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[12px] font-semibold tabular-nums"
-                                  style={{
-                                    background: 'var(--bg-slate-50)',
-                                    color: 'var(--text-primary)',
-                                    border: '1px solid var(--border-color)',
-                                  }}
-                                >
-                                  {c.symbol}
-                                </span>
-                                <span className="font-semibold tabular-nums">{c.value}</span>
-                                <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                                  {c.label}
-                                </span>
-                              </div>
-                            </Select.Option>
-                          ))}
-                        </Select>
+                        <SearchableDropdown
+                          options={currencyOptions.map(c => ({
+                            value: c.value,
+                            label: c.value,
+                            description: c.label,
+                            badge: c.symbol
+                          }))}
+                          allowClear={false}
+                          showSelectedAvatar={true}
+                          style={{ height: 36, minWidth: 0 }}
+                        />
                       </Form.Item>
                     </div>
                   </div>

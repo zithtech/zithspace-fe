@@ -117,6 +117,8 @@ export interface NavItem {
   /** Show if user has ANY of these permissions. */
   requiredAnyPermission?: string[];
   requiredSubscriptionFeature?: string[];
+  /** Show if user has this exact role (e.g. 'super_admin') */
+  requiredRole?: string;
 }
 
 export interface ModuleConfig {
@@ -285,6 +287,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/dashboard/settings",
         requiredSubscriptionFeature: ["home_home_general_dashboard_settings"],
         requiredPermission: Permissions.SETTINGS_UPDATE,
+        requiredRole: "super_admin",
       },
     ],
   },
@@ -991,7 +994,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: I(Wallet),
-    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts"],
+    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts", "/payroll-v2"],
     defaultPath: "/accounts/accounts-dashboard",
     requiredSubscriptionFeature: ["finance"],
     requiredAnyPermission: [

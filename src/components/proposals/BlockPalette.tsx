@@ -24,7 +24,7 @@ type BlockMeta = {
   ring: string;
 };
 
-const BLOCK_META: BlockMeta[] = [
+export const BLOCK_META: BlockMeta[] = [
   { type: 'cover',     label: 'Cover Page',         icon: <LayoutOutlined />,   color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)' },
   { type: 'text',      label: 'Summary',            icon: <AlignLeftOutlined />, color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)',  ring: 'rgba(139,92,246,0.25)' },
   { type: 'scope',     label: 'Scope of Work',      icon: <ProjectOutlined />,   color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)' },

@@ -151,7 +151,7 @@ export default function LeavePolicyPanel() {
 
   // filters
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // pagination
   const [tablePage, setTablePage] = useState(1);
@@ -278,8 +278,8 @@ export default function LeavePolicyPanel() {
   useEffect(() => { setTablePage(1); }, [search, statusFilter, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
 
-  const hasActiveFilters = !!search || statusFilter !== 'active';
-  const clearFilters = () => { setSearch(''); setStatusFilter('active'); };
+  const hasActiveFilters = !!search || statusFilter !== 'all';
+  const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
 
   // ── Drawer open/reset ────────────────────────────────────────────────────────
   const resetForm = () => {
@@ -923,7 +923,7 @@ export default function LeavePolicyPanel() {
         .lvp-child-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 7px 12px !important; }
         .lvp-child-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvp-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lvp-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lvp-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvp-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvp-pager { display: flex; align-items: center; gap: 3px; }

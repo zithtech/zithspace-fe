@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
+import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -47,6 +47,8 @@ const KINDS: { value: AdjustmentKind; label: string; sign: 1 | -1 }[] = [
   { value: 'encashment', label: 'Encashment (−)', sign: -1 },
 ];
 const kindSign = (k: AdjustmentKind) => KINDS.find((x) => x.value === k)?.sign ?? 1;
+
+const initials = (name: string) => name?.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
 
 const ENTRY_LABEL: Record<string, string> = {
   adjustment: 'Adjustment',
@@ -202,10 +204,15 @@ export default function LeaveAdjustmentPanel() {
       title: 'User',
       key: 'emp',
       render: (_, r) => (
-        <div style={{ lineHeight: 1.25 }}>
-          <div style={{ fontWeight: 600, fontSize: 12.5 }}>{r.userName}</div>
-          {r.userEmail && <div style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>{r.userEmail}</div>}
-        </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Avatar src={r.userAvatarUrl} size={28} style={{ background: TINT.blue, color: PALETTE.blue, fontSize: 11, fontWeight: 700 }}>
+            {initials(r.userName)}
+          </Avatar>
+          <div style={{ lineHeight: 1.25 }}>
+            <div style={{ fontWeight: 600, fontSize: 12.5 }}>{r.userName}</div>
+            {r.userEmail && <div style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>{r.userEmail}</div>}
+          </div>
+        </span>
       ),
     },
     {
@@ -429,7 +436,7 @@ export default function LeaveAdjustmentPanel() {
               step="STEP 1"
             >
                 <Form.Item label="User" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined }))} style={{ width: '100%', height: 38 }} width={300} />
+                  <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined, avatarUrl: e.avatarUrl ?? undefined }))} showSelectedAvatar style={{ width: '100%', height: 38 }} width={300} />
                 </Form.Item>
                 <Form.Item label="Leave type" style={{ marginBottom: 0 }}>
                   <SearchableDropdown placeholder="Select type" itemNoun="leave types" allowClear={false} value={leaveTypeId} onChange={(v) => setLeaveTypeId(v as string)} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} style={{ width: '100%', height: 38 }} width={240} />
@@ -507,7 +514,7 @@ export default function LeaveAdjustmentPanel() {
         .lvadj-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvadj-table .ant-table-tbody > tr.lvadj-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvadj-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lvadj-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lvadj-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvadj-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvadj-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvadj-pager { display: flex; align-items: center; gap: 3px; }

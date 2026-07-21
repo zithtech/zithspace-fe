@@ -12,7 +12,7 @@ const TINT = { cyan: 'rgba(6,182,212,0.10)', green: 'rgba(16,185,129,0.10)' } as
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 
-export default function MyPayslipsPanel() {
+export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const [rows, setRows] = useState<PayPayslip[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,13 +50,15 @@ export default function MyPayslipsPanel() {
     <div className="mps">
       <div className="mps-header">
         <div className="mps-header-about">
-          <button
-            type="button"
-            className="pv-mobile-menu-btn"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
-          >
-            <Menu size={20} />
-          </button>
+          {!hideSidebarToggle && (
+            <button
+              type="button"
+              className="pv-mobile-menu-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-pv-sidebar'))}
+            >
+              <Menu size={20} />
+            </button>
+          )}
           <div className="mps-header-icon"><FileTextOutlined /></div>
           <div>
             <div className="mps-header-title">My Payslips</div>
@@ -83,19 +85,34 @@ export default function MyPayslipsPanel() {
             </div>
           )}
           <div className="mps-table-wrap">
-            <Table rowKey="id" size="small" className="mps-table" columns={columns} dataSource={rows} pagination={false} />
+            <Table rowKey="id" size="small" className="mps-table" columns={columns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }} />
           </div>
         </>
       )}
 
       <style jsx global>{`
         .mps { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .mps-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
+        .mps-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .mps-header-about { display: flex; align-items: center; gap: 12px; }
         .mps-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.cyan}; color: ${PALETTE.cyan}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .mps-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .mps-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .mps-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+
+        .mps-loading { display: flex; align-items: center; justify-content: center; padding: 64px 0; }
+        
+        .mps-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 24px; background: var(--bg-pure-white); border: 1px dashed var(--border-slate-300); border-radius: 12px; text-align: center; }
+        .mps-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); margin-top: 16px; }
+        .mps-empty-sub { font-size: 13px; color: var(--text-slate-500); margin-top: 4px; }
+
+        .mps-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px !important; overflow: hidden; }
+        .mps-table .ant-table, .mps-table .ant-table-container { background: transparent; font-size: 12.5px; border-radius: 0px !important; }
+        .mps-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 9px 12px !important; border-radius: 0px !important; }
+        .mps-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 10px 12px !important; }
+        .mps-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .mps-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+
+        .mps-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
 
         .mps-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: linear-gradient(120deg, ${TINT.green}, ${TINT.cyan}); }
         .mps-hero-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-slate-500); }
@@ -103,14 +120,6 @@ export default function MyPayslipsPanel() {
         .mps-hero-sub { font-size: 12.5px; color: var(--text-slate-600); }
 
         .mps-cal { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .mps-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; overflow: hidden; }
-        .mps-table .ant-table { background: transparent; font-size: 12.5px; }
-        .mps-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 9px 12px !important; }
-        .mps-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 10px 12px !important; }
-        .mps-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-        .mps-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
-
-        .mps-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
         @media (max-width: 900px) {
           .mps-header {

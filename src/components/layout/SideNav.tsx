@@ -20,7 +20,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
-    const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
+    const { hasPermission, hasAnyPermission,user, hasAnySubscriptionFeature } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
@@ -34,6 +34,12 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 }
 
                 // 2. RBAC check
+                // Check exact role requirement
+                if (item.requiredRole && user?.role !== item.requiredRole) {
+                    return false;
+                }
+
+                // No permission requirement = always visible
                 if (!item.requiredPermission && !item.requiredAnyPermission) return true;
 
                 if (item.requiredPermission) {

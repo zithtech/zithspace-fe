@@ -20,6 +20,7 @@ import {
   Tooltip,
   Empty,
   theme,
+  Select,
 } from "antd";
 import {
   TeamOutlined,
@@ -68,10 +69,8 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
   const isMetricOrgTeamTodayVisible = dashboardSettings?.metricOrgTeamToday !== false;
 
   const isCardProjectPulseVisible = dashboardSettings?.cardProjectPulse !== false;
-  const isCardTodaysPulseVisible = dashboardSettings?.cardTodaysPulse !== false;
   const isUpcomingBirthdaysVisible = dashboardSettings?.upcomingBirthdays !== false;
   const isCardTodayLeavesVisible = dashboardSettings?.cardTodayLeaves !== false;
-  const isCardTeamInsightsVisible = dashboardSettings?.cardTeamInsights !== false;
   const isCardRecentActivitiesVisible = dashboardSettings?.cardRecentActivities !== false;
 
   useEffect(() => {
@@ -84,7 +83,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
           ]);
 
           const todayMs = new Date().setHours(0, 0, 0, 0);
-          
+
           const allLocal = [...myReqs, ...approvals].filter((r: any) => {
             if (!r.fromDate || !r.toDate) return false;
             const fromMs = new Date(r.fromDate).setHours(0, 0, 0, 0);
@@ -339,7 +338,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
     subtle?: string;
     chart?: React.ReactNode;
   }[] = dashboardData
-    ? (() => {
+      ? (() => {
         const closedT = dashboardData.stats.tickets.closed;
         const totalT = dashboardData.stats.tickets.total;
         const openT = Math.max(0, totalT - closedT);
@@ -546,7 +545,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
           return true;
         });
       })()
-    : [];
+      : [];
 
   // ─── Project Pulse render ─────────────────────────────────────────
   const renderProjectPulse = () => {
@@ -802,253 +801,12 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
     );
   };
 
-  // ─── Today's Pulse render ─────────────────────────────────────────
-  const renderTodayPulse = () => {
-    if (!dashboardData?.todayLeaves) return null;
-    const { onLeave, onPermission, workingFromHome } = dashboardData.todayLeaves;
-
-    const sections = [
-      {
-        key: "leave",
-        title: "On Leave",
-        icon: <CoffeeOutlined />,
-        accent: "#F43F5E",
-        items: onLeave,
-        format: (l: any) =>
-          `${l.type.replace(/_/g, " ")} · ${l.duration} ${l.durationType === "HOURS" ? "hrs" : "days"
-          }`,
-      },
-      {
-        key: "permission",
-        title: "Permission",
-        icon: <ClockCircleOutlined />,
-        accent: "#8B5CF6",
-        items: onPermission,
-        format: (l: any) => `${l.duration} hours`,
-      },
-      {
-        key: "wfh",
-        title: "Working from Home",
-        icon: <HomeOutlined />,
-        accent: "#10B981",
-        items: workingFromHome,
-        format: (l: any) => l.user.position || "Remote",
-      },
-    ];
-
-    const totalCount =
-      onLeave.length + onPermission.length + workingFromHome.length;
-
-    if (totalCount === 0) {
-      return (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: token.colorFillAlter,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: token.colorTextTertiary,
-              marginBottom: 10,
-            }}
-          >
-            <TeamOutlined style={{ fontSize: 22 }} />
-          </div>
-          <Text
-            strong
-            style={{
-              fontSize: 13,
-              color: token.colorText,
-              display: "block",
-              marginBottom: 2,
-            }}
-          >
-            Everyone is in
-          </Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            No leave, permission, or WFH today
-          </Text>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        style={{
-          flex: 1,
-          padding: "10px 14px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          overflowY: "auto",
-        }}
-        className="no-scrollbar"
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.6px",
-              textTransform: "uppercase",
-              color: token.colorTextSecondary,
-            }}
-          >
-            {totalCount} away today
-          </Text>
-        </div>
-
-        {sections
-          .filter((s) => s.items.length > 0)
-          .map((s) => (
-            <div key={s.key}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 6,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 18,
-                    height: 18,
-                    borderRadius: 6,
-                    background: `${s.accent}14`,
-                    border: `1px solid ${s.accent}26`,
-                    color: s.accent,
-                    fontSize: 10,
-                  }}
-                >
-                  {s.icon}
-                </span>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: token.colorText,
-                    letterSpacing: "0.2px",
-                  }}
-                >
-                  {s.title}
-                </Text>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: s.accent,
-                    background: `${s.accent}14`,
-                    padding: "1px 6px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {s.items.length}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                {s.items.slice(0, 3).map((leave: any) => (
-                  <div
-                    key={leave.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "5px 8px",
-                      borderRadius: 8,
-                      background: token.colorFillAlter,
-                      border: `1px solid ${token.colorBorderSecondary}`,
-                    }}
-                  >
-                    <Avatar
-                      size={22}
-                      style={{
-                        backgroundColor: s.accent,
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {leave.user.name[0].toUpperCase()}
-                    </Avatar>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Text
-                        strong
-                        style={{
-                          fontSize: 12,
-                          color: token.colorText,
-                          display: "block",
-                          lineHeight: 1.2,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {leave.user.name}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 10,
-                          color: token.colorTextTertiary,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {s.format(leave)}
-                      </Text>
-                    </div>
-                  </div>
-                ))}
-                {s.items.length > 3 && (
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: token.colorTextTertiary,
-                      fontWeight: 600,
-                      paddingLeft: 4,
-                    }}
-                  >
-                    +{s.items.length - 3} more
-                  </Text>
-                )}
-              </div>
-            </div>
-          ))}
-      </div>
-    );
-  };
 
   // ─── Birthdays render ─────────────────────────────────────────────
   const renderTodayLeaves = () => {
     const todayLeaves = dashboardData?.todayLeaves;
     const allLeaves: any[] = [];
-    
+
     if (todayLeaves) {
       if (todayLeaves.onLeave) allLeaves.push(...todayLeaves.onLeave.map((l: any) => ({ ...l, tag: "Leave", color: "#EC4899" })));
       if (todayLeaves.onPermission) allLeaves.push(...todayLeaves.onPermission.map((l: any) => ({ ...l, tag: "Permission", color: "#F59E0B" })));
@@ -1174,7 +932,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                   opacity: 0.8,
                 }}
               />
-              
+
               <Avatar
                 size={38}
                 style={{
@@ -1206,14 +964,14 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                 </Text>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {isPending && (
-                    <span 
-                      style={{ 
-                        width: 6, 
-                        height: 6, 
-                        borderRadius: "50%", 
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
                         background: leave.color,
-                        boxShadow: `0 0 4px ${leave.color}` 
-                      }} 
+                        boxShadow: `0 0 4px ${leave.color}`
+                      }}
                     />
                   )}
                   <Text
@@ -1459,11 +1217,9 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
           {(() => {
             const visibleKeys = [
               isCardProjectPulseVisible && "projectPulse",
-              isCardTodaysPulseVisible && "todaysPulse",
               isUpcomingBirthdaysVisible && "birthdays",
               isCardTodayLeavesVisible && "todayLeaves",
-              isCardRecentActivitiesVisible && "activities",
-              isCardTeamInsightsVisible && "insights"
+              isCardRecentActivitiesVisible && "activities"
             ].filter(Boolean) as string[];
 
             const N = visibleKeys.length;
@@ -1475,7 +1231,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
               spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
               spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
             } else if (N === 4) {
-              spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12; 
+              spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
               spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
             } else if (N === 3) {
               spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
@@ -1488,130 +1244,87 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
             return (
               <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                 {isCardProjectPulseVisible && (
-                <Col xs={24} md={spanMap["projectPulse"]} lg={spanMap["projectPulse"]} xl={spanMap["projectPulse"]}>
-              <Card
-                style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <ProjectOutlined />,
-                  "Project Pulse",
-                  "#7C3AED",
-                )}
-                extra={
-                  <Space size={6}>
-                    {dashboardData.projectProgress.length > 1 && (
-                      <select
-                        value={selectedProjectId || ""}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                        style={{
-                          padding: "3px 8px",
-                          borderRadius: 8,
-                          border: `1px solid ${token.colorBorderSecondary}`,
-                          background: token.colorBgContainer,
-                          color: token.colorText,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          maxWidth: 110,
-                          cursor: "pointer",
-                          outline: "none",
-                        }}
-                      >
-                        {dashboardData.projectProgress.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => router.push("/projects/manage")}
-                      style={{ fontSize: 11 }}
+                  <Col xs={24} md={spanMap["projectPulse"] === 8 ? 12 : spanMap["projectPulse"]} lg={spanMap["projectPulse"]} xl={spanMap["projectPulse"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                        },
+                      }}
+                      title={sectionTitle(
+                        <ProjectOutlined />,
+                        "Project Pulse",
+                        "#7C3AED",
+                      )}
+                      extra={
+                        <Space size={6}>
+                          {dashboardData.projectProgress.length > 1 && (
+                            <Select
+                              value={selectedProjectId || undefined}
+                              onChange={(val) => setSelectedProjectId(val)}
+                              size="small"
+                              style={{ width: 140 }}
+                              options={dashboardData.projectProgress.map((p) => ({
+                                value: p.id,
+                                label: p.name,
+                              }))}
+                            />
+                          )}
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => router.push("/projects/manage")}
+                            style={{ fontSize: 11 }}
+                          >
+                            View
+                          </Button>
+                        </Space>
+                      }
                     >
-                      View
-                    </Button>
-                  </Space>
-                }
-              >
-                {renderProjectPulse()}
-              </Card>
-            </Col>
-            )}
-
-            {isCardTodaysPulseVisible && (
-            <Col xs={24} md={spanMap["todaysPulse"]} lg={spanMap["todaysPulse"]} xl={spanMap["todaysPulse"]}>
-              <Card
-                style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <CalendarOutlined />,
-                  "Today's Pulse",
-                  "#0EA5E9",
+                      {renderProjectPulse()}
+                    </Card>
+                  </Col>
                 )}
-                extra={
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => router.push("/leaves")}
-                    style={{ fontSize: 11 }}
-                  >
-                    View All
-                  </Button>
-                }
-              >
-                {renderTodayPulse()}
-              </Card>
-            </Col>
-            )}
 
-                  {isCardTodayLeavesVisible && (
-                    <Col xs={24} md={spanMap["todayLeaves"]} lg={spanMap["todayLeaves"]} xl={spanMap["todayLeaves"]}>
-                      <Card
-                        style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
-                        styles={{
-                          body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
-                          header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, padding: "16px 20px" }
-                        }}
-                        title={
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            {sectionTitle(<CalendarOutlined />, "Today's Leaves", "#EC4899")}
-                            <Button 
-                              type="link" 
-                              style={{ padding: 0, height: "auto", fontSize: 13, fontWeight: 600 }}
-                              onClick={() => router.push("/leaves")}
-                            >
-                              View All
-                            </Button>
-                          </div>
-                        }
-                      >
-                        {renderTodayLeaves()}
-                      </Card>
-                    </Col>
-                  )}
 
-                  {isUpcomingBirthdaysVisible && (
-                  <Col xs={24} md={spanMap["birthdays"]} lg={spanMap["birthdays"]} xl={spanMap["birthdays"]}>
+
+                {isCardTodayLeavesVisible && (
+                  <Col xs={24} md={spanMap["todayLeaves"] === 8 ? 12 : spanMap["todayLeaves"]} lg={spanMap["todayLeaves"]} xl={spanMap["todayLeaves"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
+                        header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, padding: "16px 20px" }
+                      }}
+                      title={
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          {sectionTitle(<CalendarOutlined />, "Today's Leaves", "#EC4899")}
+                          <Button
+                            type="link"
+                            style={{ padding: 0, height: "auto", fontSize: 13, fontWeight: 600 }}
+                            onClick={() => router.push("/leaves-v2/apply")}
+                          >
+                            View All
+                          </Button>
+                        </div>
+                      }
+                    >
+                      {renderTodayLeaves()}
+                    </Card>
+                  </Col>
+                )}
+
+                {isUpcomingBirthdaysVisible && (
+                  <Col xs={24} md={spanMap["birthdays"] === 8 ? 12 : spanMap["birthdays"]} lg={spanMap["birthdays"]} xl={spanMap["birthdays"]}>
                     {(() => {
                       const accent = "#F59E0B";
                       const today = dayjs();
                       const users = dashboardData?.upcomingBirthdays || [];
-                      
+
                       const upcoming = users
                         .map((u: any) => {
                           let nextBDay = dayjs(u.dateOfBirth).year(today.year());
@@ -1646,7 +1359,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                               {upcoming.length}
                             </div>
                           </div>
-                          
+
                           <div style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}>
                             {upcoming.length > 0 ? (
                               <Space direction="vertical" size={6} style={{ width: "100%" }}>
@@ -1703,10 +1416,10 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                                           )}
                                         </div>
                                         {isToday && (
-                                          <div style={{ 
-                                            position: "absolute", 
-                                            bottom: -4, 
-                                            right: -4, 
+                                          <div style={{
+                                            position: "absolute",
+                                            bottom: -4,
+                                            right: -4,
                                             fontSize: 14,
                                             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
                                           }}>
@@ -1761,7 +1474,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                                 })}
                               </Space>
                             ) : (
-                              <div style={{ 
+                              <div style={{
                                 height: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -1778,70 +1491,30 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
                       );
                     })()}
                   </Col>
-                  )}
-            {isCardRecentActivitiesVisible && (
-            <Col xs={24} md={spanMap["activities"]} lg={spanMap["activities"]} xl={spanMap["activities"]}>
-              <Card
-                style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <FireOutlined />,
-                  "Recent Activities",
-                  "#F59E0B",
                 )}
-              >
-                {renderActivities()}
-              </Card>
-            </Col>
-            )}
+                {isCardRecentActivitiesVisible && (
+                  <Col xs={24} md={spanMap["activities"] === 8 ? 12 : spanMap["activities"]} lg={spanMap["activities"]} xl={spanMap["activities"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                        },
+                      }}
+                      title={sectionTitle(
+                        <FireOutlined />,
+                        "Recent Activities",
+                        "#F59E0B",
+                      )}
+                    >
+                      {renderActivities()}
+                    </Card>
+                  </Col>
+                )}
 
-            {isCardTeamInsightsVisible && (
-            <Col xs={24} md={spanMap["insights"]} lg={spanMap["insights"]} xl={spanMap["insights"]}>
-              <Card
-                style={cardBase}
-                styles={{ body: { padding: 16 } }}
-                title={sectionTitle(
-                  <BarChartOutlined />,
-                  "Team Insights",
-                  "#10B981",
-                )}
-              >
-                <Space
-                  direction="vertical"
-                  size={10}
-                  style={{ width: "100%" }}
-                >
-                  <QuickActionCard
-                    icon={<TeamOutlined />}
-                    title="Members"
-                    desc="Browse the entire roster"
-                    accent="#0EA5E9"
-                    onClick={() => router.push("/members")}
-                  />
-                  <QuickActionCard
-                    icon={<RocketOutlined />}
-                    title="Project"
-                    desc="See what teams are shipping"
-                    accent="#7C3AED"
-                    onClick={() => router.push("/projects/manage")}
-                  />
-                  <QuickActionCard
-                    icon={<CalendarOutlined />}
-                    title="Leave Calendar"
-                    desc="Plan around team availability"
-                    accent="#10B981"
-                    onClick={() => router.push("/leaves")}
-                  />
-                </Space>
-              </Card>
-            </Col>
-            )}
+
               </Row>
             );
           })()}

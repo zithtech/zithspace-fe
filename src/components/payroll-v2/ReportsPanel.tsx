@@ -160,14 +160,14 @@ export default function ReportsPanel() {
       <style jsx global>{`
         .rpt { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .rpt-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
-        .rpt-header-about { display: flex; align-items: center; gap: 12px; }
+        .rpt-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .rpt-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.violet}; color: ${PALETTE.violet}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .rpt-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .rpt-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .rpt-header-actions { display: flex; align-items: center; gap: 8px; }
         .rpt-ghost-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
 
-        .rpt-summary { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; padding: 16px 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+        .rpt-summary { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; padding: 16px 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px !important; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
         .rpt-sum { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 2px 22px; }
         .rpt-sum + .rpt-sum { border-left: 1px solid var(--border-slate-200); }
         .rpt-sum span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-slate-400); }
@@ -181,14 +181,12 @@ export default function ReportsPanel() {
         .rpt-stat-cell span { font-size: 11px; color: var(--text-slate-500); }
         .rpt-stat-cell strong { font-size: 15px; font-weight: 800; color: ${PALETTE.red}; }
 
-        .rpt-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; overflow: hidden; }
-        .rpt-table .ant-table { background: transparent; font-size: 12px; }
-        .rpt-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 9.5px !important; font-weight: 700 !important; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 10px !important; white-space: nowrap !important; }
+        .rpt-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px !important; overflow: hidden; }
+        .rpt-table .ant-table, .rpt-table .ant-table-container { background: transparent; font-size: 12px; border-radius: 0px !important; }
+        .rpt-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 9.5px !important; font-weight: 700 !important; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 10px !important; white-space: nowrap !important; border-radius: 0px !important; }
         .rpt-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; white-space: nowrap; }
         .rpt-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .rpt-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
-
-        .rpt-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
         @media (max-width: 900px) {
           .rpt-header {

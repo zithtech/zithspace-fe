@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Modal, Input, message, Typography, Progress } from 'antd';
+import { Button, Modal, Input, message, Typography, Progress, Checkbox } from 'antd';
 import { Sparkles, Wand2, Zap } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { nanoid } from 'nanoid';
+import { BLOCK_META } from './BlockPalette';
+
 
 const { Text } = Typography;
 
@@ -292,7 +294,9 @@ const buildPhasesOrder = (brief: ParsedBrief, userPrompt: string, extraTerms: st
     brief.currency ? `Currency: ${brief.currency}` : null,
   ].filter(Boolean).join(' | ');
 
-  const baseContext = `User brief: "${userPrompt}"\n\nParsed brief: ${briefSummary || 'none'}`;
+  const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().split('T')[0];
+  const baseContext = `User brief: "${userPrompt}"\n\nParsed brief: ${briefSummary || 'none'}\n\nIMPORTANT CONTEXT:\n- The current date is ${currentDate}, and the current year is ${currentYear}.\n- All timelines, dates, and deadlines you generate MUST be set in the current year (${currentYear}) or later.\n- NEVER generate a deadline in the past (before ${currentDate}).`;
 
   return [
     {
@@ -420,6 +424,8 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stepLabel, setStepLabel] = useState('');
+  const [step, setStep] = useState<'prompt' | 'components'>('prompt');
+  const [selectedComponents, setSelectedComponents] = useState<string[]>(BLOCK_META.filter(b => b.type !== 'section').map(b => b.type));
 
   const { setBlocks } = useProposalStore();
 
@@ -454,7 +460,13 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
     setProgress(0);
 
     const brief = parseBrief(prompt);
-    const phases = buildPhasesOrder(brief, prompt, extraTerms);
+    const phases = buildPhasesOrder(brief, prompt, extraTerms).filter(p => selectedComponents.includes(p.type));
+
+    if (phases.length === 0) {
+      message.warning('Please select at least one component to generate.');
+      setGenerating(false);
+      return;
+    }
 
     const stepIncrement = 100 / phases.length;
     let runningProgress = 0;
@@ -569,80 +581,126 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
             </div>
           ) : (
             <>
-              <div className="zai-prompt">
-                <div className="zai-prompt__label">
-                  <Wand2 size={14} />
-                  <span>Project Brief</span>
-                </div>
-                <div className="zai-prompt__row">
-                  <Input.TextArea
-                    rows={4}
-                    placeholder='e.g. "Create proposal for driver booking app with start date 01/05/2026 and end 23/07/2026 with 5 phases and 3 lakhs budget"'
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="zai-textarea"
-                    bordered={false}
-                  />
-                  <Button
-                    type="primary"
-                    onClick={handleGenerate}
-                    className="zai-cta"
-                    icon={<Sparkles size={14} />}
-                  >
-                    Build with Zai
-                  </Button>
-                </div>
+              {step === 'prompt' ? (
+                <>
+                  <div className="zai-prompt">
+                    <div className="zai-prompt__label">
+                      <Wand2 size={14} />
+                      <span>Project Brief</span>
+                    </div>
+                    <div className="zai-prompt__row">
+                      <Input.TextArea
+                        rows={4}
+                        placeholder='e.g. "Create proposal for driver booking app with start date 01/05/2026 and end 23/07/2026 with 5 phases and 3 lakhs budget"'
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="zai-textarea"
+                        bordered={false}
+                      />
+                      <Button
+                        type="primary"
+                        onClick={() => {
+                          if (!prompt.trim()) {
+                            message.warning('Tell Zai what proposal to create');
+                            return;
+                          }
+                          setStep('components');
+                        }}
+                        className="zai-cta"
+                        icon={<Sparkles size={14} />}
+                      >
+                        Build with Zai
+                      </Button>
+                    </div>
 
-                <div className="zai-template-list">
-                  <div className="zai-template-list__heading">
-                    <span className="zai-suggestions__label">Try one of these</span>
+                    <div className="zai-template-list">
+                      <div className="zai-template-list__heading">
+                        <span className="zai-suggestions__label">Try one of these</span>
+                      </div>
+                      <div className="zai-template-grid">
+                        {QUICK_TEMPLATES.map((t) => {
+                          const active = prompt === t.body;
+                          return (
+                            <button
+                              key={t.title}
+                              type="button"
+                              className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
+                              onClick={() => setPrompt(t.body)}
+                            >
+                              <div className="zai-template-card__head">
+                                <span className="zai-template-card__icon">{t.icon}</span>
+                                <span className="zai-template-card__title">{t.title}</span>
+                                <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
+                              </div>
+                              <p className="zai-template-card__body">{t.body}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                  <div className="zai-template-grid">
-                    {QUICK_TEMPLATES.map((t) => {
-                      const active = prompt === t.body;
-                      return (
-                        <button
-                          key={t.title}
-                          type="button"
-                          className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
-                          onClick={() => setPrompt(t.body)}
+
+                  <div className="zai-prompt" style={{ marginTop: 14 }}>
+                    <div className="zai-prompt__label">
+                      <Wand2 size={14} />
+                      <span>Terms & Conditions Directive</span>
+                    </div>
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Tell Zai any specific clause guidance for terms & conditions"
+                      value={extraTerms}
+                      onChange={(e) => setExtraTerms(e.target.value)}
+                      className="zai-textarea"
+                      bordered={false}
+                    />
+                  </div>
+
+                  <div className="zai-footer">
+                    <div className="zai-footer__hint">
+                      Zai will generate Cover · Summary · Scope · Timeline · Pricing · T&Cs in sequence.
+                    </div>
+                    <div className="zai-footer__actions">
+                      <Button onClick={onClose} className="zai-btn-ghost">Cancel</Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="zai-components-selection" style={{ padding: '24px 0' }}>
+                    <div style={{ marginBottom: 12, fontWeight: 600, color: 'var(--text-slate-900)' }}>Select Components to Generate</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      {BLOCK_META.filter(meta => meta.type !== 'section').map(meta => (
+                        <Checkbox
+                          key={meta.type}
+                          checked={selectedComponents.includes(meta.type)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedComponents([...selectedComponents, meta.type]);
+                            } else {
+                              setSelectedComponents(selectedComponents.filter(t => t !== meta.type));
+                            }
+                          }}
                         >
-                          <div className="zai-template-card__head">
-                            <span className="zai-template-card__icon">{t.icon}</span>
-                            <span className="zai-template-card__title">{t.title}</span>
-                            <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
-                          </div>
-                          <p className="zai-template-card__body">{t.body}</p>
-                        </button>
-                      );
-                    })}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ color: meta.color }}>{meta.icon}</span>
+                            {meta.label}
+                          </span>
+                        </Checkbox>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="zai-prompt" style={{ marginTop: 14 }}>
-                <div className="zai-prompt__label">
-                  <Wand2 size={14} />
-                  <span>Terms & Conditions Directive</span>
-                </div>
-                <Input.TextArea
-                  rows={3}
-                  placeholder="Tell Zai any specific clause guidance for terms & conditions"
-                  value={extraTerms}
-                  onChange={(e) => setExtraTerms(e.target.value)}
-                  className="zai-textarea"
-                  bordered={false}
-                />
-              </div>
-
-              <div className="zai-footer">
-                <div className="zai-footer__hint">
-                  Zai will generate Cover · Summary · Scope · Timeline · Pricing · T&Cs in sequence.
-                </div>
-                <div className="zai-footer__actions">
-                  <Button onClick={onClose} className="zai-btn-ghost">Cancel</Button>
-                </div>
-              </div>
+                  <div className="zai-footer">
+                    <div className="zai-footer__hint">
+                      Zai will automatically build the selected components in sequence.
+                    </div>
+                    <div className="zai-footer__actions">
+                      <Button onClick={() => setStep('prompt')} className="zai-btn-ghost">Back</Button>
+                      <Button type="primary" onClick={handleGenerate} className="zai-cta" icon={<Sparkles size={14} />}>Start Generation</Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

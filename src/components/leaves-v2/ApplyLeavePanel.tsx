@@ -44,6 +44,7 @@ import LeaveV2Service, {
   LeaveRequest,
 } from '@/services/leaveV2Service';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+import ApplyLeaveDrawer from './ApplyLeaveDrawer';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -90,7 +91,7 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
   return u;
 }
 
-export default function ApplyLeavePanel() {
+export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const { canReadLeave, canCreateLeave, canUpdateLeave, canReadMyHubApplyLeave } = usePermission();
   console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
@@ -108,13 +109,7 @@ export default function ApplyLeavePanel() {
 
   // drawer
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
-  const [leaveTypeId, setLeaveTypeId] = useState<string>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
-  const [portion, setPortion] = useState<DayPortion>('full');
-  const [reason, setReason] = useState('');
-  const [submitError, setSubmitError] = useState<string | null>(null); // server-side reject shown inline in the drawer
 
   // withdrawal drawer (release unused days of a multi-day approved leave)
   const [wOpen, setWOpen] = useState(false);
@@ -141,8 +136,15 @@ export default function ApplyLeavePanel() {
     if (canReadLeave || canReadMyHubApplyLeave) load();
   }, [canReadLeave, canReadMyHubApplyLeave, load]);
 
-  // A server rejection (e.g. overlap) is stale once the type/dates change.
-  useEffect(() => { setSubmitError(null); }, [leaveTypeId, range, portion]);
+  const openApply = () => {
+    setEditingRequest(null);
+    setOpen(true);
+  };
+
+  const openEdit = (r: LeaveRequest) => {
+    setEditingRequest(r);
+    setOpen(true);
+  };
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -179,86 +181,6 @@ export default function ApplyLeavePanel() {
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
 
   const hasFilters = !!search || statusFilter !== 'all';
-
-  // ── Apply drawer ────────────────────────────────────────────────────────────
-  const balanceFor = (id?: string) => balances.find((b) => b.leaveTypeId === id);
-  const from = range?.[0] ?? null;
-  const to = range?.[1] ?? null;
-  const isSingleDay = !!from && !!to && from.isSame(to, 'day');
-  const effectivePortion: DayPortion = isSingleDay ? portion : 'full';
-  const units = computeUnits(from, to, effectivePortion, holidaySet);
-  // Total leave span (calendar days, incl. weekends/holidays) — half-day counts as 0.5.
-  const calendarSpan = from && to ? to.startOf('day').diff(from.startOf('day'), 'day') + 1 : 0;
-  const totalDays = isSingleDay && effectivePortion !== 'full' ? 0.5 : calendarSpan;
-  const selectedBalance = balanceFor(leaveTypeId);
-  const isUnpaidType = !!selectedBalance && !selectedBalance.isPaid; // Loss of Pay = unlimited, all units are LOP
-  let available = selectedBalance?.available ?? 0;
-  if (editingRequest && editingRequest.leaveTypeId === leaveTypeId && !isUnpaidType) {
-    available += editingRequest.paidUnits;
-  }
-  const paid = isUnpaidType ? 0 : Math.min(units, Math.max(available, 0));
-  const lop = Number((units - paid).toFixed(2));
-
-  // Why submit is blocked (shown inline so the user always sees the reason).
-  const blockReason: string | null = !leaveTypeId
-    ? 'Select a leave type'
-    : !from || !to
-    ? 'Select the leave dates'
-    : units <= 0
-    ? 'Selected range has only weekends/holidays'
-    : null;
-
-  const openApply = () => {
-    setEditingRequest(null);
-    setLeaveTypeId(undefined);
-    setRange(null);
-    setPortion('full');
-    setReason('');
-    setSubmitError(null);
-    setOpen(true);
-  };
-
-  const openEdit = (r: LeaveRequest) => {
-    setEditingRequest(r);
-    setLeaveTypeId(r.leaveTypeId);
-    setRange([dayjs(r.fromDate), dayjs(r.toDate)]);
-    setPortion(r.dayPortion);
-    setReason(r.reason || '');
-    setSubmitError(null);
-    setOpen(true);
-  };
-
-  const submit = async () => {
-    if (!leaveTypeId) return message.error('Pick a leave type');
-    if (!from || !to) return message.error('Pick the leave dates');
-    if (units <= 0) return message.error('The selected range has no working days');
-    setSaving(true);
-    setSubmitError(null);
-    try {
-      const payload: ApplyLeaveInput = {
-        leaveTypeId,
-        fromDate: from.format('YYYY-MM-DD'),
-        toDate: to.format('YYYY-MM-DD'),
-        dayPortion: effectivePortion,
-        reason: reason.trim() || null,
-      };
-      if (editingRequest) {
-        await LeaveV2Service.updateRequest(editingRequest.id, payload);
-        message.success('Leave request updated');
-      } else {
-        await LeaveV2Service.applyLeave(payload);
-        message.success('Leave request submitted');
-      }
-      setOpen(false);
-      await load();
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || (editingRequest ? 'Failed to update leave' : 'Failed to submit leave');
-      setSubmitError(msg);
-      message.error(msg);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const cancelRequest = async (r: LeaveRequest) => {
     try {
@@ -462,14 +384,16 @@ export default function ApplyLeavePanel() {
       {/* HEADER */}
       <div className="lva-header">
         <div className="lva-header-about">
-          <button 
-            type="button"
-            className="lv-mobile-menu-btn" 
-            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
-            aria-label="Open menu"
-          >
-            <Menu size={18} />
-          </button>
+          {!hideSidebarToggle && (
+            <button 
+              type="button"
+              className="lv-mobile-menu-btn" 
+              onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <div className="lva-header-icon"><WalletOutlined /></div>
           <div>
             <div className="lva-header-title">Apply Leave</div>
@@ -569,193 +493,14 @@ export default function ApplyLeavePanel() {
       )}
 
       {/* APPLY DRAWER */}
-      <Drawer
-        rootClassName="leave-drawer-root"
-        title={null}
+      <ApplyLeaveDrawer
         open={open}
         onClose={() => setOpen(false)}
-        width={720}
-        closable={false}
-        destroyOnClose
-        styles={{
-          header: { display: 'none' },
-          body: { padding: 0, background: 'var(--customers-page-bg)' },
-          footer: { padding: 0, border: 'none' },
-          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
-        }}
-        footer={
-          <div
-            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
-            style={{
-              background: 'var(--bg-secondary)',
-              borderColor: 'var(--border-color)',
-            }}
-          >
-            <span style={{ fontSize: 11.5, color: (submitError || blockReason) ? PALETTE.red : 'var(--text-slate-400)', marginRight: 'auto' }}>
-              {submitError ? submitError : blockReason ? blockReason : lop > 0 ? `${lop} day(s) will be Loss of Pay` : 'Within your balance'}
-            </span>
-            <Button onClick={() => setOpen(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
-            <Button
-              type="primary"
-              loading={saving}
-              onClick={submit}
-              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
-            >
-              {editingRequest ? 'Update Request' : 'Submit Request'}
-            </Button>
-          </div>
-        }
-      >
-        <style>{formStyles}</style>
-        {/* HEADER */}
-        <div
-          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
-          style={{
-            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-            borderColor: 'var(--border-color)',
-          }}
-        >
-          <div className="flex items-start gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: 'var(--bg-blue-50)',
-                color: 'var(--text-blue-700)',
-                border: '1px solid var(--border-blue-200)',
-              }}
-            >
-              {editingRequest ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
-            </div>
-            <div className="min-w-0">
-              <div
-                className="text-[15px] font-semibold leading-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                {editingRequest ? 'Edit Leave' : 'Apply Leave'}
-              </div>
-              <div
-                className="text-[12px] mt-0.5"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {editingRequest ? 'Update your pending leave request' : 'Request time off against your balance'}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close"
-            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <CloseOutlined />
-          </button>
-        </div>
-
-        <Form
-          layout="horizontal"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-          labelAlign="left"
-          colon={false}
-          className="customer-drawer-form"
-        >
-          <div className="px-6 py-6 space-y-5 pb-24">
-            {submitError && (
-              <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: TINT.red, border: `1px solid ${PALETTE.red}44`, color: '#991b1b', padding: '10px 12px', borderRadius: 6, fontSize: 12.5, lineHeight: 1.4 }}>
-                <WarningOutlined style={{ color: PALETTE.red, marginTop: 1, flexShrink: 0 }} />
-                <span>{submitError}</span>
-              </div>
-            )}
-            <SectionCard
-              icon={<InfoCircleOutlined />}
-              title="Leave Details"
-              subtitle="Type, dates and reason"
-              step="STEP 1"
-            >
-                <Form.Item label="Leave type" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown
-                    placeholder="Select leave type"
-                    itemNoun="leave types"
-                    allowClear={false}
-                    value={leaveTypeId}
-                    onChange={(v) => setLeaveTypeId(v as string)}
-                    options={balances.map((b) => {
-                      const exhausted = b.isPaid && b.available <= 0;
-                      return {
-                        value: b.leaveTypeId,
-                        label: b.name,
-                        description: b.isPaid
-                          ? `${b.available} available${exhausted ? ' · exhausted' : ''}`
-                          : 'Unlimited · unpaid (Loss of Pay)',
-                        disabled: exhausted,
-                      };
-                    })}
-                    style={{ width: '100%', height: 38 }}
-                    width={300}
-                  />
-                </Form.Item>
-
-                <Form.Item label="Dates" style={{ marginBottom: 0 }}>
-                  <RangePicker style={{ width: '100%' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" />
-                </Form.Item>
-
-                <Form.Item
-                  label={
-                    <span>
-                      Day portion
-                      {!isSingleDay && (
-                        <span style={{ color: 'var(--text-slate-400)', fontWeight: 400, marginLeft: 4 }}>
-                          (single-day only)
-                        </span>
-                      )}
-                    </span>
-                  }
-                  style={{ marginBottom: 0 }}
-                >
-                  <SearchableDropdown
-                    placeholder="Full day"
-                    itemNoun="portions"
-                    allowClear={false}
-                    disabled={!isSingleDay}
-                    value={effectivePortion}
-                    onChange={(v) => setPortion(v as DayPortion)}
-                    options={DAY_PORTION_OPTIONS}
-                    style={{ width: '100%', height: 38 }}
-                    width={200}
-                  />
-                </Form.Item>
-
-                <Form.Item label="Reason" style={{ marginBottom: 0 }}>
-                  <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={reason} maxLength={500} placeholder="Optional note for your manager" onChange={(e) => setReason(e.target.value)} />
-                </Form.Item>
-              </SectionCard>
-
-            {/* Live preview */}
-            {leaveTypeId && from && to && (
-              <div
-                className="customer-drawer-card rounded-none overflow-hidden"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '12px 16px',
-                }}
-              >
-                <div className="lva-preview-row"><span>Total days leave</span><strong>{totalDays}</strong></div>
-                <div className="lva-preview-row"><span>Working days</span><strong>{units}</strong></div>
-                <div className="lva-preview-row"><span>Available balance</span><strong>{isUnpaidType ? 'Unlimited' : available}</strong></div>
-                <div className="lva-preview-row"><span>Paid</span><strong style={{ color: PALETTE.green }}>{paid}</strong></div>
-                {lop > 0 && (
-                  <div className="lva-preview-row lva-preview-lop" style={{ borderTop: '1px dashed var(--border-slate-200)', paddingTop: 8, marginTop: 8 }}>
-                    <span><WarningOutlined /> Loss of Pay</span><strong style={{ color: PALETTE.red }}>{lop}</strong>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Form>
-      </Drawer>
+        onSuccess={load}
+        editingRequest={editingRequest}
+        balances={balances}
+        holidaySet={holidaySet}
+      />
 
       {/* WITHDRAWAL DRAWER */}
       <Drawer
@@ -967,7 +712,7 @@ export default function ApplyLeavePanel() {
         .lva-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
         .lva-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
         .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lva-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lva-pager { display: flex; align-items: center; gap: 3px; }

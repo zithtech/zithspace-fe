@@ -276,9 +276,13 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
     return (
       <div key={record.id} className="squad-member-row">
         <div className="squad-member-row__main">
-          <div className="squad-member-row__avatar" style={{ background: '#f1f5f9', color: '#64748b' }}>
+          <Avatar 
+            className="squad-member-row__avatar" 
+            src={record.member.avatarUrl || undefined}
+            style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)' }}
+          >
             {record.member.name.charAt(0).toUpperCase()}
-          </div>
+          </Avatar>
           <div style={{ minWidth: 0 }}>
             <div className="squad-member-row__name">{record.member.name}</div>
             <div className="squad-member-row__email">
@@ -410,9 +414,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
         <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }}>
         {initialData && (
           <div style={{
-            background: '#fafafa',
-            border: '1px solid #e2e8f0',
-            borderRadius: 2,
+            background: 'var(--bg-pure-white)',
+            border: '1px solid var(--border-slate-200)',
+            borderRadius: 0,
             padding: 16,
             marginBottom: 24,
             boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
@@ -421,7 +425,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               {/* Avatar */}
               <div style={{
-                width: 54, height: 54, borderRadius: 8, flexShrink: 0,
+                width: 54, height: 54, borderRadius: 0, flexShrink: 0,
                 background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-500)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 22, fontWeight: 800,
@@ -430,18 +434,18 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               </div>
               {/* Identity */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {initialData.squadName}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 0, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-slate-200)', fontFamily: 'monospace' }}>
                     {initialData.squadCode}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: initialData.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: initialData.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${initialData.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 0, background: initialData.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: initialData.squadStatus ? '#34d399' : '#f87171', border: `1px solid ${initialData.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                     <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor', marginRight: 4 }}></span>
                     {initialData.isArchived ? 'Archived' : initialData.squadStatus ? 'Active' : 'Inactive'}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 0, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-slate-200)' }}>
                     <UserOutlined style={{ marginRight: 4 }} />
                     {localSquadMembers.length} members
                   </span>
@@ -450,11 +454,11 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               {/* Led By */}
               {localSquadMembers.filter(m => m.memberType === 'HEAD').length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>Led By</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-400)', textTransform: 'uppercase' }}>Led By</div>
                   <Avatar.Group max={{ count: 3 }} size={28}>
                     {localSquadMembers.filter(m => m.memberType === 'HEAD').map(h => (
                       <Tooltip key={h.id} title={h.member.name}>
-                        <Avatar style={{ border: '2px solid #fff', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                        <Avatar style={{ border: '2px solid var(--bg-pure-white)', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
                           {h.member.name.substring(0, 2).toUpperCase()}
                         </Avatar>
                       </Tooltip>
@@ -464,24 +468,24 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               )}
             </div>
             {/* Divider */}
-            <div style={{ height: 1, background: '#e2e8f0', margin: '16px 0' }}></div>
+            <div style={{ height: 1, background: 'var(--border-slate-100)', margin: '16px 0' }}></div>
             {/* Bottom Row: Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
-              <div style={{ borderRight: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{localSquadMembers.length}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
+              <div style={{ borderRight: '1px solid var(--border-slate-100)' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-slate-900)', lineHeight: 1 }}>{localSquadMembers.length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
               </div>
-              <div style={{ borderRight: '1px solid #f1f5f9' }}>
+              <div style={{ borderRight: '1px solid var(--border-slate-100)' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'HEAD').length}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
               </div>
-              <div style={{ borderRight: '1px solid #f1f5f9' }}>
+              <div style={{ borderRight: '1px solid var(--border-slate-100)' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'SUB_HEAD').length}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#64748b', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'MEMBER').length}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-slate-500)', lineHeight: 1 }}>{localSquadMembers.filter(m => m.memberType === 'MEMBER').length}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
               </div>
             </div>
           </div>
@@ -664,7 +668,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                                 value: m.value,
                                 label: m.label,
                                 description: m.position,
+                                avatarUrl: m.avatarUrl,
                               }))}
+                              showSelectedAvatar
                             />
                           </Form.Item>
                         </Col>
@@ -773,7 +779,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
 
@@ -792,7 +800,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
 
@@ -811,7 +821,9 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       value: m.value,
                       label: m.label,
                       description: m.position,
+                      avatarUrl: m.avatarUrl,
                     }))}
+                    showSelectedAvatar
                   />
                 </Form.Item>
               </SectionCard>

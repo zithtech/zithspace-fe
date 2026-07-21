@@ -47,7 +47,7 @@ export default function ApprovalsPanel() {
   const [rows, setRows] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [userFilter, setUserFilter] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<DateRange>(null);
   const [tablePage, setTablePage] = useState(1);
@@ -84,9 +84,16 @@ export default function ApprovalsPanel() {
   ];
 
   const userOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    rows.forEach((r) => { if (r.userId && !seen.has(r.userId)) seen.set(r.userId, r.userName || r.userEmail || r.userId); });
-    return Array.from(seen, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    const seen = new Map<string, { label: string, avatarUrl: string | null }>();
+    rows.forEach((r) => { 
+      if (r.userId && !seen.has(r.userId)) {
+        seen.set(r.userId, { 
+          label: r.userName || r.userEmail || r.userId, 
+          avatarUrl: r.userAvatarUrl || null 
+        }); 
+      } 
+    });
+    return Array.from(seen, ([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl })).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
   const filtered = useMemo(() => {
@@ -113,8 +120,8 @@ export default function ApprovalsPanel() {
   const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
   useEffect(() => { setTablePage(1); }, [search, statusFilter, userFilter, dateRange, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
-  const hasFilters = !!search || statusFilter !== 'pending' || !!userFilter || !!dateRange;
-  const clearFilters = () => { setSearch(''); setStatusFilter('pending'); setUserFilter(undefined); setDateRange(null); };
+  const hasFilters = !!search || statusFilter !== 'all' || !!userFilter || !!dateRange;
+  const clearFilters = () => { setSearch(''); setStatusFilter('all'); setUserFilter(undefined); setDateRange(null); };
 
   const decide = async (r: LeaveRequest, action: 'approve' | 'reject') => {
     setBusyId(r.id);
@@ -160,7 +167,7 @@ export default function ApprovalsPanel() {
         <span className="lvap-detail-label">Approved by</span>
         {r.approverName ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Avatar size={22} style={{ background: TINT.green, color: PALETTE.green, fontSize: 10, fontWeight: 700 }}>{initials(r.approverName)}</Avatar>
+            <Avatar src={r.approverAvatarUrl} size={22} style={{ background: TINT.green, color: PALETTE.green, fontSize: 10, fontWeight: 700 }}>{initials(r.approverName)}</Avatar>
             <span>
               <span style={{ fontWeight: 600, fontSize: 12.5 }}>{r.approverName}</span>
               {r.decidedAt && <span style={{ fontSize: 11, color: 'var(--text-slate-400)', marginLeft: 6 }}>{fmtDateTime(r.decidedAt)}</span>}
@@ -194,7 +201,7 @@ export default function ApprovalsPanel() {
       key: 'emp',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Avatar size={26} style={{ background: TINT.blue, color: PALETTE.blue, fontSize: 11, fontWeight: 700 }}>{initials(r.userName)}</Avatar>
+          <Avatar src={r.userAvatarUrl} size={26} style={{ background: TINT.blue, color: PALETTE.blue, fontSize: 11, fontWeight: 700 }}>{initials(r.userName)}</Avatar>
           <div style={{ lineHeight: 1.25 }}>
             <div style={{ fontWeight: 600, fontSize: 12.5 }}>{r.userName || '—'}</div>
             {r.userEmail && <div style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>{r.userEmail}</div>}
@@ -373,6 +380,7 @@ export default function ApprovalsPanel() {
           value={userFilter}
           onChange={(v) => setUserFilter((v as string) ?? undefined)}
           options={userOptions}
+          showSelectedAvatar
           style={{ width: 190 }}
           width={240}
         />
@@ -461,7 +469,7 @@ export default function ApprovalsPanel() {
         .lvap-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
         .lvap-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
         .lvap-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lvap-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lvap-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvap-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvap-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvap-pager { display: flex; align-items: center; gap: 3px; }

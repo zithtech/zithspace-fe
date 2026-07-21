@@ -380,7 +380,7 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
           <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
+        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
           <Input placeholder="priya@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item
@@ -511,7 +511,7 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
           <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]}>
+            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
               <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
             </Form.Item>
             <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
@@ -584,7 +584,7 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
                         <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
                   
-                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]}>
+                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                         <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
                       <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
@@ -688,7 +688,7 @@ export default function LeadsPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal" | "my_leads">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
@@ -2027,6 +2027,8 @@ export default function LeadsPage() {
         matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
       } else if (activeSegment === "with_proposal") {
         matchesSegment = !!item.proposal_id;
+      } else if (activeSegment === "my_leads") {
+        matchesSegment = (item as any).created_by === user?.id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
@@ -2313,6 +2315,10 @@ export default function LeadsPage() {
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(today)).length;
   }, [leads]);
 
+  const myLeadsCount = useMemo(() => {
+    return leads.filter(l => (l as any).created_by === user?.id).length;
+  }, [leads, user]);
+
   const leadsThisWeek = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(weekAgo)).length;
@@ -2543,6 +2549,7 @@ export default function LeadsPage() {
                 <div className="lm-side-list">
                   {[
                     { key: 'all', label: 'All Leads', icon: <Layers size={14} />, count: leads.length, color: '#3b82f6' },
+                    { key: 'my_leads', label: 'My Leads', icon: <User size={14} />, count: myLeadsCount, color: '#8b5cf6' },
                     { key: 'hot', label: 'Hot Leads', icon: <Flame size={14} />, count: hotLeadsCount, color: '#ef4444' },
                     { key: 'today', label: 'Added Today', icon: <Zap size={14} />, count: leadsToday, color: '#f59e0b' },
                     { key: 'with_proposal', label: 'With Proposal', icon: <FileText size={14} />, count: leads.filter(l => !!l.proposal_id).length, color: '#10b981' },
@@ -2552,11 +2559,13 @@ export default function LeadsPage() {
                       ? (!filterPlatform && !filterStatus && activeSegment === 'all')
                       : v.key === 'hot'
                         ? activeSegment === 'hot'
-                        : v.key === 'today'
-                          ? activeSegment === 'today'
-                          : v.key === 'with_proposal'
-                            ? activeSegment === 'with_proposal'
-                            : false;
+                        : v.key === 'my_leads'
+                          ? activeSegment === 'my_leads'
+                          : v.key === 'today'
+                            ? activeSegment === 'today'
+                            : v.key === 'with_proposal'
+                              ? activeSegment === 'with_proposal'
+                              : false;
                     return (
                       <button
                         key={v.key}
@@ -2567,6 +2576,8 @@ export default function LeadsPage() {
                           setFilterStatus(null);
                           if (v.key === 'all') {
                             setActiveSegment('all');
+                          } else if (v.key === 'my_leads') {
+                            setActiveSegment('my_leads');
                           } else if (v.key === 'hot') {
                             setActiveSegment('hot');
                           } else if (v.key === 'today') {
@@ -4285,51 +4296,45 @@ export default function LeadsPage() {
             <style>{drawerFormStyles}</style>
           <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 14 }} wrapperCol={{ span: 24 }}>
-              <Segmented
-                block
+            <Form.Item name="leadSourceKind" hidden initialValue="platform">
+              <Input />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
+              <Tabs
+                activeKey={leadSourceKindWatch}
+                onChange={(key) => form.setFieldValue('leadSourceKind', key)}
                 size="large"
-                options={[
+                type="line"
+                tabBarStyle={{
+                  background: 'transparent',
+                  marginBottom: 0,
+                }}
+                items={[
                   {
-                    value: 'platform',
+                    key: 'platform',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Briefcase size={14} />
-                          Online Platform
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Upwork · LinkedIn · Freelancer · Fiverr
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Briefcase size={16} />
+                        <span style={{ fontWeight: 600 }}>Online Platform</span>
+                      </Space>
                     ),
                   },
                   {
-                    value: 'website',
+                    key: 'website',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Globe size={14} />
-                          Website Inquiry
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Zukvo · Zithtech contact forms
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Globe size={16} />
+                        <span style={{ fontWeight: 600 }}>Website Inquiry</span>
+                      </Space>
                     ),
                   },
                   {
-                    value: 'intake',
+                    key: 'intake',
                     label: (
-                      <div style={{ padding: '1px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Building2 size={14} />
-                          Lead Intake
-                        </div>
-                        <div className="lead-kind-sub" style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 0 }}>
-                          Company profile · decision makers
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Building2 size={16} />
+                        <span style={{ fontWeight: 600 }}>Lead Intake</span>
+                      </Space>
                     ),
                   },
                 ]}
@@ -4347,7 +4352,7 @@ export default function LeadsPage() {
                       <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
                         <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
+                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                         <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
                       <Form.Item
@@ -4746,7 +4751,7 @@ export default function LeadsPage() {
             /* ---------------- Proposals Page CSS matching styles ---------------- */
             .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
             .pp-stat-card {
-              background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+              background: transparent; border: 1px solid var(--border-slate-200);
               border-radius: 0; padding: 12px 14px; min-height: 92px;
               display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
               box-shadow: 0 1px 2px rgba(15,23,42,0.04);
@@ -4785,7 +4790,7 @@ export default function LeadsPage() {
             
             /* Dark theme overrides for pp- stats & search */
             [data-theme='dark'] .pp-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .pp-search-wrap {
@@ -6485,7 +6490,7 @@ export default function LeadsPage() {
 
             /* ---------- Dark theme overrides for new lm-* ---------- */
             [data-theme='dark'] .lm-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .lm-search-input.ant-input-affix-wrapper {

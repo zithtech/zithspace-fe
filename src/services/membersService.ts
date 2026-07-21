@@ -19,6 +19,7 @@ export interface Member {
     position: string;
   } | null;
   isActive: boolean;
+  aiEnabled?: boolean;
   avatarUrl?: string | null;
   lastLoginAt?: string; // Added field from backend
   deletedBy?: string | null;
@@ -300,6 +301,20 @@ export class MembersService {
         throw error;
       }
       throw new Error('Failed to assign shift to member');
+    }
+  }
+
+  /**
+   * Toggle a member's AI access (users.ai_enabled).
+   */
+  static async setAiAccess(id: string, enabled: boolean): Promise<{ id: string; aiEnabled: boolean }> {
+    try {
+      return await api.patch<{ id: string; aiEnabled: boolean }>(`/api/members/${id}/ai-access`, { enabled });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to update AI access');
     }
   }
 

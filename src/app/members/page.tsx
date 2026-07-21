@@ -25,6 +25,7 @@ import {
   Skeleton,
   Segmented,
   InputNumber,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
@@ -73,7 +74,7 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawerProps } from "@/components/common/DrawerSection";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -791,19 +792,16 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg-slate-50)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--customers-page-bg, #0B0F1A)" }}>
       {/* Clean minimal header */}
       <div
+        className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          padding: "16px 20px",
-          background: "var(--bg-pure-white)",
-          borderBottom: "1px solid var(--border-slate-100)",
-          flexShrink: 0,
+          background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+          borderColor: 'var(--border-color)'
         }}
       >
+        <div className="flex items-start gap-3 min-w-0">
         <Avatar
           size={46}
           shape="square"
@@ -819,8 +817,7 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         >
           {initialsOf(member.name || "")}
         </Avatar>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="min-w-0">
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
               {member.name}
@@ -893,9 +890,10 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
           </div>
 
         </div>
+      </div>
 
-        {/* Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      {/* Actions */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {(canUpdateUser || canManageUsers) && (
             <button
               type="button"
@@ -967,16 +965,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
       </div>
 
       {/* Details Scrollable Body */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px", background: "var(--customers-page-bg, #0B0F1A)" }}>
 
         {/* Panel 1: Profile & Access */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon orange" style={{ borderRadius: 8 }}>
-              <CrownOutlined style={{ color: '#f59e0b', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Role & Reports</Text>
-          </div>
+        <SectionCard
+          icon={<CrownOutlined />}
+          title="Role & Reports"
+          subtitle="System role and reporting line"
+        >
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
@@ -1019,16 +1015,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Panel 2: Contact Information */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon slate" style={{ borderRadius: 8 }}>
-              <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Contact Information</Text>
-          </div>
+        <SectionCard
+          icon={<MailOutlined />}
+          title="Contact Information"
+          subtitle="Direct channels for this member"
+        >
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1094,16 +1088,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               )}
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Panel 3: Schedule & Tracking */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon green" style={{ borderRadius: 8 }}>
-              <CalendarOutlined style={{ color: '#10b981', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Schedule & Shift</Text>
-          </div>
+        <SectionCard
+          icon={<CalendarOutlined />}
+          title="Schedule & Shift"
+          subtitle="Assigned working hours and days"
+        >
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1127,22 +1119,16 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               <DayPills value={(member as any).workDays || [1, 2, 3, 4, 5]} />
             </div>
           </div>
-        </div>
-
-
+        </SectionCard>
 
       </div>
 
       {/* Sticky footer actions */}
       <div
+        className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
         style={{
-          padding: "14px 24px",
-          borderTop: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 8,
+          background: 'var(--bg-pure-white)',
+          borderColor: 'var(--border-color)',
           flexShrink: 0,
         }}
       >
@@ -1641,6 +1627,25 @@ export default function MembersPage() {
     </div>
   );
 
+  // Track in-flight AI-access toggles so we can show a per-row spinner.
+  const [aiTogglingId, setAiTogglingId] = useState<string | null>(null);
+
+  const handleToggleAiAccess = async (record: Member, checked: boolean) => {
+    setAiTogglingId(record.id);
+    // Optimistic update.
+    setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: checked } : m)));
+    try {
+      await MembersService.setAiAccess(record.id, checked);
+      messageApi.success(`AI ${checked ? "enabled" : "disabled"} for ${record.name}`);
+    } catch (error: any) {
+      // Revert on failure.
+      setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: !checked } : m)));
+      messageApi.error(error?.message || "Failed to update AI access");
+    } finally {
+      setAiTogglingId(null);
+    }
+  };
+
   const columns: ColumnsType<Member> = [
     {
       title: "Member",
@@ -1879,6 +1884,31 @@ export default function MembersPage() {
           </span>
         );
       },
+    },
+    {
+      title: "AI Access",
+      key: "aiAccess",
+      width: 110,
+      align: "center",
+      render: (_, record: Member) => (
+        <Tooltip
+          title={
+            !canManageUsers
+              ? "AI access"
+              : record.aiEnabled === false
+                ? "AI disabled — click to enable"
+                : "AI enabled — click to disable"
+          }
+        >
+          <Switch
+            size="small"
+            checked={record.aiEnabled !== false}
+            loading={aiTogglingId === record.id}
+            disabled={!canManageUsers}
+            onChange={(checked) => handleToggleAiAccess(record, checked)}
+          />
+        </Tooltip>
+      ),
     },
     {
       title: "Actions",
@@ -2444,19 +2474,12 @@ export default function MembersPage() {
 
       {/* Preview Drawer */}
       <Drawer
+        {...commonDrawerProps}
         className="mm-preview-drawer"
-        width={480}
         open={previewVisible}
         onClose={() => {
           setPreviewVisible(false);
           setPreviewMember(null);
-        }}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: "var(--bg-slate-50)" },
-          header: { display: "none" },
-          content: { background: "var(--bg-pure-white)" },
         }}
       >
         <MemberPreviewDrawerContent

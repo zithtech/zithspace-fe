@@ -33,6 +33,7 @@ import {
   Segmented,
   Switch,
   App,
+  Drawer,
   type TableProps,
 } from "antd";
 import {
@@ -62,6 +63,7 @@ import {
   UnorderedListOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
+  CopyOutlined,
   CaretDownOutlined,
   ClockCircleOutlined,
   CloseOutlined,
@@ -340,6 +342,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
   const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1099.98px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent | any) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
@@ -1438,11 +1449,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               background: 'var(--bg-blue-50)',
               borderRadius: '4px',
               border: '1px solid var(--border-blue-200)',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
-            className="hover:opacity-80 transition-opacity"
+            className="hover:opacity-80 transition-opacity pp-ticket-tag-group"
           >
             {text}
+            <CopyOutlined
+              style={{ fontSize: 10, opacity: 0.6 }}
+              className="hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(text);
+                message.success("Ticket ID copied!");
+              }}
+            />
           </span>
         ),
       },
@@ -1592,11 +1615,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 placeholder="Select assignee"
                 searchPlaceholder="Search by name or role…"
                 itemNoun="members"
+                showSelectedAvatar={true}
                 style={{ width: "100%", minWidth: 0, height: 32 }}
                 options={members.map((member) => ({
                   value: member.value,
                   label: member.label,
                   description: member.position,
+                  avatarUrl: member.avatarUrl || undefined,
                 }))}
                 onChange={(value) => {
                   handleUpdateTicket(record.id, "assignee", value ?? null);
@@ -2269,6 +2294,29 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       <style dangerouslySetInnerHTML={{
         __html: `
         /* ── Proposals-like Table Styling overrides ── */
+        .project-switch-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0 !important; min-width: 236px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .project-switch-pop .ant-dropdown-menu-item { padding: 0 !important; border-radius: 6px !important; margin-bottom: 2px; }
+        .project-switch-pop .ant-dropdown-menu-item:last-child { margin-bottom: 0; }
+        .project-switch-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+
+        /* Dark Theme Action Popup */
+        [data-theme='dark'] .project-switch-pop .ant-dropdown-menu {
+          background: #0B0F1A !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+          border: 1px solid #1E293B !important;
+        }
+        [data-theme='dark'] .project-switch-pop .ant-dropdown-menu-item:hover {
+          background: #111720 !important;
+        }
+
+
         .pp-table-wrap {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
@@ -3539,7 +3587,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           aria-hidden
         />
         <div className="tl-shell">
-          <TicketSidebar
+          {isMobile ? (
+            <Drawer
+              className={theme === "dark" ? "hb-dark" : "hb-light"}
+              placement="left"
+              open={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
+              styles={{ 
+                body: { padding: 0, background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }, 
+                header: { display: "none" },
+                mask: { background: "rgba(0, 0, 0, 0.45)" },
+                content: { background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }
+              }}
+              width={260}
+              closeIcon={null}
+            >
+              <TicketSidebar
             activeSprint={activeSprint as any}
             overallSprintTickets={sidebarSprintPool as any}
             totalBacklog={totalBacklogCount}
@@ -3635,6 +3698,105 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             }}
             onTicketClick={(id) => setSelectedTicketId(id)}
           />
+            </Drawer>
+          ) : (
+            <TicketSidebar
+            activeSprint={activeSprint as any}
+            overallSprintTickets={sidebarSprintPool as any}
+            totalBacklog={totalBacklogCount}
+            myBacklogCount={myBacklogCount}
+            currentUserId={user?.id}
+            currentUserName={user?.name}
+            typeOptions={finalTypeOptions as any}
+            recentComments={recentActivity?.comments || []}
+            recentAttachments={recentActivity?.attachments || []}
+            activeSection={effectiveSection}
+            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+            commentedFilterActive={activeQuickFilters.commented}
+            attachedFilterActive={activeQuickFilters.attached}
+            overdueFilterActive={activeQuickFilters.overdue}
+            overdueTickets={recentActivity?.overdue || []}
+            onShowOverdueTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowCommentedTickets={() => {
+              // Remember where the user was so the filtered view can go back.
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowAttachedTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onNavigate={(section) => {
+              // Leaving the filtered view should clear the quick filters too,
+              // so the user goes back to a clean Sprint/Backlog view.
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              // If the user was in a "My Sprint/Backlog Tickets" view (assignee
+              // pinned to self), clicking the plain Sprint/Backlog row should
+              // drop that filter and show the full section.
+              if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
+                setFilters(prev => ({ ...prev, assignee: [] }));
+              }
+              setSidebarActiveSection(section);
+              // In Board view, switch the kanban scope to match instead of
+              // dragging the user into List view. Calendar stays as-is.
+              if (viewMode === 'board') {
+                setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
+              } else if (viewMode === 'calendar' && section === 'backlog') {
+                // Calendar has no backlog representation — fall back to List
+                // so the user actually sees the backlog table.
+                setViewMode('list');
+              }
+            }}
+            onShowMySprintTickets={() => {
+              if (!user?.id) return;
+              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+              const newAssignee = isOn ? [] : [user.id];
+              if (sidebarActiveSection !== 'sprint') {
+                filterSnapshotsRef.current.sprint.assignee = newAssignee;
+              }
+              setFilters(prev => ({
+                ...prev,
+                assignee: newAssignee,
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('sprint');
+              if (viewMode === 'board') setKanbanScope('active');
+            }}
+            onShowMyBacklog={() => {
+              if (!user?.id) return;
+              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+              const newAssignee = isOn ? [] : [user.id];
+              if (sidebarActiveSection !== 'backlog') {
+                filterSnapshotsRef.current.backlog.assignee = newAssignee;
+              }
+              setFilters(prev => ({
+                ...prev,
+                assignee: newAssignee,
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('backlog');
+              if (viewMode === 'board') setKanbanScope('backlog');
+              else if (viewMode === 'calendar') setViewMode('list');
+            }}
+            onTicketClick={(id) => setSelectedTicketId(id)}
+          />
+          )}
           <div className="tl-main">
             {/* Premium Header Row - Sticky Solid Background */}
             <div ref={saasHeaderRef} className="saas-header-container" style={{
@@ -3686,45 +3848,28 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   items: (projects || []).map(p => ({
                     key: p.value,
                     label: (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '6px 10px',
-                        minWidth: 210,
-                        borderRadius: 8,
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        background: p.value === projectId ? 'var(--bg-blue-50)' : 'transparent',
-                      }}>
-                        <div style={{
-                          padding: '0 6px',
-                          height: 26,
-                          borderRadius: 6,
-                          background: p.value === projectId
-                            ? 'var(--premium-gradient)'
-                            : 'var(--bg-slate-100)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                      <div className="pp-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 9px' }}>
+                        <span className="pp-menu-ic" style={{
+                          width: 30, height: 30, borderRadius: 0, flexShrink: 0,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
                           color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
-                          fontSize: 9,
+                          background: p.value === projectId ? 'var(--premium-gradient)' : 'var(--bg-slate-100)',
                           fontWeight: 800,
                           boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
-                          minWidth: 32
                         }}>
                           {p.code?.toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900)', lineHeight: '1.4' }}>{p.label}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 500 }}>#{p.code}</div>
-                        </div>
-                        {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12 }} />}
+                        </span>
+                        <span className="pp-menu-text" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                          <span className="pp-menu-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>{p.label}</span>
+                          <span className="pp-menu-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 1 }}>#{p.code}</span>
+                        </span>
+                        {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12, marginLeft: 'auto' }} />}
                       </div>
                     ),
                     onClick: () => router.push(`/projects/${p.value}/tickets`)
                   })),
-                  style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
                 }}
+                overlayClassName="project-switch-pop"
                 trigger={['click']}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
@@ -6102,4 +6247,5 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     </div>
   );
 }
+
 

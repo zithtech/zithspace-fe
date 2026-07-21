@@ -4,7 +4,6 @@ import {
   Button,
   Form,
   Input,
-  Select,
   DatePicker,
   message,
   Popconfirm,
@@ -53,6 +52,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1693,46 +1693,70 @@ function MilestoneModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={720}
-      c={c}
-      ribbonColor={c.accentText}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<Flag size={20} />}
-      title={editing ? "Edit milestone" : "Add milestone"}
-      subtitle={
-        editing
-          ? "Update the milestone details. Manage breakdown items inline on the card."
-          : "Define a delivery checkpoint. Optionally seed it with a breakdown of the work."
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to save">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<Plus size={14} />}
-          >
-            {editing ? "Save changes" : "Create milestone"}
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <Flag size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">{editing ? "Edit milestone" : "Add milestone"}</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  {editing
+                    ? "Update the milestone details. Manage breakdown items inline on the card."
+                    : "Define a delivery checkpoint. Optionally seed it with a breakdown of the work."}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="What ships"
-          description="A short name and what's being delivered. Visible in the client portal."
-          icon={<Flag size={11} />}
-          plain
+          subtitle="A short name and what's being delivered. Visible in the client portal."
+          icon={<Flag size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="name"
-            label={<L c={c}>Milestone name</L>}
+            label="Milestone name"
             rules={[{ required: true, message: "Required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1740,7 +1764,7 @@ function MilestoneModal({
           </Form.Item>
           <Form.Item
             name="description"
-            label={<L c={c}>Description</L>}
+            label="Description"
             style={{ marginBottom: 16 }}
           >
             <Input.TextArea
@@ -1751,90 +1775,70 @@ function MilestoneModal({
               style={{ padding: "10px 12px" }}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Status & dates"
-          description="Status is auto-managed by the breakdown items, but you can override."
-          icon={<Calendar size={11} />}
+          subtitle="Status is auto-managed by the breakdown items, but you can override."
+          icon={<Calendar size={14} />}
+          step="STEP 2"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+          <Form.Item
+            name="status"
+            label="Status"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="status"
-              label={<L c={c}>Status</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={(Object.keys(STATUS_META) as MilestoneStatus[]).map(
-                  (k) => ({ value: k, label: STATUS_META[k].label }),
-                )}
-              />
-            </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={
-                <L c={c}>
-                  Project
-                </L>
-              }
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                disabled={projects.length === 0}
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 10,
-            }}
+            <SearchableDropdown
+              options={(Object.keys(STATUS_META) as MilestoneStatus[]).map(
+                (k) => ({ value: k, label: STATUS_META[k].label }),
+              )}
+            />
+          </Form.Item>
+          <Form.Item
+            name="projectId"
+            label="Project"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="estStartDate"
-              label={<L c={c}>EST start</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item
-              name="estEndDate"
-              label={<L c={c}>EST end</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item
-              name="actualEndDate"
-              label={<L c={c}>Actual end</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <SearchableDropdown
+              placeholder="—"
+              searchPlaceholder="Search projects..."
+              disabled={projects.length === 0}
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.code ? `${p.name} · ${p.code}` : p.name,
+              }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="estStartDate"
+            label="EST start"
+            style={{ marginBottom: 12 }}
+          >
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            name="estEndDate"
+            label="EST end"
+            style={{ marginBottom: 12 }}
+          >
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            name="actualEndDate"
+            label="Actual end"
+            style={{ marginBottom: 0 }}
+          >
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+        </SectionCard>
 
         {!editing && (
-          <ModalSection
-            c={c}
+          <SectionCard
             title="Breakdown items"
-            description="Optional starter list — e.g. Frontend, Backend, Integration, Wire-up."
-            icon={<ListChecks size={11} />}
+            subtitle="Optional starter list — e.g. Frontend, Backend, Integration, Wire-up."
+            icon={<ListChecks size={14} />}
+            step="STEP 3"
           >
             <div
               style={{
@@ -1894,10 +1898,29 @@ function MilestoneModal({
                 ))}
               </div>
             )}
-          </ModalSection>
+          </SectionCard>
         )}
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<Plus size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        {editing ? "Save changes" : "Create milestone"}
+      </Button>
+    </div>
+  </div>
+</Drawer>
+    </>
   );
 }
 

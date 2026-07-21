@@ -70,6 +70,8 @@ export interface SearchableDropdownProps {
   customTrigger?: React.ReactElement;
   /** Show the avatar of the selected option in the trigger field. */
   showSelectedAvatar?: boolean;
+  /** Custom container for the popover (fixes mobile scroll/keyboard layout shifts) */
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
 }
 
 export const initialsFor = (s: string): string => {
@@ -115,6 +117,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   onOpenChange,
   customTrigger,
   showSelectedAvatar,
+  getPopupContainer,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -322,6 +325,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       placement="bottomLeft"
       overlayClassName="sd-overlay-popover"
       destroyOnHidden
+      getPopupContainer={getPopupContainer}
     >
       {customTrigger ? (
         customTrigger

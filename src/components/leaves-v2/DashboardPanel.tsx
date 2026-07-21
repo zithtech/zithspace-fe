@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Tag, Tooltip, message, Empty } from 'antd';
+import { Menu } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
   ReloadOutlined,
@@ -18,6 +19,8 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/context/AuthContext';
 import LeaveV2Service, { Holiday, LeaveBalanceItem, LeaveRequest } from '@/services/leaveV2Service';
+
+import ApplyLeaveDrawer from './ApplyLeaveDrawer';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -37,10 +40,13 @@ export default function DashboardPanel() {
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
   const [holidayCount, setHolidayCount] = useState(0);
   const [approvals, setApprovals] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAllBalances, setShowAllBalances] = useState(false);
+  
+  const [applyDrawerOpen, setApplyDrawerOpen] = useState(false);
 
   const BAL_LIMIT = 8; // collapse the balances grid past this many
 
@@ -54,6 +60,7 @@ export default function DashboardPanel() {
       ]);
       setBalances(b);
       setRequests(r);
+      setHolidaySet(new Set(hd));
       const today = dayjs().format('YYYY-MM-DD');
       setHolidayCount(hd.filter((d) => d >= today).length);
     } catch (err: any) {
@@ -108,13 +115,23 @@ export default function DashboardPanel() {
     <div className="lvd">
       {/* HEADER */}
       <div className="lvd-header">
-        <div>
-          <div className="lvd-header-title">{firstName ? `Welcome back, ${firstName}` : 'Leave Dashboard'}</div>
-          <div className="lvd-header-sub">Your time off at a glance</div>
+        <div className="lvd-header-about">
+          <button 
+            type="button"
+            className="lv-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div>
+            <div className="lvd-header-title">{firstName ? `Welcome back, ${firstName}` : 'Leave Dashboard'}</div>
+            <div className="lvd-header-sub">Your time off at a glance</div>
+          </div>
         </div>
         <div className="lvd-header-actions">
           <Tooltip title="Refresh"><button type="button" className="lvd-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
-          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push('/leaves-v2/apply')} className="lvd-add-btn">Apply Leave</Button>}
+          {canCreateLeave && <Button type="primary" icon={<PlusOutlined />} onClick={() => setApplyDrawerOpen(true)} className="lvd-add-btn">Apply Leave</Button>}
         </div>
       </div>
 
@@ -231,13 +248,21 @@ export default function DashboardPanel() {
           </div>
         )}
       </div>
+      <ApplyLeaveDrawer
+        open={applyDrawerOpen}
+        onClose={() => setApplyDrawerOpen(false)}
+        onSuccess={load}
+        balances={balances}
+        holidaySet={holidaySet}
+      />
 
       <style jsx global>{`
         .lvd { display: flex; flex-direction: column; }
-        .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); }
+        .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvd-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .lvd-header-title { font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .lvd-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .lvd-header-actions { display: flex; align-items: center; gap: 8px; }
+        .lvd-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .lvd-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
         .lvd-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
         .lvd-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
@@ -279,6 +304,13 @@ export default function DashboardPanel() {
         .lvd-date-d { font-size: 14px; font-weight: 800; color: ${PALETTE.blue}; }
         .lvd-date-m { font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${PALETTE.blue}; opacity: 0.8; }
         .lvd-req-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+        
+        @media (max-width: 1024px) {
+          .lvd-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .lvd-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

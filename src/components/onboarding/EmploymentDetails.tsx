@@ -18,7 +18,10 @@ import {
   Table,
   TimePicker,
   Button,
+  InputNumber,
+  Collapse,
 } from "antd";
+import { useTheme } from "@/context/ThemeContext";
 import {
   BankOutlined,
   ProjectOutlined,
@@ -27,7 +30,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import moment from "moment";
-import { Clock, Settings, Info, CheckCircle2 } from "lucide-react";
+import { Clock, Settings, Info, CheckCircle2, Check, X, Pencil } from "lucide-react";
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { MembersService } from "@/services/membersService";
@@ -35,6 +38,7 @@ import { ProjectService } from "@/services/projectService";
 import { add } from "@dnd-kit/utilities";
 import form from "antd/es/form";
 import { PositionService } from "@/services/positionService";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 // import { Model } from "mongoose";
 
 const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
@@ -60,12 +64,75 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const [api, contextHolder] = notification.useNotification();
   //const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  const [isWorkShiftExpanded, setIsWorkShiftExpanded] = useState(false);
+  const [isEditingAvg, setIsEditingAvg] = useState(false);
+  const [editedAvg, setEditedAvg] = useState<number | null>(null);
 
   const [shiftData, setShiftData] = useState<any>({});
   const [workShift, setWorkShift] = useState("");
   const [selectAll, setSelectAll] = useState(false);
   const [commonStart, setCommonStart] = useState<any>(null);
   const [commonEnd, setCommonEnd] = useState<any>(null);
+  const [commonAvg, setCommonAvg] = useState<number | null>(null);
+  const { theme } = useTheme();
+
+  const calculateAvg = (start: any, end: any): number => {
+    if (!start || !end) return 0;
+    const s = typeof start === 'string' ? dayjs(start, "HH:mm") : start;
+    const e = typeof end === 'string' ? dayjs(end, "HH:mm") : end;
+    let diffHrs = e.diff(s, "hour", true);
+    if (diffHrs < 0) diffHrs += 24;
+    let deduction = 0;
+    if (diffHrs > 8) deduction = 1.5;
+    else if (diffHrs >= 4) deduction = 1.0;
+    else deduction = 0.5;
+    return Number(Math.max(0, diffHrs - deduction).toFixed(1));
+  };
+
+  const calculateDailyTotals = () => {
+    let dTotal = 0;
+    let dAvg = 0;
+    if (selectedDays.length > 0) {
+      // Show hours for a single day rather than summing all days
+      const firstDay = selectedDays[0];
+      const shift = shiftData[firstDay];
+      if (shift && shift.start && shift.end) {
+        const s = typeof shift.start === 'string' ? dayjs(shift.start, "HH:mm") : shift.start;
+        const e = typeof shift.end === 'string' ? dayjs(shift.end, "HH:mm") : shift.end;
+        let diffHrs = e.diff(s, "hour", true);
+        if (diffHrs < 0) diffHrs += 24;
+        dTotal = diffHrs;
+        dAvg = shift.avg !== undefined ? shift.avg : calculateAvg(shift.start, shift.end);
+      }
+    }
+    return { dTotal, dAvg };
+  };
+
+  const handleSaveAvg = () => {
+    if (editedAvg !== null && selectedDays.length > 0) {
+      const newShiftData = { ...shiftData };
+      selectedDays.forEach((day) => {
+        if (newShiftData[day]) {
+          newShiftData[day] = { ...newShiftData[day], avg: editedAvg };
+        }
+      });
+      setShiftData(newShiftData);
+
+      // Save to parent via workForm & employmentData
+      const payloadType = selectAll ? "all" : "custom";
+      const payload = {
+        type: payloadType,
+        data: payloadType === "custom" ? newShiftData : undefined,
+        start: payloadType === "all" ? commonStart?.format("HH:mm") : undefined,
+        end: payloadType === "all" ? commonEnd?.format("HH:mm") : undefined,
+        avg: payloadType === "all" ? editedAvg : undefined,
+      };
+      const workShiftValue = JSON.stringify(payload);
+      workForm.setFieldsValue({ workShift: workShiftValue });
+      setEmploymentData((pre: any) => ({ ...pre, workShift: workShiftValue }));
+    }
+    setIsEditingAvg(false);
+  };
 
   const [projects, setProjects] = useState<any[]>([]);
 
@@ -123,6 +190,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       // Parse workShift for display and modal state
       if (data.workShift) {
+        setIsWorkShiftExpanded(true);
         try {
           const parsed =
             typeof data.workShift === "string"
@@ -134,10 +202,11 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             setSelectAll(true);
             setCommonStart(parsed.start ? dayjs(parsed.start, "HH:mm") : null);
             setCommonEnd(parsed.end ? dayjs(parsed.end, "HH:mm") : null);
+            setCommonAvg(parsed.avg || null);
             setSelectedDays(weekDays);
             const newShiftData: any = {};
             weekDays.forEach((day) => {
-              newShiftData[day] = { start: parsed.start, end: parsed.end };
+              newShiftData[day] = { start: parsed.start, end: parsed.end, avg: parsed.avg || null };
             });
             setShiftData(newShiftData);
           } else if (parsed.type === "custom") {
@@ -269,6 +338,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       setShiftData({});
       setCommonStart(null);
       setCommonEnd(null);
+      setCommonAvg(null);
     }
   };
   const handleCheckboxChange = (day: string, checked: boolean) => {
@@ -301,11 +371,15 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const applyCommonTime = (start: any, end: any) => {
     if (!start || !end) return;
 
+    const avg = calculateAvg(start, end);
+    setCommonAvg(avg);
+
     const newData: any = {};
     weekDays.forEach((day) => {
       newData[day] = {
         start,
         end,
+        avg,
       };
     });
 
@@ -344,6 +418,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     {
       title: "Week Day",
       dataIndex: "day",
+      render: (text: string) => <span style={{ fontWeight: 600, color: theme === "dark" ? "#f1f5f9" : "#334155" }}>{text}</span>
     },
     {
       title: "Start Time",
@@ -357,13 +432,18 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
           disabled={!selectedDays.includes(record.day)}
           onChange={(time) => {
-            setShiftData((prev: any) => ({
-              ...prev,
-              [record.day]: {
-                ...prev[record.day],
-                start: time ? time.format("HH:mm") : null,
-              },
-            }));
+            setShiftData((prev: any) => {
+              const currentEnd = prev[record.day]?.end;
+              const formattedStart = time ? time.format("HH:mm") : null;
+              return {
+                ...prev,
+                [record.day]: {
+                  ...prev[record.day],
+                  start: formattedStart,
+                  avg: calculateAvg(formattedStart, currentEnd),
+                },
+              };
+            });
           }}
         />
       ),
@@ -380,17 +460,60 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           }
           disabled={!selectedDays.includes(record.day)}
           onChange={(time) => {
-            setShiftData((prev: any) => ({
-              ...prev,
-              [record.day]: {
-                ...prev[record.day],
-                end: time ? time.format("HH:mm") : null,
-              },
-            }));
+            setShiftData((prev: any) => {
+              const currentStart = prev[record.day]?.start;
+              const formattedEnd = time ? time.format("HH:mm") : null;
+              return {
+                ...prev,
+                [record.day]: {
+                  ...prev[record.day],
+                  end: formattedEnd,
+                  avg: calculateAvg(currentStart, formattedEnd),
+                },
+              };
+            });
           }}
         />
       ),
     },
+    {
+      title: "Daily Hours",
+      render: (_: any, record: any) => {
+        const start = shiftData[record.day]?.start;
+        const end = shiftData[record.day]?.end;
+        if (start && end) {
+          const s = typeof start === 'string' ? dayjs(start, "HH:mm") : start;
+          const e = typeof end === 'string' ? dayjs(end, "HH:mm") : end;
+          let diffHrs = e.diff(s, "hour", true);
+          if (diffHrs < 0) diffHrs += 24;
+          const totalHoursStr = diffHrs.toFixed(1);
+
+          return (
+            <div style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, whiteSpace: "nowrap" }}>
+              <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{totalHoursStr}h</span> <span style={{ marginLeft: "4px" }}>total</span>
+              <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
+              <InputNumber
+                size="small"
+                value={shiftData[record.day]?.avg !== undefined ? shiftData[record.day].avg : calculateAvg(start, end)}
+                onChange={(val) => {
+                  setShiftData((prev: any) => ({
+                    ...prev,
+                    [record.day]: {
+                      ...prev[record.day],
+                      avg: val,
+                    }
+                  }));
+                }}
+                style={{ width: "60px", marginRight: "4px" }}
+                step={0.5}
+                min={0}
+              /> <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>h</span> <span style={{ marginLeft: "4px" }}>avg</span>
+            </div>
+          );
+        }
+        return <span style={{ color: theme === "dark" ? "#475569" : "#cbd5e1", fontSize: "12px", fontStyle: "italic" }}>Not set</span>;
+      }
+    }
   ];
 
   const dataSource = weekDays.map((day) => ({
@@ -409,6 +532,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         allDaysData[day] = {
           start: commonStart.format("HH:mm"),
           end: commonEnd.format("HH:mm"),
+          avg: commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd),
         };
       });
 
@@ -416,6 +540,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         type: "all",
         start: commonStart.format("HH:mm"),
         end: commonEnd.format("HH:mm"),
+        avg: commonAvg !== null ? commonAvg : calculateAvg(commonStart, commonEnd),
         days: weekDays,
         data: allDaysData,
       };
@@ -442,6 +567,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               typeof dayShift.end === "string"
                 ? dayShift.end
                 : dayjs(dayShift.end).format("HH:mm"),
+            avg: dayShift.avg !== undefined ? dayShift.avg : calculateAvg(dayShift.start, dayShift.end),
           };
         } else {
           message.error(`Please set start and end time for ${day}.`);
@@ -458,6 +584,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     console.log("Modal data to save:", payload);
     const workShiftValue = JSON.stringify(payload);
     workForm.setFieldsValue({ workShift: workShiftValue });
+    setEmploymentData((pre: any) => ({ ...pre, workShift: workShiftValue }));
     setWorkShift(displayString);
     setOpen(false);
   };
@@ -467,244 +594,313 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       {contextHolder}
 
       {/* Work Details */}
-      <Card
-        title={<Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
-        <Form
-          layout="vertical"
-          form={workForm}
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setEmploymentData((pre: any) => ({
-              ...pre,
-              ...allValues,
-              employeeJoiningDate: allValues.employeeJoiningDate?.format("YYYY-MM-DD"),
-            }))
-          }
-        >
-          <Row gutter={24}>
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Position</span>}
-                name="positionId"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Select
-                  placeholder="Select Position"
-                  loading={loading}
-                  options={positions.map((pos) => ({
-                    label: pos.name,
-                    value: pos.id,
-                  }))}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Employee Type</span>}
-                name="employeeType"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Select placeholder="Select Type">
-                  <Option value="Full Time">Full Time</Option>
-                  <Option value="Part Time">Part Time</Option>
-                  <Option value="Internship">Intern</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Location</span>}
-                name="workLocation"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input placeholder="Enter Location" />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Type</span>}
-                name="workType"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Select
-                  placeholder="Select Work Type"
-                  onChange={(value) => {
-                    setWorkType(value);
-                    setHybridMode("General");
-                    setSelectedDays([]);
-                    setGeneralDays(null);
-                    setGeneralHours(null);
-                  }}
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
+          <Form
+            layout="vertical"
+            form={workForm}
+            requiredMark={false}
+            onValuesChange={(_, allValues) =>
+              setEmploymentData((pre: any) => ({
+                ...pre,
+                ...allValues,
+                employeeJoiningDate: allValues.employeeJoiningDate?.format("YYYY-MM-DD"),
+              }))
+            }
+          >
+            <Row gutter={24}>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Position</span>}
+                  name="positionId"
+                  rules={[{ required: true, message: "Required" }]}
                 >
-                  <Option value="Work From Home">Work From Home</Option>
-                  <Option value="Work From Office">Work From Office</Option>
-                  <Option value="Hybrid">Hybrid</Option>
-                </Select>
-              </Form.Item>
-            </Col>
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Position"
+                    options={positions.map((pos) => ({
+                      label: pos.name,
+                      value: pos.id,
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
 
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Joining Date</span>}
-                name="employeeJoiningDate"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <DatePicker format="DD-MM-YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Employee Type</span>}
+                  name="employeeType"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Type"
+                    options={[
+                      { label: "Full Time", value: "Full Time" },
+                      { label: "Part Time", value: "Part Time" },
+                      { label: "Intern", value: "Internship" }
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
 
-            <Col span={8}>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Notice Period</span>}
-                name="noticePeriod"
-                rules={[{ required: true, message: "Required" }]}
-              >
-                <Input type="number" placeholder="Notice Period" />
-              </Form.Item>
-            </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Location</span>}
+                  name="workLocation"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="Enter Location" />
+                </Form.Item>
+              </Col>
 
-            <Col span={24}>
-              {workType === "Hybrid" && (
-                <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                    <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
-                    <Switch
-                      checkedChildren="Fixed"
-                      unCheckedChildren="General"
-                      checked={hybridMode === "Fixed"}
-                      onChange={(checked) => {
-                        const mode = checked ? "Fixed" : "General";
-                        setHybridMode(mode);
-                        if (mode === "Fixed") {
-                          setGeneralDays(null);
-                          setGeneralHours(null);
-                          setIsHybridModalOpen(true);
-                        } else {
-                          setSelectedDays([]);
-                        }
-                      }}
-                    />
-                  </div>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Type</span>}
+                  name="workType"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Work Type"
+                    onChange={(value) => {
+                      setWorkType(value);
+                      setHybridMode("General");
+                      setSelectedDays([]);
+                      setGeneralDays(null);
+                      setGeneralHours(null);
+                    }}
+                    options={[
+                      { label: "Work From Home", value: "Work From Home" },
+                      { label: "Work From Office", value: "Work From Office" },
+                      { label: "Hybrid", value: "Hybrid" }
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
 
-                  {hybridMode === "Fixed" ? (
-                    selectedDays.length > 0 && (
-                      <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
-                        Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
-                        Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
-                      </div>
-                    )
-                  ) : (
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <span>General Availability:</span>
-                      <Input
-                        type="number"
-                        placeholder="Days"
-                        value={generalDays ?? ""}
-                        onChange={(e) => {
-                          const days = Number(e.target.value);
-                          setGeneralDays(days);
-                          setGeneralHours(days ? days * 8 : 0);
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Work Joining Date</span>}
+                  name="employeeJoiningDate"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <DatePicker format="DD-MM-YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 500 }}>Notice Period</span>}
+                  name="noticePeriod"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input type="number" placeholder="Notice Period" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={24}>
+                {workType === "Hybrid" && (
+                  <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                      <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
+                      <Switch
+                        checkedChildren="Fixed"
+                        unCheckedChildren="General"
+                        checked={hybridMode === "Fixed"}
+                        onChange={(checked) => {
+                          const mode = checked ? "Fixed" : "General";
+                          setHybridMode(mode);
+                          if (mode === "Fixed") {
+                            setGeneralDays(null);
+                            setGeneralHours(null);
+                            setIsHybridModalOpen(true);
+                          } else {
+                            setSelectedDays([]);
+                          }
                         }}
-                        style={{ width: "100px" }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Hours"
-                        value={generalHours ?? ""}
-                        suffix="hrs"
-                        onChange={(e) => setGeneralHours(Number(e.target.value))}
-                        style={{ width: "120px" }}
                       />
                     </div>
-                  )}
-                </div>
-              )}
-            </Col>
 
-            <Col span={24}>
-              <Form.Item name="workShift" hidden>
-                <Input />
-              </Form.Item>
-              <Form.Item
-                label={<span style={{ fontWeight: 500 }}>Work Shift</span>}
-                required
-                validateStatus={workForm.getFieldError("workShift")?.length ? "error" : ""}
-                help={workForm.getFieldError("workShift")?.[0]}
-              >
-                <Input
-                  placeholder="Select Work Shift"
-                  readOnly
-                  value={workShift}
-                  onClick={() => setOpen(true)}
-                  style={{ cursor: "pointer" }}
+                    {hybridMode === "Fixed" ? (
+                      selectedDays.length > 0 && (
+                        <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
+                          Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
+                          Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
+                        </div>
+                      )
+                    ) : (
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <span>General Availability:</span>
+                        <Input
+                          type="number"
+                          placeholder="Days"
+                          value={generalDays ?? ""}
+                          onChange={(e) => {
+                            const days = Number(e.target.value);
+                            setGeneralDays(days);
+                            setGeneralHours(days ? days * 8 : 0);
+                          }}
+                          style={{ width: "100px" }}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Hours"
+                          value={generalHours ?? ""}
+                          suffix="hrs"
+                          onChange={(e) => setGeneralHours(Number(e.target.value))}
+                          style={{ width: "120px" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Col>
+
+              <Col xs={24} md={24}>
+                <Form.Item name="workShift" hidden>
+                  <Input />
+                </Form.Item>
+                <Collapse
+                  activeKey={isWorkShiftExpanded ? ['1'] : []}
+                  ghost
+                  className="work-shift-collapse"
+                  style={{ background: "transparent", padding: 0 }}
+                  expandIconPosition="end"
+                  onChange={(keys) => setIsWorkShiftExpanded(keys.length > 0)}
+                  items={[{
+                    key: '1',
+                    label: <span style={{ fontWeight: 500 }}>Work Shift</span>,
+                    extra: isWorkShiftExpanded && selectedDays.length > 0 ? (
+                      <div onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        {isEditingAvg ? (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "2px 8px", borderRadius: "6px", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, display: "flex", alignItems: "center" }}>
+                              <InputNumber
+                                value={editedAvg}
+                                onChange={(val) => setEditedAvg(val)}
+                                size="small"
+                                style={{ width: "60px", marginRight: "4px" }}
+                                step={0.5}
+                              />
+                              <span>avg</span>
+                            </div>
+                            <div
+                              onClick={handleSaveAvg}
+                              style={{ background: "#10b981", color: "white", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                            >
+                              <Check size={14} />
+                            </div>
+                            <div
+                              onClick={() => setIsEditingAvg(false)}
+                              style={{ background: "#f1f5f9", color: "#64748b", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                            >
+                              <X size={14} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            style={{ fontSize: "12px", color: theme === "dark" ? "#cbd5e1" : "#64748b", background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, pointerEvents: "none" }}
+                          >
+                            <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{calculateDailyTotals().dTotal.toFixed(1)}h</span> <span style={{ marginLeft: "4px" }}>total</span>
+                            <span style={{ margin: "0 6px", color: theme === "dark" ? "#475569" : "#cbd5e1" }}>|</span>
+                            <span style={{ color: theme === "dark" ? "#f1f5f9" : "#0f172a", fontWeight: 600 }}>{calculateDailyTotals().dAvg.toFixed(1)}h</span> <span style={{ marginLeft: "4px", marginRight: "8px" }}>avg</span>
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); setIsEditingAvg(true); setEditedAvg(calculateDailyTotals().dAvg); }}
+                              style={{ pointerEvents: "auto", cursor: "pointer", display: "flex", alignItems: "center", color: "#94a3b8" }}
+                              title="Edit Average Hours"
+                            >
+                              <Pencil size={12} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : null,
+                    children: (
+                      <div style={{ padding: "8px 0" }}>
+                        <Form.Item
+                          required
+                          validateStatus={workForm.getFieldError("workShift")?.length ? "error" : ""}
+                          help={workForm.getFieldError("workShift")?.[0]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            placeholder="Select Work Shift"
+                            readOnly
+                            value={workShift}
+                            onClick={() => setOpen(true)}
+                            style={{ cursor: "pointer" }}
+                          />
+                        </Form.Item>
+                      </div>
+                    )
+                  }]}
                 />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Card>
+              </Col>
+            </Row>
+          </Form>
+        </div>
+      </div>
 
       {/* Employee Timeline */}
-      <Card
-        title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "8px 40px 24px" } }}
-      >
-        <Form
-          layout="vertical"
-          form={empoyeeTimelineForm}
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setEmploymentData((pre: any) => ({
-              ...pre,
-              ...allValues,
-              trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
-              joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
-            }))
-          }
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
-                <Select showSearch placeholder="Select Manager" optionFilterProp="children">
-                  {members?.map((member) => (
-                    <Select.Option key={member.value} value={member.value}>{member.label}</Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
-                <Select mode="multiple" allowClear placeholder="Select Projects" maxTagCount="responsive">
-                  {projects.map((project) => (
-                    <Select.Option key={project.id} value={project.id}>
-                      {project.name} ({project.code})
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Card>
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>
+        </div>
+        <div style={{ padding: "8px 40px 24px" }}>
+          <Form
+            layout="vertical"
+            form={empoyeeTimelineForm}
+            requiredMark={false}
+            onValuesChange={(_, allValues) =>
+              setEmploymentData((pre: any) => ({
+                ...pre,
+                ...allValues,
+                trainingCompletion: allValues.trainingCompletion?.format("YYYY-MM-DD"),
+                joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
+              }))
+            }
+          >
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item label="Joining Date" name="joiningDate" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Training Completion" name="trainingCompletion" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
+                  <SearchableDropdown
+                    style={{ height: '40px', minHeight: '40px' }}
+                    placeholder="Select Manager"
+                    options={members || []}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Projects" name="projects" rules={[{ required: true }]}>
+                  <SearchableDropdown
+                    style={{ minHeight: '40px' }}
+                    mode="multiple"
+                    placeholder="Select Projects"
+                    options={projects.map((project) => ({
+                      label: `${project.name} (${project.code})`,
+                      value: project.id
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </div>
+      </div>
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -749,7 +945,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 { label: "Sat", value: "Sat" },
                 { label: "Sun", value: "Sun" },
               ].map((day) => (
-                <Col span={8} key={day.value}>
+                <Col xs={24} md={8} key={day.value}>
                   <Checkbox value={day.value}>{day.label}</Checkbox>
                 </Col>
               ))}
@@ -778,8 +974,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               <Clock size={17} />
             </div>
             <div>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>Work Shift Configuration</div>
-              <div style={{ fontSize: "12px", fontWeight: 400, color: "#64748b" }}>Define daily hours &amp; weekly schedule.</div>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: theme === "dark" ? "#f1f5f9" : "#1e293b", lineHeight: 1.2 }}>Work Shift Configuration</div>
+              <div style={{ fontSize: "12px", fontWeight: 400, color: theme === "dark" ? "#94a3b8" : "#64748b" }}>Define daily hours &amp; weekly schedule.</div>
             </div>
           </div>
         }
@@ -789,60 +985,94 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Button key="close" onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>,
           <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: "8px", background: "#3b82f6", border: "none" }}>Save Shift</Button>,
         ]}
-        width={560}
+        className="work-shift-modal"
+        centered
+        width={800}
         styles={{
-          header: { borderBottom: "1px solid #f1f5f9", padding: "12px 20px" },
-          body: { padding: "16px 20px" }
+          header: { background: "transparent", borderBottom: `1px solid ${theme === "dark" ? "#1e293b" : "#f1f5f9"}`, padding: "12px 20px" },
+          footer: { background: "transparent", borderTop: "none" },
+          body: { padding: "4px 16px 12px 16px", maxHeight: "65vh", overflowY: "auto" }
         }}
       >
-        <div style={{ background: "#f8fafc", padding: "9px 12px", borderRadius: "8px", border: "1px solid #f1f5f9", marginBottom: "12px" }}>
+        <div style={{ background: theme === "dark" ? "#1e293b" : "#f8fafc", padding: "6px 12px", borderRadius: "8px", border: `1px solid ${theme === "dark" ? "#334155" : "#f1f5f9"}`, marginBottom: "8px" }}>
           <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
             <Info size={14} style={{ color: "#3b82f6", marginTop: "2px", flexShrink: 0 }} />
-            <div style={{ fontSize: "11.5px", color: "#64748b", lineHeight: "1.5" }}>
+            <div style={{ fontSize: "11.5px", color: theme === "dark" ? "#cbd5e1" : "#64748b", lineHeight: "1.5" }}>
               Set a shift per day, or apply a common time to all selected days. Used for attendance &amp; monthly hours.
             </div>
           </div>
         </div>
         {/* ✅ Select All + Common Time */}
-        <Row gutter={12} style={{ marginBottom: 12 }} align="middle">
-          <Col>
-            <Checkbox
-              checked={selectAll}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            >
-              Select All
-            </Checkbox>
-          </Col>
+        <div style={{ padding: "10px 14px", background: theme === "dark" ? "#0f172a" : "linear-gradient(to right, #f8fafc, #f1f5f9)", borderRadius: "10px", border: `1px solid ${theme === "dark" ? "#1e293b" : "#e2e8f0"}`, marginBottom: "12px", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: theme === "dark" ? "#94a3b8" : "#475569", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Global Schedule Configuration</div>
+          <Row gutter={12} align="middle" wrap={false}>
+            <Col>
+              <Checkbox
+                checked={selectAll}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              >
+                <span style={{ whiteSpace: "nowrap", color: theme === "dark" ? "#f1f5f9" : "inherit" }}>Select All</span>
+              </Checkbox>
+            </Col>
 
-          {selectAll && (
-            <>
-              <Col>
-                <TimePicker
-                  format="HH:mm"
-                  placeholder="Common Start"
-                  value={commonStart}
-                  onChange={(time) => {
-                    setCommonStart(time);
-                    applyCommonTime(time, commonEnd);
-                  }}
-                />
-              </Col>
-              <Col>
-                <TimePicker
-                  format="HH:mm"
-                  placeholder="Common End"
-                  value={commonEnd}
-                  onChange={(time) => {
-                    setCommonEnd(time);
-                    applyCommonTime(commonStart, time);
-                  }}
-                />
-              </Col>
-            </>
-          )}
-        </Row>
+            {selectAll && (
+              <>
+                <Col>
+                  <TimePicker
+                    format="HH:mm"
+                    placeholder="Common Start"
+                    value={commonStart}
+                    onChange={(time) => {
+                      setCommonStart(time);
+                      applyCommonTime(time, commonEnd);
+                    }}
+                  />
+                </Col>
+                <Col>
+                  <TimePicker
+                    format="HH:mm"
+                    placeholder="Common End"
+                    value={commonEnd}
+                    onChange={(time) => {
+                      setCommonEnd(time);
+                      applyCommonTime(commonStart, time);
+                    }}
+                  />
+                </Col>
 
+              </>
+            )}
+          </Row>
+        </div>
+
+        <style>{`
+          .custom-shift-table .ant-table-thead > tr > th {
+            background: transparent !important;
+            color: ${theme === "dark" ? "#94a3b8" : "#64748b"} !important;
+            font-weight: 600 !important;
+            border-bottom: 2px solid ${theme === "dark" ? "#1e293b" : "#e2e8f0"} !important;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            padding: 8px 10px !important;
+          }
+          .custom-shift-table .ant-table-tbody > tr > td {
+            border-bottom: 1px dashed ${theme === "dark" ? "#334155" : "#e2e8f0"} !important;
+            padding: 5px 10px !important;
+          }
+          .custom-shift-table .ant-table-tbody > tr:hover > td {
+            background: ${theme === "dark" ? "#0f172a" : "#f8fafc"} !important;
+          }
+          .work-shift-modal .ant-modal-body::-webkit-scrollbar {
+            display: none;
+          }
+          .work-shift-modal .ant-modal-body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
         <Table
+          className="custom-shift-table"
           columns={columns}
           dataSource={weekDays.map((day) => ({
             key: day,

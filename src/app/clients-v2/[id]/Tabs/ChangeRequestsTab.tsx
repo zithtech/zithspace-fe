@@ -7,7 +7,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   InputNumber,
   DatePicker,
   message,
@@ -55,6 +54,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1602,53 +1602,76 @@ function CreateCrModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={720}
-      c={c}
-      ribbonColor={c.purpleText}
-      iconTile={{ bg: c.purpleBg, border: c.purpleBorder, text: c.purpleText }}
-      icon={<GitPullRequest size={20} />}
-      title="Log a change request"
-      subtitle="Capture the ask now. Estimate fields are optional — you can fill them in later from the detail drawer once you've assessed impact."
-      tip={
-        <span>
-          <DollarSign
-            size={11}
-            style={{ verticalAlign: -1, marginRight: 5, color: c.warningText }}
-          />
-          When you fill in the estimate and set status to{" "}
-          <strong>Estimated</strong>, the client sees an Approve / Reject prompt
-          on their portal.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to create">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<GitPullRequest size={14} />}
-          >
-            Create change request
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.purpleBg, border: `1px solid ${c.purpleBorder}`, color: c.purpleText }}
+              >
+                <GitPullRequest size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Log a change request</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Capture the ask now. Estimate fields are optional — you can fill them in later from the detail drawer once you've assessed impact.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.warningBg, border: `1px solid ${c.warningBorder}` }}>
+              <DollarSign size={16} className="shrink-0 mt-0.5" style={{ color: c.warningText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.warningText }}>
+                When you fill in the estimate and set status to{" "}
+                <strong>Estimated</strong>, the client sees an Approve / Reject prompt
+                on their portal.
+              </div>
+            </div>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="The ask"
-          description="What the client wants changed, in their words plus your context."
-          icon={<GitPullRequest size={11} />}
-          plain
+          subtitle="What the client wants changed, in their words plus your context."
+          icon={<GitPullRequest size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="subject"
-            label={<L c={c}>Subject</L>}
+            label="Subject"
             rules={[{ required: true, message: "Subject is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1661,7 +1684,7 @@ function CreateCrModal({
 
           <Form.Item
             name="description"
-            label={<L c={c}>Full description</L>}
+            label="Full description"
             rules={[{ required: true, message: "Description is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1671,74 +1694,66 @@ function CreateCrModal({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1.2fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="priority"
+            label="Priority"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="priority"
-              label={<L c={c}>Priority</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "critical", label: "Critical" },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={<L c={c} hint="optional">Project</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="status"
-              label={<L c={c}>Initial status</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={[
-                  { value: "under_review", label: "Under review" },
-                  { value: "submitted", label: "Submitted" },
-                  { value: "estimated", label: "Estimated" },
-                  { value: "draft", label: "Draft — hidden from client" },
-                  { value: "approved", label: "Approved" },
-                  { value: "rejected", label: "Rejected" },
-                  { value: "scheduled", label: "Scheduled" },
-                  { value: "in_progress", label: "In progress" },
-                  { value: "delivered", label: "Delivered" },
-                  { value: "closed", label: "Closed" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
-              />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <SearchableDropdown
+              options={[
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+                { value: "critical", label: "Critical" },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            name="projectId"
+            label="Project (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="—"
+              searchPlaceholder="Search projects..."
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.code ? `${p.name} · ${p.code}` : p.name,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="Initial status"
+            style={{ marginBottom: 0 }}
+          >
+            <SearchableDropdown
+              options={[
+                { value: "under_review", label: "Under review" },
+                { value: "submitted", label: "Submitted" },
+                { value: "estimated", label: "Estimated" },
+                { value: "draft", label: "Draft — hidden from client" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "scheduled", label: "Scheduled" },
+                { value: "in_progress", label: "In progress" },
+                { value: "delivered", label: "Delivered" },
+                { value: "closed", label: "Closed" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+            />
+          </Form.Item>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Estimate"
-          description="Optional now. Once published, the client gets a one-click approve / reject prompt."
-          icon={<DollarSign size={11} />}
+          subtitle="Optional now. Once published, the client gets a one-click approve / reject prompt."
+          icon={<DollarSign size={14} />}
+          step="STEP 2"
         >
           <Form.Item
             name="impactAnalysis"
-            label={<L c={c}>Impact analysis</L>}
+            label="Impact analysis"
             style={{ marginBottom: 12 }}
           >
             <Input.TextArea
@@ -1746,74 +1761,85 @@ function CreateCrModal({
               placeholder="What's affected? Dependencies? Risks?"
             />
           </Form.Item>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1.2fr 0.8fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="estimatedHoursMin"
+            label="Hours min"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="estimatedHoursMin"
-              label={<L c={c}>Hours min</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={0.5}
-                placeholder="8"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedHoursMax"
-              label={<L c={c}>Hours max</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={0.5}
-                placeholder="16"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedCost"
-              label={<L c={c}>Cost</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={100}
-                placeholder="2500"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedCurrency"
-              label={<L c={c}>Currency</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                allowClear
-                placeholder="USD"
-                options={["USD", "INR", "EUR", "GBP", "AED"].map((cur) => ({
-                  value: cur,
-                  label: cur,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="targetDeliveryDate"
-              label={<L c={c}>Target delivery</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={0.5}
+              placeholder="8"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedHoursMax"
+            label="Hours max"
+            style={{ marginBottom: 12 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={0.5}
+              placeholder="16"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedCost"
+            label="Cost"
+            style={{ marginBottom: 12 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={100}
+              placeholder="2500"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedCurrency"
+            label="Currency"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="USD"
+              searchPlaceholder="Search currency..."
+              options={["USD", "INR", "EUR", "GBP", "AED"].map((cur) => ({
+                value: cur,
+                label: cur,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="targetDeliveryDate"
+            label="Target delivery"
+            style={{ marginBottom: 0 }}
+          >
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+          </Form.Item>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<GitPullRequest size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Create change request
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 
@@ -1913,42 +1939,68 @@ function EditCrModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={720}
-      c={c}
-      ribbonColor={c.purpleText}
-      iconTile={{ bg: c.purpleBg, border: c.purpleBorder, text: c.purpleText }}
-      icon={<GitPullRequest size={20} />}
-      title="Edit change request"
-      subtitle="Modify the details, priority, project scope or estimations."
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to update">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<Pencil size={14} />}
-          >
-            Update change request
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.purpleBg, border: `1px solid ${c.purpleBorder}`, color: c.purpleText }}
+              >
+                <GitPullRequest size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Edit change request</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Modify the details, priority, project scope or estimations.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="The ask"
-          description="What the client wants changed, in their words plus your context."
-          icon={<GitPullRequest size={11} />}
-          plain
+          subtitle="What the client wants changed, in their words plus your context."
+          icon={<GitPullRequest size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="subject"
-            label={<L c={c}>Subject</L>}
+            label="Subject"
             rules={[{ required: true, message: "Subject is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1961,7 +2013,7 @@ function EditCrModal({
 
           <Form.Item
             name="description"
-            label={<L c={c}>Full description</L>}
+            label="Full description"
             rules={[{ required: true, message: "Description is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1971,74 +2023,66 @@ function EditCrModal({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1.2fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="priority"
+            label="Priority"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="priority"
-              label={<L c={c}>Priority</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "critical", label: "Critical" },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={<L c={c} hint="optional">Project</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="status"
-              label={<L c={c}>Status</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={[
-                  { value: "under_review", label: "Under review" },
-                  { value: "submitted", label: "Submitted" },
-                  { value: "estimated", label: "Estimated" },
-                  { value: "draft", label: "Draft — hidden from client" },
-                  { value: "approved", label: "Approved" },
-                  { value: "rejected", label: "Rejected" },
-                  { value: "scheduled", label: "Scheduled" },
-                  { value: "in_progress", label: "In progress" },
-                  { value: "delivered", label: "Delivered" },
-                  { value: "closed", label: "Closed" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
-              />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <SearchableDropdown
+              options={[
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+                { value: "critical", label: "Critical" },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            name="projectId"
+            label="Project (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="—"
+              searchPlaceholder="Search projects..."
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.code ? `${p.name} · ${p.code}` : p.name,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="Status"
+            style={{ marginBottom: 0 }}
+          >
+            <SearchableDropdown
+              options={[
+                { value: "under_review", label: "Under review" },
+                { value: "submitted", label: "Submitted" },
+                { value: "estimated", label: "Estimated" },
+                { value: "draft", label: "Draft — hidden from client" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "scheduled", label: "Scheduled" },
+                { value: "in_progress", label: "In progress" },
+                { value: "delivered", label: "Delivered" },
+                { value: "closed", label: "Closed" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+            />
+          </Form.Item>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Estimate"
-          description="Assess impact and provide time + cost estimates."
-          icon={<DollarSign size={11} />}
+          subtitle="Assess impact and provide time + cost estimates."
+          icon={<DollarSign size={14} />}
+          step="STEP 2"
         >
           <Form.Item
             name="impactAnalysis"
-            label={<L c={c}>Impact analysis</L>}
+            label="Impact analysis"
             style={{ marginBottom: 12 }}
           >
             <Input.TextArea
@@ -2046,74 +2090,85 @@ function EditCrModal({
               placeholder="What's affected? Dependencies? Risks?"
             />
           </Form.Item>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1.2fr 0.8fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="estimatedHoursMin"
+            label="Hours min"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="estimatedHoursMin"
-              label={<L c={c}>Hours min</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={0.5}
-                placeholder="8"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedHoursMax"
-              label={<L c={c}>Hours max</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={0.5}
-                placeholder="16"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedCost"
-              label={<L c={c}>Cost</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={100}
-                placeholder="2500"
-              />
-            </Form.Item>
-            <Form.Item
-              name="estimatedCurrency"
-              label={<L c={c}>Currency</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                allowClear
-                placeholder="USD"
-                options={["USD", "INR", "EUR", "GBP", "AED"].map((cur) => ({
-                  value: cur,
-                  label: cur,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="targetDeliveryDate"
-              label={<L c={c}>Target delivery</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-            </Form.Item>
-          </div>
-        </ModalSection>
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={0.5}
+              placeholder="8"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedHoursMax"
+            label="Hours max"
+            style={{ marginBottom: 12 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={0.5}
+              placeholder="16"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedCost"
+            label="Cost"
+            style={{ marginBottom: 12 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              step={100}
+              placeholder="2500"
+            />
+          </Form.Item>
+          <Form.Item
+            name="estimatedCurrency"
+            label="Currency"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="USD"
+              searchPlaceholder="Search currency..."
+              options={["USD", "INR", "EUR", "GBP", "AED"].map((cur) => ({
+                value: cur,
+                label: cur,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="targetDeliveryDate"
+            label="Target delivery"
+            style={{ marginBottom: 0 }}
+          >
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+          </Form.Item>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<Pencil size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Update change request
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 
@@ -2675,8 +2730,7 @@ function CrDetailBody({
                     label={<L c={c}>Cur.</L>}
                     style={{ marginBottom: 8 }}
                   >
-                    <Select
-                      allowClear
+                    <SearchableDropdown
                       options={["USD", "INR", "EUR", "GBP", "AED"].map(
                         (cur) => ({ value: cur, label: cur }),
                       )}

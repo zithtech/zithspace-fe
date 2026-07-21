@@ -31,7 +31,7 @@ import {
   DownloadOutlined,
 } from "@ant-design/icons";
 import { SprintReportExportRunner } from "./[sprintId]/SprintReportView";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProjectService } from "@/services/projectService";
 import {
@@ -112,6 +112,7 @@ const accentFor = (key: string): [string, string] => {
  * as the Proposals main page.
  */
 export default function ReportsHub() {
+  console.log("Forcing HMR reload for ReportsHub");
   const router = useRouter();
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -123,6 +124,8 @@ export default function ReportsHub() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [searchText, setSearchText] = useState("");
   const [view, setView] = useState<"list" | "grid">("list");
@@ -240,14 +243,14 @@ export default function ReportsHub() {
       gen.length === 0
         ? 0
         : Math.round(
-            gen.reduce((s, r) => s + (r.healthScore ?? 0), 0) / gen.length
-          );
+          gen.reduce((s, r) => s + (r.healthScore ?? 0), 0) / gen.length
+        );
     const avgCompletion =
       gen.length === 0
         ? 0
         : Math.round(
-            gen.reduce((s, r) => s + (r.completionPct ?? 0), 0) / gen.length
-          );
+          gen.reduce((s, r) => s + (r.completionPct ?? 0), 0) / gen.length
+        );
     const ticketsShipped = gen.reduce((s, r) => s + (r.completedTickets ?? 0), 0);
 
     // 7-day trend of reports generated per day.
@@ -283,16 +286,16 @@ export default function ReportsHub() {
         prev.map((r) =>
           r.sprintId === sprintId
             ? {
-                ...r,
-                hasReport: true,
-                healthScore: summary.healthScore,
-                healthBand: summary.healthBand,
-                completionPct: summary.completionPct,
-                totalTickets: summary.totalTickets,
-                completedTickets: summary.completedTickets,
-                generatedAt: summary.generatedAt,
-                generatedById: summary.generatedById,
-              }
+              ...r,
+              hasReport: true,
+              healthScore: summary.healthScore,
+              healthBand: summary.healthBand,
+              completionPct: summary.completionPct,
+              totalTickets: summary.totalTickets,
+              completedTickets: summary.completedTickets,
+              generatedAt: summary.generatedAt,
+              generatedById: summary.generatedById,
+            }
             : r
         )
       );
@@ -345,12 +348,12 @@ export default function ReportsHub() {
         icon: <FilePdfOutlined />,
         disabled: !!exportTarget,
       },
-      {
-        key: "docx",
-        label: "Download Word",
-        icon: <FileWordOutlined />,
-        disabled: !!exportTarget,
-      },
+      // {
+      //   key: "docx",
+      //   label: "Download Word",
+      //   icon: <FileWordOutlined />,
+      //   disabled: !!exportTarget,
+      // },
       { type: "divider" as const },
       { key: "regen", label: "Regenerate", icon: <RegenOutlined /> },
     ],
@@ -367,7 +370,7 @@ export default function ReportsHub() {
   const downloadMenu = (r: SprintReportListItem) => ({
     items: [
       { key: "pdf", label: "Download PDF", icon: <FilePdfOutlined />, disabled: !!exportTarget },
-      { key: "docx", label: "Download Word", icon: <FileWordOutlined />, disabled: !!exportTarget },
+      // { key: "docx", label: "Download Word", icon: <FileWordOutlined />, disabled: !!exportTarget },
     ],
     onClick: ({ key, domEvent }: { key: string; domEvent: any }) => {
       domEvent.stopPropagation();
@@ -410,7 +413,6 @@ export default function ReportsHub() {
       dataIndex: "sprintName",
       key: "sprintName",
       width: 360,
-      fixed: "left" as const,
       render: (_: any, r) => (
         <div className="pp-name-cell">
           <div className="pp-name-icon"><FileTextOutlined style={{ fontSize: 14 }} /></div>
@@ -470,7 +472,6 @@ export default function ReportsHub() {
       key: "actions",
       align: "right" as const,
       width: 160,
-      fixed: "right" as const,
       render: (_: any, r) =>
         r.hasReport ? (
           <div className="rh-actions">
@@ -542,7 +543,10 @@ export default function ReportsHub() {
         />
       ) : null}
       {/* ============================ SIDEBAR ============================ */}
-      <aside className="pp-sidebar">
+      {isMobileOpen && (
+        <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+      )}
+      <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
         <div className="pp-side-head">
           <div className="pp-side-logo"><FileDoneOutlined /></div>
           <div className="pp-side-head-text">
@@ -600,50 +604,52 @@ export default function ReportsHub() {
 
       {/* ============================ MAIN ============================ */}
       <main className="pp-main">
-        {/* Project context header */}
-        <div className="rh-main-head">
-          <div className="rh-main-title-row">
-            <h1 className="rh-main-title">{selectedProject?.label ?? "Select a project"}</h1>
-            {selectedProject?.code ? <span className="rh-main-code">{selectedProject.code}</span> : null}
-          </div>
-          <p className="rh-main-desc">
-            Reports are generated when a sprint is completed. Open one for a full delivery,
-            scope, and quality breakdown.
-          </p>
-        </div>
-
-        {/* Topbar */}
-        <div className="pp-topbar">
-          <div className="pp-search-wrap">
-            <SearchOutlined className="pp-search-icon" />
-            <input
-              ref={searchRef}
-              className="pp-search"
-              placeholder="Search sprints, reports…"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-            <span className="pp-kbd">⌘K</span>
-          </div>
-
-          <div className="pp-topbar-meta">
-            <span className="pp-meta-item"><span className="pp-pulse" /><strong>{generatedCount}</strong> generated</span>
-            <span className="pp-meta-dot">·</span>
-            <span className="pp-meta-item"><strong>{reports.length}</strong> completed sprints</span>
-          </div>
-
-          <div className="pp-topbar-actions">
-            <div className="pp-segmented">
-              <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><UnorderedListOutlined /></button>
-              <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><AppstoreOutlined /></button>
+        <div className="rh-sticky-header">
+          {/* Project context header */}
+          <div className="rh-main-head">
+            <div className="rh-main-title-row">
+              <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+                <Menu size={20} />
+              </button>
+              <h1 className="rh-main-title">{selectedProject?.label ?? "Select a project"}</h1>
+              {selectedProject?.code ? <span className="rh-main-code">{selectedProject.code}</span> : null}
             </div>
-            <Tooltip title="Refresh">
-              <button type="button" className="pp-ghost-btn" onClick={() => fetchReports(projectId)}><ReloadOutlined spin={loading} /></button>
-            </Tooltip>
+            <p className="rh-main-desc">
+              Reports are generated when a sprint is completed. Open one for a full delivery,
+              scope, and quality breakdown.
+            </p>
+          </div>
+
+          {/* Topbar */}
+          <div className="pp-topbar">
+            <div className="pp-search-wrap">
+              <SearchOutlined className="pp-search-icon" />
+              <input
+                ref={searchRef}
+                className="pp-search"
+                placeholder="Search sprints, reports…"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+
+            <div className="pp-topbar-meta">
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{generatedCount}</strong> generated</span>
+              <span className="pp-meta-dot">·</span>
+              <span className="pp-meta-item"><strong>{reports.length}</strong> completed sprints</span>
+            </div>
+
+            <div className="pp-topbar-actions">
+              <div className="pp-segmented">
+                <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><UnorderedListOutlined /></button>
+                <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><AppstoreOutlined /></button>
+              </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={() => fetchReports(projectId)}><ReloadOutlined spin={loading} /></button>
+              </Tooltip>
+            </div>
           </div>
         </div>
-
-        <div className="pp-divider" />
 
         {/* Stat cards */}
         <div className="pp-stats">
@@ -681,7 +687,7 @@ export default function ReportsHub() {
                 rowKey="sprintId"
                 size="small"
                 className="pp-table"
-                scroll={{ x: 1120 }}
+                scroll={{ x: 'max-content' }}
                 pagination={false}
                 locale={{ emptyText: emptyState }}
                 onRow={(record) => ({
@@ -820,7 +826,8 @@ export default function ReportsHub() {
         .pp-shell {
           display: flex;
           margin: 0 -8px;
-          min-height: calc(100vh - 64px);
+          height: 100%;
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
 
@@ -833,9 +840,10 @@ export default function ReportsHub() {
           display: flex;
           flex-direction: column;
           padding: 14px 14px 0;
-          position: sticky;
-          top: 0;
-          height: calc(100vh - 54px);
+          position: relative;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         .pp-side-head {
           display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
@@ -897,8 +905,21 @@ export default function ReportsHub() {
         .pp-trash .anticon { font-size: 15px; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; }
+        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; overflow-y: auto; }
+        .pp-body { flex: 1 0 auto; min-width: 0; }
+        .rh-sticky-header {
+          position: sticky;
+          top: 0;
+          z-index: 40;
+          background: var(--bg-pure-white);
+          padding: 8px 18px 0;
+          margin: -8px -18px 14px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .rh-sticky-header {
+          background: #0B0F1A;
+          border-bottom-color: #1F2937;
+        }
         .rh-main-head { padding: 6px 0 10px; }
         .rh-main-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .rh-main-title { font-size: 22px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-slate-900); line-height: 1.1; margin: 0; }
@@ -909,9 +930,9 @@ export default function ReportsHub() {
         }
         .rh-main-desc { margin: 6px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 820px; }
 
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -967,12 +988,24 @@ export default function ReportsHub() {
 
         /* Table */
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table .ant-table, .pp-table .ant-table-wrapper, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body {
+          background: transparent !important;
+          border-radius: 0 !important;
+        }
+        .pp-table .ant-table-thead > tr > th, .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #374151 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1093,9 +1126,41 @@ export default function ReportsHub() {
 
         @media (max-width: 700px) { .pp-grid { grid-template-columns: 1fr; } }
         @media (max-width: 1100px) { .pp-stats { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+
+        @media (max-width: 1024px) {
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
         }
       `}</style>
     </div>

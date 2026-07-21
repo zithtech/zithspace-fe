@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarRange } from 'lucide-react';
+import { CalendarRange, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -18,11 +18,23 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
     () => LEAVE_NAV_ITEMS.filter((item) => canAccessLeaveItem(perms, item)),
     [perms]
   );
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleOpenSidebar = () => setIsMobileOpen(true);
+    window.addEventListener('open-lv-sidebar', handleOpenSidebar);
+    return () => window.removeEventListener('open-lv-sidebar', handleOpenSidebar);
+  }, []);
 
   // Base guard: must be able to read or manage leaves at all.
   useEffect(() => {
@@ -35,14 +47,25 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
     <ProtectedRoute>
       <MainLayout>
         <div className="lv-shell">
+          {/* ============================ MOBILE BACKDROP ============================ */}
+          {isMobileOpen && (
+            <div
+              className="lv-sidebar-backdrop"
+              onClick={() => setIsMobileOpen(false)}
+            />
+          )}
+
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="lv-sidebar">
+          <aside className={`lv-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="lv-side-head">
               <div className="lv-side-logo"><CalendarRange size={22} /></div>
               <div className="lv-side-head-text">
                 <div className="lv-side-title">Leaves</div>
                 <div className="lv-side-subtitle">Time off · balances</div>
               </div>
+              <button className="lv-sidebar-close" onClick={() => setIsMobileOpen(false)}>
+                <X size={20} />
+              </button>
             </div>
 
             <div className="lv-side-scroll">
@@ -55,6 +78,7 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
                       key={item.key}
                       href={item.href}
                       className={`lv-view-item ${active ? 'is-active' : ''}`}
+                      onClick={() => setIsMobileOpen(false)}
                     >
                       <span
                         className="lv-view-icon"
@@ -128,8 +152,102 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
           .lv-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .lv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .lv-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .lv-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+          .lv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .lv-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; position: relative; }
+          
+          /* Stretch panel headers to the edges and make them sticky */
+          .lv-content > * > [class*="-header"] {
+            margin-left: -32px !important;
+            margin-right: -32px !important;
+            padding-left: 32px !important;
+            padding-right: 32px !important;
+            position: sticky;
+            top: 0;
+            z-index: 98;
+            background: var(--bg-pure-white);
+            padding-top: 12px !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+
+          /* Restore the gap below the header that was removed by margin-bottom: 0 */
+          .lv-content > * > [class*="-header"] + * {
+            margin-top: 16px !important;
+          }
+
+          /* ---------------- Responsive Styles ---------------- */
+          .lv-sidebar-backdrop {
+            display: none;
+          }
+          .lv-sidebar-close {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-slate-500);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto;
+          }
+          .lv-mobile-menu-btn {
+            display: none;
+          }
+
+          @media (max-width: 1024px) {
+            .lv-sidebar {
+              position: fixed;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
+            }
+            .lv-sidebar.is-open {
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            }
+            .lv-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              z-index: 999;
+              backdrop-filter: blur(2px);
+            }
+            .lv-sidebar-close {
+              display: flex;
+            }
+            .lv-mobile-menu-btn {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-200);
+              color: var(--text-slate-700);
+              cursor: pointer;
+              margin-right: 12px;
+            }
+            .lv-mobile-menu-btn:hover {
+              background: var(--bg-slate-100);
+            }
+            .lv-main {
+              padding: 0;
+            }
+            .lv-content {
+              padding: 0 16px;
+            }
+            .lv-content > * > [class*="-header"] {
+              margin-left: -16px !important;
+              margin-right: -16px !important;
+              padding-left: 16px !important;
+              padding-right: 16px !important;
+              padding-top: 8px !important;
+            }
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

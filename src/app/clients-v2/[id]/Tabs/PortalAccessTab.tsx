@@ -10,6 +10,7 @@ import {
   Popconfirm,
   Tooltip,
   Empty,
+  Drawer,
   Table,
   Dropdown,
   App,
@@ -61,6 +62,8 @@ import {
   ModalFooterActions,
   FieldLabel as FLabel,
 } from "./_PremiumModal";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 /* ---------------------------------------------------------------------- */
@@ -155,6 +158,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
         value: c.id,
         email: c.officialEmail,
         designation: c.designation,
+        avatarUrl: c.avatarUrl || c.avatar,
       }));
   }, [contacts, users]);
 
@@ -227,6 +231,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
             undefined
             : undefined),
         username: values.username || undefined,
+        portalUrl: typeof window !== "undefined" ? `${window.location.origin}/portal/login` : undefined,
       };
       const created = await clientPortalService.create(clientId, payload);
       setCreateOpen(false);
@@ -1295,7 +1300,7 @@ function CreateCredentialModal({
   onClose: () => void;
   onSubmit: (values: any) => void;
   creating: boolean;
-  contactOptions: { label: string; value: string; email: string; designation: string | null }[];
+  contactOptions: { label: string; value: string; email: string; designation: string | null; avatarUrl?: string | null }[];
   contacts: any[];
   form: any;
   c: ReturnType<typeof palette>;
@@ -1309,44 +1314,49 @@ function CreateCredentialModal({
   const selectedContact = contacts?.find((x) => x.id === selectedContactId);
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={580}
-      c={c}
-      ribbonColor={c.accent}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<KeyRound size={20} />}
-      title="Create portal credential"
-      subtitle="The contact will get a temporary password and must change it on first sign-in."
-      tip={
-        <span>
-          <Sparkles
-            size={11}
-            style={{ verticalAlign: -1, marginRight: 5, color: c.accentText }}
-          />
-          A secure temporary password is generated and shown <strong>once</strong>{" "}
-          after creation. Copy it before closing the dialog.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to create">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={creating}
-            onClick={() => form.submit()}
-            icon={<KeyRound size={14} />}
-          >
-            Create credential
-          </Button>
-        </ModalFooterActions>
-      }
-    >
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <KeyRound size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Create portal credential</h2>
+                <p className="text-[12px] text-[var(--text-secondary)] m-0 mt-0.5 font-medium">The contact will get a temporary password and must change it on first sign-in.</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}` }}>
+              <Sparkles size={16} className="shrink-0 mt-0.5" style={{ color: c.accentText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.accentText }}>
+                A secure temporary password is generated and shown <strong>once</strong>{" "}
+                after creation. Copy it before closing the dialog.
+              </div>
+            </div>
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
         onFinish={onSubmit}
         requiredMark={false}
         onValuesChange={(changed) => {
@@ -1365,58 +1375,22 @@ function CreateCredentialModal({
           }
         }}
       >
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Link to contact"
-          description="Optional shortcut — pick a contact to auto-fill email and name below."
-          icon={<User size={11} />}
-          plain
+          subtitle="Optional shortcut — pick a contact to auto-fill email and name below."
+          icon={<User size={14} />}
+          step="STEP 1"
         >
-          <Form.Item name="contactId" style={{ marginBottom: 0 }}>
-            <Select
-              allowClear
-              showSearch
+          <Form.Item label="Contact" name="contactId" style={{ marginBottom: 0 }}>
+            <SearchableDropdown
               placeholder="Search by name or email…"
-              optionLabelProp="title"
-              filterOption={(input, option: any) =>
-                option?.search?.toLowerCase().includes(input.toLowerCase()) ||
-                false
-              }
+              searchPlaceholder="Search by name or email…"
               options={contactOptions.map((c) => ({
                 value: c.value,
-                title: c.label,
-                search: `${c.label} ${c.email}`,
-                label: (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1,
-                      padding: "2px 0",
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>
-                      {c.label}
-                    </span>
-                    <span style={{ fontSize: 11.5, opacity: 0.7 }}>
-                      {c.email}
-                      {c.designation ? ` · ${c.designation}` : ""}
-                    </span>
-                  </div>
-                ),
+                label: c.label,
+                description: `${c.email}${c.designation ? ` · ${c.designation}` : ""}`,
+                avatarUrl: c.avatarUrl
               }))}
-              notFoundContent={
-                <div
-                  style={{
-                    padding: 12,
-                    textAlign: "center",
-                    fontSize: 12,
-                    color: c.textSubtle,
-                  }}
-                >
-                  No remaining contacts. Fill in the fields below manually.
-                </div>
-              }
             />
           </Form.Item>
 
@@ -1443,16 +1417,16 @@ function CreateCredentialModal({
               . Email and name pre-filled below.
             </div>
           )}
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Account details"
-          description="These appear in the portal sign-in screen for the client."
-          icon={<AtSign size={11} />}
+          subtitle="These appear in the portal sign-in screen for the client."
+          icon={<AtSign size={14} />}
+          step="STEP 2"
         >
           <Form.Item
-            label={<FLabel c={c}>Email</FLabel>}
+            label="Email"
             name="email"
             rules={[
               { required: true, message: "Email is required" },
@@ -1467,7 +1441,7 @@ function CreateCredentialModal({
           </Form.Item>
 
           <Form.Item
-            label={<FLabel c={c}>Display name</FLabel>}
+            label="Display name"
             name="displayName"
             style={{ marginBottom: 12 }}
           >
@@ -1478,11 +1452,7 @@ function CreateCredentialModal({
           </Form.Item>
 
           <Form.Item
-            label={
-              <FLabel c={c} hint="optional · auto-generated if empty">
-                Username
-              </FLabel>
-            }
+            label="Username"
             name="username"
             style={{ marginBottom: 0 }}
           >
@@ -1491,9 +1461,28 @@ function CreateCredentialModal({
               placeholder="e.g. john_acme"
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={creating}
+        onClick={() => form.submit()}
+        icon={<KeyRound size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Create credential
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 

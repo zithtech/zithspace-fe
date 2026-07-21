@@ -6,6 +6,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { dashboardService, DashboardData } from "@/services/dashboardService";
 import { useZohoCalendar } from "@/hooks/useZohoCalendar";
 import { EmployeeService } from "@/services/employeeServices";
+import LeaveV2Service from "@/services/leaveV2Service";
 import {
   Card,
   Row,
@@ -19,6 +20,7 @@ import {
   Tooltip,
   Empty,
   theme,
+  Select,
 } from "antd";
 import {
   TeamOutlined,
@@ -40,7 +42,7 @@ import dayjs from "dayjs";
 
 const { Text } = Typography;
 
-function DashboardContent() {
+function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
   const { token } = theme.useToken();
   const { user } = useAuth();
   const router = useRouter();
@@ -53,12 +55,51 @@ function DashboardContent() {
     null,
   );
   const [birthdays, setBirthdays] = useState<any[]>([]);
+  const [localLeaves, setLocalLeaves] = useState<any[]>([]);
 
   // Zoho Calendar Integration
   const {
     error: calendarError,
     successMessage: calendarSuccess,
   } = useZohoCalendar();
+
+  const isMetricTotalMembersVisible = dashboardSettings?.metricTotalMembers !== false;
+  const isMetricActiveProjectsVisible = dashboardSettings?.metricActiveProjects !== false;
+  const isMetricOrgTicketsVisible = dashboardSettings?.metricOrgTickets !== false;
+  const isMetricOrgTeamTodayVisible = dashboardSettings?.metricOrgTeamToday !== false;
+
+  const isCardProjectPulseVisible = dashboardSettings?.cardProjectPulse !== false;
+  const isUpcomingBirthdaysVisible = dashboardSettings?.upcomingBirthdays !== false;
+  const isCardTodayLeavesVisible = dashboardSettings?.cardTodayLeaves !== false;
+  const isCardRecentActivitiesVisible = dashboardSettings?.cardRecentActivities !== false;
+
+  useEffect(() => {
+    if (dashboardSettings?.cardTodayLeaves !== false) {
+      const fetchLocalLeaves = async () => {
+        try {
+          const [myReqs, approvals] = await Promise.all([
+            LeaveV2Service.getMyRequests().catch(() => []),
+            LeaveV2Service.getApprovals().catch(() => [])
+          ]);
+
+          const todayMs = new Date().setHours(0, 0, 0, 0);
+
+          const allLocal = [...myReqs, ...approvals].filter((r: any) => {
+            if (!r.fromDate || !r.toDate) return false;
+            const fromMs = new Date(r.fromDate).setHours(0, 0, 0, 0);
+            const toMs = new Date(r.toDate).setHours(0, 0, 0, 0);
+            return todayMs >= fromMs && todayMs <= toMs;
+          });
+
+          const unique = Array.from(new Map(allLocal.map((r: any) => [r.id, r])).values());
+          setLocalLeaves(unique);
+        } catch (err) {
+          console.error("Failed to fetch local leaves", err);
+        }
+      };
+      fetchLocalLeaves();
+    }
+  }, [dashboardSettings?.cardTodayLeaves]);
 
   useEffect(() => {
     if (
@@ -297,7 +338,7 @@ function DashboardContent() {
     subtle?: string;
     chart?: React.ReactNode;
   }[] = dashboardData
-    ? (() => {
+      ? (() => {
         const closedT = dashboardData.stats.tickets.closed;
         const totalT = dashboardData.stats.tickets.total;
         const openT = Math.max(0, totalT - closedT);
@@ -307,7 +348,7 @@ function DashboardContent() {
         const rateA = dashboardData.stats.attendance.attendanceRate;
         const absentA = dashboardData.stats.attendance.absent;
         const lateA = dashboardData.stats.attendance.late;
-        return [
+        const allStats = [
           {
             eyebrow: "Total Members",
             value: dashboardData.stats.totalMembers,
@@ -493,10 +534,18 @@ function DashboardContent() {
                 </span>
               </div>
             ),
-          },
+          }
         ];
+
+        return allStats.filter((stat) => {
+          if (stat.eyebrow === "Team Today" && !isMetricOrgTeamTodayVisible) return false;
+          if (stat.eyebrow === "Tickets" && !isMetricOrgTicketsVisible) return false;
+          if (stat.eyebrow === "Total Members" && !isMetricTotalMembersVisible) return false;
+          if (stat.eyebrow === "Active Projects" && !isMetricActiveProjectsVisible) return false;
+          return true;
+        });
       })()
-    : [];
+      : [];
 
   // ─── Project Pulse render ─────────────────────────────────────────
   const renderProjectPulse = () => {
@@ -752,251 +801,34 @@ function DashboardContent() {
     );
   };
 
-  // ─── Today's Pulse render ─────────────────────────────────────────
-  const renderTodayPulse = () => {
-    if (!dashboardData?.todayLeaves) return null;
-    const { onLeave, onPermission, workingFromHome } = dashboardData.todayLeaves;
-
-    const sections = [
-      {
-        key: "leave",
-        title: "On Leave",
-        icon: <CoffeeOutlined />,
-        accent: "#F43F5E",
-        items: onLeave,
-        format: (l: any) =>
-          `${l.type.replace(/_/g, " ")} · ${l.duration} ${l.durationType === "HOURS" ? "hrs" : "days"
-          }`,
-      },
-      {
-        key: "permission",
-        title: "Permission",
-        icon: <ClockCircleOutlined />,
-        accent: "#8B5CF6",
-        items: onPermission,
-        format: (l: any) => `${l.duration} hours`,
-      },
-      {
-        key: "wfh",
-        title: "Working from Home",
-        icon: <HomeOutlined />,
-        accent: "#10B981",
-        items: workingFromHome,
-        format: (l: any) => l.user.position || "Remote",
-      },
-    ];
-
-    const totalCount =
-      onLeave.length + onPermission.length + workingFromHome.length;
-
-    if (totalCount === 0) {
-      return (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: token.colorFillAlter,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: token.colorTextTertiary,
-              marginBottom: 10,
-            }}
-          >
-            <TeamOutlined style={{ fontSize: 22 }} />
-          </div>
-          <Text
-            strong
-            style={{
-              fontSize: 13,
-              color: token.colorText,
-              display: "block",
-              marginBottom: 2,
-            }}
-          >
-            Everyone is in
-          </Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            No leave, permission, or WFH today
-          </Text>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        style={{
-          flex: 1,
-          padding: "10px 14px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          overflowY: "auto",
-        }}
-        className="no-scrollbar"
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.6px",
-              textTransform: "uppercase",
-              color: token.colorTextSecondary,
-            }}
-          >
-            {totalCount} away today
-          </Text>
-        </div>
-
-        {sections
-          .filter((s) => s.items.length > 0)
-          .map((s) => (
-            <div key={s.key}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 6,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 18,
-                    height: 18,
-                    borderRadius: 6,
-                    background: `${s.accent}14`,
-                    border: `1px solid ${s.accent}26`,
-                    color: s.accent,
-                    fontSize: 10,
-                  }}
-                >
-                  {s.icon}
-                </span>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: token.colorText,
-                    letterSpacing: "0.2px",
-                  }}
-                >
-                  {s.title}
-                </Text>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: s.accent,
-                    background: `${s.accent}14`,
-                    padding: "1px 6px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {s.items.length}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                {s.items.slice(0, 3).map((leave: any) => (
-                  <div
-                    key={leave.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "5px 8px",
-                      borderRadius: 8,
-                      background: token.colorFillAlter,
-                      border: `1px solid ${token.colorBorderSecondary}`,
-                    }}
-                  >
-                    <Avatar
-                      size={22}
-                      style={{
-                        backgroundColor: s.accent,
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {leave.user.name[0].toUpperCase()}
-                    </Avatar>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Text
-                        strong
-                        style={{
-                          fontSize: 12,
-                          color: token.colorText,
-                          display: "block",
-                          lineHeight: 1.2,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {leave.user.name}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 10,
-                          color: token.colorTextTertiary,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {s.format(leave)}
-                      </Text>
-                    </div>
-                  </div>
-                ))}
-                {s.items.length > 3 && (
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: token.colorTextTertiary,
-                      fontWeight: 600,
-                      paddingLeft: 4,
-                    }}
-                  >
-                    +{s.items.length - 3} more
-                  </Text>
-                )}
-              </div>
-            </div>
-          ))}
-      </div>
-    );
-  };
 
   // ─── Birthdays render ─────────────────────────────────────────────
-  const renderBirthdays = () => {
-    if (birthdays.length === 0) {
+  const renderTodayLeaves = () => {
+    const todayLeaves = dashboardData?.todayLeaves;
+    const allLeaves: any[] = [];
+
+    if (todayLeaves) {
+      if (todayLeaves.onLeave) allLeaves.push(...todayLeaves.onLeave.map((l: any) => ({ ...l, tag: "Leave", color: "#EC4899" })));
+      if (todayLeaves.onPermission) allLeaves.push(...todayLeaves.onPermission.map((l: any) => ({ ...l, tag: "Permission", color: "#F59E0B" })));
+      if (todayLeaves.workingFromHome) allLeaves.push(...todayLeaves.workingFromHome.map((l: any) => ({ ...l, tag: "WFH", color: "#10B981" })));
+    }
+
+    localLeaves.forEach((r: any) => {
+      const name = r.userName || user?.name || "Unknown";
+      const isExist = allLeaves.some(l => l.user?.name === name);
+      if (!isExist) {
+        allLeaves.push({
+          user: {
+            name: name,
+            position: r.leaveTypeName || "Leave Request",
+          },
+          tag: r.status === 'pending' ? "Pending Leave" : "Leave",
+          color: r.status === 'pending' ? "#F59E0B" : "#EC4899",
+        });
+      }
+    });
+
+    if (allLeaves.length === 0) {
       return (
         <div
           style={{
@@ -1007,150 +839,171 @@ function DashboardContent() {
             justifyContent: "center",
             padding: 24,
             textAlign: "center",
+            borderBottomLeftRadius: 16,
+            borderBottomRightRadius: 16,
           }}
         >
           <div
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: "rgba(236, 72, 153, 0.10)",
-              border: "1px solid rgba(236, 72, 153, 0.25)",
-              display: "inline-flex",
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)`,
+              border: "1px solid rgba(16, 185, 129, 0.2)",
+              display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#EC4899",
-              marginBottom: 10,
+              color: "#10B981",
+              marginBottom: 16,
+              boxShadow: "0 8px 16px rgba(16, 185, 129, 0.1)",
             }}
           >
-            <GiftOutlined style={{ fontSize: 22 }} />
+            <CalendarOutlined style={{ fontSize: 24 }} />
           </div>
           <Text
             strong
             style={{
-              fontSize: 13,
+              fontSize: 14,
               color: token.colorText,
               display: "block",
-              marginBottom: 2,
+              marginBottom: 4,
             }}
           >
-            No birthdays this month
+            Full House Today!
           </Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            Check back soon
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            No one is on leave. The whole team is here!
           </Text>
         </div>
       );
     }
 
-    const today = dayjs().startOf("day");
-    const sorted = [...birthdays].sort((a, b) => {
-      const da = dayjs(a.dateOfBirth).year(today.year());
-      const db = dayjs(b.dateOfBirth).year(today.year());
-      const aDays = da.isBefore(today) ? da.add(1, "year").diff(today, "day") : da.diff(today, "day");
-      const bDays = db.isBefore(today) ? db.add(1, "year").diff(today, "day") : db.diff(today, "day");
-      return aDays - bDays;
-    });
-
-    const formatRelative = (dob: string) => {
-      const d = dayjs(dob).year(today.year());
-      const target = d.isBefore(today) ? d.add(1, "year") : d;
-      const days = target.diff(today, "day");
-      if (days === 0) return "Today 🎉";
-      if (days === 1) return "Tomorrow";
-      return `In ${days} days`;
-    };
-
     return (
       <div
         style={{
           flex: 1,
-          padding: "10px 12px 12px",
+          padding: "16px",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          gap: 6,
+          gap: 12,
         }}
         className="no-scrollbar"
       >
-        {sorted.map((emp, idx) => {
-          const dob = dayjs(emp.dateOfBirth);
-          const target = dob.year(today.year());
-          const isToday = target.isSame(today, "day");
+        {allLeaves.map((leave, idx) => {
+          const isPending = leave.tag.includes("Pending");
           return (
             <div
               key={idx}
+              className="premium-hover-card"
               style={{
+                position: "relative",
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                padding: "8px 10px",
-                borderRadius: 10,
-                background: isToday
-                  ? "rgba(236, 72, 153, 0.08)"
-                  : token.colorFillAlter,
-                border: isToday
-                  ? "1px solid rgba(236, 72, 153, 0.3)"
-                  : `1px solid ${token.colorBorderSecondary}`,
+                gap: 12,
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: token.colorBgContainer,
+                boxShadow: `0 2px 8px ${token.colorText}08, 0 1px 2px ${token.colorText}04`,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                overflow: "hidden",
+                transition: "all 0.3s ease",
+                cursor: "default",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = `0 6px 16px ${leave.color}15, 0 2px 4px ${leave.color}10`;
+                e.currentTarget.style.borderColor = `${leave.color}40`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.boxShadow = `0 2px 8px ${token.colorText}08, 0 1px 2px ${token.colorText}04`;
+                e.currentTarget.style.borderColor = token.colorBorderSecondary;
               }}
             >
-              <Avatar
-                size={32}
+              <div
                 style={{
-                  backgroundColor: "#EC4899",
-                  fontSize: 13,
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 4,
+                  background: leave.color,
+                  opacity: 0.8,
+                }}
+              />
+
+              <Avatar
+                size={38}
+                style={{
+                  backgroundColor: `${leave.color}15`,
+                  color: leave.color,
+                  fontSize: 14,
                   fontWeight: 700,
-                  border: `2px solid ${token.colorBgContainer}`,
-                  boxShadow: "0 2px 4px rgba(236, 72, 153, 0.2)",
+                  border: `1px solid ${leave.color}40`,
                 }}
               >
-                {(emp.firstName?.[0] || "?").toUpperCase()}
+                {(leave.user?.name?.[0] || "?").toUpperCase()}
               </Avatar>
-              <div style={{ flex: 1, minWidth: 0 }}>
+
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
                 <Text
                   strong
                   style={{
-                    fontSize: 12,
+                    fontSize: 13,
                     color: token.colorText,
                     display: "block",
-                    lineHeight: 1.3,
+                    lineHeight: 1.4,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
+                    marginBottom: 2,
                   }}
                 >
-                  {emp.firstName} {emp.lastName}
+                  {leave.user?.name || "Unknown User"}
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: token.colorTextTertiary,
-                    fontWeight: 500,
-                  }}
-                >
-                  <GiftOutlined style={{ marginRight: 4, color: "#EC4899" }} />
-                  {dob.format("MMM D")}
-                </Text>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {isPending && (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: leave.color,
+                        boxShadow: `0 0 4px ${leave.color}`
+                      }}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: token.colorTextTertiary,
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {leave.user?.position || "Employee"}
+                  </Text>
+                </div>
               </div>
-              <span
+
+              <div
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.3px",
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  background: isToday
-                    ? "rgba(236, 72, 153, 0.15)"
-                    : token.colorBgContainer,
-                  border: isToday
-                    ? "1px solid rgba(236, 72, 153, 0.3)"
-                    : `1px solid ${token.colorBorderSecondary}`,
-                  color: isToday ? "#BE185D" : token.colorTextSecondary,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: `linear-gradient(135deg, ${leave.color}15 0%, ${leave.color}05 100%)`,
+                  color: leave.color,
+                  border: `1px solid ${leave.color}30`,
+                  boxShadow: `0 2px 4px ${leave.color}10`,
                   whiteSpace: "nowrap",
                 }}
               >
-                {formatRelative(emp.dateOfBirth)}
-              </span>
+                {leave.tag}
+              </div>
             </div>
           );
         })}
@@ -1338,207 +1191,343 @@ function DashboardContent() {
       ) : dashboardData ? (
         <>
           {/* KPI Strip */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            {stats.map((s, i) => (
-              <Col xs={24} sm={12} lg={6} key={i}>
-                <KpiCard
-                  eyebrow={s.eyebrow}
-                  value={s.value}
-                  trend={s.trend}
-                  trendTone="positive"
-                  icon={s.icon}
-                  accent={s.accent}
-                  subtle={s.subtle}
-                  chart={s.chart}
-                />
-              </Col>
-            ))}
-          </Row>
+          {(() => {
+            const metricsSpan = stats.length === 1 ? 24 : stats.length === 2 ? 12 : stats.length === 3 ? 8 : 6;
+            return (
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                {stats.map((s, i) => (
+                  <Col xs={24} sm={12} lg={metricsSpan} key={i}>
+                    <KpiCard
+                      eyebrow={s.eyebrow}
+                      value={s.value}
+                      trend={s.trend}
+                      trendTone="positive"
+                      icon={s.icon}
+                      accent={s.accent}
+                      subtle={s.subtle}
+                      chart={s.chart}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            );
+          })()}
 
-          {/* Top Row: Project Pulse · Today's Pulse · Birthdays */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col xs={24} lg={8}>
-              <Card
-                style={{ ...cardBase, height: 380 }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <ProjectOutlined />,
-                  "Project Pulse",
-                  "#7C3AED",
-                )}
-                extra={
-                  <Space size={6}>
-                    {dashboardData.projectProgress.length > 1 && (
-                      <select
-                        value={selectedProjectId || ""}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                        style={{
-                          padding: "3px 8px",
-                          borderRadius: 8,
-                          border: `1px solid ${token.colorBorderSecondary}`,
-                          background: token.colorBgContainer,
-                          color: token.colorText,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          maxWidth: 110,
-                          cursor: "pointer",
-                          outline: "none",
-                        }}
-                      >
-                        {dashboardData.projectProgress.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => router.push("/projects/manage")}
-                      style={{ fontSize: 11 }}
+          {/* ─── Main Grid ──────────────────────────────────── */}
+          {(() => {
+            const visibleKeys = [
+              isCardProjectPulseVisible && "projectPulse",
+              isUpcomingBirthdaysVisible && "birthdays",
+              isCardTodayLeavesVisible && "todayLeaves",
+              isCardRecentActivitiesVisible && "activities"
+            ].filter(Boolean) as string[];
+
+            const N = visibleKeys.length;
+            const spanMap: Record<string, number> = {};
+
+            if (N >= 6) {
+              for (let i = 0; i < N; i++) spanMap[visibleKeys[i]] = 8;
+            } else if (N === 5) {
+              spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+              spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
+            } else if (N === 4) {
+              spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
+              spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
+            } else if (N === 3) {
+              spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
+            } else if (N === 2) {
+              spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
+            } else if (N === 1) {
+              spanMap[visibleKeys[0]] = 24;
+            }
+
+            return (
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                {isCardProjectPulseVisible && (
+                  <Col xs={24} md={spanMap["projectPulse"] === 8 ? 12 : spanMap["projectPulse"]} lg={spanMap["projectPulse"]} xl={spanMap["projectPulse"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                        },
+                      }}
+                      title={sectionTitle(
+                        <ProjectOutlined />,
+                        "Project Pulse",
+                        "#7C3AED",
+                      )}
+                      extra={
+                        <Space size={6}>
+                          {dashboardData.projectProgress.length > 1 && (
+                            <Select
+                              value={selectedProjectId || undefined}
+                              onChange={(val) => setSelectedProjectId(val)}
+                              size="small"
+                              style={{ width: 140 }}
+                              options={dashboardData.projectProgress.map((p) => ({
+                                value: p.id,
+                                label: p.name,
+                              }))}
+                            />
+                          )}
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => router.push("/projects/manage")}
+                            style={{ fontSize: 11 }}
+                          >
+                            View
+                          </Button>
+                        </Space>
+                      }
                     >
-                      View
-                    </Button>
-                  </Space>
-                }
-              >
-                {renderProjectPulse()}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={8}>
-              <Card
-                style={{ ...cardBase, height: 380 }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <CalendarOutlined />,
-                  "Today's Pulse",
-                  "#0EA5E9",
+                      {renderProjectPulse()}
+                    </Card>
+                  </Col>
                 )}
-                extra={
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => router.push("/leaves")}
-                    style={{ fontSize: 11 }}
-                  >
-                    View All
-                  </Button>
-                }
-              >
-                {renderTodayPulse()}
-              </Card>
-            </Col>
 
-            <Col xs={24} lg={8}>
-              <Card
-                style={{ ...cardBase, height: 380 }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <GiftOutlined />,
-                  "Upcoming Birthdays",
-                  "#EC4899",
-                )}
-              >
-                {renderBirthdays()}
-              </Card>
-            </Col>
-          </Row>
 
-          {/* Bottom Row: Recent Activities + Team Insights */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={16}>
-              <Card
-                style={{ ...cardBase, height: "100%" }}
-                styles={{
-                  body: {
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                  },
-                }}
-                title={sectionTitle(
-                  <FireOutlined />,
-                  "Recent Activities",
-                  "#F59E0B",
-                )}
-              >
-                {renderActivities()}
-              </Card>
-            </Col>
 
-            <Col xs={24} lg={8}>
-              <Card
-                style={cardBase}
-                styles={{ body: { padding: 16 } }}
-                title={sectionTitle(
-                  <BarChartOutlined />,
-                  "Team Insights",
-                  "#10B981",
+                {isCardTodayLeavesVisible && (
+                  <Col xs={24} md={spanMap["todayLeaves"] === 8 ? 12 : spanMap["todayLeaves"]} lg={spanMap["todayLeaves"]} xl={spanMap["todayLeaves"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
+                        header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, padding: "16px 20px" }
+                      }}
+                      title={
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          {sectionTitle(<CalendarOutlined />, "Today's Leaves", "#EC4899")}
+                          <Button
+                            type="link"
+                            style={{ padding: 0, height: "auto", fontSize: 13, fontWeight: 600 }}
+                            onClick={() => router.push("/leaves-v2/apply")}
+                          >
+                            View All
+                          </Button>
+                        </div>
+                      }
+                    >
+                      {renderTodayLeaves()}
+                    </Card>
+                  </Col>
                 )}
-              >
-                <Space
-                  direction="vertical"
-                  size={10}
-                  style={{ width: "100%" }}
-                >
-                  <QuickActionCard
-                    icon={<TeamOutlined />}
-                    title="Members"
-                    desc="Browse the entire roster"
-                    accent="#0EA5E9"
-                    onClick={() => router.push("/members")}
-                  />
-                  <QuickActionCard
-                    icon={<RocketOutlined />}
-                    title="Project"
-                    desc="See what teams are shipping"
-                    accent="#7C3AED"
-                    onClick={() => router.push("/projects/manage")}
-                  />
-                  <QuickActionCard
-                    icon={<CalendarOutlined />}
-                    title="Leave Calendar"
-                    desc="Plan around team availability"
-                    accent="#10B981"
-                    onClick={() => router.push("/leaves")}
-                  />
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+
+                {isUpcomingBirthdaysVisible && (
+                  <Col xs={24} md={spanMap["birthdays"] === 8 ? 12 : spanMap["birthdays"]} lg={spanMap["birthdays"]} xl={spanMap["birthdays"]}>
+                    {(() => {
+                      const accent = "#F59E0B";
+                      const today = dayjs();
+                      const users = dashboardData?.upcomingBirthdays || [];
+
+                      const upcoming = users
+                        .map((u: any) => {
+                          let nextBDay = dayjs(u.dateOfBirth).year(today.year());
+                          if (nextBDay.isBefore(today, 'day')) {
+                            nextBDay = nextBDay.add(1, 'year');
+                          }
+                          return { ...u, nextBDay };
+                        })
+                        .sort((a: any, b: any) => a.nextBDay.valueOf() - b.nextBDay.valueOf())
+                        .slice(0, 5);
+
+                      return (
+                        <Card
+                          style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                          styles={{ body: { padding: "16px 20px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                        >
+                          <div style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 16
+                          }}>
+                            {sectionTitle(<GiftOutlined />, "Upcoming Birthdays", accent)}
+                            <div style={{
+                              background: `${accent}15`,
+                              color: accent,
+                              padding: "2px 8px",
+                              borderRadius: 12,
+                              fontSize: 12,
+                              fontWeight: 600
+                            }}>
+                              {upcoming.length}
+                            </div>
+                          </div>
+
+                          <div style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}>
+                            {upcoming.length > 0 ? (
+                              <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                                {upcoming.map((u: any) => {
+                                  const isToday = dayjs().isSame(u.nextBDay, 'day');
+                                  const daysUntil = Math.ceil(dayjs(u.nextBDay).diff(today, 'day', true));
+                                  return (
+                                    <div
+                                      key={u.id}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        padding: "10px 12px 10px 14px",
+                                        background: token.colorBgContainer,
+                                        borderRadius: 12,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
+                                        position: "relative",
+                                        overflow: "hidden",
+                                        gap: 12
+                                      }}
+                                    >
+                                      <span
+                                        aria-hidden
+                                        style={{
+                                          position: "absolute",
+                                          left: 0,
+                                          top: 0,
+                                          bottom: 0,
+                                          width: 3,
+                                          background: isToday ? accent : token.colorBorderSecondary,
+                                        }}
+                                      />
+                                      <div style={{ position: "relative" }}>
+                                        <div
+                                          style={{
+                                            width: 36,
+                                            height: 36,
+                                            borderRadius: 10,
+                                            background: isToday ? `${accent}14` : token.colorFillAlter,
+                                            border: isToday ? `1px solid ${accent}33` : `1px solid ${token.colorBorderSecondary}`,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: isToday ? accent : token.colorTextSecondary,
+                                            fontSize: 16,
+                                            flexShrink: 0,
+                                            overflow: "hidden"
+                                          }}
+                                        >
+                                          {u.avatarUrl ? (
+                                            <img src={u.avatarUrl} alt={u.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                          ) : (
+                                            <span style={{ fontWeight: 600 }}>{u.name?.[0]}</span>
+                                          )}
+                                        </div>
+                                        {isToday && (
+                                          <div style={{
+                                            position: "absolute",
+                                            bottom: -4,
+                                            right: -4,
+                                            fontSize: 14,
+                                            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
+                                          }}>
+                                            🎉
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Text
+                                          strong
+                                          style={{
+                                            fontSize: 13,
+                                            color: token.colorText,
+                                            display: "block",
+                                            lineHeight: 1.3,
+                                            letterSpacing: "-0.1px",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis"
+                                          }}
+                                        >
+                                          {u.name}
+                                        </Text>
+                                        <Text
+                                          type="secondary"
+                                          style={{
+                                            fontSize: 11,
+                                            lineHeight: 1.3,
+                                            display: "block",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis"
+                                          }}
+                                        >
+                                          {u.position ? (typeof u.position === 'string' ? u.position : (u.position.title || u.position.name || "Team Member")) : "Team Member"} • {isToday ? "Today!" : dayjs(u.nextBDay).format("MMMM Do")}
+                                        </Text>
+                                      </div>
+                                      <div style={{
+                                        background: isToday ? accent : `${accent}15`,
+                                        color: isToday ? "#fff" : accent,
+                                        padding: "4px 10px",
+                                        borderRadius: 12,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        letterSpacing: "0.5px",
+                                        flexShrink: 0
+                                      }}>
+                                        {isToday ? "TODAY" : `${daysUntil}d`}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </Space>
+                            ) : (
+                              <div style={{
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                opacity: 0.8
+                              }}>
+                                <GiftOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
+                                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>No upcoming birthdays</Text>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+                )}
+                {isCardRecentActivitiesVisible && (
+                  <Col xs={24} md={spanMap["activities"] === 8 ? 12 : spanMap["activities"]} lg={spanMap["activities"]} xl={spanMap["activities"]}>
+                    <Card
+                      style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                        },
+                      }}
+                      title={sectionTitle(
+                        <FireOutlined />,
+                        "Recent Activities",
+                        "#F59E0B",
+                      )}
+                    >
+                      {renderActivities()}
+                    </Card>
+                  </Col>
+                )}
+
+
+              </Row>
+            );
+          })()}
         </>
       ) : null}
     </div>
   );
 }
 
-export default function Organization() {
+export default function Organization({ dashboardSettings }: { dashboardSettings?: any }) {
   return (
     <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
-      <DashboardContent />
+      <DashboardContent dashboardSettings={dashboardSettings} />
     </Suspense>
   );
 }

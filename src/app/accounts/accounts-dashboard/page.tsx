@@ -54,7 +54,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { History, Sparkles } from "lucide-react";
+import { History, Sparkles, Menu, X } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
@@ -196,6 +196,7 @@ export default function AccountsPage() {
   // Layout states
   const [savedView, setSavedView] = useState<'all' | 'mine' | 'credit' | 'debit'>('all');
   const [view, setView] = useState<'list' | 'grid'>('list');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const searchRef = useRef<any>(null);
 
@@ -793,7 +794,10 @@ export default function AccountsPage() {
     <MainLayout>
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><BankOutlined /></div>
             <div className="pp-side-head-text">
@@ -855,7 +859,7 @@ export default function AccountsPage() {
                   itemNoun="members"
                   value={memberFilter ?? undefined}
                   onChange={(v) => setMemberFilter(v ?? undefined)}
-                  options={members.map((m) => ({ value: m.id, label: m.name }))}
+                  options={memberOptions}
                   width={212}
                   disabled={members.length === 0}
                 />
@@ -941,6 +945,9 @@ export default function AccountsPage() {
         <main className="pp-main">
           {/* Top search & views bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <Menu size={20} />
+            </button>
             <div className="pp-search-wrap">
               <SearchOutlined className="pp-search-icon" />
               <input
@@ -1157,7 +1164,7 @@ export default function AccountsPage() {
           </div>
         }
         placement="right"
-        width={420}
+        width={720}
         open={isModalVisible}
         onClose={() => {
           setIsModalVisible(false);
@@ -1211,7 +1218,11 @@ export default function AccountsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           size="middle"
           className="accounts-tx-form"
@@ -1232,15 +1243,38 @@ export default function AccountsPage() {
                 label="Transaction Type"
                 rules={[{ required: true, message: 'Please select transaction type' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Type"
+                <SearchableDropdown
                   placeholder="Select type"
                   searchPlaceholder="Search type..."
+                  itemNoun="types"
                   options={[
-                    { value: "credit", label: "Credit (Money In)" },
-                    { value: "debit", label: "Debit (Money Out)" }
+                    {
+                      value: "credit",
+                      label: "Credit (Money In)",
+                      badge: (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '100%',
+                          backgroundColor: '#8b5cf6', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 800
+                        }}>C</div>
+                      )
+                    },
+                    {
+                      value: "debit",
+                      label: "Debit (Money Out)",
+                      badge: (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '100%',
+                          backgroundColor: '#3b82f6', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 800
+                        }}>D</div>
+                      )
+                    }
                   ]}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 
@@ -1278,14 +1312,15 @@ export default function AccountsPage() {
                 label="Member"
                 rules={[{ required: true, message: 'Please select member' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Member"
+                <SearchableDropdown
                   placeholder="Select member"
                   searchPlaceholder="Search members..."
+                  itemNoun="members"
                   options={memberOptions}
-                  showAvatar={true}
+                  showSelectedAvatar={true}
                   disabled={modalType === 'edit'}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 
@@ -1294,12 +1329,13 @@ export default function AccountsPage() {
                 label="Category"
                 rules={[{ required: true, message: 'Please select category' }]}
               >
-                <TicketFilterPill
-                  multiple={false}
-                  label="Select Category"
+                <SearchableDropdown
                   placeholder="Select category"
                   searchPlaceholder="Search categories..."
+                  itemNoun="categories"
                   options={categoryOptions}
+                  style={{ width: '100%', height: 40 }}
+                  width="100%"
                 />
               </Form.Item>
 
@@ -1713,9 +1749,9 @@ export default function AccountsPage() {
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
         .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -1777,12 +1813,12 @@ export default function AccountsPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
+        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .pp-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1929,15 +1965,44 @@ export default function AccountsPage() {
           .pp-grid { grid-template-columns: 1fr; }
         }
 
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+
         @media (max-width: 1250px) {
           .pp-stats { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (max-width: 600px) {
+        @media (max-width: 1024px) {
           .pp-stats { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
         }
 
         /* Accounts breakdown components (Drawers styles preserved with Blue, Green, Grey theme) */
@@ -2466,7 +2531,7 @@ export default function AccountsPage() {
         .accounts-tx-form .fp-trigger {
           width: 100% !important;
           height: 38px !important;
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           padding: 0 14px !important;
@@ -2496,7 +2561,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .accounts-tx-form .ant-input-textarea {
@@ -2506,7 +2571,7 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-lg,
         .accounts-tx-form .ant-picker-large,
         .accounts-tx-form .ant-select-lg .ant-select-selector {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
         }
         .accounts-tx-form .ant-input:hover,
         .accounts-tx-form .ant-input-textarea:hover,

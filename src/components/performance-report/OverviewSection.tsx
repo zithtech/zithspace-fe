@@ -276,7 +276,7 @@ export default function OverviewSection({
         .ov-wrap { display: flex; flex-direction: column; gap: 16px; }
         .ov-hero {
           display: flex; align-items: center; gap: 22px;
-          padding: 22px 24px; border: 1px solid var(--border-slate-200); background: linear-gradient(180deg, var(--bg-slate-50), var(--bg-secondary));
+          padding: 22px 24px; border: 1px solid var(--border-slate-200); background: transparent;
         }
         .ov-hero-score { display: flex; align-items: baseline; gap: 6px; }
         .ov-hero-num { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
@@ -291,7 +291,7 @@ export default function OverviewSection({
         }
         .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
         .ov-card {
-          border: 1px solid var(--border-slate-200); background: var(--bg-secondary); padding: 14px 16px;
+          border: 1px solid var(--border-slate-200); background: transparent; padding: 14px 16px;
           display: flex; flex-direction: column; gap: 10px;
         }
         .ov-card.is-off { opacity: 0.55; }

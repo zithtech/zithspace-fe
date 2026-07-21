@@ -94,13 +94,16 @@ import {
   Layers,
   PieChart,
   BarChart3,
+  Mail,
+  Folder,
+  ReceiptText,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
   <Comp size={16} strokeWidth={1.75} className="nav-lucide-icon" />
 );
 
-export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN" | "REC_SUITE";
+export type ModuleType = "MY_HUB" | "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN" | "REC_SUITE";
 
 export interface NavItem {
   key: string;
@@ -113,6 +116,8 @@ export interface NavItem {
   requiredPermission?: string;
   /** Show if user has ANY of these permissions. */
   requiredAnyPermission?: string[];
+  /** Show if user has this exact role (e.g. 'super_admin') */
+  requiredRole?: string;
 }
 
 export interface ModuleConfig {
@@ -126,6 +131,14 @@ export interface ModuleConfig {
   requiredPermission?: string;
   /** Show module if user has ANY of these permissions. */
   requiredAnyPermission?: string[];
+  /**
+   * Controls ONLY whether the top-nav chip is shown (decoupled from route
+   * access, which stays on requiredAnyPermission). Use this to hide a module's
+   * chip from normal users while keeping its routes reachable via shortcuts
+   * (e.g. My Hub deep-links). If present, it takes precedence for chip
+   * visibility; if absent, chip visibility falls back to requiredAnyPermission.
+   */
+  requiredChipAnyPermission?: string[];
 }
 
 /** Pages that aren't part of a specific module group but still need protection. */
@@ -142,6 +155,92 @@ export const STANDALONE_PAGES: StandalonePage[] = [
 ];
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
+  // ============================ MY HUB ============================
+  // Personal, employee-centric launcher. Visible to everyone (it only needs a
+  // self-service permission). Its items DEEP-LINK into the existing feature
+  // routes — this is a shortcut menu, not a set of duplicated pages. Placed
+  // first so /my-hub resolves to this module. NOTE: the shortcut items point at
+  // routes owned by other modules, so activeModule flips to that module once you
+  // navigate into a feature — that's expected; /my-hub is the home base.
+  {
+    key: "MY_HUB",
+    label: "My Hub",
+    icon: I(LayoutGrid),
+    pathPrefixes: ["/my-hub"],
+    defaultPath: "/my-hub",
+    // Gated by the dedicated My Hub permissions (one per page). These are
+    // auto-granted to every role, so My Hub is visible to everyone by default.
+    requiredAnyPermission: [
+      Permissions.MY_HUB_OVERVIEW_READ,
+      Permissions.MY_HUB_APPLY_LEAVE_READ,
+      Permissions.MY_HUB_ATTENDANCE_READ,
+      Permissions.MY_HUB_ESCALATION_READ,
+      Permissions.MY_HUB_PERFORMANCE_READ,
+      Permissions.MY_HUB_PAYSLIPS_READ,
+      Permissions.MY_HUB_PROFILE_READ,
+      Permissions.MY_HUB_CLAIMS_READ,
+    ],
+    items: [
+      {
+        key: "/my-hub",
+        label: "Overview",
+        icon: I(LayoutGrid),
+        path: "/my-hub",
+        requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
+      },
+      {
+        key: "/my-hub/profile",
+        label: "My Profile",
+        icon: I(CircleUser),
+        path: "/my-hub/profile",
+        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
+      },
+      {
+        key: "/my-hub/apply-leave",
+        label: "Apply Leave",
+        icon: I(CalendarPlus),
+        path: "/my-hub/apply-leave",
+        requiredPermission: Permissions.MY_HUB_APPLY_LEAVE_READ,
+      },
+      {
+        key: "/my-hub/attendance",
+        label: "Attendance",
+        icon: I(CalendarCheck),
+        path: "/my-hub/attendance",
+        requiredPermission: Permissions.MY_HUB_ATTENDANCE_READ,
+      },
+      {
+        // Escalations targeting me (not the ones I raised) — the page locks to
+        // this personal view when under /my-hub.
+        key: "/my-hub/escalations",
+        label: "Escalations",
+        icon: I(Siren),
+        path: "/my-hub/escalations",
+        requiredPermission: Permissions.MY_HUB_ESCALATION_READ,
+      },
+      {
+        key: "/my-hub/performance",
+        label: "Performance Report",
+        icon: I(TrendingUp),
+        path: "/my-hub/performance",
+        requiredPermission: Permissions.MY_HUB_PERFORMANCE_READ,
+      },
+      {
+        key: "/my-hub/payslips",
+        label: "My Payslips",
+        icon: I(Banknote),
+        path: "/my-hub/payslips",
+        requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
+      },
+      {
+        key: "/my-hub/claims",
+        label: "My Claims",
+        icon: I(ReceiptText),
+        path: "/my-hub/claims",
+        requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
+      },
+    ],
+  },
   {
     key: "HOME",
     label: "HOME",
@@ -166,6 +265,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Plug2),
         path: "/integrations",
         requiredPermission: Permissions.INTEGRATION_READ,
+      },
+      {
+        key: "/dashboard/settings",
+        label: "Dashboard Settings",
+        icon: I(Settings2),
+        path: "/dashboard/settings",
+        requiredRole: "super_admin",
       },
     ],
   },
@@ -436,6 +542,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/proposals/templates",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
+          {
+            key: "/proposals/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/proposals/trash",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
         ],
       },
       {
@@ -683,7 +796,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/employee-exit",
       "/performance",
       "/performance-report",
-      "/perfomance-management",
       "/opening-management",
     ],
     defaultPath: "/profile",
@@ -691,12 +803,24 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.PROFILE_READ,
       Permissions.ATTENDANCE_READ,
       Permissions.LEAVE_READ,
-      Permissions.PERFORMANCE_READ,
       Permissions.PERFORMANCE_REPORT_READ,
       Permissions.PERFORMANCE_REPORT_SETTING_READ,
+      Permissions.PERFORMANCE_REPORT_MY_READ,
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+    ],
+    // Chip shown only to managers/HR — normal users reach their own profile,
+    // attendance, leaves, etc. via My Hub. Route access still uses the broader
+    // requiredAnyPermission above, so nobody is locked out of the routes.
+    requiredChipAnyPermission: [
+      Permissions.LEAVE_MANAGE,
+      Permissions.ATTENDANCE_DASHBOARD_READ,
+      Permissions.PERFORMANCE_REPORT_READ,
+      Permissions.PERFORMANCE_REPORT_SETTING_READ,
+      Permissions.ONBOARDING_READ,
+      Permissions.EXIT_READ,
+      Permissions.OPENING_READ,
     ],
 
     items: [
@@ -740,37 +864,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
 
       {
-        key: "Onbording",
+        key: "/onboarding/onboarded",
         icon: I(UserPlus),
-        label: "Onbording",
+        label: "Onboarding",
+        path: "/onboarding/onboarded",
         requiredAnyPermission: [
           Permissions.ONBOARDING_READ,
           Permissions.ONBOARDING_CREATE,
           Permissions.ONBOARDING_UPDATE,
           Permissions.ONBOARDING_DELETE,
-        ],
-        children: [
-          {
-            key: "/onbording/create",
-            icon: I(UserPlus2),
-            label: "Create",
-            path: "/onboarding/create",
-            requiredPermission: Permissions.ONBOARDING_CREATE,
-          },
-          {
-            key: "/onbording/onboarded",
-            icon: I(UserCheck),
-            label: "Onborded",
-            path: "/onboarding/onboarded",
-            requiredPermission: Permissions.ONBOARDING_READ,
-          },
-          {
-            key: "/onbording/settings",
-            icon: I(Settings),
-            label: "Settings",
-            path: "/onboarding/settings",
-            requiredPermission: Permissions.ONBOARDING_SETTING_READ,
-          },
         ],
       },
 
@@ -838,13 +940,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "/performance",
-        label: "Performance View",
-        icon: I(TrendingUp),
-        path: "/perfomance-management",
-        requiredPermission: Permissions.PERFORMANCE_READ,
-      },
-      {
         key: "/opening-management",
         label: "Opening Management",
         icon: I(Megaphone),
@@ -857,7 +952,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: I(Wallet),
-    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/salary", "/payouts"],
+    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts", "/payroll-v2"],
     defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,
@@ -869,6 +964,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.INVOICE_TRASH_READ,
       Permissions.INVOICE_MANAGE,
       Permissions.SALARY_READ,
+      Permissions.REIMBURSEMENT_READ,
+      Permissions.REIMBURSEMENT_CONFIG_READ,
+      Permissions.REIMBURSEMENT_DASHBOARD_READ,
+      Permissions.REIMBURSEMENT_APPROVE,
+      Permissions.REIMBURSEMENT_PAY,
+      Permissions.REIMBURSEMENT_MANAGE,
+      Permissions.PAYROLL_MY_PAYSLIPS_READ,
+    ],
+    // Chip shown only to finance/managers — normal users get "My Payslips" via
+    // My Hub. Excludes self-service perms (salary.read, payroll.my_payslips.read)
+    // so a normal user with only their own payslip access won't see this chip.
+    requiredChipAnyPermission: [
+      Permissions.ACCOUNT_READ,
+      Permissions.INVOICE_READ,
+      Permissions.INVOICE_DASHBOARD_READ,
+      Permissions.INVOICE_MANAGE,
+      Permissions.PAYROLL_READ,
+      Permissions.PAYROLL_MANAGE,
+      Permissions.PAYROLL_SETTING_READ,
     ],
     items: [
       {
@@ -976,135 +1090,35 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-      // {
-      //   key: "/reimbursement",
-      //   label: "Reimbursement",
-      //   icon: I(HandCoins),
-      //   path: "/reimbursement",
-      //   requiredPermission: Permissions.REIMBURSEMENT_READ,
-      // },
-      // {
-      //   key: "salary",
-      //   label: "Payroll",
-      //   icon: I(Banknote),
-      //   requiredPermission: Permissions.SALARY_READ,
-      //   children: [
-      //     {
-      //       key: "/salary/Create-payslip",
-      //       label: "Create Payslip",
-      //       icon: I(FilePlus),
-      //       path: "/salary/Create-payslip",
-      //       requiredPermission: Permissions.SALARY_MANAGE,
-      //     },
-      //     {
-      //       key: "/salary/salarypreview",
-      //       label: "Salary Preview",
-      //       icon: I(FileSearch),
-      //       requiredPermission: Permissions.SALARY_READ,
-      //       children: [
-      //         {
-      //           key: "/salary/salarypreview/preview",
-      //           label: "Preview",
-      //           icon: I(Eye),
-      //           path: "/salary/salarypreview/preview",
-      //           requiredPermission: Permissions.SALARY_READ,
-      //         },
-      //         {
-      //           key: "/salary/salarypreview/bulk-preview",
-      //           label: "Bulk Preview",
-      //           icon: I(Files),
-      //           path: "/salary/salarypreview/bulk-preview",
-      //           requiredPermission: Permissions.SALARY_READ,
-      //         },
-      //         {
-      //           key: "/salary/salarypreview/approvals",
-      //           label: "Approvals",
-      //           icon: I(CheckCheck),
-      //           path: "/salary/salarypreview/approvals",
-      //           requiredPermission: Permissions.SALARY_APPROVE,
-      //         },
-      //       ],
-      //     },
-      //     {
-      //       key: "/salary/My-Payslip",
-      //       label: "My Payslip",
-      //       icon: I(FileText),
-      //       path: "/salary/My-Payslip",
-      //       requiredPermission: Permissions.SALARY_READ,
-      //     },
-      //     {
-      //       key: "/salary/Generate-payslip",
-      //       label: "Generate Payslip",
-      //       icon: I(Sparkles),
-      //       path: "/salary/Generate-payslip",
-      //       requiredPermission: Permissions.SALARY_MANAGE,
-      //     },
-      //     {
-      //       key: "/salary/approved-payouts",
-      //       label: "Approved Payrolls",
-      //       icon: I(CheckCircle2),
-      //       path: "/salary/approved-payouts",
-      //       requiredPermission: Permissions.SALARY_READ,
-      //     },
-      //     {
-      //       key: "/salary/Payslips",
-      //       label: "Payslips",
-      //       icon: I(FileClock),
-      //       path: "/salary/Payslips",
-      //       requiredPermission: Permissions.SALARY_READ,
-      //     },
-      //     {
-      //       key: "salary-settings",
-      //       label: "Settings",
-      //       icon: I(SlidersHorizontal),
-      //       requiredPermission: Permissions.SALARY_MANAGE,
-      //       children: [
-      //         {
-      //           key: "/salary/Settings/company",
-      //           label: "Company Configuration",
-      //           icon: I(Building2),
-      //           path: "/salary/Settings/company",
-      //         },
-      //         {
-      //           key: "/salary/Settings/payslip",
-      //           label: "Payslip Configuration",
-      //           icon: I(FileCog),
-      //           path: "/salary/Settings/payslip",
-      //         },
-      //         {
-      //           key: "/salary/Settings/employee",
-      //           label: "Employee Details",
-      //           icon: I(IdCard),
-      //           path: "/salary/Settings/employee",
-      //         },
-      //         {
-      //           key: "/salary/Settings/salaryStructure",
-      //           label: "Salary Structure",
-      //           icon: I(Layers),
-      //           path: "/salary/Settings/salaryStructure",
-      //         },
-      //         {
-      //           key: "/salary/Settings/allowance",
-      //           label: "Salary Component",
-      //           icon: I(PieChart),
-      //           path: "/salary/Settings/allowance",
-      //         },
-      //         {
-      //           key: "/salary/Settings/employeeAssignment",
-      //           label: "Assign Structure",
-      //           icon: I(UserPlus),
-      //           path: "/salary/Settings/employeeAssignment",
-      //         },
-      //         {
-      //           key: "/salary/Settings/salary-approver",
-      //           label: "Salary Approvers",
-      //           icon: I(UserCheck),
-      //           path: "/salary/Settings/salary-approver",
-      //         },
-      //       ],
-      //     },
-      //   ],
-      // },
+      {
+        key: "/reimbursement-v2",
+        label: "Reimbursement 2.0",
+        icon: I(HandCoins),
+        path: "/reimbursement-v2",
+        requiredAnyPermission: [
+          Permissions.REIMBURSEMENT_READ,
+          Permissions.REIMBURSEMENT_CONFIG_READ,
+          Permissions.REIMBURSEMENT_DASHBOARD_READ,
+          Permissions.REIMBURSEMENT_APPROVE,
+          Permissions.REIMBURSEMENT_PAY,
+          Permissions.REIMBURSEMENT_MANAGE,
+        ],
+      },
+      {
+        key: "/payroll-v2",
+        label: "Payroll 2.0",
+        icon: I(Banknote),
+        path: "/payroll-v2",
+        requiredAnyPermission: [
+          Permissions.PAYROLL_SETTING_READ,
+          Permissions.PAYROLL_READ,
+          Permissions.PAYROLL_MANAGE,
+          // Lets a normal user reach /payroll-v2/my-payslips via My Hub without
+          // being redirected by MainLayout's item-access gate. The page itself
+          // scopes what a self-service user actually sees.
+          Permissions.PAYROLL_MY_PAYSLIPS_READ,
+        ],
+      },
     ],
   },
 ];

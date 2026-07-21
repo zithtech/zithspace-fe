@@ -44,7 +44,7 @@ export const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ ac
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
-        borderRadius: 6,
+        borderRadius: 0,
         height,
         display: "flex",
         flexDirection: "column",

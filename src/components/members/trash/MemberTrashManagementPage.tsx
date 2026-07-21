@@ -47,6 +47,7 @@ import {
   UserOutlined,
   ClockCircleOutlined,
   CopyOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import { Sparkles, Trash2, Clock, AlertTriangle } from "lucide-react";
 import dayjs from "dayjs";
@@ -116,11 +117,13 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 };
 
 export default function MemberTrashManagementPage() {
+  console.log("Forcing HMR reload for MemberTrashManagementPage");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { message } = App.useApp();
 
   // Filters state
@@ -543,7 +546,10 @@ export default function MemberTrashManagementPage() {
   return (
     <div className="pp-shell">
       {/* ============================ SIDEBAR ============================ */}
-      <aside className="pp-sidebar">
+      {isMobileOpen && (
+        <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+      )}
+      <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
         <div className="pp-side-head">
           <div className="pp-side-logo"><InboxOutlined /></div>
           <div className="pp-side-head-text">
@@ -644,14 +650,19 @@ export default function MemberTrashManagementPage() {
       <main className="pp-main">
         {/* Top search & views bar */}
         <div className="pp-topbar">
-          <div className="pp-search-wrap">
-            <SearchOutlined className="pp-search-icon" />
-            <input
-              className="pp-search"
-              placeholder="Search deleted member name, position, email…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 520 }}>
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+              <MenuOutlined style={{ fontSize: 16 }} />
+            </button>
+            <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 'none', minWidth: 0 }}>
+              <SearchOutlined className="pp-search-icon" />
+              <input
+                className="pp-search"
+                placeholder="Search deleted member name, position, email…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="pp-topbar-meta">
@@ -1134,7 +1145,7 @@ export default function MemberTrashManagementPage() {
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
         .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1224,12 +1235,14 @@ export default function MemberTrashManagementPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1318,10 +1331,15 @@ export default function MemberTrashManagementPage() {
           .pp-stats { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 600px) {
-          .pp-stats { grid-template-columns: 1fr; }
+          .pp-stats { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
+        .pp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+        .pp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+        @media (max-width: 1024px) {
+          .pp-sidebar { position: fixed; left: -280px; top: 64px; bottom: 0; height: calc(100vh - 64px); transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1); display: flex; }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
           .pp-topbar-meta { display: none; }
         }
       `}</style>

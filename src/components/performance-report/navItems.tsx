@@ -47,7 +47,10 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     href: '/performance-report/my-reports',
     icon: <FileUser size={16} />,
     color: '#0EA5E9',
-    anyPerm: ['canReadMyPerformanceReport'],
+    // canReadMyHubPerformance is the My Hub self-service permission so that
+    // users granted my_hub.performance.read (without full performance-report
+    // module access) can still reach this page via My Hub.
+    anyPerm: ['canReadMyPerformanceReport', 'canReadMyHubPerformance'],
   },
 ];
 

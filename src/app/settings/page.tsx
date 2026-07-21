@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import ComingSoon from '@/components/common/ComingSoon';
@@ -55,12 +56,16 @@ import {
   PictureOutlined,
   ThunderboltFilled,
   LinkOutlined,
+  CloseOutlined,
+  AppstoreOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { CompanyLocationService } from '@/services/companyLocationService';
 import { MailService, MailProvider } from '@/services/mailService';
+import { dashboardService } from '@/services/dashboardService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
 import { History } from 'lucide-react';
@@ -69,8 +74,12 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import AiSettingsPanel from "@/components/settings/AiSettingsPanel";
 
 const { Title, Text, Paragraph } = Typography;
+
+
 
 interface ShiftFormData {
   name: string;
@@ -86,6 +95,7 @@ interface ShiftFormData {
 export default function SettingsPage() {
   useActivitySource({ section: "ADMIN", module: "GeneralSettings", page: "GeneralSettingsView" });
   const { token } = theme.useToken();
+  const { theme: appTheme } = useTheme();
   const { user, isLoading: authLoading, updateUser } = useAuth();
 
   // Dynamic UI Styles
@@ -115,10 +125,10 @@ export default function SettingsPage() {
       borderRadius: "0px",
       border: `1px solid ${token.colorBorder}`,
       boxShadow: "none",
-      background: token.colorBgContainer
+      background: 'transparent'
     },
     tabStyle: {
-      background: token.colorBgContainer,
+      background: 'transparent',
       marginBottom: "0",
       padding: "0 8px"
     },
@@ -160,6 +170,8 @@ export default function SettingsPage() {
   // State management
   const [activeTab, setActiveTab] = useState('system');
   const [loading, setLoading] = useState(false);
+
+
 
   const hasShownMailError = React.useRef(false);
   useEffect(() => {
@@ -381,6 +393,7 @@ export default function SettingsPage() {
     }
   };
 
+
   // Load data based on active tab
   useEffect(() => {
     if (user && activeTab === 'attendance') {
@@ -395,6 +408,7 @@ export default function SettingsPage() {
     if (user && activeTab === 'mail') {
       fetchInvoiceMailSettings();
     }
+
   }, [user, activeTab]);
 
 
@@ -449,15 +463,12 @@ export default function SettingsPage() {
       fetchShifts();
     } catch (error) {
       console.error('Failed to delete shift:', error);
-      if (error instanceof ApiError) {
-        messageApi.error(error.message);
-      } else {
-        messageApi.error('Failed to delete shift');
-      }
+      messageApi.error('Failed to delete shift');
     } finally {
       setFormLoading(false);
     }
   };
+
 
   // Handle system settings submission
   const handleSystemSubmit = async (values: { name: string }) => {
@@ -770,7 +781,7 @@ export default function SettingsPage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "var(--bg-pure-white)",
+          background: "transparent",
           minHeight: "calc(100vh - 64px)",
           textAlign: 'center'
         }}>
@@ -825,7 +836,7 @@ export default function SettingsPage() {
             position: 'relative',
             overflow: 'hidden',
             borderRadius: 0,
-            background: token.colorBgContainer,
+            background: 'transparent',
             padding: '16px 24px',
             color: token.colorText,
             border: `1px solid ${token.colorBorder}`,
@@ -835,7 +846,7 @@ export default function SettingsPage() {
 
             <Row gutter={[24, 24]} align="middle" style={{ position: 'relative', zIndex: 1 }}>
               <Col xs={24} md={16}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0, flexWrap: 'wrap' }}>
                   <div style={{
                     width: 64,
                     height: 64,
@@ -949,13 +960,14 @@ export default function SettingsPage() {
           {/* Branding Card */}
           <Card
             variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
-            styles={{ body: { padding: 0 } }}
+            className="transparent-card"
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 0, background: 'transparent' }}
+            styles={{ body: { padding: 0, background: 'transparent' } }}
           >
             <div style={{
               padding: "12px 20px",
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
+              background: 'transparent',
               borderTopLeftRadius: 0,
               borderTopRightRadius: 0
             }}>
@@ -1027,7 +1039,7 @@ export default function SettingsPage() {
                       style={{ marginBottom: 20 }}
                     >
                       <div style={{
-                        background: token.colorFillAlter,
+                        background: 'transparent',
                         borderRadius: 14,
                         padding: 16,
                         border: `1px dashed ${token.colorBorder}`
@@ -1162,7 +1174,7 @@ export default function SettingsPage() {
                                   ? `2px solid ${token.colorPrimary}`
                                   : `1px solid ${token.colorBorder}`,
                                 position: 'relative',
-                                background: token.colorBgContainer,
+                                background: 'transparent',
                                 transition: 'all 0.25s ease',
                                 boxShadow: "none"
                               }}
@@ -1207,7 +1219,7 @@ export default function SettingsPage() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                background: token.colorBgContainer
+                                background: 'transparent'
                               }}>
                                 <Text style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
                                   Version {index + 1}
@@ -1363,159 +1375,70 @@ export default function SettingsPage() {
             <Row gutter={[24, 24]}>
               {locations.map((loc) => (
                 <Col xs={24} sm={12} lg={8} key={loc.id}>
-                  <div
-                    style={{
-                      borderRadius: 0,
-                      border: `1px solid ${token.colorBorder}`,
-                      background: "var(--bg-secondary)",
-                      padding: "20px",
-                      position: "relative",
-                      boxShadow: "none",
-                    }}
-                  >
-                    {/* Top Right Ribbon */}
-                    <div style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -8,
-                      background: '#3b82f6',
-                      color: '#ffffff',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
-                      zIndex: 10
-                    }}>
-                      LOC
-                      <div style={{
-                        position: 'absolute',
-                        bottom: -4,
-                        right: 0,
-                        width: 0,
-                        height: 0,
-                        borderTop: '4px solid var(--text-blue-900)',
-                        borderRight: '4px solid transparent',
-                      }} />
-                    </div>
-
-                    {/* Header Section */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: "50%",
-                          backgroundColor: "var(--bg-blue-50)",
+                  <div className="pc-card">
+                    <div className="pc-top">
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 6,
+                          background: "var(--bg-blue-50)",
                           color: "var(--text-blue-600)",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          border: "1px solid var(--border-blue-200)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          fontWeight: 600,
-                          fontSize: 18,
-                          border: "1px solid var(--border-blue-200)",
                           flexShrink: 0
-                        }}>
-                          {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
-                        </div>
-                        <div>
-                          <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }}>
-                            {loc.city}, {loc.state}
-                          </Text>
-                          <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
-                            {loc.country}
-                          </Text>
+                        }}
+                      >
+                        {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
+                      </div>
+                      <div className="pc-identity-body">
+                        <div className="pc-title">{loc.city}, {loc.state}</div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Country</span>
+                          <span className="pc-client-val">{loc.country}</span>
                         </div>
                       </div>
-                      <Space size={2} style={{ marginRight: 24 }}>
+                      <Space size={2}>
                         {canUpdateSettings && (
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined style={{ color: '#64748b' }} />}
-                            onClick={() => showEditLocationDrawer(loc)}
-                          />
+                          <button className="pc-actions" onClick={(e) => { e.stopPropagation(); showEditLocationDrawer(loc); }}>
+                            <EditOutlined style={{ fontSize: 13 }} />
+                          </button>
                         )}
                         {canDeleteSettings && (
                           <Popconfirm
                             title="Delete location?"
-                            onConfirm={() => handleDeleteLocation(loc.id)}
+                            onConfirm={(e) => { e?.stopPropagation(); handleDeleteLocation(loc.id); }}
+                            onCancel={(e) => e?.stopPropagation()}
                             okText="Yes"
                             cancelText="No"
                           >
-                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                            <button className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                              <DeleteOutlined style={{ fontSize: 13, color: '#ef4444' }} />
+                            </button>
                           </Popconfirm>
                         )}
                       </Space>
                     </div>
 
-                    {/* Pills Section */}
-                    <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-                      <div style={{
-                        background: "var(--bg-slate-50)",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        border: "1px solid var(--border-slate-100)"
-                      }}>
-                        <EnvironmentOutlined style={{ color: "var(--premium-blue)", fontSize: 14 }} />
-                        <Text style={{ fontSize: 13, color: "var(--text-slate-700)", fontWeight: 500 }}>{loc.pincode}</Text>
-                      </div>
-                      <div style={{
-                        background: "var(--bg-slate-50)",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        border: "1px solid var(--border-slate-100)"
-                      }}>
-                        <EnvironmentOutlined style={{ color: "var(--text-sky-500)", fontSize: 14 }} />
-                        <Text style={{ fontSize: 13, color: "var(--text-slate-700)", fontWeight: 500 }}>{loc.area}</Text>
-                      </div>
-                    </div>
-
-                    {/* Grey Section (Tasks equivalent) */}
-                    <div style={{
-                      background: "var(--bg-slate-50)",
-                      borderRadius: "12px",
-                      padding: "16px",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                        <div style={{ width: 16, height: 16, borderRadius: "4px", background: "var(--border-slate-200)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                          </svg>
+                    <div className="pc-foot" style={{ height: 'auto', padding: '6px 0' }}>
+                      <div className="pc-foot-row">
+                        <div className="pc-foot-item">
+                          <EnvironmentOutlined style={{ color: "var(--text-slate-400)" }} /> {loc.flatNumber}, {loc.street}
                         </div>
-                        <Text style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 600 }}>Address Details</Text>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-slate-200)", flexShrink: 0 }} />
-                        <Text style={{ fontSize: 13, color: "var(--text-slate-700)" }}>
-                          {loc.flatNumber}, {loc.street}
-                        </Text>
+                      <div className="pc-foot-row">
+                        <div className="pc-foot-item">
+                          <span className="pc-client-key">Pincode:</span> {loc.pincode}
+                        </div>
+                        <div style={{ width: 1, height: 10, background: 'var(--border-slate-200)' }} />
+                        <div className="pc-foot-item">
+                          <span className="pc-client-key">Area:</span> {loc.area}
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Footer Section equivalent */}
-                    <div style={{
-                      marginTop: 16,
-                      paddingTop: 16,
-                      borderTop: "1px solid var(--border-slate-100)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}>
-                      <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
-                        Status
-                      </Text>
-                      <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 500 }}>
-
-
-                      </Text>
                     </div>
                   </div>
                 </Col>
@@ -1540,6 +1463,7 @@ export default function SettingsPage() {
         </div>
       )
     },
+
     {
       key: 'mail',
       label: (
@@ -1564,6 +1488,7 @@ export default function SettingsPage() {
           {/* Default Invoice Mail Card */}
           <Card
             variant="borderless"
+            className="transparent-card"
             style={{ ...styles.sectionCard, width: "100%", borderRadius: 0 }}
             styles={{ body: { padding: 0 } }}
           >
@@ -1976,22 +1901,30 @@ export default function SettingsPage() {
         </div>
       )
     },
+    {
+      key: 'ai',
+      label: (
+        <Space size={8} style={{ padding: "4px 8px" }}>
+          <RobotOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>AI Provider</span>
+        </Space>
+      ),
+      children: (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 8px 40px 8px" }}>
+          <AiSettingsPanel canManage={canManageSettings} />
+        </div>
+      )
+    },
   ];
 
   return (
     <MainLayout>
       {contextHolder}
-      <div style={{
-        margin: "0 -24px",
-        height: "calc(100vh - 64px)",
-        background: token.colorBgContainer,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden"
-      }}>
+      <div className="settings-main-wrapper" style={{ background: 'transparent' }}>
         {/* Premium Header */}
         <TimeTrackingHeader
-          style={{ padding: '8px 32px', marginBottom: 0, background: token.colorBgContainer }}
+          className="settings-page-header"
+          style={{ background: 'transparent' }}
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
@@ -2008,7 +1941,7 @@ export default function SettingsPage() {
           }
         />
 
-        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="settings-tab-container">
           {/* Settings Tabs */}
           <Tabs
             activeKey={activeTab}
@@ -2017,7 +1950,7 @@ export default function SettingsPage() {
             type="line"
             tabBarStyle={{
               ...styles.tabStyle,
-              background: token.colorBgContainer,
+              background: 'transparent',
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
               padding: "0 4px"
             }}
@@ -2036,137 +1969,174 @@ export default function SettingsPage() {
 
         {/* Add Location Drawer */}
         <Drawer
-          title={
-            <Space>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: token.colorPrimaryBg,
-                color: token.colorPrimary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <EnvironmentOutlined style={{ fontSize: 16 }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-slate-900)', lineHeight: '1.2' }}>
-                  {editingLocation ? 'Edit Company Location' : 'Add Company Location'}
-                </div>
-                <div style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-slate-500)' }}>
-                  {editingLocation ? 'Update the company address details below' : 'Enter the company address details below'}
-                </div>
-              </div>
-            </Space>
-          }
-          placement="right"
-          onClose={() => setIsLocationDrawerVisible(false)}
+          rootClassName="leave-drawer-root"
+          title={null}
           open={isLocationDrawerVisible}
-          width={380}
-          styles={{ 
-            body: { padding: '24px' },
-            header: { 
-              background: 'var(--bg-secondary)', 
-              borderBottom: '1px solid var(--border-slate-100)',
-              padding: '16px 24px'
-            },
-            content: { background: 'var(--bg-secondary)' },
-            footer: { 
-              background: 'var(--bg-secondary)', 
-              borderTop: '1px solid var(--border-slate-100)',
-              padding: '16px 24px'
-            },
-            mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.2)' }
+          onClose={() => setIsLocationDrawerVisible(false)}
+          width={720}
+          closable={false}
+          destroyOnClose
+          styles={{
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--customers-page-bg)' },
+            footer: { padding: 0, border: 'none' },
+            wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+            mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
           }}
           footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 0 }}>
+            <div
+              className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: 'var(--border-color)',
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                Fields marked required must be filled
+              </span>
+              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 8, height: 36 }}>
                 Cancel
               </Button>
-              <Button type="primary" onClick={() => locationForm.submit()} style={{ borderRadius: 0, fontWeight: 600 }}>
+              <Button
+                type="primary"
+                onClick={() => locationForm.submit()}
+                icon={editingLocation ? <EditOutlined /> : <PlusOutlined />}
+                style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+              >
                 {editingLocation ? 'Update Location' : 'Save Location'}
               </Button>
             </div>
           }
         >
-          <Form
-            form={locationForm}
-            layout="vertical"
-            onFinish={handleLocationsSubmit}
-            requiredMark={false}
+          <style>{formStyles}</style>
+          {/* HEADER */}
+          <div
+            className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+            style={{
+              background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+              borderColor: 'var(--border-color)',
+            }}
           >
-            <Row gutter={16}>
-              <Col span={12}>
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'rgba(59,130,246,0.10)',
+                  color: '#3b82f6',
+                  border: '1px solid var(--border-blue-200)',
+                }}
+              >
+                {editingLocation ? <EditOutlined style={{ fontSize: 18 }} /> : <EnvironmentOutlined style={{ fontSize: 18 }} />}
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="text-[15px] font-semibold leading-tight"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {editingLocation ? 'Edit Company Location' : 'Add Company Location'}
+                </div>
+                <div
+                  className="text-[12px] mt-0.5"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {editingLocation ? 'Update the company address details below' : 'Enter the company address details below'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsLocationDrawerVisible(false)}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <CloseOutlined />
+            </button>
+          </div>
+
+          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+            <Form
+              form={locationForm}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              className="customer-drawer-form"
+              onFinish={handleLocationsSubmit}
+            >
+              <SectionCard
+                icon={<EnvironmentOutlined />}
+                title="Address Details"
+                subtitle="Provide the company's full location information"
+                step="STEP 1"
+              >
                 <Form.Item
                   name="flatNumber"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Door / Flat Number</span>}
+                  label="Door / Flat Number"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. 101 or Suite 4" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. 101 or Suite 4" />
                 </Form.Item>
-              </Col>
-              <Col span={12}>
+
                 <Form.Item
                   name="street"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Street</span>}
+                  label="Street"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. Main St" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. Main St" />
                 </Form.Item>
-              </Col>
-            </Row>
 
-            <Form.Item
-              name="area"
-              label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Area</span>}
-              rules={[{ required: true, message: 'Required' }]}
-            >
-              <Input placeholder="e.g. Downtown" style={{ borderRadius: 0 }} />
-            </Form.Item>
+                <Form.Item
+                  name="area"
+                  label="Area"
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input placeholder="e.g. Downtown" />
+                </Form.Item>
 
-            <Row gutter={16}>
-              <Col span={12}>
                 <Form.Item
                   name="city"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>City</span>}
+                  label="City"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. San Francisco" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. San Francisco" />
                 </Form.Item>
-              </Col>
-              <Col span={12}>
+
                 <Form.Item
                   name="state"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>State</span>}
+                  label="State"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. California" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. California" />
                 </Form.Item>
-              </Col>
-            </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
                 <Form.Item
                   name="pincode"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Pincode</span>}
+                  label="Pincode"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. 94105" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. 94105" />
                 </Form.Item>
-              </Col>
-              <Col span={12}>
+
                 <Form.Item
                   name="country"
-                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Country</span>}
+                  label="Country"
                   rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 14 }}
                 >
-                  <Input placeholder="e.g. USA" style={{ borderRadius: 0 }} />
+                  <Input placeholder="e.g. USA" />
                 </Form.Item>
-              </Col>
-            </Row>
-          </Form>
+              </SectionCard>
+            </Form>
+          </div>
         </Drawer>
 
         {/* Modals and other components */}
@@ -2281,15 +2251,183 @@ export default function SettingsPage() {
             </div>
           </Form>
         </Modal>
-      {tenantProfile && (
-        <TransactionHistoryDrawer
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          entityType="tenant_settings"
-          entityId={tenantProfile.id}
-          subtitle={tenantProfile.name}
-        />
-      )}
+        {tenantProfile && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="tenant_settings"
+            entityId={tenantProfile.id}
+            subtitle={tenantProfile.name}
+          />
+        )}
+
+        <style jsx global>{`
+        /* --- Transparent Card Overrides --- */
+        [data-theme='dark'] .transparent-card,
+        [data-theme='dark'] .transparent-card .ant-card-body,
+        [data-theme='dark'] .settings-main-wrapper,
+        [data-theme='dark'] .settings-tab-container .ant-tabs-nav,
+        [data-theme='dark'] .settings-tab-container .ant-tabs-content-holder {
+          background: transparent !important;
+        }
+
+        /* --- Member Drawer Style Overrides --- */
+        .mm-drawer .ant-form-item-label > label {
+          color: #475569 !important;
+          font-weight: 500 !important;
+          font-size: 13.5px !important;
+          text-transform: none !important;
+          letter-spacing: 0 !important;
+        }
+        .mm-drawer .ant-input,
+        .mm-drawer .ant-select-selector,
+        .mm-drawer .ant-input-number {
+          border-radius: 8px !important;
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+        }
+        .mm-drawer .ant-input:focus,
+        .mm-drawer .ant-input-focused,
+        .mm-drawer .ant-select-focused .ant-select-selector {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+        }
+        .mm-drawer .mm-footer-btn.ant-btn {
+          border-radius: 8px !important;
+        }
+        
+        [data-theme='dark'] .mm-drawer .ant-input,
+        [data-theme='dark'] .mm-drawer .ant-select-selector,
+        [data-theme='dark'] .mm-drawer .ant-input-number {
+          background-color: #171f2e !important;
+          border-color: #2a374a !important;
+          color: #e2e8f0 !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-input::placeholder,
+        [data-theme='dark'] .mm-drawer .ant-select-selection-placeholder {
+          color: #64748b !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-form-item-label > label {
+          color: #94a3b8 !important;
+        }
+
+        .sp-form-section {
+          background: var(--bg-pure-white);
+          border-radius: 0 !important;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-form-section-header {
+          padding: 14px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .sp-form-section-body {
+          padding: 24px 28px;
+        }
+        
+        [data-theme='dark'] .sp-form-section {
+          background: #141b27 !important;
+          border-color: #232f41 !important;
+        }
+        [data-theme='dark'] .sp-form-section-header {
+          background: #141b27 !important;
+          border-bottom-color: #232f41 !important;
+        }
+
+        .sp-section-icon {
+          padding: 6px;
+          border-radius: 0 !important;
+          display: flex;
+        }
+        .sp-section-icon.slate { background: var(--bg-slate-50); }
+        [data-theme='dark'] .sp-section-icon.slate { background: #1f2937 !important; }
+
+        /* --- Location Cards Style (.pc-card) --- */
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+          height: auto;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; height: 64px; overflow: hidden; }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 3px; flex: 1; }
+        .pc-actions {
+          flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pc-actions:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .pc-title {
+          font-size: 13px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); justify-content: center; }
+        .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; padding: 6px 12px; overflow: hidden; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; }
+
+        [data-theme='dark'] .pc-card {
+          background: #0b0f19 !important;
+          border-color: #1e293b !important;
+        }
+        [data-theme='dark'] .pc-foot {
+          background: #111827 !important;
+          border-top-color: #1e293b !important;
+        }
+        [data-theme='dark'] .pc-foot-row + .pc-foot-row {
+          border-top-color: #1e293b !important;
+        }
+
+        .settings-main-wrapper {
+          margin: 0 -24px;
+          height: calc(100vh - 64px);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .settings-page-header {
+          padding: 8px 32px;
+          margin-bottom: 0;
+        }
+        .settings-tab-container {
+          padding: 0 32px;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        @media (max-width: 900px) {
+          .settings-main-wrapper {
+            margin: 0;
+            height: auto;
+            min-height: calc(100vh - 64px);
+          }
+          .settings-page-header {
+            padding: 16px;
+          }
+          .settings-tab-container {
+            padding: 0 16px;
+            overflow: visible;
+          }
+          .settings-tabs .ant-tabs-nav-list {
+            padding-bottom: 8px;
+          }
+        }
+      `}</style>
+
       </div>
     </MainLayout>
   );

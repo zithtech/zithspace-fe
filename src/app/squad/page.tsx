@@ -33,6 +33,7 @@ import {
   InboxOutlined,
   RocketOutlined,
   ReloadOutlined,
+  RollbackOutlined,
   CloseOutlined,
   DeleteOutlined,
   UnorderedListOutlined,
@@ -100,6 +101,16 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase();
 
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
+
 const CARD_ACCENTS: [string, string][] = [
   ['#3b82f6', '#2563eb'], // blue
   ['#10b981', '#059669'], // green
@@ -113,6 +124,7 @@ const accentFor = (key: string): [string, string] => {
 };
 
 export default function SquadManagement() {
+  console.log("Forcing HMR reload for SquadManagement");
   useActivitySource({ section: "WORK", module: "Squad", page: "SquadView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadSquad, canCreateSquad, canUpdateSquad, canDeleteSquad } = usePermission();
@@ -197,6 +209,20 @@ export default function SquadManagement() {
     } catch (error) {
       console.error(error);
       message.error('Failed to delete squad');
+    }
+  };
+
+  const handleArchive = async (squad: Squad) => {
+    try {
+      setLoading(true);
+      await SquadService.archiveSquad(squad.id, !squad.isArchived);
+      message.success(`Squad ${squad.isArchived ? 'unarchived' : 'archived'} successfully`);
+      fetchSquads();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to update squad archive status');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -337,15 +363,38 @@ export default function SquadManagement() {
   );
 
   const userOptions = useMemo(() => {
-    const map = new Map<string, { value: string; label: string; sub?: string }>();
+    const map = new Map<string, { value: string; label: string; sub?: string; avatarUrl?: string }>();
     squads.forEach(s => {
       s.squadMembers?.forEach(m => {
         if (!map.has(m.squadMemberId)) {
-          map.set(m.squadMemberId, { value: m.squadMemberId, label: m.member.name, sub: m.member.workEmail });
+          map.set(m.squadMemberId, {
+            value: m.squadMemberId,
+            label: m.member.name,
+            sub: m.member.workEmail,
+            avatarUrl: m.member.avatarUrl || m.member.avatar,
+          });
         }
       });
     });
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label)).map(u => ({
+      value: u.value,
+      label: u.label,
+      description: u.sub,
+      badge: (
+        <Avatar
+          src={u.avatarUrl || undefined}
+          size={20}
+          style={{
+            backgroundColor: u.avatarUrl ? 'transparent' : avatarColorFor(u.label || ''),
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 800,
+          }}
+        >
+          {initialsOf(u.label)}
+        </Avatar>
+      )
+    }));
   }, [squads]);
 
   const statusOptions = [
@@ -369,6 +418,7 @@ export default function SquadManagement() {
     items: [
       { key: 'view', label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><EyeOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">View details</span><span className="sq-menu-desc">Open squad details</span></span></div> },
       { key: 'edit', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Manage</span><span className="sq-menu-desc">Edit squad configuration</span></span></div> },
+      { key: 'archive', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#4f46e5', background: 'rgba(79,70,229,0.12)' }}>{squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />}</span><span className="sq-menu-text"><span className="sq-menu-title">{squad.isArchived ? 'Unarchive' : 'Archive'}</span><span className="sq-menu-desc">{squad.isArchived ? 'Restore squad to active list' : 'Archive this squad'}</span></span></div> },
       { type: 'divider' as const },
       { 
         key: 'delete', 
@@ -383,7 +433,7 @@ export default function SquadManagement() {
             onConfirm={() => handleDelete(squad.id)}
             placement="left"
           >
-            <div className="sq-menu-item" style={{ margin: '-7px -9px', padding: '7px 9px', width: 'calc(100% + 18px)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="sq-menu-item" style={{ cursor: 'pointer' }} onClick={(e) => e.stopPropagation()}>
               <span className="sq-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><DeleteOutlined /></span>
               <span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span>
             </div>
@@ -395,6 +445,7 @@ export default function SquadManagement() {
       domEvent.stopPropagation();
       if (key === 'view') handleOpen(squad);
       else if (key === 'edit') handleManage(squad);
+      else if (key === 'archive') handleArchive(squad);
       // delete is handled by ConfirmDialog
     },
   });
@@ -1033,12 +1084,32 @@ export default function SquadManagement() {
 
           /* Table */
           .sq-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .sq-table .ant-table { background: transparent; font-size: 12px; }
-          .sq-table .ant-table-thead > tr > th {
+          .sq-table,
+          .sq-table.ant-table-wrapper,
+          .sq-table .ant-table,
+          .sq-table .ant-table-wrapper,
+          .sq-table .ant-table-container,
+          .sq-table .ant-table-content,
+          .sq-table .ant-table-header,
+          .sq-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
+          }
+          .sq-table .ant-table-thead > tr > th, .sq-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
             white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .sq-table .ant-table-thead > tr > th::before { display: none !important; }
+          [data-theme='dark'] .sq-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .sq-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #374151 !important;
           }
           .sq-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
           .sq-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1212,24 +1283,24 @@ export default function SquadManagement() {
           .sc-status-tag .anticon { font-size: 9px; }
           .sc-mail-val { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; }
 
-          @media (max-width: 700px) {
-            .sq-grid { grid-template-columns: 1fr; }
-          }
-
           @media (max-width: 1100px) {
             .sq-stats { grid-template-columns: repeat(2, 1fr); }
           }
+          
           .sq-mobile-menu-btn { display: none !important; }
-
+          
           @media (max-width: 820px) {
-            .sq-shell { flex-direction: column; }
+            .sq-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+            .sq-main { height: auto; overflow: visible; }
+            .sq-body { overflow: visible; }
+            
             .sq-mobile-overlay {
               position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
             }
             .sq-sidebar {
               position: fixed; top: 0; left: -320px; bottom: 0;
-              z-index: 999; height: 100%; max-height: none;
+              z-index: 1100; height: 100%; max-height: none;
               border-right: 1px solid var(--border-slate-200); border-bottom: 0;
               display: flex; flex-direction: column; align-items: stretch;
               background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
@@ -1242,6 +1313,11 @@ export default function SquadManagement() {
             .sq-topbar-actions { width: 100%; justify-content: flex-start; }
             .sq-topbar-meta { display: none; }
             .sq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+          }
+
+          @media (max-width: 700px) {
+            .sq-grid { grid-template-columns: 1fr; }
+            .sq-stats { grid-template-columns: 1fr; }
           }
         
           /* ===================== Dark Theme Overrides ===================== */

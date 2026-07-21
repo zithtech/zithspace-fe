@@ -209,7 +209,28 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el != null);
     els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+
+    const handleScroll = () => {
+      const scrollHeight = root ? root.scrollHeight : document.documentElement.scrollHeight;
+      const clientHeight = root ? root.clientHeight : window.innerHeight;
+      const scrollTop = root ? root.scrollTop : window.scrollY;
+
+      // Force the last section to be active if we hit the bottom of the page
+      if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 2) {
+        const lastId = ids[ids.length - 1];
+        if (lastId) setActive(lastId);
+      }
+    };
+
+    const target = root ?? window;
+    target.addEventListener("scroll", handleScroll, { passive: true });
+    // Run once on mount in case we are already at the bottom
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      target.removeEventListener("scroll", handleScroll);
+    };
   }, [key, offset, root]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return active;
@@ -413,7 +434,7 @@ function SprintReportContent({
       if (cancelled) return;
       const filename = exportFilename(data, exporting);
       try {
-        if (exporting === "pdf") await downloadReportPdf(el, filename);
+        if (exporting === "pdf") await downloadReportPdf(sprintId, el, filename);
         else await downloadReportDocx(el, filename);
       } catch (err) {
         console.error("Sprint report export failed", err);
@@ -536,7 +557,8 @@ function SprintReportContent({
 }
 
 /** Width of the offscreen export layout — wide enough to trigger desktop (lg) grids. */
-const EXPORT_WIDTH = 1200;
+// 794px is exactly 210mm at 96dpi (A4 width). This prevents right-side clipping in html2pdf.
+const EXPORT_WIDTH = 794;
 /** One A4 page height at EXPORT_WIDTH (A4 ratio 297/210) — used to size the cover. */
 const EXPORT_PAGE_HEIGHT = Math.round(EXPORT_WIDTH * (297 / 210));
 
@@ -569,22 +591,32 @@ function SprintReportExport({
 }) {
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
-      <div className="px-8 py-8 space-y-4">
+      <div className="px-8 pt-8 pb-4">
         <ExportCover overview={data.overview} />
-        <div className="html2pdf__page-break" />
-        <AiNarrativeSection sprintId={sprintId} />
+      </div>
+      <div className="html2pdf__page-break" />
+      <div className="px-8 py-4 space-y-6">
+        <AiNarrativeSection sprintId={sprintId} printMode />
         <BottlenecksSection sprintId={sprintId} />
         <DistributionSection
           dist={data.ticketDistribution}
           contribution={data.contribution}
+          printMode
         />
         <ContributionSection rows={data.contribution} />
+      </div>
+      <div className="html2pdf__page-break" />
+      <div className="px-8 py-4 space-y-6">
         <ScopeChangeSection sprintId={sprintId} />
-        <VelocitySection sprintId={sprintId} />
-        <TimelineSection sprintId={sprintId} />
+        <VelocitySection sprintId={sprintId} printMode />
+        <TimelineSection sprintId={sprintId} printMode />
         <HotspotsSection sprintId={sprintId} />
         <QualitySection sprintId={sprintId} />
         <ConclusionSection overview={data.overview} />
+        
+        <div className="pt-8 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          Generated from <span className="text-[#3b82f6]">Zukvo</span>
+        </div>
       </div>
     </div>
   );
@@ -592,10 +624,7 @@ function SprintReportExport({
 
 function ExportCover({ overview }: { overview: SprintReport["overview"] }) {
   return (
-    <section
-      className="flex flex-col gap-5"
-      style={{ minHeight: EXPORT_PAGE_HEIGHT }}
-    >
+    <section className="flex flex-col gap-5">
       <Header overview={overview} printMode />
       <KpiStrip overview={overview} />
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6">
@@ -693,7 +722,7 @@ function Header({
 
       <div className="mt-1.5 flex items-start justify-between gap-5 flex-wrap">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap mb-2">
             <h1 className="text-[19px] leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               {overview.sprintName ?? "Unnamed sprint"}
             </h1>
@@ -704,7 +733,7 @@ function Header({
               {overview.goal}
             </p>
           ) : null}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <HeaderChip icon={<CalendarIcon />} label="Planned">
               {plannedRange}
             </HeaderChip>
@@ -823,15 +852,15 @@ function HealthCard({
           : "bg-rose-500";
   return (
     <div
-      className={`flex items-stretch rounded-xl border ${styles.border} ${styles.bg} overflow-hidden`}
+      className={`flex items-center rounded-xl border ${styles.border} ${styles.bg} overflow-hidden break-inside-avoid`}
     >
-      <div className="px-4 py-1.5 flex flex-col items-end justify-center min-w-[80px]">
+      <div className="px-4 py-2 flex flex-col items-end justify-center min-w-[80px]">
         <span
           className={`text-[10px] uppercase tracking-[0.14em] font-medium ${styles.text}`}
         >
           Health
         </span>
-        <span className="text-[22px] font-semibold tabular-nums leading-none mt-0.5 text-zinc-900 dark:text-zinc-50">
+        <span className="text-[22px] font-semibold tabular-nums mt-0.5 text-zinc-900 dark:text-zinc-50">
           {score}
           <span className="text-xs text-zinc-400 dark:text-zinc-500 font-normal ml-0.5">
             /100
@@ -839,7 +868,7 @@ function HealthCard({
         </span>
       </div>
       <div
-        className={`border-l ${styles.border} px-3.5 py-1.5 flex flex-col justify-center min-w-[132px]`}
+        className={`border-l ${styles.border} px-3.5 py-2 flex flex-col justify-center min-w-[132px]`}
       >
         <span
           className={`inline-flex items-center gap-1.5 text-xs font-medium ${styles.text}`}
@@ -877,12 +906,12 @@ function StatusPill({ status }: { status: string }) {
           ? "bg-rose-500"
           : "bg-zinc-400";
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 capitalize ${styles}`}
+    <div
+      className={`flex w-fit items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 capitalize ${styles}`}
     >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${dot}`} />
+      <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
       {status.replace(/_/g, " ")}
-    </span>
+    </div>
   );
 }
 
@@ -896,15 +925,15 @@ function HeaderChip({
   children: React.ReactNode;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 text-xs text-zinc-700 dark:text-zinc-300">
-      <span className="text-zinc-400 dark:text-zinc-500">{icon}</span>
+    <div className="flex w-fit items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 text-xs text-zinc-700 dark:text-zinc-300">
+      <span className="text-zinc-400 dark:text-zinc-500 flex-shrink-0">{icon}</span>
       {label ? (
-        <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-zinc-400 dark:text-zinc-500">
+        <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-zinc-400 dark:text-zinc-500 flex-shrink-0">
           {label}
         </span>
       ) : null}
       <span className="font-medium tabular-nums">{children}</span>
-    </span>
+    </div>
   );
 }
 
@@ -914,14 +943,14 @@ function DelayChip({ days }: { days: number }) {
     ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
     : "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300";
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${styles}`}
+    <div
+      className={`flex w-fit items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium ${styles}`}
     >
       <ClockIcon />
       <span className="tabular-nums">
         {onTime ? "On time" : `${days} ${days === 1 ? "day" : "days"} delayed`}
       </span>
-    </span>
+    </div>
   );
 }
 
@@ -1024,7 +1053,7 @@ function KpiStrip({ overview }: { overview: SprintReport["overview"] }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden">
+    <div className="grid grid-cols-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden break-inside-avoid">
       {items.map((it, idx) => (
         <KpiCell key={it.label} item={it} idx={idx} total={items.length} />
       ))}
@@ -1103,7 +1132,7 @@ function Panel({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 break-inside-avoid">
       <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-5 py-3">
         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{title}</span>
         {hint ? (
@@ -1231,9 +1260,11 @@ function sortUsers(rows: MergedUser[], key: SortKey): MergedUser[] {
 function DistributionSection({
   dist,
   contribution,
+  printMode = false,
 }: {
   dist: SprintReport["ticketDistribution"];
   contribution: ContributorRow[];
+  printMode?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("tickets_desc");
 
@@ -1275,10 +1306,12 @@ function DistributionSection({
             {merged.length === 1 ? "contributor" : "contributors"}
           </p>
         </div>
-        <GroupBySelect value={sortKey} onChange={setSortKey} />
+        {!printMode && (
+          <GroupBySelect value={sortKey} onChange={setSortKey} printMode={printMode} />
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={`grid gap-3 ${printMode ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
         <TopPerformerCard
           eyebrow="Top by Type"
           subEyebrow="Bugs fixed"
@@ -1344,10 +1377,31 @@ function DistributionSection({
 function GroupBySelect({
   value,
   onChange,
+  printMode = false,
 }: {
   value: SortKey;
   onChange: (v: SortKey) => void;
+  printMode?: boolean;
 }) {
+  const selectedLabel =
+    SORT_OPTIONS.find((o) => o.value === value)?.label ?? String(value);
+
+  if (printMode) {
+    return (
+      <div className="inline-flex items-center gap-2 text-xs">
+        <span className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
+          Group by
+        </span>
+        <div
+          className="pl-3 pr-8 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-800 dark:text-zinc-200 font-medium"
+          style={{ minWidth: "180px" }}
+        >
+          {selectedLabel}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <label className="relative inline-flex items-center gap-2 text-xs">
       <span className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
@@ -1432,7 +1486,7 @@ function TopPerformerCard({
   const hasData = user && (user[emptyMetric] as number) > 0;
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-4">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5 break-inside-avoid">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className={`text-[10px] uppercase tracking-[0.14em] font-semibold ${tone.eyebrow}`}>
@@ -1455,7 +1509,7 @@ function TopPerformerCard({
         <>
           <div className="mt-3 flex items-center gap-2.5">
             <Avatar name={user.userName} />
-            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 whitespace-normal break-words">
               {user.userName}
             </span>
           </div>
@@ -1530,7 +1584,7 @@ function AssigneeFullTable({
           {rows.map((u, idx) => (
             <tr
               key={u.userId ?? u.userName}
-              className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
+              className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors break-inside-avoid"
             >
               <td className="px-5 py-3 text-zinc-400 dark:text-zinc-500 tabular-nums">
                 {idx + 1}
@@ -1538,7 +1592,7 @@ function AssigneeFullTable({
               <td className="px-5 py-3">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={u.userName} />
-                  <span className="text-zinc-800 dark:text-zinc-200 truncate">{u.userName}</span>
+                  <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words">{u.userName}</span>
                 </div>
               </td>
               <td className="px-5 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
@@ -1684,6 +1738,7 @@ function DonutChart({ rows }: { rows: DistRow[] }) {
               strokeWidth={2}
               stroke={colors.pieStroke}
               paddingAngle={1}
+              isAnimationActive={false}
             >
               {rows.map((_, i) => (
                 <Cell key={i} fill={colors.palette[i % colors.palette.length]} />
@@ -1721,7 +1776,7 @@ function DonutChart({ rows }: { rows: DistRow[] }) {
                 className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
                 style={{ background: colors.palette[i % colors.palette.length] }}
               />
-              <span className="text-zinc-800 dark:text-zinc-200 truncate flex-1 capitalize">
+              <span className="text-zinc-800 dark:text-zinc-200 whitespace-normal break-words flex-1 capitalize">
                 {r.label}
               </span>
               <span className="text-zinc-600 dark:text-zinc-400 tabular-nums">{r.count}</span>
@@ -1792,12 +1847,12 @@ function AssigneeTable({ rows }: { rows: AssigneeRow[] }) {
             return (
               <tr
                 key={r.assigneeId ?? r.assigneeName}
-                className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
+                className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors break-inside-avoid"
               >
                 <td className="px-5 py-3 text-zinc-800 dark:text-zinc-200">
                   <div className="flex items-center gap-2.5">
                     <Avatar name={r.assigneeName} />
-                    <span className="truncate">{r.assigneeName}</span>
+                    <span className="whitespace-normal break-words">{r.assigneeName}</span>
                   </div>
                 </td>
                 <td className="px-5 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
@@ -1896,13 +1951,13 @@ function ContributorTable({ rows }: { rows: ContributorRow[] }) {
           {rows.map((r, idx) => (
             <tr
               key={r.userId ?? r.userName}
-              className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
+              className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors break-inside-avoid"
             >
               <td className="px-5 py-3 text-zinc-800 dark:text-zinc-200">
                 <div className="flex items-center gap-2.5">
                   <RankBadge rank={idx + 1} />
                   <Avatar name={r.userName} />
-                  <span className="truncate">{r.userName}</span>
+                  <span className="whitespace-normal break-words">{r.userName}</span>
                 </div>
               </td>
               <td className="px-5 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
@@ -1991,7 +2046,7 @@ function ContributorBarChart({ rows }: { rows: ContributorRow[] }) {
             itemStyle={{ color: colors.tooltipText }}
             labelStyle={{ color: colors.tooltipText }}
           />
-          <Bar dataKey="points" fill={ACCENT} radius={[0, 3, 3, 0]} />
+          <Bar dataKey="points" fill={ACCENT} radius={[0, 3, 3, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -2019,8 +2074,7 @@ function buildContributionInsights(rows: ContributorRow[]): string[] {
     const share = Math.round((topBug.bugsFixed / totalBugs) * 100);
     if (share >= 40) {
       insights.push(
-        `${topBug.userName} closed ${topBug.bugsFixed} of ${totalBugs} bug${
-          totalBugs === 1 ? "" : "s"
+        `${topBug.userName} closed ${topBug.bugsFixed} of ${totalBugs} bug${totalBugs === 1 ? "" : "s"
         } (${share}%).`
       );
     }
@@ -2031,8 +2085,7 @@ function buildContributionInsights(rows: ContributorRow[]): string[] {
   );
   if (idleContributors.length > 0 && rows.length >= 3) {
     insights.push(
-      `${idleContributors.length} user${
-        idleContributors.length === 1 ? "" : "s"
+      `${idleContributors.length} user${idleContributors.length === 1 ? "" : "s"
       } had assigned work but zero completions this sprint.`
     );
   }
@@ -2163,7 +2216,7 @@ export function SprintReportExportRunner({
       try {
         await waitForExportReady(el);
         const filename = exportFilename(payload.data, format);
-        if (format === "pdf") await downloadReportPdf(el, filename);
+        if (format === "pdf") await downloadReportPdf(sprintId, el, filename);
         else await downloadReportDocx(el, filename);
       } catch (err) {
         console.error("Sprint report export failed", err);
@@ -2230,16 +2283,14 @@ function ConclusionSection({ overview }: { overview: SprintReport["overview"] })
 
   if (overview.addedAfterStartPct >= 25) {
     concerns.push(
-      `${fmtPct(overview.addedAfterStartPct)} of scope (${overview.addedAfterStart} ticket${
-        overview.addedAfterStart === 1 ? "" : "s"
+      `${fmtPct(overview.addedAfterStartPct)} of scope (${overview.addedAfterStart} ticket${overview.addedAfterStart === 1 ? "" : "s"
       }) was added after the sprint started.`
     );
   }
 
   if (overview.bugRatioPct >= 30) {
     concerns.push(
-      `Bug ratio at ${fmtPct(overview.bugRatioPct)} (${overview.bugCount} bug${
-        overview.bugCount === 1 ? "" : "s"
+      `Bug ratio at ${fmtPct(overview.bugRatioPct)} (${overview.bugCount} bug${overview.bugCount === 1 ? "" : "s"
       }) — heavy reactive load.`
     );
   } else if (overview.bugCount === 0 && overview.totalTickets > 0) {
@@ -2248,8 +2299,7 @@ function ConclusionSection({ overview }: { overview: SprintReport["overview"] })
 
   if (overview.blockedTickets > 0) {
     concerns.push(
-      `${overview.blockedTickets} ticket${
-        overview.blockedTickets === 1 ? "" : "s"
+      `${overview.blockedTickets} ticket${overview.blockedTickets === 1 ? "" : "s"
       } ended the sprint blocked.`
     );
   }
@@ -2316,7 +2366,7 @@ function ConclusionList({
       ? "text-emerald-700 dark:text-emerald-300"
       : "text-rose-700 dark:text-rose-300";
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5 break-inside-avoid">
       <div className={`text-[11px] uppercase tracking-[0.12em] font-semibold mb-2.5 ${head}`}>
         {title}
       </div>

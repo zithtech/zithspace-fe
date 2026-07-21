@@ -25,10 +25,12 @@ import {
   Skeleton,
   Segmented,
   InputNumber,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
+  MenuOutlined,
   EditOutlined,
   DeleteOutlined,
   MoreOutlined,
@@ -62,6 +64,8 @@ import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
 import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
+import type { Dayjs } from "dayjs";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import dayjs from "dayjs";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -69,11 +73,13 @@ import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawerProps } from "@/components/common/DrawerSection";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
+
+
 
 const ROLE_META: Record<
   string,
@@ -196,7 +202,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "work" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 0,
+          borderRadius: 8,
           background: value === "work" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -226,7 +232,7 @@ const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
         style={{
           padding: "16px",
           border: value === "personal" ? "2px solid #3b82f6" : "1px solid var(--border-slate-100)",
-          borderRadius: 0,
+          borderRadius: 8,
           background: value === "personal" ? "rgba(59,130,246,0.03)" : "var(--bg-pure-white)",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -329,56 +335,38 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: "var(--bg-pure-white)",
       }}
     >
+      <style>{formStyles}</style>
       {/* Header */}
       <div
+        className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
-          padding: "18px 24px",
-          borderBottom: "1px solid var(--border-slate-100)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          background: "var(--bg-pure-white)",
+          background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+          borderColor: 'var(--border-color)',
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <div className="flex items-start gap-3 min-w-0">
           <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 0,
-              background: "rgba(59,130,246,0.10)",
-              color: "#3b82f6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 16,
-              flexShrink: 0,
+              background: 'rgba(59,130,246,0.10)',
+              color: '#3b82f6',
+              border: '1px solid var(--border-blue-200)',
             }}
           >
-            {mode === "add" ? <PlusOutlined /> : <EditOutlined />}
+            {mode === "add" ? <PlusOutlined style={{ fontSize: 18 }} /> : <EditOutlined style={{ fontSize: 18 }} />}
           </div>
-          <div style={{ minWidth: 0 }}>
+          <div className="min-w-0">
             <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--text-slate-900)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.2,
-              }}
+              className="text-[15px] font-semibold leading-tight"
+              style={{ color: 'var(--text-primary)' }}
             >
               {mode === "add" ? "New Member" : "Edit Member"}
             </div>
             <div
-              style={{
-                fontSize: 12,
-                color: "var(--text-slate-500)",
-                marginTop: 2,
-              }}
+              className="text-[12px] mt-0.5"
+              style={{ color: 'var(--text-secondary)' }}
             >
               {mode === "add" ? (
                 "Invite a new member to your workspace"
@@ -400,8 +388,9 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
-              className="mm-drawer-icon-btn"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)] flex items-center gap-2"
               title="Activity history"
+              style={{ color: 'var(--text-secondary)' }}
             >
               <History size={14} strokeWidth={2} />
               <span style={{ fontSize: 12, fontWeight: 600 }}>History</span>
@@ -411,9 +400,10 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="mm-drawer-icon-btn"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            <CloseOutlined style={{ fontSize: 13 }} />
+            <CloseOutlined />
           </button>
         </div>
       </div>
@@ -424,23 +414,26 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           flex: 1,
           overflowY: "auto",
           padding: "24px",
-          background: "var(--bg-slate-50)",
+          background: "var(--customers-page-bg)",
         }}
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
           onFinish={onSubmit}
-          size="middle"
-          requiredMark={false}
+          className="customer-drawer-form"
+          colon={false}
+          requiredMark="optional"
         >
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
-                <UserOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Profile Details</Text>
-            </div>
+          <SectionCard
+            icon={<UserOutlined />}
+            title="Profile Details"
+            subtitle="Enter the basic information for this member"
+            step="STEP 1"
+          >
 
             <Form.Item
               name="name"
@@ -463,9 +456,17 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[
                 { required: true, message: "Please enter work email" },
                 { type: "email", message: "Please enter valid email" },
+                { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input placeholder="jane@company.com" />
+              <Input 
+                placeholder="jane@company.com" 
+                onKeyPress={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -474,9 +475,17 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[
                 { required: true, message: "Please enter personal email" },
                 { type: "email", message: "Please enter valid email" },
+                { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input placeholder="jane@personal.com" />
+              <Input 
+                placeholder="jane@personal.com" 
+                onKeyPress={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -506,15 +515,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 }}
               />
             </Form.Item>
-          </div>
+          </SectionCard>
 
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon orange" style={{ borderRadius: 0 }}>
-                <SafetyCertificateOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Access</Text>
-            </div>
+          <SectionCard
+            icon={<SafetyCertificateOutlined />}
+            title="Access"
+            subtitle="Configure role and reporting structure"
+            step="STEP 2"
+          >
 
             <Form.Item
               name="role"
@@ -522,23 +530,15 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               rules={[{ required: true, message: "Please select role" }]}
               initialValue="user"
             >
-              <Select placeholder="Select a role" optionLabelProp="label">
-                {ROLE_OPTIONS.map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value} label={opt.title}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
-                        {opt.icon}
-                      </span>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{opt.title}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
-                          {opt.desc}
-                        </div>
-                      </div>
-                    </div>
-                  </Select.Option>
-                ))}
-              </Select>
+              <SearchableDropdown
+                placeholder="Select a role"
+                options={ROLE_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: opt.title,
+                  description: opt.desc,
+                  badge: opt.icon,
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
@@ -562,18 +562,14 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 label="Position"
                 rules={[{ required: true, message: "Please select position" }]}
               >
-                <Select
+                <SearchableDropdown
                   placeholder="Select position"
                   loading={positionsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {positions.map((position) => (
-                    <Option key={position.id} value={position.id}>
-                      {position.title}
-                    </Option>
-                  ))}
-                </Select>
+                  options={positions.map((position) => ({
+                    value: position.id,
+                    label: position.title,
+                  }))}
+                />
               </Form.Item>
             ) : (
               <Form.Item
@@ -593,45 +589,35 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             )}
 
             <Form.Item name="reportsTo" label="Reports to">
-              <Select
+              <SearchableDropdown
                 placeholder="Select manager"
-                showSearch
-                allowClear
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.children ?? "")
-                    .toString()
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              >
-                {managers
+                options={managers
                   .filter((m) => m.id !== selectedMember?.id)
-                  .map((manager) => (
-                    <Option key={manager.id} value={manager.id}>
-                      {manager.name}
-                    </Option>
-                  ))}
-              </Select>
+                  .map((manager) => ({
+                    value: manager.id,
+                    label: manager.name,
+                    avatarUrl: manager.avatarUrl,
+                  }))}
+              />
             </Form.Item>
-          </div>
+          </SectionCard>
 
-          <div className="sp-form-section">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <div className="sp-section-icon green" style={{ borderRadius: 0 }}>
-                <CalendarOutlined style={{ color: '#10b981', fontSize: 14 }} />
-              </div>
-              <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Schedule</Text>
-            </div>
+          <SectionCard
+            icon={<CalendarOutlined />}
+            title="Schedule"
+            subtitle="Set up work schedule and availability"
+            step="STEP 3"
+          >
 
             <Form.Item name="assignedShift" label="Assigned shift">
-              <Select placeholder="Select shift (optional)" allowClear>
-                {shifts.map((shift) => (
-                  <Option key={shift.id} value={shift.id}>
-                    {shift.name} · {shift.startTime}–{shift.endTime}
-                  </Option>
-                ))}
-              </Select>
+              <SearchableDropdown
+                placeholder="Select shift (optional)"
+                options={shifts.map((shift) => ({
+                  value: shift.id,
+                  label: shift.name,
+                  description: `${shift.startTime}–${shift.endTime}`,
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
@@ -648,10 +634,13 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               initialValue={true}
               rules={[{ required: true, message: "Please select status" }]}
             >
-              <Select placeholder="Select status">
-                <Option value={true}>Active</Option>
-                <Option value={false}>Inactive</Option>
-              </Select>
+              <SearchableDropdown
+                placeholder="Select status"
+                options={[
+                  { value: true as any, label: "Active" },
+                  { value: false as any, label: "Inactive" },
+                ]}
+              />
             </Form.Item>
 
             <Form.Item
@@ -673,17 +662,16 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             >
               <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="e.g. 6" />
             </Form.Item>
-          </div>
+          </SectionCard>
 
           {mode === "add" && (
-            <div className="sp-form-section">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <div className="sp-section-icon slate" style={{ borderRadius: 0 }}>
-                  <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-                </div>
-                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Welcome Notification</Text>
-              </div>
-              <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }}>
+            <SectionCard
+              icon={<MailOutlined />}
+              title="Welcome Notification"
+              subtitle="Send a welcome email to the new member"
+              step="STEP 4"
+            >
+              <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }} wrapperCol={{ span: 24 }}>
                 <EmailSelector workEmail={workEmail} personalEmail={personalEmail} />
               </Form.Item>
 
@@ -693,7 +681,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   padding: "12px 14px",
                   background: "var(--bg-slate-50)",
                   border: "1px solid var(--border-slate-100)",
-                  borderRadius: 0,
+                  borderRadius: 8,
                   display: "flex",
                   gap: 10,
                   alignItems: "flex-start",
@@ -713,23 +701,22 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                   prompted to set a new password on first login.
                 </div>
               </div>
-            </div>
+            </SectionCard>
           )}
         </Form>
       </div>
 
       {/* Sticky footer */}
       <div
+        className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
         style={{
-          padding: "14px 24px",
-          borderTop: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 8,
+          background: "var(--bg-secondary)",
+          borderColor: "var(--border-color)",
         }}
       >
+        <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+          Fields marked required must be filled
+        </span>
         <Button
           onClick={onClose}
           className="mm-footer-btn"
@@ -805,19 +792,16 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg-slate-50)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--customers-page-bg, #0B0F1A)" }}>
       {/* Clean minimal header */}
       <div
+        className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          padding: "16px 20px",
-          background: "var(--bg-pure-white)",
-          borderBottom: "1px solid var(--border-slate-100)",
-          flexShrink: 0,
+          background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+          borderColor: 'var(--border-color)'
         }}
       >
+        <div className="flex items-start gap-3 min-w-0">
         <Avatar
           size={46}
           shape="square"
@@ -833,8 +817,7 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         >
           {initialsOf(member.name || "")}
         </Avatar>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="min-w-0">
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
               {member.name}
@@ -907,9 +890,10 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
           </div>
 
         </div>
+      </div>
 
-        {/* Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      {/* Actions */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {(canUpdateUser || canManageUsers) && (
             <button
               type="button"
@@ -981,16 +965,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
       </div>
 
       {/* Details Scrollable Body */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px", background: "var(--customers-page-bg, #0B0F1A)" }}>
 
         {/* Panel 1: Profile & Access */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon orange" style={{ borderRadius: 8 }}>
-              <CrownOutlined style={{ color: '#f59e0b', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Role & Reports</Text>
-          </div>
+        <SectionCard
+          icon={<CrownOutlined />}
+          title="Role & Reports"
+          subtitle="System role and reporting line"
+        >
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
@@ -1033,16 +1015,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Panel 2: Contact Information */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon slate" style={{ borderRadius: 8 }}>
-              <MailOutlined style={{ color: 'var(--text-slate-600)', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Contact Information</Text>
-          </div>
+        <SectionCard
+          icon={<MailOutlined />}
+          title="Contact Information"
+          subtitle="Direct channels for this member"
+        >
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1108,16 +1088,14 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               )}
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Panel 3: Schedule & Tracking */}
-        <div className="sp-form-section" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div className="sp-section-icon green" style={{ borderRadius: 8 }}>
-              <CalendarOutlined style={{ color: '#10b981', fontSize: 13 }} />
-            </div>
-            <Text style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Schedule & Shift</Text>
-          </div>
+        <SectionCard
+          icon={<CalendarOutlined />}
+          title="Schedule & Shift"
+          subtitle="Assigned working hours and days"
+        >
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1141,22 +1119,16 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
               <DayPills value={(member as any).workDays || [1, 2, 3, 4, 5]} />
             </div>
           </div>
-        </div>
-
-
+        </SectionCard>
 
       </div>
 
       {/* Sticky footer actions */}
       <div
+        className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
         style={{
-          padding: "14px 24px",
-          borderTop: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 8,
+          background: 'var(--bg-pure-white)',
+          borderColor: 'var(--border-color)',
           flexShrink: 0,
         }}
       >
@@ -1297,7 +1269,9 @@ export default function MembersPage() {
     canDeleteUser,
     canManageUsers,
   } = usePermission();
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  console.log("Forcing HMR reload for members page");
+  const { dataSource: positions, loading: positionsLoading, fetchPositions } = usePositions();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1556,6 +1530,7 @@ export default function MembersPage() {
       setSelectedMember(null);
       fetchMembers();
       fetchAllMembers();
+      fetchPositions();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {
@@ -1651,6 +1626,25 @@ export default function MembersPage() {
       </span>
     </div>
   );
+
+  // Track in-flight AI-access toggles so we can show a per-row spinner.
+  const [aiTogglingId, setAiTogglingId] = useState<string | null>(null);
+
+  const handleToggleAiAccess = async (record: Member, checked: boolean) => {
+    setAiTogglingId(record.id);
+    // Optimistic update.
+    setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: checked } : m)));
+    try {
+      await MembersService.setAiAccess(record.id, checked);
+      messageApi.success(`AI ${checked ? "enabled" : "disabled"} for ${record.name}`);
+    } catch (error: any) {
+      // Revert on failure.
+      setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: !checked } : m)));
+      messageApi.error(error?.message || "Failed to update AI access");
+    } finally {
+      setAiTogglingId(null);
+    }
+  };
 
   const columns: ColumnsType<Member> = [
     {
@@ -1892,6 +1886,31 @@ export default function MembersPage() {
       },
     },
     {
+      title: "AI Access",
+      key: "aiAccess",
+      width: 110,
+      align: "center",
+      render: (_, record: Member) => (
+        <Tooltip
+          title={
+            !canManageUsers
+              ? "AI access"
+              : record.aiEnabled === false
+                ? "AI disabled — click to enable"
+                : "AI enabled — click to disable"
+          }
+        >
+          <Switch
+            size="small"
+            checked={record.aiEnabled !== false}
+            loading={aiTogglingId === record.id}
+            disabled={!canManageUsers}
+            onChange={(checked) => handleToggleAiAccess(record, checked)}
+          />
+        </Tooltip>
+      ),
+    },
+    {
       title: "Actions",
       key: "actions",
       width: 64,
@@ -2061,7 +2080,10 @@ export default function MembersPage() {
     <MainLayout>
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><TeamOutlined /></div>
             <div className="pp-side-head-text">
@@ -2173,14 +2195,19 @@ export default function MembersPage() {
         <main className="pp-main">
           {/* Top search & views bar */}
           <div className="pp-topbar">
-            <div className="pp-search-wrap">
-              <SearchOutlined className="pp-search-icon" />
-              <input
-                className="pp-search"
-                placeholder="Search name, position, email…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 520 }}>
+              <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+                <MenuOutlined style={{ fontSize: 16 }} />
+              </button>
+              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 'none', minWidth: 0 }}>
+                <SearchOutlined className="pp-search-icon" />
+                <input
+                  className="pp-search"
+                  placeholder="Search name, position, email…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="pp-topbar-meta">
@@ -2361,11 +2388,23 @@ export default function MembersPage() {
                               ) : <span className="pc-foot-val">—</span>}
                             </span>
                             <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0 }}>
+                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <span className="pc-foot-key">Email:</span>
                               <span className="pc-foot-val" title={item.workEmail || undefined} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {item.workEmail || "—"}
                               </span>
+                              {item.workEmail && (
+                                <Tooltip title="Copy Email">
+                                  <CopyOutlined
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(item.workEmail);
+                                      messageApi.success("Email copied to clipboard");
+                                    }}
+                                    style={{ cursor: "pointer", fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}
+                                  />
+                                </Tooltip>
+                              )}
                             </span>
                           </div>
                           <div className="pc-foot-row" style={{ flexWrap: "nowrap", overflow: "hidden" }}>
@@ -2435,19 +2474,12 @@ export default function MembersPage() {
 
       {/* Preview Drawer */}
       <Drawer
+        {...commonDrawerProps}
         className="mm-preview-drawer"
-        width={480}
         open={previewVisible}
         onClose={() => {
           setPreviewVisible(false);
           setPreviewMember(null);
-        }}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: "var(--bg-slate-50)" },
-          header: { display: "none" },
-          content: { background: "var(--bg-pure-white)" },
         }}
       >
         <MemberPreviewDrawerContent
@@ -2478,8 +2510,9 @@ export default function MembersPage() {
 
       {/* Add / Edit Drawer */}
       <Drawer
+        rootClassName="leave-drawer-root"
         className="mm-drawer"
-        width={460}
+        width={720}
         open={isModalVisible && modalType !== "delete"}
         onClose={() => {
           setIsModalVisible(false);
@@ -2489,9 +2522,10 @@ export default function MembersPage() {
         closable={false}
         destroyOnClose
         styles={{
-          body: { padding: 0, background: "var(--bg-pure-white)" },
+          body: { padding: 0, background: "var(--customers-page-bg)" },
           header: { display: "none" },
-          content: { background: "var(--bg-pure-white)" },
+          footer: { display: "none" },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
         }}
         footer={null}
       >
@@ -2525,7 +2559,55 @@ export default function MembersPage() {
         .mm-drawer .ant-input-number,
         .mm-drawer .ant-select,
         .mm-drawer .email-selector-card {
-          border-radius: 0 !important;
+          border-radius: 8px !important;
+        }
+        
+        .mm-drawer .ant-segmented {
+          padding: 4px !important;
+          background: var(--bg-slate-100) !important;
+        }
+        .mm-drawer .ant-segmented-item-selected {
+          box-shadow: 0 2px 5px rgba(0,0,0,0.06) !important;
+          font-weight: 600 !important;
+          border-radius: 6px !important;
+        }
+        
+        .mm-drawer .ant-form-item-label > label {
+          color: #475569 !important;
+          font-weight: 500 !important;
+          font-size: 13.5px !important;
+          text-transform: none !important;
+          letter-spacing: 0 !important;
+        }
+        
+        .mm-drawer .ant-input,
+        .mm-drawer .ant-select-selector,
+        .mm-drawer .ant-input-number,
+        .email-selector-card {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+        }
+        .mm-drawer .ant-input:focus,
+        .mm-drawer .ant-input-focused,
+        .mm-drawer .ant-select-focused .ant-select-selector {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+        }
+        
+        [data-theme='dark'] .mm-drawer .ant-input,
+        [data-theme='dark'] .mm-drawer .ant-select-selector,
+        [data-theme='dark'] .mm-drawer .ant-input-number,
+        [data-theme='dark'] .email-selector-card {
+          background-color: #171f2e !important;
+          border-color: #2a374a !important;
+          color: #e2e8f0 !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-input::placeholder,
+        [data-theme='dark'] .mm-drawer .ant-select-selection-placeholder {
+          color: #64748b !important;
+        }
+        [data-theme='dark'] .mm-drawer .ant-form-item-label > label {
+          color: #94a3b8 !important;
         }
 
         /* Restore border-radius for footer action buttons */
@@ -2587,15 +2669,31 @@ export default function MembersPage() {
 
         .sp-form-section {
           background: var(--bg-pure-white);
-          padding: 20px;
           border-radius: 0 !important;
-          border: 1px solid var(--border-slate-200);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-          margin-bottom: 16px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-form-section-header {
+          padding: 14px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .sp-form-section-body {
+          padding: 24px 28px;
         }
         [data-theme='dark'] .sp-form-section {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: #141b27 !important;
+          border-color: #232f41 !important;
+        }
+        [data-theme='dark'] .sp-form-section-header {
+          background: #141b27 !important;
+          border-bottom-color: #232f41 !important;
         }
         .sp-section-icon {
           padding: 6px;
@@ -2725,7 +2823,7 @@ export default function MembersPage() {
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
         .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -2817,12 +2915,14 @@ export default function MembersPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -2914,10 +3014,15 @@ export default function MembersPage() {
           .pp-stats { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 600px) {
-          .pp-stats { grid-template-columns: 1fr; }
+          .pp-stats { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
+        .pp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+        .pp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+        @media (max-width: 1024px) {
+          .pp-sidebar { position: fixed; left: -280px; top: 64px; bottom: 0; height: calc(100vh - 64px); transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1); display: flex; }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
           .pp-topbar-meta { display: none; }
         }
         /* ---- Premium action dropdown (matches Proposals page) ---- */

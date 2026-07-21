@@ -698,7 +698,7 @@ function BuilderV2Content() {
                       <Input
                         placeholder="Section name"
                         value={selMeta?.name ?? ''}
-                        onChange={(e) => setSelMeta({ name: e.target.value })}
+                        onChange={(e) => setSelMeta({ name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                         style={{ marginBottom: 12 }}
                       />
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -729,7 +729,7 @@ function BuilderV2Content() {
                     size="small"
                     placeholder="New variable name"
                     value={newVar}
-                    onChange={(e) => setNewVar(e.target.value)}
+                    onChange={(e) => setNewVar(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
                     onPressEnter={addVar}
                   />
                   <Button size="small" type="primary" onClick={addVar}>Add</Button>

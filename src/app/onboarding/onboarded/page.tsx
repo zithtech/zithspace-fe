@@ -8,10 +8,13 @@ import {
   Button,
   message,
   Switch,
-  Dropdown,
+  Popover,
   Tooltip,
   Select,
+  Pagination,
+  Typography,
 } from "antd";
+const { Text } = Typography;
 import type { ColumnsType } from "antd/es/table";
 import {
   Search,
@@ -25,6 +28,7 @@ import {
   ShieldCheck,
   MoreVertical,
   RotateCw,
+  Menu,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
@@ -48,6 +52,75 @@ const TINT = {
 } as const;
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+/* ---------------- ISOLATED ACTION CELL ---------------- */
+const ActionCell = ({ record, canUpdate, canDelete, onDelete, router, menuLabelHelper }: any) => {
+  const [open, setOpen] = useState(false);
+
+  const actionContent = (
+    <div className="ant-dropdown-menu">
+      <button
+        className="ant-dropdown-menu-item"
+        style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+        onClick={() => {
+          setOpen(false);
+          router.push(`/onboarding/onboarded/${record.id}`);
+        }}
+      >
+        {menuLabelHelper("View Details", "Open full employee profile", <Eye size={14} />, "#64748b", "rgba(100,116,139,0.10)")}
+      </button>
+      {canUpdate && (
+        <button
+          className="ant-dropdown-menu-item"
+          style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+          onClick={() => {
+            setOpen(false);
+            router.push(`/onboarding/create?id=${record.id}`);
+          }}
+        >
+          {menuLabelHelper("Edit Info", "Modify employee information", <Edit2 size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
+        </button>
+      )}
+      {canDelete && (
+        <>
+          <div className="ant-dropdown-menu-item-divider" />
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={14} />}
+            title="Delete this record?"
+            description="This action cannot be undone."
+            confirmText="Delete"
+            placement="bottomRight"
+            onConfirm={() => {
+              setOpen(false);
+              onDelete(record.id);
+            }}
+          >
+            <button 
+              className="ant-dropdown-menu-item ant-dropdown-menu-item-danger" 
+              style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
+            >
+              {menuLabelHelper("Delete Record", "Permanently remove this record", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)")}
+            </button>
+          </ConfirmDialog>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <Popover
+      content={actionContent}
+      trigger="click"
+      placement="bottomRight"
+      overlayClassName="pp-action-pop"
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <Button type="text" size="small" icon={<MoreVertical size={16} style={{ color: PALETTE.grey }} />} />
+    </Popover>
+  );
+};
 
 /* ---------------- MAIN COMPONENT ---------------- */
 
@@ -211,6 +284,19 @@ const Onboarded = () => {
     if (tablePage > pageCount) setTablePage(pageCount);
   }, [pageCount, tablePage]);
 
+  // ✅ Premium Menu Label Helper
+  const onbMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, bg: string) => (
+    <div className="pp-menu-item">
+      <div className="pp-menu-ic" style={{ color, background: bg }}>
+        {icon}
+      </div>
+      <div className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </div>
+    </div>
+  );
+
   // ✅ Table Columns
   const columns: ColumnsType<any> = useMemo(
     () => [
@@ -298,57 +384,15 @@ const Onboarded = () => {
         width: 60,
         align: "right" as const,
         render: (_: any, record: any) => {
-          const items: any[] = [
-            {
-              key: "view",
-              label: "View Details",
-              icon: <Eye size={14} />,
-              onClick: () =>
-                router.push(`/onboarding/onboarded/${record.id}`),
-            },
-          ];
-          if (canUpdateOnboarding) {
-            items.push({
-              key: "edit",
-              label: "Edit Info",
-              icon: <Edit2 size={14} />,
-              onClick: () =>
-                router.push(`/onboarding/create?id=${record.id}`),
-            });
-          }
-          if (canDeleteOnboarding) {
-            items.push({ type: "divider" as const });
-            items.push({
-              key: "delete",
-              danger: true,
-              icon: <Trash2 size={14} />,
-              label: (
-                <ConfirmDialog
-                  tone="danger"
-                  icon={<Trash2 size={14} />}
-                  title="Delete this record?"
-                  description="This action cannot be undone."
-                  confirmText="Delete"
-                  placement="bottomRight"
-                  onConfirm={() => handleDelete(record.id)}
-                >
-                  <span style={{ display: "block", width: "100%" }}>
-                    Delete Record
-                  </span>
-                </ConfirmDialog>
-              ),
-            });
-          }
           return (
-            <Dropdown menu={{ items }} trigger={["click"]}>
-              <Button
-                type="text"
-                size="small"
-                icon={
-                  <MoreVertical size={16} style={{ color: PALETTE.grey }} />
-                }
-              />
-            </Dropdown>
+            <ActionCell 
+              record={record} 
+              canUpdate={canUpdateOnboarding} 
+              canDelete={canDeleteOnboarding} 
+              onDelete={handleDelete} 
+              router={router} 
+              menuLabelHelper={onbMenuLabel}
+            />
           );
         },
       },
@@ -363,6 +407,13 @@ const Onboarded = () => {
       {/* ── 1) HEADER: about + search + add ─────────────────────────────────── */}
       <div className="onb-header">
         <div className="onb-header-about">
+          <button 
+            className="ob-mobile-menu-btn" 
+            onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
           <div className="onb-header-icon">
             <Users size={18} />
           </div>
@@ -439,59 +490,31 @@ const Onboarded = () => {
           dataSource={pagedRows}
           pagination={false}
           onRow={() => ({ className: "onb-row" })}
+          scroll={{ x: 'max-content' }}
         />
       </div>
 
       {/* Sticky footer pager */}
       {total > 0 && (
-        <div className="onb-footer onb-footer--sticky">
-          <div className="onb-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
-          </div>
-          <div className="onb-pager">
-            <button
-              type="button"
-              className="onb-pager-btn"
-              disabled={tablePage <= 1}
-              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-            >
-              ‹
-            </button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1)
-              .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
-              .map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`onb-pager-num ${p === tablePage ? "is-active" : ""}`}
-                  onClick={() => setTablePage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            <button
-              type="button"
-              className="onb-pager-btn"
-              disabled={tablePage >= pageCount}
-              onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}
-            >
-              ›
-            </button>
-            <Select
-              className="onb-pagesize"
-              size="small"
-              value={tablePageSize}
-              onChange={(v) => {
-                setTablePageSize(v);
-                setTablePage(1);
-              }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({
-                value: n,
-                label: `${n} / page`,
-              }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
+        <div className="bd2-pagination">
+          <Text className="bd2-pagination-meta">
+            <b>{pageStart}</b>–
+            <b>{pageEnd}</b> of{' '}
+            <b>{total}</b>{' '}
+            {total === 1 ? 'employee' : 'employees'}
+          </Text>
+          <Pagination
+            current={tablePage}
+            pageSize={tablePageSize}
+            total={total}
+            onChange={(p, s) => {
+              setTablePage(p);
+              if (s) setTablePageSize(s);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 25, 50, 100]}
+            size="small"
+          />
         </div>
       )}
 
@@ -501,7 +524,9 @@ const Onboarded = () => {
         /* 1) Header */
         .onb-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
         }
         .onb-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .onb-header-icon {
@@ -547,13 +572,39 @@ const Onboarded = () => {
         .onb-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
         /* 3) Table */
-        .onb-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .onb-table .ant-table { background: transparent; font-size: 12px; }
+        .onb-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px; overflow: hidden; }
+        .onb-table .ant-table,
+        .onb-table .ant-table-container { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .onb-table .ant-pagination { margin: 12px 12px 8px !important; }
+
+        @media (max-width: 900px) {
+          .onb-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 16px;
+            gap: 12px;
+          }
+          .onb-header-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .onb-search-wrap {
+            width: 100%;
+          }
+          .onb-stats {
+            grid-template-columns: 1fr;
+          }
+        }
         .onb-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+        }
+        [data-theme='dark'] .onb-table .ant-table-thead > tr > th {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+          color: #94A3B8 !important;
         }
         .onb-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .onb-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -581,28 +632,78 @@ const Onboarded = () => {
           background: ${TINT.blue}; color: ${PALETTE.blue}; font-size: 11.5px; font-weight: 600;
         }
 
-        /* Sticky footer pager */
-        .onb-footer {
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-          height: 52px; box-sizing: border-box;
+        /* Sticky pagination */
+        .bd2-pagination {
+          position: sticky;
+          bottom: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: auto -22px 0;
+          padding: 6px 28px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-100);
+          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
         }
-        .onb-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin-top: auto; padding: 0 14px;
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-top: none;
-          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        [data-theme='dark'] .bd2-pagination {
+          background: #0d1117 !important;
+          border-top-color: #1f2937 !important;
         }
-        .onb-footer-info { font-size: 12px; color: var(--text-slate-500); }
-        .onb-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
-        .onb-pager { display: flex; align-items: center; gap: 3px; }
-        .onb-pager-btn, .onb-pager-num {
-          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        .bd2-pagination-meta {
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-500) !important;
+          letter-spacing: -0.005em;
         }
-        .onb-pager-btn:hover:not(:disabled), .onb-pager-num:hover { border-color: #93c5fd; color: ${PALETTE.blue}; }
-        .onb-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .onb-pager-num.is-active { background: ${PALETTE.blue}; border-color: ${PALETTE.blue}; color: #fff; }
-        .onb-pagesize { margin-left: 5px; }
-        .onb-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+        .bd2-pagination-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .bd2-pagination-meta b {
+          color: #f1f5f9 !important;
+        }
+
+        /* Premium action dropdown — matches Proposal page */
+        .pp-action-pop .ant-popover-inner {
+          padding: 0 !important;
+          border-radius: 0px !important;
+          border: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
+        }
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0px !important; width: 220px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0px !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+          background: #0B0F1A !important; border-color: #1E293B !important;
+        }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+        [data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+        [data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
       `}</style>
     </div>
   );

@@ -466,7 +466,7 @@ const ColumnTitle: React.FC<{
 };
 
 // Inline preview shown when a row is expanded. Lists top-level tree nodes (#B).
-const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string) => void }> = ({ hub, onOpen }) => {
+const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string, nodeId?: string) => void }> = ({ hub, onOpen }) => {
   const tops = (hub.treeNodes || [])
     .filter((n) => !n.parentId)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -519,7 +519,7 @@ const HubInlinePreview: React.FC<{ hub: DocumentHub; onOpen: (id: string) => voi
                 <button
                   key={node.id}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onOpen(hub.id); }}
+                  onClick={(e) => { e.stopPropagation(); onOpen(hub.id, node.id); }}
                   className="dh-preview-chip inline-flex items-center gap-1.5"
                   style={{
                     padding: '4px 10px',
@@ -933,9 +933,13 @@ const DocumentHubPage = () => {
     });
   };
 
-  const openHub = (id: string) => {
+  const openHub = (id: string, nodeId?: string) => {
     trackRecent(id);
-    router.push(`/documenthub/${id}`);
+    if (nodeId) {
+      router.push(`/documenthub/${id}?nodeId=${nodeId}`);
+    } else {
+      router.push(`/documenthub/${id}`);
+    }
   };
 
   const updateHub = async (id: string, data: any) => {
@@ -2330,7 +2334,23 @@ const DocumentHubPage = () => {
                   loading={membersLoading}
                   width={260}
                   style={{ width: '100%' }}
-                  options={members.map((m: any) => ({ value: m.value, label: m.label }))}
+                  options={members.map((m: any) => ({
+                    value: m.value,
+                    label: m.label,
+                    badge: (
+                      <Avatar
+                        src={m.avatarUrl || undefined}
+                        size={20}
+                        style={{
+                          background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                          fontSize: 9,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {(m.label || "?").charAt(0).toUpperCase()}
+                      </Avatar>
+                    )
+                  }))}
                 />
                 <RangePicker
                   className="premium-range-picker"
@@ -3831,9 +3851,14 @@ const DocumentHubPage = () => {
         .premium-table .ant-table-container {
           border: 1px solid var(--border-slate-200) !important;
         }
+        .premium-table,
+        .premium-table.ant-table-wrapper,
         .premium-table .ant-table,
         .premium-table .ant-table-wrapper,
-        .premium-table .ant-table-container {
+        .premium-table .ant-table-container,
+        .premium-table .ant-table-content,
+        .premium-table .ant-table-header,
+        .premium-table .ant-table-body {
           border-radius: 0px !important;
         }
 
@@ -3841,11 +3866,14 @@ const DocumentHubPage = () => {
           border-color: #374151 !important;
         }
 
-        .premium-table .ant-table-thead > tr > th {
+        .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
 
         .premium-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
@@ -3870,10 +3898,12 @@ const DocumentHubPage = () => {
           border-right: none !important;
         }
 
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
           background: #161B22 !important;
           border-top-color: #374151 !important;
           border-bottom-color: #374151 !important;
+          color: #94A3B8 !important;
         }
         
         .premium-table .ant-table-thead > tr > th:first-child {
@@ -4538,4 +4568,8 @@ const RailSection: React.FC<{
   </div>
 );
 
-export default DocumentHubPage;
+const ExportedDocumentHubPage = () => {
+  console.log("Forcing HMR reload for DocumentHubPage 3");
+  return <DocumentHubPage />;
+}
+export default ExportedDocumentHubPage;

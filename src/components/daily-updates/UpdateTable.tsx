@@ -130,7 +130,7 @@ export default function UpdateTable({
         const firstTask = projectUpdates[0]?.tasks?.[0];
         const projectName = projectUpdates[0]?.projectName;
         const showAsTicketLink = count === 1 && !!firstTask?.ticketNumber && !!firstTask?.ticketId;
-        
+
         if (showAsTicketLink) {
           const ticketTooltip = (
             <div style={{ maxWidth: 260, padding: '2px 0' }}>
@@ -238,7 +238,7 @@ export default function UpdateTable({
         const firstTask = projectUpdates[0]?.tasks?.[0];
         const status = firstTask?.status || "pending";
         const config = getStatusConfig(status);
-        
+
         return (
           <div style={{
             display: "inline-flex",
@@ -392,8 +392,8 @@ export default function UpdateTable({
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
-            <Dropdown 
-              menu={{ 
+            <Dropdown
+              menu={{
                 items,
                 onClick: ({ key, domEvent }: any) => {
                   domEvent.stopPropagation();
@@ -402,8 +402,8 @@ export default function UpdateTable({
                     if (!editDisabled) router.push(`/daily-updates/submit?edit=${update.id}`);
                   }
                 }
-              }} 
-              trigger={['click']} 
+              }}
+              trigger={['click']}
               placement="bottomRight"
               overlayClassName="du-action-pop"
             >

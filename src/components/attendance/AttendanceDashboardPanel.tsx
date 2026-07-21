@@ -349,7 +349,7 @@ export default function AttendanceDashboardPanel() {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
           padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap;
         }
-        .adb-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .adb-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .adb-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -357,7 +357,7 @@ export default function AttendanceDashboardPanel() {
         }
         .adb-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .adb-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .adb-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+        .adb-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; max-width: 100%; }
         .adb-seg { display: inline-flex; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 9px; padding: 3px; gap: 2px; }
         .adb-seg-btn {
           border: none; background: transparent; cursor: pointer; height: 28px; padding: 0 14px; border-radius: 7px;
@@ -365,7 +365,7 @@ export default function AttendanceDashboardPanel() {
         }
         .adb-seg-btn:hover { color: var(--text-slate-800); }
         .adb-seg-btn.is-active { background: var(--bg-pure-white); color: ${PALETTE.blue}; box-shadow: 0 1px 3px rgba(15,23,42,0.10); }
-        .adb-range.ant-picker { border-radius: 8px; height: 36px; }
+        .adb-range.ant-picker { border-radius: 8px; height: 36px; max-width: 100%; }
         .adb-ghost-btn {
           width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-slate-200);
           background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
@@ -441,6 +441,9 @@ export default function AttendanceDashboardPanel() {
         @media (max-width: 1100px) {
           .adb-stats { grid-template-columns: repeat(2, 1fr); }
           .adb-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+          .adb-stats { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

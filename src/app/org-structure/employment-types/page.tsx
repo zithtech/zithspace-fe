@@ -10,10 +10,9 @@ import {
   Spin,
   Tooltip,
   Drawer,
-  Popconfirm,
-  App,
-  Dropdown,
+  Popover,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Briefcase,
   Edit,
@@ -37,6 +36,9 @@ import { OrgModuleScaffold, OrgStatDef, OrgView } from "@/components/org-structu
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
+
 
 export default function EmploymentTypesPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureEmploymentTypes" });
@@ -58,7 +60,7 @@ export default function EmploymentTypesPage() {
   const [api, contextHolder] = notification.useNotification();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
-  const { modal } = App.useApp();
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
 
   const {
     employmentTypes,
@@ -209,18 +211,18 @@ export default function EmploymentTypesPage() {
             </Tooltip>
           )}
           {canDeleteOrgEmploymentType && (
-            <Popconfirm
+            <ConfirmDialog
               title="Remove employment type?"
               description="This will permanently delete this employment type."
+              confirmText="Delete"
+              tone="danger"
+              placement="bottomRight"
               onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete">
                 <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
@@ -245,29 +247,50 @@ export default function EmploymentTypesPage() {
     { key: "coverage", label: "Coverage", value: `${totalTypes > 0 ? Math.round((activeTypes / totalTypes) * 100) : 0}%`, icon: <Briefcase size={14} />, color: "#6366f1", tint: "rgba(99,102,241,0.10)" },
   ];
 
+  const etMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
   const renderEmploymentTypeCard = (record: EmploymentType) => {
     const [c0, c1] = accentFor(record.code || record.name || "");
     const canAct = canUpdateOrgEmploymentType || canDeleteOrgEmploymentType;
-    const menu = {
-      items: [
-        ...(canUpdateOrgEmploymentType ? [{ key: "edit", label: "Edit type", icon: <Edit size={14} /> }] : []),
-        ...(canDeleteOrgEmploymentType ? [{ key: "delete", danger: true, label: "Delete", icon: <Trash2 size={14} /> }] : []),
-      ],
-      onClick: ({ key, domEvent }: any) => {
-        domEvent?.stopPropagation?.();
-        if (key === "edit") handleEdit(record);
-        else if (key === "delete") {
-          modal.confirm({
-            title: "Remove employment type?",
-            content: "This will permanently delete this employment type.",
-            okText: "Delete",
-            cancelText: "Cancel",
-            okButtonProps: { danger: true },
-            onOk: () => handleDelete(record.id),
-          });
-        }
-      },
-    };
+    
+    const actionContent = (
+      <div className="ant-dropdown-menu" style={{ border: 'none', boxShadow: 'none' }}>
+        {canUpdateOrgEmploymentType && (
+          <div 
+            className="ant-dropdown-menu-item" 
+            onClick={(e) => { e.stopPropagation(); setOpenCardId(null); handleEdit(record); }}
+          >
+            {etMenuLabel("Edit type", "Modify name, code or status", <Edit size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
+          </div>
+        )}
+        {canDeleteOrgEmploymentType && (
+          <ConfirmDialog
+            title="Remove employment type?"
+            description="This will permanently delete this employment type."
+            confirmText="Delete"
+            tone="danger"
+            placement="bottomRight"
+            onConfirm={async () => {
+              await handleDelete(record.id);
+              setOpenCardId(null);
+            }}
+          >
+            <div className="ant-dropdown-menu-item ant-dropdown-menu-item-danger" onClick={(e) => e.stopPropagation()}>
+              {etMenuLabel("Delete", "Permanently remove this type", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)")}
+            </div>
+          </ConfirmDialog>
+        )}
+      </div>
+    );
+
     return (
       <div className="omx-card">
         <div className="omx-card-top">
@@ -279,11 +302,21 @@ export default function EmploymentTypesPage() {
             <div className="omx-card-sub">{record.code}</div>
           </div>
           {canAct && (
-            <Dropdown menu={menu} trigger={["click"]} placement="bottomRight">
+            <Popover 
+              content={actionContent} 
+              trigger="click" 
+              placement="bottomRight"
+              open={openCardId === record.id}
+              onOpenChange={(open) => {
+                setOpenCardId(open ? record.id : null);
+              }}
+              overlayClassName="pp-action-pop"
+              arrow={false}
+            >
               <button type="button" className="omx-card-actions" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal size={16} />
               </button>
-            </Dropdown>
+            </Popover>
           )}
         </div>
         <div className="omx-card-desc">{record.description || "No description provided"}</div>
@@ -308,7 +341,6 @@ export default function EmploymentTypesPage() {
             description="Define and manage workforce contract types and employment structures."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
               marginBottom: 8,
               position: 'sticky',
               top: 0,
@@ -365,63 +397,115 @@ export default function EmploymentTypesPage() {
           />
 
           {/* Create / Edit Drawer */}
+          {/* Create / Edit Drawer */}
           <Drawer
-            className="orgx-drawer"
-            width={520}
+            rootClassName="leave-drawer-root"
+            title={null}
             open={isDrawerOpen}
             onClose={() => setIsDrawerOpen(false)}
+            width={720}
             closable={false}
-            styles={{ header: { display: "none" }, footer: { padding: 0, border: "none" } }}
+            destroyOnClose
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0, background: 'var(--customers-page-bg)' },
+              footer: { padding: 0, border: 'none' },
+              wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+            }}
             footer={
-              <div className="orgx-drawer__footer">
-                <Button onClick={() => setIsDrawerOpen(false)} className="orgx-btn-ghost">
+              <div
+                className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderColor: 'var(--border-color)',
+                }}
+              >
+                <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                  Fields marked required must be filled
+                </span>
+                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
                   Cancel
                 </Button>
                 <Button
                   type="primary"
                   loading={submitting}
                   onClick={handleSave}
-                  className="orgx-btn-primary"
+                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                  icon={editingKey ? <Edit size={14} /> : <Plus size={14} />}
                 >
                   {editingKey ? "Save Changes" : "Create Type"}
                 </Button>
               </div>
             }
           >
-            <button
-              type="button"
-              className="orgx-drawer__close"
-              onClick={() => setIsDrawerOpen(false)}
-              aria-label="Close"
+            <style>{formStyles}</style>
+            <div
+              className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+              style={{
+                background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+                borderColor: 'var(--border-color)',
+              }}
             >
-              <X size={14} />
-            </button>
-
-            <div className="orgx-drawer__hero">
-              <div className="orgx-drawer__hero-icon">
-                <Briefcase size={18} />
-              </div>
-              <div className="orgx-drawer__hero-text">
-                <div className="orgx-drawer__hero-eyebrow">Employment Type</div>
-                <div className="orgx-drawer__hero-title">
-                  {editingKey ? "Edit Type" : "New Employment Type"}
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'rgba(59,130,246,0.10)',
+                    color: '#3b82f6',
+                    border: '1px solid var(--border-blue-200)',
+                  }}
+                >
+                  {editingKey ? <Edit size={18} /> : <Briefcase size={18} />}
                 </div>
-                <div className="orgx-drawer__hero-sub">
-                  Configure a contract type used when onboarding members.
+                <div className="min-w-0">
+                  <div
+                    className="text-[15px] font-semibold leading-tight"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {editingKey ? "Edit Type" : "New Employment Type"}
+                  </div>
+                  <div
+                    className="text-[12px] mt-0.5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Configure a contract type used when onboarding members.
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                aria-label="Close"
+                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="orgx-drawer__body">
-              <Form form={form} layout="vertical" requiredMark={false}>
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <TagIcon size={11} /> Identity
-                  </div>
+            <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+              <Form 
+                form={form} 
+                layout="horizontal"
+                labelCol={{ span: 8 }}
+                wrapperCol={{ span: 16 }}
+                labelAlign="left"
+                colon={false}
+                requiredMark="optional"
+                className="customer-drawer-form"
+              >
+                <SectionCard
+                  icon={<TagIcon />}
+                  title="Identity"
+                  subtitle="Naming and identifier"
+                  step="STEP 1"
+                >
                   <Form.Item
                     name="typeName"
                     label="Type name"
                     rules={[{ required: true, message: "Please enter type name" }]}
+                    style={{ marginBottom: 14 }}
                   >
                     <Input
                       placeholder="e.g. Full-Time Regular"
@@ -436,27 +520,33 @@ export default function EmploymentTypesPage() {
                     name="code"
                     label="Code"
                     rules={[{ required: true, message: "Required" }]}
+                    style={{ marginBottom: 14 }}
                   >
                     <Input placeholder="e.g. FULL_TIME" />
                   </Form.Item>
-                </div>
+                </SectionCard>
 
-                <div className="orgx-section">
-                  <div className="orgx-section__title">
-                    <Settings size={11} /> Controls
-                  </div>
-                  <div className="orgx-toggle-row">
-                    <div className="orgx-toggle-row__text">
-                      <div className="orgx-toggle-row__title">Active status</div>
-                      <div className="orgx-toggle-row__sub">
-                        Allow using this type for new employee contracts.
-                      </div>
-                    </div>
-                    <Form.Item name="isActive" valuePropName="checked" initialValue={true} style={{ margin: 0 }}>
-                      <Switch />
-                    </Form.Item>
-                  </div>
-                  <Form.Item name="description" label="Description (optional)">
+                <SectionCard
+                  icon={<Settings />}
+                  title="Controls"
+                  subtitle="Active status and details"
+                  step="STEP 2"
+                >
+                  <Form.Item 
+                    name="isActive" 
+                    valuePropName="checked" 
+                    initialValue={true} 
+                    label="Active status" 
+                    tooltip="Allow using this type for new employee contracts."
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item 
+                    name="description" 
+                    label="Description (optional)"
+                    style={{ marginBottom: 14 }}
+                  >
                     <Input.TextArea
                       rows={3}
                       placeholder="Requirements or details for this employment category…"
@@ -464,7 +554,7 @@ export default function EmploymentTypesPage() {
                       showCount
                     />
                   </Form.Item>
-                </div>
+                </SectionCard>
               </Form>
             </div>
           </Drawer>
@@ -474,6 +564,56 @@ export default function EmploymentTypesPage() {
           onClose={() => setHistoryOpen(false)}
           module="OrgStructure"
         />
+        <style jsx global>{`
+          .orgx-shell .saas-header-container {
+            padding: 9.5px 32px !important;
+          }
+          @media (max-width: 1024px) {
+            .orgx-shell .saas-header-container {
+              padding: 9px 16px !important;
+            }
+          }
+
+          /* Premium action dropdown — matches Proposal page */
+          .pp-action-pop .ant-popover-inner {
+            padding: 0 !important;
+            border-radius: 0px !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+          .pp-action-pop .ant-dropdown-menu {
+            padding: 6px; border-radius: 0px !important; min-width: 220px;
+            overflow: hidden !important;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
+            box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+          }
+          .pp-action-pop .ant-dropdown-menu-item {
+            padding: 0 !important; border-radius: 0px !important; margin: 1px 0;
+            transition: background .12s ease;
+          }
+          .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+          .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+          .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+          .pp-menu-ic {
+            width: 30px; height: 30px; border-radius: 0px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          }
+          .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+          .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+          .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+          .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+          .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+            background: #0B0F1A !important; border-color: #1E293B !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+          [data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+          [data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
+        `}</style>
     </>
   );
 }

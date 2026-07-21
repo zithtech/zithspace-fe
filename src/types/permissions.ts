@@ -220,6 +220,49 @@ export const Permissions = {
   PAYROLL_TRASH_DELETE:    'payroll.trash.delete',
   PAYROLL_PROCESS:         'payroll.process',
   PAYROLL_MANAGE:          'payroll.manage',
+
+  // ── Payroll 2.0 — page-based permissions (12 pages) ─────────────────────────
+  PAYROLL_SETTINGS_READ: 'payroll.settings.read',
+  PAYROLL_SETTINGS_UPDATE: 'payroll.settings.update',
+  PAYROLL_COMPONENTS_READ: 'payroll.components.read',
+  PAYROLL_COMPONENTS_CREATE: 'payroll.components.create',
+  PAYROLL_COMPONENTS_UPDATE: 'payroll.components.update',
+  PAYROLL_COMPONENTS_DELETE: 'payroll.components.delete',
+  PAYROLL_STRUCTURES_READ: 'payroll.structures.read',
+  PAYROLL_STRUCTURES_CREATE: 'payroll.structures.create',
+  PAYROLL_STRUCTURES_UPDATE: 'payroll.structures.update',
+  PAYROLL_STRUCTURES_DELETE: 'payroll.structures.delete',
+  PAYROLL_SCHEDULES_READ: 'payroll.schedules.read',
+  PAYROLL_SCHEDULES_CREATE: 'payroll.schedules.create',
+  PAYROLL_SCHEDULES_UPDATE: 'payroll.schedules.update',
+  PAYROLL_SCHEDULES_DELETE: 'payroll.schedules.delete',
+  PAYROLL_STATUTORY_READ: 'payroll.statutory.read',
+  PAYROLL_STATUTORY_UPDATE: 'payroll.statutory.update',
+  PAYROLL_STATE_STATUTORY_READ: 'payroll.state_statutory.read',
+  PAYROLL_STATE_STATUTORY_CREATE: 'payroll.state_statutory.create',
+  PAYROLL_STATE_STATUTORY_UPDATE: 'payroll.state_statutory.update',
+  PAYROLL_STATE_STATUTORY_DELETE: 'payroll.state_statutory.delete',
+  PAYROLL_WORKFLOWS_READ: 'payroll.workflows.read',
+  PAYROLL_WORKFLOWS_CREATE: 'payroll.workflows.create',
+  PAYROLL_WORKFLOWS_UPDATE: 'payroll.workflows.update',
+  PAYROLL_WORKFLOWS_DELETE: 'payroll.workflows.delete',
+  PAYROLL_PAYSLIP_BANK_READ: 'payroll.payslip_bank.read',
+  PAYROLL_PAYSLIP_BANK_UPDATE: 'payroll.payslip_bank.update',
+  PAYROLL_EMPLOYEES_READ: 'payroll.employees.read',
+  PAYROLL_EMPLOYEES_CREATE: 'payroll.employees.create',
+  PAYROLL_EMPLOYEES_UPDATE: 'payroll.employees.update',
+  PAYROLL_EMPLOYEES_DELETE: 'payroll.employees.delete',
+  PAYROLL_RUN_READ: 'payroll.run.read',
+  PAYROLL_RUN_CREATE: 'payroll.run.create',
+  PAYROLL_RUN_PROCESS: 'payroll.run.process',
+  PAYROLL_RUN_APPROVE: 'payroll.run.approve',
+  PAYROLL_RUN_FINALIZE: 'payroll.run.finalize',
+  PAYROLL_RUN_PAY: 'payroll.run.pay',
+  PAYROLL_RUN_PAYSLIPS: 'payroll.run.payslips',
+  PAYROLL_RUN_DELETE: 'payroll.run.delete',
+  PAYROLL_REPORTS_READ: 'payroll.reports.read',
+  PAYROLL_REPORTS_EXPORT: 'payroll.reports.export',
+  PAYROLL_MY_PAYSLIPS_READ: 'payroll.my_payslips.read',
   SALARY_READ:             'salary.read',
   SALARY_APPROVE:          'salary.approve',
   SALARY_MANAGE:           'salary.manage',
@@ -337,10 +380,6 @@ export const Permissions = {
   SQUAD_DELETE: 'squad.delete',
   SQUAD_MANAGE: 'squad.manage', // dissolving squads, changing squad leads, and cross-team settings
 
-  // Performance
-  PERFORMANCE_READ:   'performance.read',
-  PERFORMANCE_MANAGE: 'performance.manage', // review cycle management, goal settings, and appraisal forms
-
   // Performance Report
   PERFORMANCE_REPORT_READ:           'performance.report.read',
   PERFORMANCE_REPORT_SETTING_READ:   'performance.report.setting.read',
@@ -415,6 +454,17 @@ export const Permissions = {
   // Activity log (transaction history)
   ACTIVITY_LOG_READ:     'activity_log.read',
   ACTIVITY_LOG_READ_ALL: 'activity_log.read_all',
+
+  // My Hub (personal self-service launcher) — one permission per page
+  MY_HUB_OVERVIEW_READ:     'my_hub.overview.read',
+  MY_HUB_APPLY_LEAVE_READ:  'my_hub.apply_leave.read',
+  MY_HUB_ATTENDANCE_READ:   'my_hub.attendance.read',
+  MY_HUB_ESCALATION_READ:   'my_hub.escalation.read',
+  MY_HUB_DOCUMENTS_READ:    'my_hub.documents.read',
+  MY_HUB_PERFORMANCE_READ:  'my_hub.performance.read',
+  MY_HUB_PAYSLIPS_READ:     'my_hub.payslips.read',
+  MY_HUB_PROFILE_READ:      'my_hub.profile.read',
+  MY_HUB_CLAIMS_READ:       'my_hub.claims.read',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

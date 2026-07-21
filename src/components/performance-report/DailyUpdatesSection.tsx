@@ -118,6 +118,22 @@ export default function DailyUpdatesSection({
     [posted, fromStr, toStr]
   );
 
+  const displayableUpdates = useMemo(
+    () =>
+      updates.filter((u) => {
+        const t = u.updateType || 'EOD';
+        if (t === 'BOD') return bodEnabled;
+        if (t === 'EOD') return eodEnabled;
+        return true;
+      }),
+    [updates, bodEnabled, eodEnabled]
+  );
+
+  const tableData = useMemo(
+    () => displayableUpdates.filter((u) => inRange(postedDate(u))),
+    [displayableUpdates, fromStr, toStr]
+  );
+
   const stats = useMemo(() => {
     // Posted working-days she actually submitted (counted independently — NOT
     // intersected with attendance, which can mis-key dates and undercount).
@@ -217,7 +233,7 @@ export default function DailyUpdatesSection({
         </div>
       </div>
 
-      <UpdateTable updates={visible} loading={loading} onViewDetails={setDetail} />
+      <UpdateTable updates={tableData} loading={loading} onViewDetails={setDetail} />
 
       <UpdateDetailsDrawer update={detail} open={!!detail} onClose={() => setDetail(null)} />
     </div>

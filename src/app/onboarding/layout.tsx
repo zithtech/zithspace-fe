@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserRoundCog } from 'lucide-react';
+import { UserRoundCog, Menu } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +25,19 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     [perms]
   );
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  
+  // Close sidebar on navigation
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleOpenSidebar = () => setMobileSidebarOpen(true);
+    window.addEventListener('open-ob-sidebar', handleOpenSidebar);
+    return () => window.removeEventListener('open-ob-sidebar', handleOpenSidebar);
+  }, []);
+
   // Base guard: must be able to read or create onboarding at all.
   useEffect(() => {
     if (!isLoading && !perms.canReadOnboarding && !perms.canCreateOnboarding) {
@@ -36,8 +49,14 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     <ProtectedRoute>
       <MainLayout>
         <div className="ob-shell">
+          {/* Backdrop for mobile drawer */}
+          <div 
+            className={`ob-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+
           {/* ============================ SIDEBAR ============================ */}
-          <aside className="ob-sidebar">
+          <aside className={`ob-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
             <div className="ob-side-head">
               <div className="ob-side-logo"><UserRoundCog size={22} /></div>
               <div className="ob-side-head-text">
@@ -131,6 +150,76 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           /* ---------------- Main ---------------- */
           .ob-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
           .ob-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+
+          /* ---------------- Responsive ---------------- */
+          .ob-sidebar-backdrop { display: none; }
+          .ob-mobile-topbar { display: none; }
+          .ob-mobile-menu-btn { display: none; }
+
+          @media (max-width: 900px) {
+            .ob-shell {
+              display: block;
+              margin: 0;
+            }
+            .ob-main {
+              padding: 0;
+              min-height: calc(100vh - 54px);
+              height: auto;
+            }
+            .ob-content {
+              padding: 12px 14px;
+            }
+            .ob-sidebar {
+              position: fixed;
+              top: 0; left: 0; bottom: 0;
+              height: auto;
+              width: 280px;
+              max-width: 85vw;
+              margin: 0;
+              border-radius: 0;
+              border-left: none;
+              transform: translateX(-103%);
+              transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+              z-index: 2000;
+              box-shadow: none;
+            }
+            .ob-sidebar.is-mobile-open {
+              transform: translateX(0);
+              box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+            }
+            .ob-sidebar-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.45);
+              backdrop-filter: blur(2px);
+              opacity: 0;
+              pointer-events: none;
+              transition: opacity 0.26s ease;
+              z-index: 1900;
+            }
+            .ob-sidebar-backdrop.is-open {
+              opacity: 1;
+              pointer-events: auto;
+            }
+            /* Mobile Topbar components placed within page headers */
+            .ob-mobile-menu-btn {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-200);
+              color: var(--text-slate-700);
+              cursor: pointer;
+              margin-right: 12px;
+            }
+            .ob-mobile-menu-btn:hover {
+              background: var(--bg-slate-100);
+            }
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

@@ -1,7 +1,10 @@
 "use client";
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Drawer, Select, Tooltip, message, App, ConfigProvider, theme as antdTheme, notification } from "antd";
+import { Avatar, Drawer, Select, Tooltip, message, App, ConfigProvider, theme as antdTheme, notification, Form, Input, Button, Tag, Space, Typography } from "antd";
+import { BugOutlined, FormatPainterOutlined, LoadingOutlined, AppstoreOutlined, PaperClipOutlined, EyeOutlined, DeleteOutlined, LinkOutlined, HistoryOutlined, UploadOutlined, FileTextOutlined, PlusOutlined, InfoCircleOutlined, TeamOutlined, CheckCircleOutlined } from "@ant-design/icons";
+
 import {
   X,
   UploadCloud,
@@ -27,7 +30,11 @@ import {
   Check,
   History,
 } from "lucide-react";
+import TiptapEditor from "@/components/common/TiptapEditor";
+
+const { Text } = Typography;
 import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
@@ -102,9 +109,30 @@ export default function CreateBugDrawer({
   const [enhancingDescription, setEnhancingDescription] = useState(false);
   const [comments, setComments] = useState("");
   const [previewAttachment, setPreviewAttachment] = useState<BugAttachment | null>(null);
+  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  useEffect(() => {
+    if (!open) return;
+    let observer: ResizeObserver | null = null;
+    const timer = setTimeout(() => {
+      const trigger = document.querySelector('.customer-drawer-form .sd-trigger');
+      if (trigger) {
+        observer = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            setDropdownWidth(entry.contentRect.width);
+          }
+        });
+        observer.observe(trigger);
+        setDropdownWidth((trigger as HTMLElement).offsetWidth);
+      }
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -354,809 +382,341 @@ export default function CreateBugDrawer({
       <Drawer
         open={open}
         onClose={onClose}
-        width={460}
+        width={680}
         destroyOnHidden
-        closable={false}
-        title={null}
-        footer={null}
         maskClosable={!submitting}
-        className={`hb-cbd ${theme === "dark" ? "hb-cbd-dark" : "hb-cbd-light"}`}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 0,
+              background: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+            }}>
+              <BugOutlined style={{ fontSize: 16 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                {editingBug ? `${editingBug.bugNumber || "Bug"} · Refine` : "Capture a bug"}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {editingBug ? "Edit Bug Node" : "New Bug Entry"}
+              </div>
+            </div>
+          </div>
+        }
+        styles={{
+          header: { borderBottom: '1px solid var(--border-color)', padding: '12px 16px', background: 'var(--bg-secondary)' },
+          body: { padding: '12px 16px', backgroundColor: 'var(--bg-primary)' },
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
+        }}
+        extra={
+          <Space size={8}>
+            {editingBug && canReadActivityLog && (
+              <Button onClick={() => setHistoryOpen(true)} style={{ borderRadius: 8 }} icon={<HistoryOutlined />}>History</Button>
+            )}
+            <Button onClick={onClose} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
+            <Button
+              type="primary"
+              loading={submitting}
+              onClick={handleSubmit}
+              icon={<CheckCircleOutlined style={{ fontSize: 13 }} />}
+              style={{
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700,
+                background: '#2563eb',
+                border: 'none',
+                height: 32,
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              }}
+            >
+              {editingBug ? "Save Changes" : "Create Bug"}
+            </Button>
+          </Space>
+        }
       >
         <div
-          className="hb-cbd-shell"
           onKeyDown={onShellKeyDown}
           onDragEnter={onDragEnter}
           onDragLeave={onDragLeave}
           onDragOver={onDragOver}
           onDrop={onDrop}
+          style={{ position: 'relative', height: '100%' }}
         >
           <ConfigProvider
             theme={{
-              algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
               token: {
-                colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
-                colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
                 borderRadius: 0,
-                borderRadiusLG: 0,
                 borderRadiusSM: 0,
+                borderRadiusLG: 0,
                 borderRadiusXS: 0,
+              },
+              components: {
+                Select: { borderRadius: 0 },
+                Input: { borderRadius: 0 },
+                Button: { borderRadius: 0 }
               }
             }}
           >
-            {/* Drag overlay */}
             {dragOver && (
-              <div className="hb-cbd-dropoverlay">
-                <UploadCloud size={36} />
-                <div className="hb-cbd-dropoverlay-title">Drop files to attach</div>
-                <div className="hb-cbd-dropoverlay-sub">
-                  Up to {MAX_FILE_MB}MB each
-                </div>
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(37, 99, 235, 0.1)', backdropFilter: 'blur(4px)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                border: '2px dashed #2563eb', color: '#2563eb'
+              }}>
+                <UploadOutlined style={{ fontSize: 36, marginBottom: 12 }} />
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Drop files to attach</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Up to {MAX_FILE_MB}MB each</div>
               </div>
             )}
 
-            {/* Header */}
-            <div className="hb-cbd-header">
-              <div className="hb-cbd-headblock">
-                <div className="hb-cbd-eyebrow">
-                  <Sparkles size={11} />
-                  {editingBug ? "Edit bug" : "New bug"}
-                </div>
-                <div className="hb-cbd-headtitle">
-                  {editingBug ? `${editingBug.bugNumber || "Bug"} · Refine` : "Capture a bug"}
-                </div>
-                <div className="hb-cbd-headsub">
-                  Describe what's broken — refinement happens later via AI.
-                </div>
-                {editingBug && (
-                  <div className="hb-cbd-headsub" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ color: 'var(--hb-text-muted)' }}>Created By:</span>
-                    <strong style={{ color: 'var(--hb-text-soft)', fontWeight: 600 }}>
-                      {editingBug.createdBy?.name || "Unknown"}
-                    </strong>
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {editingBug && canReadActivityLog && (
-                  <Tooltip title="View activity history">
-                    <button
-                      className="hb-cbd-iconbtn"
-                      onClick={() => setHistoryOpen(true)}
-                      aria-label="History"
-                      type="button"
-                    >
-                      <History size={16} />
-                    </button>
-                  </Tooltip>
-                )}
-                <button
-                  className="hb-cbd-iconbtn"
-                  onClick={onClose}
-                  aria-label="Close"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {editingBug && (
-              <TransactionHistoryDrawer
-                open={historyOpen}
-                onClose={() => setHistoryOpen(false)}
-                entityType="bug"
-                entityId={editingBug.id}
-                subtitle={`${editingBug.bugNumber || "Bug"}${editingBug.title ? ` — ${editingBug.title}` : ""}`}
-              />
-            )}
-
-            {/* Body */}
-            <div className="hb-cbd-body">
-              {notificationContextHolder}
-              {/* {messageContextHolder} */}
-              {/* Title */}
-              <input
-                type="text"
-                className="hb-cbd-title-input"
-                placeholder="Bug title (optional — AI can refine)"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={140}
-              />
-
-              {/* Description */}
-              <div
-                className={`hb-cbd-fieldgroup ${description.trim().length === 0 && descriptionTouched ? "hb-cbd-error" : ""
-                  }`}
-              >
-                <div className="hb-cbd-fieldhead">
-                  <Label icon={<TypeIcon size={11} />} required>
-                    Description
-                  </Label>
-                  <Tooltip
-                    title={
-                      description.trim()
-                        ? "Lightly fix grammar & typos"
-                        : "Write a description first"
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="hb-cbd-linkbtn"
-                      onClick={enhanceDescription}
+            <style>{drawerFormStyles}</style>
+            <style>{`
+              .sd-overlay-popover .sd-list::-webkit-scrollbar {
+                display: none;
+              }
+              .sd-overlay-popover .sd-list {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            `}</style>
+            <Form
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              className="lead-drawer-form customer-drawer-form"
+            >
+              <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="General Details" subtitle="Core bug information">
+                <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Bug Title</Text>}>
+                  <Input
+                    placeholder="Bug title (optional — AI can refine)"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={140}
+                  />
+                </Form.Item>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
+                    <Button
+                      type="dashed"
+                      size="small"
+                      style={{ borderRadius: 8 }}
+                      icon={enhancingDescription ? <LoadingOutlined /> : <FormatPainterOutlined />}
+                      onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
                       disabled={enhancingDescription || !description.trim()}
-                      aria-label="Enhance grammar"
                     >
-                      {enhancingDescription ? (
-                        <Loader2 size={12} className="hb-cbd-spin" />
-                      ) : (
-                        <Wand2 size={12} />
-                      )}
                       {enhancingDescription ? "Polishing…" : "Enhance grammar"}
-                    </button>
-                  </Tooltip>
+                    </Button>
+                  </div>
+                  <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Description</Text>} required validateStatus={description.trim().length === 0 && descriptionTouched ? 'error' : ''} help={description.trim().length === 0 && descriptionTouched ? 'Description is required' : ''}>
+                    <div onBlur={() => setDescriptionTouched(true)}>
+                      <TiptapEditor
+                        content={description}
+                        onChange={(html) => setDescription(html)}
+                        placeholder="What went wrong? Steps to reproduce?"
+                      />
+                    </div>
+                  </Form.Item>
                 </div>
-                <textarea
-                  className="hb-cbd-textarea"
-                  rows={3}
-                  placeholder="What's broken? Steps, observed behaviour, attachments (paste images/videos here)…"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={() => setDescriptionTouched(true)}
-                />
-                {descriptionTouched && description.trim().length === 0 && (
-                  <div className="hb-cbd-errortext">Description is required</div>
-                )}
-              </div>
+                <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Comments</Text>}>
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="Any additional internal comments or notes…"
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                  />
+                </Form.Item>
+              </SectionCard>
 
-              {/* Comments */}
-              <div className="hb-cbd-fieldgroup">
-                <Label icon={<FileText size={11} />}>Comments</Label>
-                <textarea
-                  className="hb-cbd-textarea"
-                  rows={2}
-                  placeholder="Any additional internal comments or notes…"
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                />
-              </div>
-
-              {/* Severity + Type */}
-              <div className="hb-cbd-row">
-                <div className="hb-cbd-fieldgroup hb-cbd-half">
-                  <Label icon={<AlertOctagon size={11} />} required>Severity</Label>
-                  <Select
-                    allowClear
+              <SectionCard step="STEP 2" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Classification" subtitle="Severity and module">
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Severity</Text>} required validateStatus={!severity && descriptionTouched ? 'error' : ''}>
+                  <SearchableDropdown
                     placeholder="Select severity"
+                    itemNoun="severities"
                     value={severity}
                     onChange={(v) => setSeverity(v)}
-                    status={!severity && descriptionTouched ? "error" : undefined}
-                    style={{ width: "100%" }}
-                    size="middle"
-                    popupClassName="hb-cbd-select-popup"
-                    options={(severityOptions || [])
-                      .filter((s) => s.isActive)
-                      .map((s) => ({
-                        value: s.key,
-                        label: (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 8,
-                            }}
-                          >
-                            {s.color && (
-                              <span
-                                style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: 999,
-                                  background: s.color,
-                                  flexShrink: 0,
-                                }}
-                              />
-                            )}
-                            {s.label}
-                          </span>
-                        ),
-                      }))}
+                    options={(severityOptions || []).filter((s) => s.isActive).map((s) => ({
+                      value: s.key,
+                      label: s.label,
+                      badge: s.color ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} /> : undefined
+                    }))}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
-                  {descriptionTouched && !severity && (
-                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Severity needs to be updated</div>
-                  )}
-                </div>
-                <div className="hb-cbd-fieldgroup hb-cbd-half">
-                  <Label icon={<Layers size={11} />} required>Type</Label>
-                  <Select
-                    allowClear
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Type</Text>} required validateStatus={!bugType && descriptionTouched ? 'error' : ''}>
+                  <SearchableDropdown
                     placeholder="Select type"
+                    itemNoun="types"
                     value={bugType}
                     onChange={(v) => setBugType(v)}
-                    status={!bugType && descriptionTouched ? "error" : undefined}
-                    style={{ width: "100%" }}
-                    size="middle"
-                    popupClassName="hb-cbd-select-popup"
-                    options={(typeOptions || [])
-                      .filter((t) => t.isActive)
-                      .map((t) => ({ value: t.key, label: t.label }))}
+                    options={(typeOptions || []).filter((t) => t.isActive).map((t) => ({ value: t.key, label: t.label }))}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
-                  {descriptionTouched && !bugType && (
-                    <div className="hb-cbd-errortext" style={{ marginTop: 4 }}>Type is required</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Module + Assignee */}
-              <div className="hb-cbd-row">
-                <div className="hb-cbd-fieldgroup hb-cbd-half">
-                  <Label icon={<Hash size={11} />}>Module</Label>
-                  <input
-                    type="text"
-                    className="hb-cbd-input"
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Module</Text>}>
+                  <Input
                     placeholder="e.g. Auth, Payments"
-                    list="hb-cbd-module-options"
                     value={module}
                     onChange={(e) => setModule(e.target.value)}
+                    list="hb-cbd-module-options"
                   />
                   <datalist id="hb-cbd-module-options">
-                    {modules.map((m) => (
-                      <option key={m} value={m} />
-                    ))}
+                    {modules.map((m) => <option key={m} value={m} />)}
                   </datalist>
-                </div>
-                <div className="hb-cbd-fieldgroup hb-cbd-half">
-                  <Label icon={<UserPlus size={11} />}>Assignee</Label>
-                  <Select
-                    allowClear
-                    showSearch
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard step="STEP 3" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Assignments & Tags" subtitle="Ownership and categorization">
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assignee</Text>}>
+                  <SearchableDropdown
                     placeholder="Unassigned"
-                    value={assigneeId}
-                    onChange={(v) => setAssigneeId(v)}
-                    options={members.map((m) => ({
-                      value: m.value,
-                      label: m.label,
+                    searchPlaceholder="Search by name or role…"
+                    itemNoun="members"
+                    value={assigneeId || undefined}
+                    onChange={(v) => setAssigneeId(v as string | undefined)}
+                    options={members.map((m) => ({ 
+                      value: m.value, 
+                      label: m.label, 
+                      description: m.position,
+                      avatarUrl: m.avatarUrl 
                     }))}
-                    filterOption={(input, option) =>
-                      (option?.label as string)
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                    style={{ width: "100%" }}
-                    size="middle"
-                    popupClassName="hb-cbd-select-popup"
-                    suffixIcon={
-                      assignee ? (
-                        <Avatar
-                          size={20}
-                          style={{ background: "#1677ff", fontSize: 10 }}
-                        >
-                          {assignee.label.charAt(0).toUpperCase()}
-                        </Avatar>
-                      ) : undefined
-                    }
+                    showSelectedAvatar
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
                   />
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="hb-cbd-fieldgroup">
-                <Label icon={<Hash size={11} />}>Tags</Label>
-                <div className="hb-cbd-tagbox">
-                  {tags.map((t) => (
-                    <span key={t} className="hb-cbd-tag">
-                      #{t}
-                      <button
-                        onClick={() => removeTag(t)}
-                        aria-label={`Remove ${t}`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                  <input
-                    className="hb-cbd-tag-input"
-                    placeholder={tags.length === 0 ? "Type a tag and press Enter" : ""}
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === ",") {
-                        e.preventDefault();
-                        commitTag();
-                      } else if (
-                        e.key === "Backspace" &&
-                        !tagInput &&
-                        tags.length > 0
-                      ) {
-                        setTags((prev) => prev.slice(0, -1));
-                      }
-                    }}
-                    onBlur={commitTag}
-                  />
-                </div>
-              </div>
-
-              {/* Attachments */}
-              <div className="hb-cbd-fieldgroup">
-                <div className="hb-cbd-fieldhead">
-                  <Label icon={<Paperclip size={11} />}>Attachments</Label>
-                  <button
-                    className="hb-cbd-linkbtn"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Plus size={12} />
-                    Add files
-                  </button>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  hidden
-                  accept="image/*,video/*,application/pdf,.log,.txt"
-                  onChange={(e) => {
-                    if (e.target.files) addFiles(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-                {attachments.length === 0 ? (
-                  <button
-                    type="button"
-                    className="hb-cbd-dropzone"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <UploadCloud size={20} />
-                    <div>
-                      <div className="hb-cbd-dropzone-title">
-                        Drop files, click to browse, or paste images/videos
-                      </div>
-                      <div className="hb-cbd-dropzone-sub">
-                        Images, Videos, PDFs, logs · max {MAX_FILE_MB}MB
-                      </div>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="hb-cbd-attachments">
-                    {attachments.map((a, idx) => (
-                      <AttachmentTile
-                        key={`${a.fileName}-${idx}`}
-                        attachment={a}
-                        onRemove={() => removeAttachment(idx)}
-                        onPreview={() => setPreviewAttachment(a)}
-                        onRename={(newName) => renameAttachment(idx, newName)}
-                        message={message}
-                      />
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Tags</Text>}>
+                  <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: '4px 8px', minHeight: 32, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {tags.map((t) => (
+                      <Tag key={t} closable onClose={() => removeTag(t)} style={{ margin: 0 }}>#{t}</Tag>
                     ))}
+                    <Input
+                      variant="borderless"
+                      size="small"
+                      placeholder={tags.length === 0 ? "Type tag & Enter" : ""}
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      style={{ width: 120, padding: 0 }}
+                      onPressEnter={(e) => { e.preventDefault(); commitTag(); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "," || e.key === "Enter") {
+                          e.preventDefault();
+                          commitTag();
+                        } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+                          setTags(prev => prev.slice(0, -1));
+                        }
+                      }}
+                      onBlur={commitTag}
+                    />
                   </div>
-                )}
-              </div>
+                </Form.Item>
+              </SectionCard>
 
-              {/* External links */}
-              <div className="hb-cbd-fieldgroup">
-                <Label icon={<Link2 size={11} />}>External links</Label>
-                <div className="hb-cbd-linkrow">
+              <SectionCard step="STEP 4" icon={<PaperClipOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Attachments & Links" subtitle="Files and external resources">
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Files</Text>}>
+                  <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} style={{ marginBottom: 12, borderRadius: 8 }}>Upload Files</Button>
                   <input
-                    className="hb-cbd-input"
-                    placeholder="Label (optional)"
-                    value={linkLabel}
-                    onChange={(e) => setLinkLabel(e.target.value)}
-                    style={{ flex: "0 0 35%" }}
-                  />
-                  <input
-                    className="hb-cbd-input"
-                    placeholder="https://…"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addLink();
-                      }
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: 'none' }}
+                    accept="image/*,video/*,application/pdf,.log,.txt"
+                    onChange={(e) => {
+                      if (e.target.files) addFiles(e.target.files);
+                      e.target.value = "";
                     }}
                   />
-                  <button
-                    className="hb-cbd-iconbtn"
-                    onClick={addLink}
-                    aria-label="Add link"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-                {links.length > 0 && (
-                  <div className="hb-cbd-linklist">
-                    {links.map((l, idx) => (
-                      <div key={`${l.url}-${idx}`} className="hb-cbd-link">
-                        <ExternalLink size={12} />
-                        <a
-                          href={l.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="hb-cbd-link-anchor"
-                        >
-                          {l.label || l.url}
-                        </a>
-                        <button
-                          className="hb-cbd-iconbtn-sm"
-                          onClick={() => removeLink(idx)}
-                          aria-label="Remove link"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {attachments.map((a, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)' }}>
+                        <Space>
+                          <FileTextOutlined style={{ color: 'var(--text-slate-400)' }} />
+                          <Text style={{ fontSize: 12 }}>{a.fileName}</Text>
+                        </Space>
+                        <Space>
+                          <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setPreviewAttachment(a)} />
+                          <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeAttachment(i)} />
+                        </Space>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            </div>
+                </Form.Item>
 
-            {/* Footer */}
-            <div className="hb-cbd-footer">
-              <div className="hb-cbd-footer-hint">
-                <span className="hb-cbd-kbd">⌘</span>
-                <span className="hb-cbd-kbd">↵</span>
-                to {editingBug ? "save" : "capture"}
-              </div>
-              <div className="hb-cbd-footer-actions">
-                <button
-                  className="hb-cbd-secondary"
-                  onClick={onClose}
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="hb-cbd-primary"
-                  onClick={handleSubmit}
-                  disabled={submitting || !isValid}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 size={14} className="hb-cbd-spin" />
-                      {editingBug ? "Saving…" : "Capturing…"}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={14} />
-                      {editingBug ? "Save changes" : "Capture bug"}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Links</Text>}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <Input placeholder="URL" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} onPressEnter={addLink} />
+                    <Input placeholder="Label (optional)" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} onPressEnter={addLink} style={{ width: 120 }} />
+                    <Button onClick={addLink} type="primary" icon={<PlusOutlined />} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {links.map((lnk, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+                        <Space>
+                          <LinkOutlined style={{ color: '#3b82f6' }} />
+                          <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>{lnk.label || lnk.url}</a>
+                        </Space>
+                        <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeLink(i)} />
+                      </div>
+                    ))}
+                  </div>
+                </Form.Item>
+              </SectionCard>
+            </Form>
           </ConfigProvider>
         </div>
+
+        {editingBug && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="bug"
+            entityId={editingBug.id}
+            subtitle={`${editingBug.bugNumber || "Bug"}${editingBug.title ? ` — ${editingBug.title}` : ""}`}
+          />
+        )}
       </Drawer>
+      {previewAttachment && (
+        <Drawer
+          open={!!previewAttachment}
+          onClose={() => setPreviewAttachment(null)}
+          placement="left"
+          width={700}
+          title="File Preview"
+        >
+          {(() => {
+            let url = previewAttachment.fileUrl || "";
+            if (url.includes("r2.cloudflarestorage.com")) {
+              url = url.replace(/https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/, "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev");
+            }
+            if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+              url = url.replace(".r2.dev", ".r2.dev/");
+            }
 
-      <Drawer
-        open={!!previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
-        placement="left"
-        width={700}
-        closable={false}
-        title={null}
-        footer={null}
-        mask={false}
-        className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
-        styles={{
-          body: { padding: 0, height: '100%' }
-        }}
-      >
-        {previewAttachment && (
-          (() => {
-            const displayUrl = (() => {
-              let url = previewAttachment.fileUrl || "";
-              if (url.includes("r2.cloudflarestorage.com")) {
-                url = url.replace(
-                  /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
-                  "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
-                );
-              }
-              if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
-                url = url.replace(".r2.dev", ".r2.dev/");
-              }
-              return url;
-            })();
+            const isImage = previewAttachment.fileType?.startsWith("image/") || url.startsWith("data:image/") || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(url);
+            const isVideo = previewAttachment.fileType?.startsWith("video/") || /\.(mp4|webm|ogg|mov)/i.test(url);
+            const isPdf = previewAttachment.fileType === "application/pdf" || /\.pdf/i.test(url);
 
+            if (isImage) return <img src={url} alt="Preview" style={{ width: '100%', objectFit: 'contain' }} />;
+            if (isVideo) return <video src={url} controls style={{ width: '100%' }} />;
+            if (isPdf) return <iframe src={url} style={{ width: '100%', height: '80vh', border: 'none' }} />;
             return (
-              <div className="hb-preview-shell">
-                <div className="hb-preview-header">
-                  <div className="hb-preview-fileinfo">
-                    <FileText size={16} className="hb-preview-icon" />
-                    <div className="hb-preview-meta">
-                      <div className="hb-preview-filename">{previewAttachment.fileName}</div>
-                      <div className="hb-preview-filesize">
-                        {previewAttachment.fileSize ? formatBytes(previewAttachment.fileSize) : previewAttachment.fileType}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="hb-preview-actions">
-                    <button
-                      className="hb-preview-btn"
-                      onClick={() => {
-                        if (displayUrl) window.open(displayUrl, '_blank');
-                      }}
-                      title="Open in new tab"
-                    >
-                      <ExternalLink size={16} />
-                    </button>
-                    <button
-                      className="hb-preview-close"
-                      onClick={() => setPreviewAttachment(null)}
-                      aria-label="Close preview"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                </div>
-                <div className="hb-preview-body">
-                  {(() => {
-                    const isImage =
-                      previewAttachment.fileType?.startsWith("image/") ||
-                      displayUrl.startsWith("data:image/") ||
-                      /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl);
-
-                    const isVideo =
-                      previewAttachment.fileType?.startsWith("video/") ||
-                      /\.(mp4|webm|ogg|mov)/i.test(displayUrl);
-
-                    const isPdf =
-                      previewAttachment.fileType === "application/pdf" ||
-                      /\.pdf/i.test(displayUrl);
-
-                    if (!displayUrl) return <div className="hb-preview-error">No preview available</div>;
-
-                    if (isImage) {
-                      return (
-                        <div className="hb-preview-media-container">
-                          <img src={displayUrl} alt={previewAttachment.fileName} className="hb-preview-image" />
-                        </div>
-                      );
-                    }
-                    if (isVideo) {
-                      return (
-                        <div className="hb-preview-media-container">
-                          <video src={displayUrl} controls className="hb-preview-video" />
-                        </div>
-                      );
-                    }
-                    if (isPdf) {
-                      return <iframe src={displayUrl} className="hb-preview-iframe" title="PDF Preview" />;
-                    }
-
-                    return (
-                      <div className="hb-preview-fallback">
-                        <FileText size={48} />
-                        <p>Preview not available for this file type</p>
-                        <button
-                          className="hb-cbd-primary"
-                          onClick={() => window.open(displayUrl, '_blank')}
-                        >
-                          Open in new tab
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <p>Preview not available</p>
+                <Button onClick={() => window.open(url, '_blank')} type="primary">Open in New Tab</Button>
               </div>
             );
-          })()
-        )}
-      </Drawer>
+          })()}
+        </Drawer>
+      )}
     </>
   );
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Helpers
-// ───────────────────────────────────────────────────────────────────────────
-
-function Label({
-  icon,
-  children,
-  required,
-}: {
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  required?: boolean;
-}) {
-  return (
-    <div className="hb-cbd-label">
-      {icon && <span className="hb-cbd-label-icon">{icon}</span>}
-      <span>{children}</span>
-      {required && <span className="hb-cbd-required">*</span>}
-    </div>
-  );
-}
-
-function AttachmentTile({
-  attachment,
-  onRemove,
-  onPreview,
-  onRename,
-  message,
-}: {
-  attachment: BugAttachment;
-  onRemove: () => void;
-  onPreview: () => void;
-  onRename: (newName: string) => void;
-  message: any;
-}) {
-  const [imageError, setImageError] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [tempName, setTempName] = useState(attachment.fileName);
-
-  useEffect(() => {
-    setTempName(attachment.fileName);
-  }, [attachment.fileName]);
-
-  const handleRenameCommit = () => {
-    const trimmed = tempName.trim();
-    if (trimmed && trimmed !== attachment.fileName) {
-      onRename(trimmed);
-      message.success("Attachment renamed");
-    } else {
-      setTempName(attachment.fileName);
-    }
-    setIsRenaming(false);
-  };
-
-  const isImage =
-    attachment.fileType?.startsWith("image/") ||
-    attachment.fileUrl?.startsWith("data:image/") ||
-    /\.(jpg|jpeg|png|gif|webp|svg)/i.test(attachment.fileUrl || "");
-
-  const isVideo =
-    attachment.fileType?.startsWith("video/") ||
-    /\.(mp4|webm|ogg|mov)/i.test(attachment.fileUrl || "");
-
-  // Fix previously mangled URLs (missing slash or wrong domain)
-  const displayUrl = React.useMemo(() => {
-    if (!attachment.fileUrl) return "";
-    let url = attachment.fileUrl;
-
-    // Redirect private cloudflarestorage.com URLs to the public R2 domain
-    if (url.includes("r2.cloudflarestorage.com")) {
-      url = url.replace(
-        /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
-        "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
-      );
-    }
-
-    // Fix mangled R2 domains (missing slash after .r2.dev)
-    if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
-      url = url.replace(".r2.dev", ".r2.dev/");
-    }
-    return url;
-  }, [attachment.fileUrl]);
-
-  return (
-    <div className="hb-cbd-tile">
-      <div
-        className="hb-cbd-tile-preview"
-      >
-        {isImage && !imageError ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displayUrl}
-            alt={attachment.fileName}
-            onError={() => setImageError(true)}
-          />
-        ) : isVideo ? (
-          <div className="hb-cbd-tile-fallback video">
-            <Play size={20} />
-          </div>
-        ) : (
-          <div className="hb-cbd-tile-fallback">
-            <FileText size={20} />
-          </div>
-        )}
-
-        <div className="hb-cbd-tile-overlay">
-          <button
-            className="hb-cbd-tile-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPreview();
-            }}
-            title="View"
-          >
-            <Eye size={16} />
-          </button>
-          <button
-            className="hb-cbd-tile-action"
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (!displayUrl) return;
-              try {
-                // Try fetching to force download if CORS allows
-                const res = await fetch(displayUrl);
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = attachment.fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                message.success("Download successfully");
-              } catch (err) {
-                // Fallback for CORS issues
-                const a = document.createElement("a");
-                a.href = displayUrl;
-                a.download = attachment.fileName;
-                a.target = "_blank";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                message.success("Download successfully");
-              }
-            }}
-            title="Download"
-          >
-            <Download size={16} />
-          </button>
-          <button
-            className="hb-cbd-tile-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsRenaming(true);
-            }}
-            title="Rename"
-          >
-            <Edit2 size={16} />
-          </button>
-        </div>
-
-        <button
-          className="hb-cbd-tile-remove"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          aria-label="Remove attachment"
-        >
-          <X size={11} />
-        </button>
-        {attachment.isNew && <span className="hb-cbd-tile-new">NEW</span>}
-      </div>
-      <div className="hb-cbd-tile-info">
-        {isRenaming ? (
-          <div className="hb-cbd-tile-rename-field" onClick={(e) => e.stopPropagation()}>
-            <input
-              autoFocus
-              className="hb-cbd-tile-rename-input"
-              value={tempName}
-              onChange={(e) => setTempName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRenameCommit();
-                if (e.key === "Escape") {
-                  setTempName(attachment.fileName);
-                  setIsRenaming(false);
-                }
-              }}
-              onBlur={handleRenameCommit}
-            />
-            <button className="hb-cbd-tile-rename-btn" onClick={handleRenameCommit}>
-              <Check size={12} />
-            </button>
-          </div>
-        ) : (
-          <div className="hb-cbd-tile-name" title={attachment.fileName}>
-            {attachment.fileName}
-          </div>
-        )}
-        <div className="hb-cbd-tile-meta">
-          {attachment.fileSize
-            ? formatBytes(attachment.fileSize)
-            : attachment.fileType}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }

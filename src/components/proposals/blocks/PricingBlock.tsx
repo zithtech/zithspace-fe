@@ -243,7 +243,53 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
   const inputStyle: React.CSSProperties = { borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' };
 
   return (
-    <Form form={form} layout="vertical" onValuesChange={(_, allValues) => onUpdate({ ...data, ...allValues })} initialValues={data}>
+    <Form
+      form={form}
+      layout="vertical"
+      onValuesChange={(_, allValues) => {
+        const cleanInput = (val: string) => val ? val.replace(/[^a-zA-Z0-9\s\-.,()?!:;&'"]/g, '') : '';
+        const cleanTitle = cleanInput(allValues.title);
+        const cleanFeeStructure = cleanInput(allValues.feeStructure);
+        const cleanPaymentSchedule = cleanInput(allValues.paymentSchedule);
+        const cleanPaymentMethods = cleanInput(allValues.paymentMethods);
+
+        let cleanedItems = allValues.items || [];
+        let itemsChanged = false;
+        if (Array.isArray(allValues.items)) {
+          cleanedItems = allValues.items.map((item: any) => {
+            if (!item) return item;
+            const cleanName = cleanInput(item.name);
+            const cleanDesc = cleanInput(item.description);
+            if (item.name !== cleanName || item.description !== cleanDesc) {
+              itemsChanged = true;
+              return { ...item, name: cleanName, description: cleanDesc };
+            }
+            return item;
+          });
+        }
+
+        if (allValues.title !== cleanTitle || allValues.feeStructure !== cleanFeeStructure || allValues.paymentSchedule !== cleanPaymentSchedule || allValues.paymentMethods !== cleanPaymentMethods || itemsChanged) {
+          form.setFieldsValue({
+            title: cleanTitle,
+            feeStructure: cleanFeeStructure,
+            paymentSchedule: cleanPaymentSchedule,
+            paymentMethods: cleanPaymentMethods,
+            items: cleanedItems
+          });
+        }
+
+        onUpdate({
+          ...data,
+          ...allValues,
+          title: cleanTitle,
+          feeStructure: cleanFeeStructure,
+          paymentSchedule: cleanPaymentSchedule,
+          paymentMethods: cleanPaymentMethods,
+          items: cleanedItems
+        });
+      }}
+      initialValues={data}
+    >
 
       {/* Section Header */}
       <div style={{ marginBottom: '24px' }}>

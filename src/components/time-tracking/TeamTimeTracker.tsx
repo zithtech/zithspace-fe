@@ -21,6 +21,7 @@ import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { useTheme } from "@/context/ThemeContext";
 
 const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
   const min = Math.min(...data);
@@ -277,6 +278,8 @@ interface TeamTimeTrackerProps {
 }
 
 export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const { open: openTicketDrawer } = useTicketDrawer();
   const { canManageTimeTrackingTime } = usePermission();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
@@ -528,8 +531,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         return (
           <Tooltip
             title={
-              <div style={{ padding: '4px' }}>
-                <div style={{ fontWeight: 600, marginBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: 4 }}>
+              <div style={{ padding: '4px', color: isDark ? '#fff' : 'var(--text-slate-900)' }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, borderBottom: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)', paddingBottom: 4 }}>
                   {percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h goal`}
                 </div>
                 <div style={{ marginBottom: 4, opacity: 0.6, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Project Breakdown</div>
@@ -541,7 +544,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                 ))}
               </div>
             }
-            overlayInnerStyle={{ borderRadius: 12, background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(4px)' }}
+            overlayInnerStyle={{ borderRadius: 12, background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'var(--bg-pure-white)', backdropFilter: 'blur(4px)', boxShadow: isDark ? undefined : '0 4px 20px rgba(0,0,0,0.1)' }}
           >
             <div style={{ width: '100%', cursor: 'help' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, whiteSpace: 'nowrap', gap: '8px' }}>
@@ -929,7 +932,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-2">
         {teamCards.map((s) => (
           <div
             key={s.key}
@@ -1033,9 +1036,15 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
               placeholder="All members"
               searchPlaceholder="Search by name"
               itemNoun="members"
+              showSelectedAvatar={true}
               width={240}
               style={{ width: 168, borderRadius: 6 }}
-              options={members.map(m => ({ value: m.value, label: m.label }))}
+              options={members.map((m: any) => ({
+                value: m.value,
+                label: m.label,
+                description: m.position,
+                avatarUrl: m.avatarUrl || undefined,
+              }))}
             />
 
             <SearchableDropdown

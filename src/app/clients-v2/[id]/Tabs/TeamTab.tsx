@@ -7,13 +7,13 @@ import {
   Modal,
   Form,
   Input,
-  Select,
   message,
   Popconfirm,
   Switch,
   Tooltip,
   Table,
   Dropdown,
+  Drawer,
 } from "antd";
 import {
   Plus,
@@ -48,6 +48,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1318,111 +1319,118 @@ function TeamMemberModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={700}
-      c={c}
-      ribbonColor={c.accentText}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<UserIcon size={20} />}
-      title={editing ? "Edit team member" : "Add team member"}
-      subtitle="Pick a staff member to auto-fill basics, or add an external/free-text entry without linking."
-      tip={
-        <span>
-          <Crown
-            size={11}
-            style={{ verticalAlign: -1, marginRight: 5, color: c.warningText }}
-          />
-          Marking someone as <strong>Primary contact</strong> pins them to the
-          top of the portal team page with a highlighted badge.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to save">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<UserIcon size={14} />}
-          >
-            {editing ? "Save changes" : "Add team member"}
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <UserIcon size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">{editing ? "Edit team member" : "Add team member"}</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Pick a staff member to auto-fill basics, or add an external/free-text entry without linking.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.warningBg, border: `1px solid ${c.warningBorder}` }}>
+              <Crown size={16} className="shrink-0 mt-0.5" style={{ color: c.warningText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.warningText }}>
+                Marking someone as <strong>Primary contact</strong> pins them to the
+                top of the portal team page with a highlighted badge.
+              </div>
+            </div>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="Who"
-          description="Auto-fill name + email from a staff user, or type them in manually."
-          icon={<UserIcon size={11} />}
-          plain
+          subtitle="Auto-fill name + email from a staff user, or type them in manually."
+          icon={<UserIcon size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="staffUserId"
-            label={
-              <L c={c}>
-                Link to staff member
-              </L>
-            }
+            label="Link to staff member"
             style={{ marginBottom: 12 }}
           >
-            <Select
-              allowClear
-              showSearch
+            <SearchableDropdown
+              searchPlaceholder="Search staff by name or email…"
               placeholder="Search staff by name or email…"
-              filterOption={false}
-              onSearch={setStaffSearch}
               onChange={handleStaffPick}
-              optionLabelProp="labelText"
               options={staffOptions.map((s) => ({
                 value: s.id,
-                labelText: s.name,
-                label: <StaffOptionRow option={s} c={c} />,
+                label: s.name,
+                description: s.work_email || undefined,
+                avatarUrl: s.avatar_url || undefined,
               }))}
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.4fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="displayName"
+            label="Display name"
+            rules={[{ required: true, message: "Required" }]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="displayName"
-              label={<L c={c}>Display name</L>}
-              rules={[{ required: true, message: "Required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <Input
-                prefix={<UserIcon size={13} color={c.textFaint} />}
-                placeholder="Name shown to client"
-                maxLength={200}
-              />
-            </Form.Item>
-            <Form.Item
-              name="discipline"
-              label={<L c={c}>Discipline</L>}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={(Object.keys(DISCIPLINE_META) as TeamDiscipline[]).map(
-                  (d) => ({ value: d, label: DISCIPLINE_META[d].label }),
-                )}
-              />
-            </Form.Item>
-          </div>
+            <Input
+              prefix={<UserIcon size={13} color={c.textFaint} />}
+              placeholder="Name shown to client"
+              maxLength={200}
+            />
+          </Form.Item>
+          <Form.Item
+            name="discipline"
+            label="Discipline"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="—"
+              options={(Object.keys(DISCIPLINE_META) as TeamDiscipline[]).map(
+                (d) => ({ value: d, label: DISCIPLINE_META[d].label }),
+              )}
+            />
+          </Form.Item>
 
           <Form.Item
             name="roleLabel"
-            label={<L c={c}>Role / title</L>}
+            label="Role / title"
             rules={[{ required: true, message: "Required" }]}
             style={{ marginBottom: 0 }}
           >
@@ -1431,115 +1439,62 @@ function TeamMemberModal({
               maxLength={160}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Contact & context"
-          description="How the client can reach them, and what they're working on."
-          icon={<Mail size={11} />}
+          subtitle="How the client can reach them, and what they're working on."
+          icon={<Mail size={14} />}
+          step="STEP 2"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.4fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+          <Form.Item
+            name="contactEmail"
+            label="Email"
+            rules={[
+              { type: "email", message: "Please enter a valid email address" },
+            ]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="contactEmail"
-              label={<L c={c} >Email</L>}
-              rules={[
-                { type: "email", message: "Please enter a valid email address" },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                prefix={<Mail size={13} color={c.textFaint} />}
-                placeholder="custom@email.com"
-              />
-            </Form.Item>
-            <Form.Item
-              name="contactPhone"
-              label={<L c={c}>Phone</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                prefix={<Phone size={13} color={c.textFaint} />}
-                placeholder="+1 555 …"
-              />
-            </Form.Item>
-          </div>
+            <Input
+              prefix={<Mail size={13} color={c.textFaint} />}
+              placeholder="custom@email.com"
+            />
+          </Form.Item>
+          <Form.Item
+            name="contactPhone"
+            label="Phone"
+            style={{ marginBottom: 12 }}
+          >
+            <Input
+              prefix={<Phone size={13} color={c.textFaint} />}
+              placeholder="+1 555 …"
+            />
+          </Form.Item>
 
           <Form.Item
             name="projectId"
-            label={
-              <L c={c} >
-                Linked project
-              </L>
-            }
+            label="Linked project"
             style={{ marginBottom: 12 }}
           >
-            <Select
-              allowClear
+            <SearchableDropdown
               placeholder={
                 projects.length
                   ? "Pick a project this member works on"
                   : "No projects linked to this client yet"
               }
+              searchPlaceholder="Search projects..."
               disabled={projects.length === 0}
-              suffixIcon={<Briefcase size={13} color={c.textFaint} />}
-              optionLabelProp="labelText"
               options={projects.map((p) => ({
                 value: p.id,
-                labelText: p.code ? `${p.name} · ${p.code}` : p.name,
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      minWidth: 0,
-                    }}
-                  >
-                    <Briefcase size={12} color={c.textFaint} />
-                    <span
-                      style={{
-                        color: c.text,
-                        fontWeight: 500,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {p.name}
-                    </span>
-                    {p.code && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: c.textSubtle,
-                          padding: "1px 6px",
-                          background: c.surfaceMuted,
-                          border: `1px solid ${c.border}`,
-                          borderRadius: 4,
-                          fontFamily:
-                            "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        }}
-                      >
-                        {p.code}
-                      </span>
-                    )}
-                  </span>
-                ),
+                label: p.name,
+                description: p.code ? `Project Code: ${p.code}` : undefined,
               }))}
             />
           </Form.Item>
 
           <Form.Item
             name="bio"
-            label={<L c={c}>Short bio</L>}
+            label="Short bio"
             style={{ marginBottom: 16 }}
           >
             <Input.TextArea
@@ -1550,44 +1505,35 @@ function TeamMemberModal({
               style={{ padding: "10px 12px" }}
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Availability & visibility"
-          description="The portal page shows availability dots — set yours here."
-          icon={<Eye size={11} />}
+          subtitle="The portal page shows availability dots — set yours here."
+          icon={<Eye size={14} />}
+          step="STEP 3"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1.6fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+          <Form.Item
+            name="availabilityStatus"
+            label="Status"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="availabilityStatus"
-              label={<L c={c}>Status</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                options={(
-                  Object.keys(AVAILABILITY_META) as TeamAvailability[]
-                ).map((a) => ({
-                  value: a,
-                  label: AVAILABILITY_META[a].label,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="availabilityNote"
-              label={<L c={c}>Note</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Input placeholder="e.g. Out until 15 Mar · OOO Fridays" />
-            </Form.Item>
-          </div>
+            <SearchableDropdown
+              options={(
+                Object.keys(AVAILABILITY_META) as TeamAvailability[]
+              ).map((a) => ({
+                value: a,
+                label: AVAILABILITY_META[a].label,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="availabilityNote"
+            label="Note"
+            style={{ marginBottom: 12 }}
+          >
+            <Input placeholder="e.g. Out until 15 Mar · OOO Fridays" />
+          </Form.Item>
 
           <div
             style={{
@@ -1597,54 +1543,74 @@ function TeamMemberModal({
               background: c.surfaceElevated,
               border: `1px solid ${c.border}`,
               borderRadius: 8,
+              marginLeft: "29.16666667%", // to align with wrapperCol
             }}
           >
             <Form.Item
               name="isPrimaryContact"
               valuePropName="checked"
               style={{ marginBottom: 0 }}
-              label={
-                <span
-                  style={{
-                    fontSize: 12.5,
-                    color: c.textMuted,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Crown size={11} color={c.warningText} />
-                  Primary contact
-                </span>
-              }
+              label={null}
             >
               <Switch />
             </Form.Item>
+            <span
+              style={{
+                fontSize: 12.5,
+                color: c.textMuted,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 6
+              }}
+            >
+              <Crown size={11} color={c.warningText} />
+              Primary contact
+            </span>
             <Form.Item
               name="isVisible"
               valuePropName="checked"
               style={{ marginBottom: 0 }}
-              label={
-                <span
-                  style={{
-                    fontSize: 12.5,
-                    color: c.textMuted,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Eye size={11} color={c.successText} />
-                  Visible to client
-                </span>
-              }
+              label={null}
             >
               <Switch />
             </Form.Item>
+            <span
+              style={{
+                fontSize: 12.5,
+                color: c.textMuted,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 6
+              }}
+            >
+              <Eye size={11} color={c.successText} />
+              Visible to client
+            </span>
           </div>
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<UserIcon size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        {editing ? "Save changes" : "Add team member"}
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
+  MY_HUB: LayoutGrid,
   HOME: Sparkle,
   WORK: Briefcase,
   ADMIN: ShieldCheck,
@@ -37,6 +38,7 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
+  MY_HUB: '#3b82f6',   // blue
   HOME: '#3b82f6',     // indigo
   WORK: '#3b82f6',     // sky
   ADMIN: '#3b82f6',    // emerald
@@ -247,8 +249,13 @@ export default function TopNav({
   const isMobile = useIsBreakpoint("max", 790);
   const isSmallMobile = !screens.sm;
 
-  // Filter modules by permission
+  // Filter modules by permission (chip visibility).
+  // requiredChipAnyPermission, when present, controls chip visibility on its own
+  // — decoupled from route access (which stays on requiredAnyPermission). This
+  // lets us hide HRMS/FINANCE chips from normal users while their routes remain
+  // reachable via My Hub shortcuts.
   const visibleModules = NAVIGATION_CONFIG.filter(module => {
+    if (module.requiredChipAnyPermission) return hasAnyPermission(...module.requiredChipAnyPermission);
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
     if (module.requiredPermission) return hasPermission(module.requiredPermission);
     if (module.requiredAnyPermission) return hasAnyPermission(...module.requiredAnyPermission);
@@ -655,7 +662,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -676,7 +683,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -697,7 +704,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -719,7 +726,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -740,7 +747,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -761,7 +768,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
@@ -784,7 +791,7 @@ export default function TopNav({
                   </div>
                 }
                 placement="bottom"
-                overlayClassName="navbar-icon-tooltip"
+                classNames={{ root: "navbar-icon-tooltip" }}
                 mouseEnterDelay={0.1}
                 zIndex={1100}
                 open={shortcutPopoverVisible ? false : undefined}
@@ -1123,6 +1130,15 @@ export default function TopNav({
                 .module-text {
                     transition: all 0.2s ease;
                 }
+                @media (max-width: 1440px) {
+                    .module-text-7 { display: none !important; }
+                }
+                @media (max-width: 1360px) {
+                    .module-text-6 { display: none !important; }
+                }
+                @media (max-width: 1280px) {
+                    .module-text-5 { display: none !important; }
+                }
                 @media (max-width: 1200px) {
                     .module-text-4 { display: none !important; }
                 }
@@ -1245,10 +1261,19 @@ export default function TopNav({
 
                 /* Premium navbar icon tooltip */
                 .navbar-icon-tooltip {
+                    --tooltip-bg: #ffffff;
+                    --tooltip-fg: var(--text-slate-900);
+                    --tooltip-sub: var(--text-slate-500);
+                    --tooltip-border: rgba(0, 0, 0, 0.06);
+                    --tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+                    z-index: 1100 !important;
+                }
+                [data-theme='dark'] .navbar-icon-tooltip {
                     --tooltip-bg: rgba(15, 23, 42, 0.95);
                     --tooltip-fg: #f8fafc;
                     --tooltip-sub: rgba(248, 250, 252, 0.65);
-                    z-index: 1100 !important;
+                    --tooltip-border: rgba(255, 255, 255, 0.08);
+                    --tooltip-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
                 }
                 .navbar-icon-tooltip .ant-tooltip-arrow::before,
                 .navbar-icon-tooltip .ant-tooltip-arrow::after {
@@ -1261,11 +1286,8 @@ export default function TopNav({
                     -webkit-backdrop-filter: blur(10px) saturate(160%);
                     padding: 8px 12px !important;
                     border-radius: 10px !important;
-                    box-shadow:
-                        0 8px 24px -8px rgba(0, 0, 0, 0.35),
-                        0 2px 6px rgba(0, 0, 0, 0.18),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: var(--tooltip-shadow) !important;
+                    border: 1px solid var(--tooltip-border);
                     min-width: 0;
                     font-size: 12px !important;
                     line-height: 1.35 !important;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Table,
@@ -18,6 +18,7 @@ import {
   Select,
   DatePicker,
   Pagination,
+  Divider,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
@@ -31,6 +32,9 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   CloseCircleOutlined,
+  MenuOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { FolderKanban, Trash2, AlertTriangle, Clock } from "lucide-react";
 import {
@@ -99,6 +103,7 @@ const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = 
 };
 
 export default function ProjectTrashManagementPage() {
+  console.log("Forcing HMR reload for ProjectTrashManagementPage");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
@@ -115,6 +120,14 @@ export default function ProjectTrashManagementPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsSidebarOpen(window.innerWidth >= 1100);
+    }
+  }, []);
+
   const { data: trashProjects, isLoading, refetch } = useProjectTrash();
   const restoreProject = useRestoreProject();
   const permanentDelete = usePermanentDeleteProject();
@@ -123,7 +136,7 @@ export default function ProjectTrashManagementPage() {
   const bulkDelete = useBulkPermanentDeleteProjects();
 
   const uniqueProjects = Array.from(new Map(trashProjects?.map(p => [p.id, p.name])).entries());
-  const uniqueManagers = Array.from(new Map(trashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, p.projectManager.name])).entries());
+  const uniqueManagers = Array.from(new Map(trashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
 
   const filteredProjects = trashProjects?.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase());
@@ -256,7 +269,12 @@ export default function ProjectTrashManagementPage() {
 
   return (
     <div className="pm2-page">
-      <div className="pm2-shell-wrap">
+      <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        <div
+          className="pm2-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
         <div className="pm2-shell">
           {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="pm2-sidebar">
@@ -335,15 +353,31 @@ export default function ProjectTrashManagementPage() {
                   />
 
                   <SearchableDropdown
-                    className="pm2-side-filter-select"
-                    placeholder="Project Manager"
-                    searchPlaceholder="Search managers"
-                    itemNoun="managers"
-                    value={filters.projectManagerId || undefined}
-                    onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
-                    options={uniqueManagers.map(([id, name]) => ({ value: id as string, label: name as string }))}
-                    width="100%"
-                  />
+                      className="pm2-side-filter-select"
+                      placeholder="Project Manager"
+                      searchPlaceholder="Search managers"
+                      itemNoun="managers"
+                      value={filters.projectManagerId || undefined}
+                      onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
+                      options={uniqueManagers.map(([id, pm]) => ({
+                        value: id as string,
+                        label: (pm as any).name as string,
+                        badge: (
+                          <Avatar
+                            src={(pm as any).avatarUrl || undefined}
+                            size={20}
+                            style={{
+                              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                              fontSize: 9,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {((pm as any).name || "?").charAt(0).toUpperCase()}
+                          </Avatar>
+                        )
+                      }))}
+                      width="100%"
+                    />
 
                   <DatePicker.RangePicker
                     className="premium-range-picker"
@@ -377,7 +411,23 @@ export default function ProjectTrashManagementPage() {
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="pm2-main">
             <div className="pm2-toolbar">
-              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
+              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                <button
+                  type="button"
+                  className="pm2-sidebar-show-toggle"
+                  onClick={() => setIsSidebarOpen((v) => !v)}
+                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                  aria-pressed={!isSidebarOpen}
+                >
+                  {isSidebarOpen ? (
+                    <MenuFoldOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                  )}
+                </button>
+              </Tooltip>
+
+              <div className="pp-search-wrap">
                 <SearchOutlined className="pp-search-icon" />
                 <input
                   className="pp-search"
@@ -754,11 +804,12 @@ export default function ProjectTrashManagementPage() {
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
         .pp-search-wrap {
-          position: relative; flex: 1; display: flex; align-items: center;
-          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); padding: 0 10px;
+          position: relative; flex: 1 1 auto; display: flex; align-items: center;
+          max-width: 480px; width: 100%; height: 38px; min-height: 38px; border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 12px;
+          transition: all 0.2s;
         }
-        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); max-width: 520px; }
         .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
         .pp-search {
           flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
@@ -878,11 +929,12 @@ export default function ProjectTrashManagementPage() {
           color: #FFFFFF !important;
         }
         [data-theme='dark'] .pp-search-wrap {
-          background: #0B0F1A !important;
-          border-color: #1F2937 !important;
+          background: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
         }
         [data-theme='dark'] .pp-search-wrap:focus-within {
-          border-color: rgba(59, 130, 246, 0.4) !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(59, 130, 246, 0.5) !important;
         }
         [data-theme='dark'] .pp-search {
           color: #FFFFFF !important;
@@ -1142,22 +1194,27 @@ export default function ProjectTrashManagementPage() {
         margin-top: 0px !important; 
       }
 
-       .premium-table .ant-table {
+       .premium-table .ant-table, .premium-table .ant-table-wrapper, .premium-table .ant-table-container, .premium-table .ant-table-content, .premium-table .ant-table-header, .premium-table .ant-table-body {
           background: transparent !important;
+          border-radius: 0 !important;
         }
-        .premium-table .ant-table-thead > tr > th {
+        .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
         .premium-table .ant-table-thead > tr > th::before {
-          display: none;
+          display: none !important;
         }
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #1e293b;
-          border-bottom-color: #334155;
-          color: #94a3b8;
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
+          color: #94a3b8 !important;
         }
         .premium-table .ant-table-tbody > tr > td {
           border-bottom: 1px solid var(--border-slate-100) !important; 
@@ -1183,6 +1240,87 @@ export default function ProjectTrashManagementPage() {
         [data-theme='dark'] .premium-table .ant-table-expanded-row > td {
           background: rgba(15, 23, 42, 0.5);
           border-bottom-color: #1e293b;
+        }
+
+        /* ── Sidebar show/hide toggle (only visible < 1100px) ── */
+        .pm2-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .pm2-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .pm2-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle {
+          background: #111720 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .pm2-sidebar-show-toggle:hover {
+          background: #1c232e !important;
+          border-color: #475569 !important;
+          color: #f1f5f9;
+        }
+
+        /* Desktop > 1100px: Hide toggle */
+        @media (min-width: 1100px) {
+          .pm2-sidebar-show-toggle {
+            display: none !important;
+          }
+        }
+
+        /* Mobile < 1100px: Off-canvas drawer */
+        @media (max-width: 1099.98px) {
+          .pm2-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
+            transform: translateX(0);
+          }
+          .pm2-shell-wrap.is-sidebar-closed .pm2-sidebar {
+            transform: translateX(-100%);
+          }
+          .pm2-shell-wrap .pm2-sidebar {
+            position: fixed;
+            top: 0; left: 0; width: 260px; height: 100vh;
+            max-height: none;
+            z-index: 9999;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+          }
+          .pm2-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar-backdrop {
+            display: block;
+            opacity: 1;
+          }
         }
       `}</style>
     </div>

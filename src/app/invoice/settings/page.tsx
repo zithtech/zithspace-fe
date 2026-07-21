@@ -4,7 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ReloadOutlined } from "@ant-design/icons";
+import { ReloadOutlined, MenuOutlined } from "@ant-design/icons";
 import {
   Typography,
   Button,
@@ -174,6 +174,7 @@ export default function InvoiceSettingPage() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const filteredSettings = useMemo(() => {
     return settingsList.filter((s: any) => {
@@ -487,7 +488,10 @@ export default function InvoiceSettingPage() {
       <div className="pp-shell">
 
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><SettingsIcon size={20} /></div>
             <div className="pp-side-head-text">
@@ -547,6 +551,9 @@ export default function InvoiceSettingPage() {
         <main className="pp-main">
           {/* Top search bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <MenuOutlined style={{ fontSize: 16 }} />
+            </button>
             <div className="pp-search-wrap">
               <Search className="pp-search-icon" size={14} />
               <input className="pp-search" placeholder="Search profiles..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
@@ -723,6 +730,7 @@ export default function InvoiceSettingPage() {
                     }}
                   >
                     <Table
+                      className="profiles-table"
                       rowKey="id"
                       dataSource={pagedSettings}
                       pagination={false}
@@ -734,7 +742,6 @@ export default function InvoiceSettingPage() {
                         },
                         className: "cursor-pointer",
                       })}
-                      className="profiles-table"
                       columns={[
                         {
                           title: "PROFILE",
@@ -1144,7 +1151,7 @@ export default function InvoiceSettingPage() {
 
       {/* CREATE MODE — fixed overlay */}
       {mode === "create" && (
-        <div style={{ position: "fixed", inset: 0, top: 54, zIndex: 50, background: "var(--bg-pure-white)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "var(--bg-pure-white)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div
             className="flex-1 min-h-0 px-8 pt-6 pb-24"
             style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
@@ -2055,7 +2062,7 @@ export default function InvoiceSettingPage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pp-shell { display: flex; margin: 0 -24px; height: calc(100vh - 54px); overflow: hidden; background: var(--bg-pure-white); }
+        .pp-shell { display: flex; margin: 0 -24px; min-height: calc(100vh - 54px); background: var(--bg-pure-white); }
         .pp-shell,
         .pp-shell *,
         .ant-table,
@@ -2093,9 +2100,9 @@ export default function InvoiceSettingPage() {
         .pp-view-item.is-active .pp-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
         .pp-side-bottom-actions { margin: auto -14px 0 -38px; padding: 8px 14px 0 38px; border-top: 1px solid var(--border-slate-100); background: var(--bg-pure-white); }
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-        .pp-search-wrap { position: relative; flex: 1; max-width: 520px; display: flex; align-items: center; height: 32px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .pp-search-wrap { position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center; height: 32px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
         .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
         .pp-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
@@ -2132,14 +2139,32 @@ export default function InvoiceSettingPage() {
         .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
-        .profiles-table .ant-table { background: transparent; font-size: 12px; }
-        .profiles-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important; white-space: nowrap !important; }
+        .profiles-table, .profiles-table.ant-table-wrapper, .profiles-table .ant-table, .profiles-table .ant-table-container, .profiles-table .ant-table-content, .profiles-table .ant-table-header, .profiles-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .profiles-table .ant-table-thead > tr > th,
+        .profiles-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
         .profiles-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .profiles-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .profiles-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-        @media (max-width: 820px) { .pp-sidebar { display: none; } .pp-topbar-meta { display: none; } }
+        .pp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+        .pp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+        @media (max-width: 1024px) {
+          .pp-sidebar { position: fixed; left: -280px; top: 54px; bottom: 0; height: calc(100vh - 54px); transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1); display: flex; }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
+          .pp-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .pp-stats { grid-template-columns: 1fr; }
+        }
 
         /* Grid view cards (matching accounts dashboard) */
         .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }

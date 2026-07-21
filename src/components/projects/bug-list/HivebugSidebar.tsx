@@ -191,16 +191,6 @@ export default function HivebugSidebar({
                   </div>
                 </>
               )}
-              {onToggleCollapse && (
-                <button
-                  className="hb-icon-btn hb-sidebar-collapse-btn"
-                  onClick={onToggleCollapse}
-                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                  {isCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-                </button>
-              )}
             </div>
             {!isCollapsed && onCreateBug && (
               <button
@@ -364,6 +354,7 @@ export default function HivebugSidebar({
               )}
             </div>
           </div>)}
+
         </aside>
         {!isCollapsed && <div className="hb-resizer" onMouseDown={onResizerMouseDown} />}
       </div>
@@ -467,16 +458,9 @@ function FolderNode({
         ) : (
           <Folder size={15} style={{ color: folder.color || "#7aa2f7" }} />
         )}
-        <span className="hb-row-label">{folder.name}</span>
-        {folderCompleted && (
-          <Tooltip title="All sheets completed">
-            <CheckCircle2
-              size={12}
-              className="hb-row-status-icon hb-row-status-completed"
-              aria-label="All sheets completed"
-            />
-          </Tooltip>
-        )}
+        <span className="hb-row-label" style={{ color: folderCompleted ? "var(--hb-success)" : undefined }}>
+          {folder.name}
+        </span>
         <span className="hb-row-count">
           {Math.max(0, (folder._count?.bugs ?? 0) - trashCount)}
         </span>

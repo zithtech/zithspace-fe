@@ -78,6 +78,8 @@ export const usePermission = () => {
     ),
     canReadAttendanceDashboard: hasPermission(Permissions.ATTENDANCE_DASHBOARD_READ),
     canClockInOut: hasPermission(Permissions.ATTENDANCE_CLOCK_IN_OUT),
+    // My Hub self-service — granted via my_hub.attendance.read in RBAC
+    canReadMyHubAttendance: hasPermission(Permissions.MY_HUB_ATTENDANCE_READ),
 
     // ─── Leaves ─────────────────────────────────────────────────────
     canCreateLeave:  hasPermission(Permissions.LEAVE_CREATE),
@@ -86,6 +88,8 @@ export const usePermission = () => {
     canDeleteLeave:  hasPermission(Permissions.LEAVE_DELETE),
     canApproveLeave: hasPermission(Permissions.LEAVE_APPROVE),
     canManageLeaves: hasPermission(Permissions.LEAVE_MANAGE),
+    // My Hub self-service — granted via my_hub.apply_leave.read in RBAC
+    canReadMyHubApplyLeave: hasPermission(Permissions.MY_HUB_APPLY_LEAVE_READ),
     canReadLeaveDashboard: hasPermission(Permissions.LEAVE_DASHBOARD_READ),
     canReadLeaveType:      hasPermission(Permissions.LEAVE_TYPE_READ),
     canCreateLeaveType:    hasPermission(Permissions.LEAVE_TYPE_CREATE),
@@ -190,6 +194,7 @@ export const usePermission = () => {
     canManageReports: hasPermission(Permissions.REPORT_MANAGE),
 
     // ─── Reimbursement ──────────────────────────────────────────────
+    canReadReimbursementDashboard: hasPermission(Permissions.REIMBURSEMENT_DASHBOARD_READ),
     canCreateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_CREATE),
     canReadReimbursement:    hasPermission(Permissions.REIMBURSEMENT_READ),
     canUpdateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_UPDATE),
@@ -233,6 +238,49 @@ export const usePermission = () => {
     canRestorePayrollTrash:  hasPermission(Permissions.PAYROLL_TRASH_UPDATE),
     canDeletePayrollTrash:   hasPermission(Permissions.PAYROLL_TRASH_DELETE),
     canManagePayroll:        hasPermission(Permissions.PAYROLL_MANAGE),
+
+    // ─── Payroll 2.0 — page-based (12 pages) ────────────────────────
+    canReadPayrollSettings:   hasPermission(Permissions.PAYROLL_SETTINGS_READ),
+    canUpdatePayrollSettings: hasPermission(Permissions.PAYROLL_SETTINGS_UPDATE),
+    canReadPayrollComponents:   hasPermission(Permissions.PAYROLL_COMPONENTS_READ),
+    canCreatePayrollComponents: hasPermission(Permissions.PAYROLL_COMPONENTS_CREATE),
+    canUpdatePayrollComponents: hasPermission(Permissions.PAYROLL_COMPONENTS_UPDATE),
+    canDeletePayrollComponents: hasPermission(Permissions.PAYROLL_COMPONENTS_DELETE),
+    canReadPayrollStructures:   hasPermission(Permissions.PAYROLL_STRUCTURES_READ),
+    canCreatePayrollStructures: hasPermission(Permissions.PAYROLL_STRUCTURES_CREATE),
+    canUpdatePayrollStructures: hasPermission(Permissions.PAYROLL_STRUCTURES_UPDATE),
+    canDeletePayrollStructures: hasPermission(Permissions.PAYROLL_STRUCTURES_DELETE),
+    canReadPayrollSchedules:   hasPermission(Permissions.PAYROLL_SCHEDULES_READ),
+    canCreatePayrollSchedules: hasPermission(Permissions.PAYROLL_SCHEDULES_CREATE),
+    canUpdatePayrollSchedules: hasPermission(Permissions.PAYROLL_SCHEDULES_UPDATE),
+    canDeletePayrollSchedules: hasPermission(Permissions.PAYROLL_SCHEDULES_DELETE),
+    canReadPayrollStatutory:   hasPermission(Permissions.PAYROLL_STATUTORY_READ),
+    canUpdatePayrollStatutory: hasPermission(Permissions.PAYROLL_STATUTORY_UPDATE),
+    canReadPayrollStateStatutory:   hasPermission(Permissions.PAYROLL_STATE_STATUTORY_READ),
+    canCreatePayrollStateStatutory: hasPermission(Permissions.PAYROLL_STATE_STATUTORY_CREATE),
+    canUpdatePayrollStateStatutory: hasPermission(Permissions.PAYROLL_STATE_STATUTORY_UPDATE),
+    canDeletePayrollStateStatutory: hasPermission(Permissions.PAYROLL_STATE_STATUTORY_DELETE),
+    canReadPayrollWorkflows:   hasPermission(Permissions.PAYROLL_WORKFLOWS_READ),
+    canCreatePayrollWorkflows: hasPermission(Permissions.PAYROLL_WORKFLOWS_CREATE),
+    canUpdatePayrollWorkflows: hasPermission(Permissions.PAYROLL_WORKFLOWS_UPDATE),
+    canDeletePayrollWorkflows: hasPermission(Permissions.PAYROLL_WORKFLOWS_DELETE),
+    canReadPayrollPayslipBank:   hasPermission(Permissions.PAYROLL_PAYSLIP_BANK_READ),
+    canUpdatePayrollPayslipBank: hasPermission(Permissions.PAYROLL_PAYSLIP_BANK_UPDATE),
+    canReadPayrollEmployees:   hasPermission(Permissions.PAYROLL_EMPLOYEES_READ),
+    canCreatePayrollEmployees: hasPermission(Permissions.PAYROLL_EMPLOYEES_CREATE),
+    canUpdatePayrollEmployees: hasPermission(Permissions.PAYROLL_EMPLOYEES_UPDATE),
+    canDeletePayrollEmployees: hasPermission(Permissions.PAYROLL_EMPLOYEES_DELETE),
+    canReadPayrollRun:     hasPermission(Permissions.PAYROLL_RUN_READ),
+    canCreatePayrollRun:   hasPermission(Permissions.PAYROLL_RUN_CREATE),
+    canProcessPayrollRun:  hasPermission(Permissions.PAYROLL_RUN_PROCESS),
+    canApprovePayrollRun:  hasPermission(Permissions.PAYROLL_RUN_APPROVE),
+    canFinalizePayrollRun: hasPermission(Permissions.PAYROLL_RUN_FINALIZE),
+    canPayPayrollRun:      hasPermission(Permissions.PAYROLL_RUN_PAY),
+    canGeneratePayrollPayslips: hasPermission(Permissions.PAYROLL_RUN_PAYSLIPS),
+    canDeletePayrollRun:   hasPermission(Permissions.PAYROLL_RUN_DELETE),
+    canReadPayrollReports:   hasPermission(Permissions.PAYROLL_REPORTS_READ),
+    canExportPayrollReports: hasPermission(Permissions.PAYROLL_REPORTS_EXPORT),
+    canReadMyPayslips:       hasPermission(Permissions.PAYROLL_MY_PAYSLIPS_READ),
 
     // ─── Salary ─────────────────────────────────────────────────────
     canReadSalary:   hasPermission(Permissions.SALARY_READ),
@@ -326,6 +374,8 @@ export const usePermission = () => {
     canUpdateEscalation: hasPermission(Permissions.ESCALATION_UPDATE),
     canDeleteEscalation: hasPermission(Permissions.ESCALATION_DELETE),
     canManageEscalations: hasPermission(Permissions.ESCALATION_MANAGE),
+    // My Hub self-service — granted via my_hub.escalation.read in RBAC
+    canReadMyHubEscalation: hasPermission(Permissions.MY_HUB_ESCALATION_READ),
 
     // ─── Pipeline ───────────────────────────────────────────────────
     canCreatePipeline:  hasPermission(Permissions.PIPELINE_CREATE),
@@ -353,16 +403,17 @@ export const usePermission = () => {
     canReadExitConfig: hasPermission(Permissions.EXIT_CONFIG_READ),
     canUpdateExitConfig: hasPermission(Permissions.EXIT_CONFIG_UPDATE),
 
-    // ─── Performance ────────────────────────────────────────────────
-    canReadPerformance:   hasPermission(Permissions.PERFORMANCE_READ),
-    canManagePerformance: hasPermission(Permissions.PERFORMANCE_MANAGE),
-
     // ─── Performance Report ─────────────────────────────────────────
     canReadPerformanceReport:         hasPermission(Permissions.PERFORMANCE_REPORT_READ),
     canReadPerformanceReportSetting:   hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_READ),
     canUpdatePerformanceReportSetting: hasPermission(Permissions.PERFORMANCE_REPORT_SETTING_UPDATE),
     canReadGeneratedPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_GENERATED_READ),
     canReadMyPerformanceReport: hasPermission(Permissions.PERFORMANCE_REPORT_MY_READ),
+    // My Hub self-service — granted via my_hub.performance.read in RBAC
+    canReadMyHubPerformance: hasPermission(Permissions.MY_HUB_PERFORMANCE_READ),
+
+    // My Hub self-service — granted via my_hub.claims.read in RBAC
+    canReadMyHubClaims: hasPermission(Permissions.MY_HUB_CLAIMS_READ),
 
     // ─── Job Openings ───────────────────────────────────────────────
     canCreateOpening: hasPermission(Permissions.OPENING_CREATE),

@@ -1,5 +1,7 @@
 'use client';
 
+import { apiClient } from '@/lib/axios';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Button, DatePicker, Dropdown, Drawer, Empty, Spin, Typography, message } from 'antd';
 import {
@@ -15,6 +17,7 @@ import { Ticket, Timer, NotebookPen, CalendarCheck, Plane, Gauge } from 'lucide-
 import dayjs, { Dayjs } from 'dayjs';
 import { TimelineTree } from '@/components/projects/overview/TimelineTree';
 import { PerformanceTracker } from '@/components/time-tracking/PerformanceTracker';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import DailyUpdatesSection from './DailyUpdatesSection';
 import AttendanceSection from './AttendanceSection';
 import LeavesSection from './LeavesSection';
@@ -23,7 +26,7 @@ import OverviewSection, { ModuleWeight } from './OverviewSection';
 import EmptyState from './EmptyState';
 import ReportPrintable from './ReportPrintable';
 import { gatherReportData, ReportModel } from './reportPdfData';
-import { downloadReportPdf, downloadReportDocx, reportToPdfBlob } from '@/app/tickets/reports/[sprintId]/reportExport';
+import { PerformanceReportExportRunner } from './PerformanceReportExportRunner';
 import { usePermission } from '@/hooks/usePermission';
 import PerformanceReportService, { ReportTicket, ReportMember } from '@/services/performanceReportService';
 import { ticketPoints, POINT_RULES, MISSING_DATA_PENALTY } from './ticketPoints';
@@ -47,13 +50,13 @@ const SECTIONS: ReadonlyArray<{
   icon: React.ReactNode;
   color: string;
 }> = [
-  { key: 'overview', label: 'Overview', icon: <Gauge size={16} />, color: '#0EA5E9' },
-  { key: 'tickets', label: 'Tickets', icon: <Ticket size={16} />, color: '#EC4899' },
-  { key: 'time_tracking', label: 'Time Tracking', icon: <Timer size={16} />, color: '#F59E0B' },
-  { key: 'daily_updates', label: 'Daily Updates', icon: <NotebookPen size={16} />, color: '#8B5CF6' },
-  { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={16} />, color: '#3B82F6' },
-  { key: 'leaves', label: 'Leaves', icon: <Plane size={16} />, color: '#10B981' },
-];
+    { key: 'overview', label: 'Overview', icon: <Gauge size={16} />, color: '#0EA5E9' },
+    { key: 'tickets', label: 'Tickets', icon: <Ticket size={16} />, color: '#EC4899' },
+    { key: 'time_tracking', label: 'Time Tracking', icon: <Timer size={16} />, color: '#F59E0B' },
+    { key: 'daily_updates', label: 'Daily Updates', icon: <NotebookPen size={16} />, color: '#8B5CF6' },
+    { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={16} />, color: '#3B82F6' },
+    { key: 'leaves', label: 'Leaves', icon: <Plane size={16} />, color: '#10B981' },
+  ];
 
 // In-month performance report — Tickets slice. Pick a project, member and date
 // range, then "View Report" lists every ticket the member logged time on within
@@ -65,6 +68,21 @@ export default function ReportsPanel() {
   );
   const memberId = selected?.member.id ?? null;
   const projectId = selected?.projectId ?? null;
+
+  const [dropdownOptions, setDropdownOptions] = useState<any[]>([]);
+  useEffect(() => {
+    if (selected) {
+      apiClient.get('/api/members/select')
+        .then((res) => {
+          if (res.data?.data) {
+            setDropdownOptions(res.data.data);
+          } else if (Array.isArray(res.data)) {
+            setDropdownOptions(res.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selected ? 'open' : 'closed']);
 
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().startOf('month'),
@@ -98,18 +116,20 @@ export default function ReportsPanel() {
 
   // ── PDF / Word export ──────────────────────────────────────────────────────
   const { canUpdatePerformanceReportSetting } = usePermission();
-  const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState<null | 'pdf' | 'word' | 'save'>(null);
   const [printModel, setPrintModel] = useState<ReportModel | null>(null);
   const [printAvatar, setPrintAvatar] = useState<string | null>(null);
-  const pendingFormat = useRef<'pdf' | 'word' | 'save' | null>(null);
 
   // Convert the avatar to a data URL — html2canvas can't capture a CORS-blocked
   // <img>, so we inline it (falls back to initials if the fetch is blocked too).
   const resolveAvatar = async (url?: string | null): Promise<string | null> => {
     if (!url) return null;
+    if (url.startsWith('data:')) return url;
     try {
-      const res = await fetch(url, { mode: 'cors' });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error('Proxy failed');
       const blob = await res.blob();
       return await new Promise<string | null>((resolve) => {
         const reader = new FileReader();
@@ -143,67 +163,13 @@ export default function ReportsPanel() {
         }),
         resolveAvatar(selected.member.avatarUrl),
       ]);
-      pendingFormat.current = format;
       setPrintAvatar(avatar);
-      setPrintModel(model); // renders the off-screen printable, then the effect exports
+      setPrintModel(model);
     } catch (err: any) {
       message.error(err?.message || 'Failed to prepare the report');
       setDownloading(null);
     }
   };
-
-  // Once the printable is rendered with data, capture it to PDF / Word.
-  useEffect(() => {
-    if (!printModel || !pendingFormat.current || !selected || !applied) return;
-    const fmt = pendingFormat.current;
-    (async () => {
-      try {
-        await new Promise((r) => setTimeout(r, 300)); // let layout + avatar settle
-        const el = printRef.current;
-        if (!el) throw new Error('nothing to export');
-        const base = `${selected.member.name || 'report'}-${applied.range[0].format('YYYY-MM')}`
-          .replace(/\s+/g, '_')
-          .toLowerCase();
-        if (fmt === 'pdf') {
-          await downloadReportPdf(el, `${base}.pdf`);
-        } else if (fmt === 'word') {
-          await downloadReportDocx(el, `${base}.docx`);
-        } else if (fmt === 'save' && printModel) {
-          const blob = await reportToPdfBlob(el, `${base}.pdf`);
-          const pdfBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          await PerformanceReportService.saveGeneratedReport({
-            userId: applied.memberId!,
-            periodKey: applied.range[0].format('YYYY-MM'),
-            periodStart: applied.range[0].format('YYYY-MM-DD'),
-            periodEnd: applied.range[1].format('YYYY-MM-DD'),
-            scores: {
-              overall: printModel.overall,
-              tickets: printModel.tickets.score,
-              timeTracking: printModel.timeTracking.score,
-              dailyUpdates: printModel.dailyUpdates.score,
-              attendance: printModel.attendance.score,
-              leaves: printModel.leaves.score,
-            },
-            summary: { stages: printModel.stages },
-            pdfBase64,
-          });
-          message.success('Saved to Generated Reports');
-        }
-      } catch (err: any) {
-        message.error(err?.response?.data?.error || err?.message || 'Export failed');
-      } finally {
-        pendingFormat.current = null;
-        setPrintModel(null);
-        setDownloading(null);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [printModel]);
 
   // Load the tenant's module settings once (status caps + BOD/EOD toggle).
   useEffect(() => {
@@ -225,7 +191,7 @@ export default function ReportsPanel() {
           }))
         );
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Fetch with EXPLICIT filters (no closure on state) so the auto-run can never
@@ -252,14 +218,7 @@ export default function ReportsPanel() {
     []
   );
 
-  // "View Report" button — uses the currently-picked range.
-  const run = () => {
-    if (!range?.[0] || !range?.[1]) {
-      message.warning('Pick a date range first');
-      return;
-    }
-    fetchReport(range, projectId, memberId);
-  };
+
 
   // Auto-load the CURRENT MONTH as soon as a member is picked, regardless of any
   // previously-chosen range.
@@ -327,10 +286,10 @@ export default function ReportsPanel() {
     points.avg === null
       ? '#94a3b8'
       : points.avg >= 90
-      ? '#059669'
-      : points.avg >= 75
-      ? '#b45309'
-      : '#dc2626';
+        ? '#059669'
+        : points.avg >= 75
+          ? '#b45309'
+          : '#dc2626';
 
   // Time Tracking score from the surfaced average (6h/day = 100).
   const ttPoints = ttStats ? timeTrackingPoints(ttStats.avgSeconds / 3600) : null;
@@ -356,7 +315,7 @@ export default function ReportsPanel() {
   return (
     <div className="prr-wrap">
       {/* ── Header: back + member identity ──────────────────────────────────── */}
-      <div className="prr-head">
+      <div className="prr-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="prr-member-head">
           <button type="button" className="prr-back" onClick={() => setSelected(null)} aria-label="Back to members">
             <ArrowLeftOutlined />
@@ -371,9 +330,47 @@ export default function ReportsPanel() {
           <div>
             <h2 className="prr-title">{m.name}</h2>
             <p className="prr-sub">
-              {[m.position, m.department, m.grade].filter(Boolean).join(' · ') || 'Performance report'}
+              {[m.position, m.department].filter(Boolean).join(' · ') || 'Performance report'}
             </p>
           </div>
+        </div>
+        <div>
+          <SearchableDropdown
+            placeholder="Choose User"
+            searchPlaceholder="Search user..."
+            itemNoun="users"
+            value={m.id}
+            onChange={(userId) => {
+              const opt = dropdownOptions.find((o) => o.value === userId);
+              if (opt) {
+                const newMember: ReportMember = {
+                  id: opt.value,
+                  name: opt.label,
+                  avatarUrl: opt.avatarUrl || null,
+                  workEmail: opt.email || null,
+                  position: opt.position || null,
+                  department: null,
+                  grade: null,
+                };
+                setSelected({ member: newMember, projectId: selected.projectId });
+              }
+            }}
+            options={[
+              ...(dropdownOptions.some(o => o.value === m.id) ? [] : [{
+                value: m.id,
+                label: m.name,
+                description: m.position || m.department || '',
+                avatarUrl: m.avatarUrl
+              }]),
+              ...dropdownOptions.map((o) => ({
+                value: o.value,
+                label: o.label,
+                description: o.position || '',
+                avatarUrl: o.avatarUrl,
+              }))
+            ]}
+            width={240}
+          />
         </div>
       </div>
 
@@ -385,7 +382,13 @@ export default function ReportsPanel() {
             value={range}
             allowClear={false}
             format="MMM D, YYYY"
-            onChange={(d) => d && d[0] && d[1] && setRange([d[0], d[1]])}
+            onChange={(d) => {
+              if (d && d[0] && d[1]) {
+                const r: [Dayjs, Dayjs] = [d[0], d[1]];
+                setRange(r);
+                fetchReport(r, projectId, memberId);
+              }
+            }}
             presets={[
               { label: 'This month', value: [dayjs().startOf('month'), dayjs()] },
               {
@@ -420,7 +423,7 @@ export default function ReportsPanel() {
               onClick: ({ key }) => handleDownload(key as 'pdf' | 'word'),
               items: [
                 { key: 'pdf', icon: <FilePdfOutlined />, label: 'Download as PDF' },
-                { key: 'word', icon: <FileWordOutlined />, label: 'Download as Word' },
+                // { key: 'word', icon: <FileWordOutlined />, label: 'Download as Word' },
               ],
             }}
           >
@@ -429,24 +432,23 @@ export default function ReportsPanel() {
             </Button>
           </Dropdown>
 
-          <Button type="primary" icon={<FileSearchOutlined />} loading={loading} onClick={run}>
-            View Report
-          </Button>
         </div>
       </div>
 
       {/* Off-screen printable used only for the PDF / Word capture. */}
-      {printModel && selected && applied && (
-        <div style={{ position: 'fixed', left: -99999, top: 0, zIndex: -1 }} aria-hidden>
-          <ReportPrintable
-            ref={printRef}
-            member={selected.member}
-            range={applied.range}
-            model={printModel}
-            statusMarks={statusMarks}
-            avatarDataUrl={printAvatar}
-          />
-        </div>
+      {printModel && downloading && applied && (
+        <PerformanceReportExportRunner
+          format={downloading}
+          model={printModel}
+          member={selected.member}
+          range={applied.range}
+          statusMarks={statusMarks}
+          avatarDataUrl={printAvatar}
+          onDone={(ok) => {
+            setDownloading(null);
+            setPrintModel(null);
+          }}
+        />
       )}
 
       {/* ── Results ─────────────────────────────────────────────────────────── */}
@@ -461,7 +463,7 @@ export default function ReportsPanel() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
-                  Choose your filters and hit <strong>View Report</strong> to see tickets
+                  Choose your filters to see tickets
                   worked in the selected window.
                 </Text>
               }
@@ -575,66 +577,66 @@ export default function ReportsPanel() {
               />
             ) : (
               <>
-            <div className="prr-statbar">
-              <div className="prr-stat prr-stat--points">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num" style={{ color: pointsColor }}>
-                    {points.avg ?? '—'}
-                  </span>
-                  {points.avg !== null && <span className="prr-pts-max">/ 100</span>}
+                <div className="prr-statbar">
+                  <div className="prr-stat prr-stat--points">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num" style={{ color: pointsColor }}>
+                        {points.avg ?? '—'}
+                      </span>
+                      {points.avg !== null && <span className="prr-pts-max">/ 100</span>}
+                    </div>
+                    <div className="prr-stat-label">
+                      Avg points{points.scored ? ` · ${points.scored} scored` : ''}
+                    </div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.total}</span>
+                      <span className="prr-pct prr-pct--slate">100%</span>
+                    </div>
+                    <div className="prr-stat-label">Total tickets</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.onTime}</span>
+                      <span className="prr-pct prr-pct--green">{stats.onTimePct}%</span>
+                    </div>
+                    <div className="prr-stat-label">On-time completed</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.delayed}</span>
+                      <span className="prr-pct prr-pct--red">{stats.delayedPct}%</span>
+                    </div>
+                    <div className="prr-stat-label">Delayed</div>
+                  </div>
+                  <div className="prr-stat">
+                    <div className="prr-stat-top">
+                      <span className="prr-stat-num">{stats.notTracked}</span>
+                      <span className="prr-pct prr-pct--amber">{stats.notTrackedPct}%</span>
+                    </div>
+                    <div className="prr-stat-label">Not tracked</div>
+                  </div>
+                  <div className="prr-statbar-caption">
+                    <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
+                    {rangeLabel}
+                  </div>
                 </div>
-                <div className="prr-stat-label">
-                  Avg points{points.scored ? ` · ${points.scored} scored` : ''}
-                </div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.total}</span>
-                  <span className="prr-pct prr-pct--slate">100%</span>
-                </div>
-                <div className="prr-stat-label">Total tickets</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.onTime}</span>
-                  <span className="prr-pct prr-pct--green">{stats.onTimePct}%</span>
-                </div>
-                <div className="prr-stat-label">On-time completed</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.delayed}</span>
-                  <span className="prr-pct prr-pct--red">{stats.delayedPct}%</span>
-                </div>
-                <div className="prr-stat-label">Delayed</div>
-              </div>
-              <div className="prr-stat">
-                <div className="prr-stat-top">
-                  <span className="prr-stat-num">{stats.notTracked}</span>
-                  <span className="prr-pct prr-pct--amber">{stats.notTrackedPct}%</span>
-                </div>
-                <div className="prr-stat-label">Not tracked</div>
-              </div>
-              <div className="prr-statbar-caption">
-                <CalendarOutlined style={{ color: 'var(--text-slate-400)' }} />
-                {rangeLabel}
-              </div>
-            </div>
-            <TimelineTree
-              tickets={tickets as any}
-              hideToolbar
-              onPointsInfo={() => setPointsHelpOpen(true)}
-              pointsOf={(t: any) =>
-                ticketPoints(
-                  {
-                    status: t.status,
-                    estimateHours: t.estimateHours ?? 0,
-                    trackedSeconds: t.trackedSeconds ?? 0,
-                  },
-                  statusMarks
-                )
-              }
-            />
+                <TimelineTree
+                  tickets={tickets as any}
+                  hideToolbar
+                  onPointsInfo={() => setPointsHelpOpen(true)}
+                  pointsOf={(t: any) =>
+                    ticketPoints(
+                      {
+                        status: t.status,
+                        estimateHours: t.estimateHours ?? 0,
+                        trackedSeconds: t.trackedSeconds ?? 0,
+                      },
+                      statusMarks
+                    )
+                  }
+                />
               </>
             )}
           </>
@@ -729,13 +731,19 @@ export default function ReportsPanel() {
         .prr-wrap *::before,
         .prr-wrap *::after { border-radius: 0 !important; }
         .prr-wrap .ant-avatar { border-radius: 50% !important; }
+        /* Rounded exceptions: date-range filter bar + module tab switcher */
+        .prr-wrap .prr-filters { border-radius: 14px !important; }
+        .prr-wrap .prr-filters .ant-picker { border-radius: 10px !important; }
+        .prr-wrap .prr-tabs { border-radius: 14px !important; }
+        .prr-wrap .prr-tab { border-radius: 10px !important; }
+        .prr-wrap .prr-tab-ic { border-radius: 8px !important; }
 
         .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
         .prr-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }
         .prr-member-head { display: flex; align-items: center; gap: 14px; }
         .prr-back {
           width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
-          border: 1px solid var(--border-slate-200); background: var(--bg-secondary); color: var(--text-slate-700); cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: transparent; color: var(--text-slate-700); cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
           transition: all .14s ease;
         }
@@ -743,7 +751,7 @@ export default function ReportsPanel() {
 
         .prr-filters {
           display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
-          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary);
+          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: transparent;
         }
         .prr-field { display: flex; flex-direction: column; gap: 6px; }
         .prr-field-label {
@@ -760,8 +768,8 @@ export default function ReportsPanel() {
           padding: 5px;
           margin-bottom: 16px;
           align-self: flex-start;
-          background: linear-gradient(180deg, var(--bg-slate-50) 0%, var(--bg-slate-100) 100%);
-          border: 1px solid #eaeef4;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
           border-radius: 14px;
           box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
           max-width: 100%;
@@ -800,8 +808,8 @@ export default function ReportsPanel() {
         .prr-tab:hover .prr-tab-ic { color: var(--text-slate-700); }
         .prr-tab.is-active {
           color: var(--text-slate-900);
-          background: var(--bg-secondary);
-          border-color: var(--border-slate-100);
+          background: transparent;
+          border-color: var(--border-slate-200);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px rgba(15, 23, 42, 0.07);
         }
         .prr-tab.is-active .prr-tab-ic {
@@ -815,14 +823,19 @@ export default function ReportsPanel() {
           border: 1px dashed var(--border-slate-200); border-radius: 14px; background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
         }
         .prr-statbar {
-          display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;
         }
         .prr-stat {
-          flex: 1; min-width: 150px;
-          border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); padding: 12px 14px;
-          display: flex; flex-direction: column; gap: 4px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px; background: transparent; padding: 12px 14px;
+          display: flex; flex-direction: column; gap: 4px; min-width: 0;
         }
-        .prr-stat--points { border-color: #c7d2fe; background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 60%); }
+        @media (max-width: 640px) {
+          .prr-statbar { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+          .prr-statbar { grid-template-columns: 1fr; }
+        }
+        .prr-stat--points { border-color: #c7d2fe; background: transparent; }
         .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }
         .prr-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
         .prr-stat-num { font-size: 24px; font-weight: 800; color: var(--text-slate-900); line-height: 1; letter-spacing: -0.02em; }

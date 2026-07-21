@@ -7,7 +7,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   DatePicker,
   message,
   Popconfirm,
@@ -62,6 +61,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 
 type Mode = "light" | "dark";
 
@@ -1516,49 +1516,76 @@ function CreateApprovalModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={720}
-      c={c}
-      ribbonColor={c.accentText}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<CheckSquare size={20} />}
-      title="Request an approval"
-      subtitle="Pick what needs sign-off and who must approve. Every decision is logged for the audit trail."
-      tip={
-        <span>
-          All required approvers must approve before the request is closed.
-          Any rejection from a required approver flips the whole request to{" "}
-          <strong>rejected</strong>.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to send">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<Send size={14} />}
-          >
-            Send to approvers
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <CheckSquare size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Request an approval</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Pick what needs sign-off and who must approve. Every decision is logged for the audit trail.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.warningBg, border: `1px solid ${c.warningBorder}` }}>
+              <CheckSquare size={16} className="shrink-0 mt-0.5" style={{ color: c.warningText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.warningText }}>
+                All required approvers must approve before the request is closed.
+                Any rejection from a required approver flips the whole request to{" "}
+                <strong>rejected</strong>.
+              </div>
+            </div>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="What needs approval"
-          description="Subject + project + a clear ask. Add a preview URL so reviewers can decide quickly."
-          icon={<CheckSquare size={11} />}
-          plain
+          subtitle="Subject + project + a clear ask. Add a preview URL so reviewers can decide quickly."
+          icon={<CheckSquare size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="title"
-            label={<L c={c}>Title</L>}
+            label="Title"
             rules={[{ required: true, message: "Title is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1569,47 +1596,39 @@ function CreateApprovalModal({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1.4fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="subjectType"
+            label="Type"
+            rules={[{ required: true }]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="subjectType"
-              label={<L c={c}>Type</L>}
-              rules={[{ required: true }]}
-              style={{ marginBottom: 12 }}
-            >
-              <Select options={SUBJECT_OPTIONS} />
-            </Form.Item>
-            <Form.Item
-              name="subjectLabel"
-              label={<L c={c} hint="optional">Subject label</L>}
-              style={{ marginBottom: 12 }}
-            >
-              <Input placeholder="e.g. Homepage v3" maxLength={200} />
-            </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={<L c={c} hint="optional">Project</L>}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
-          </div>
+            <SearchableDropdown options={SUBJECT_OPTIONS} />
+          </Form.Item>
+          <Form.Item
+            name="subjectLabel"
+            label="Subject label (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <Input placeholder="e.g. Homepage v3" maxLength={200} />
+          </Form.Item>
+          <Form.Item
+            name="projectId"
+            label="Project (optional)"
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              placeholder="—"
+              searchPlaceholder="Search projects..."
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.code ? `${p.name} · ${p.code}` : p.name,
+              }))}
+            />
+          </Form.Item>
 
           <Form.Item
             name="description"
-            label={<L c={c}>What are they approving?</L>}
+            label="What are they approving?"
             style={{ marginBottom: 12 }}
           >
             <Input.TextArea
@@ -1620,11 +1639,7 @@ function CreateApprovalModal({
 
           <Form.Item
             name="previewUrl"
-            label={
-              <L c={c} hint="Figma · Loom · staging URL">
-                Preview URL
-              </L>
-            }
+            label="Preview URL (Figma, Loom, etc.)"
             style={{ marginBottom: 0 }}
           >
             <Input
@@ -1632,92 +1647,59 @@ function CreateApprovalModal({
               placeholder="https://…"
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Required approvers"
-          description="At least one portal user. Each must approve for the request to close."
-          icon={<Users size={11} />}
+          subtitle="At least one portal user. Each must approve for the request to close."
+          icon={<Users size={14} />}
+          step="STEP 2"
         >
-          <Select
+          <SearchableDropdown
             mode="multiple"
+            searchPlaceholder="Pick portal users who must approve"
             placeholder="Pick portal users who must approve"
             value={approverIds}
             onChange={setApproverIds}
-            style={{ width: "100%" }}
+            width="100%"
             options={portalUsers.map((u) => ({
               value: u.id,
-              label: (
-                <span>
-                  {u.displayName || u.email}
-                  <span
-                    style={{
-                      color: c.textSubtle,
-                      marginLeft: 6,
-                      fontSize: 11.5,
-                    }}
-                  >
-                    {u.email}
-                  </span>
-                </span>
-              ),
+              label: u.displayName || u.email,
+              description: u.displayName ? u.email : undefined,
             }))}
-            notFoundContent={
-              <div
-                style={{
-                  padding: 12,
-                  fontSize: 12,
-                  color: c.textSubtle,
-                  textAlign: "center",
-                }}
-              >
-                No active portal users for this client. Create credentials in
-                the Portal Access tab first.
-              </div>
-            }
           />
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Timing & attachments"
-          description="When approval is needed and any supporting files (mocks, specs, PDFs)."
-          icon={<Clock size={11} />}
+          subtitle="When approval is needed and any supporting files (mocks, specs, PDFs)."
+          icon={<Clock size={14} />}
+          step="STEP 3"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+          <Form.Item
+            name="dueDate"
+            label="Due by (soft target)"
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="dueDate"
-              label={<L c={c} hint="soft target">Due by</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker
-                showTime
-                needConfirm={false}
-                style={{ width: "100%" }}
-                format="YYYY-MM-DD HH:mm"
-              />
-            </Form.Item>
-            <Form.Item
-              name="expiresAt"
-              label={<L c={c} hint="hard cutoff">Expires</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker
-                showTime
-                needConfirm={false}
-                style={{ width: "100%" }}
-                format="YYYY-MM-DD HH:mm"
-              />
-            </Form.Item>
-          </div>
+            <DatePicker
+              showTime
+              needConfirm={false}
+              style={{ width: "100%" }}
+              format="YYYY-MM-DD HH:mm"
+            />
+          </Form.Item>
+          <Form.Item
+            name="expiresAt"
+            label="Expires (hard cutoff)"
+            style={{ marginBottom: 12 }}
+          >
+            <DatePicker
+              showTime
+              needConfirm={false}
+              style={{ width: "100%" }}
+              format="YYYY-MM-DD HH:mm"
+            />
+          </Form.Item>
           <AttachmentBox
             c={c}
             files={files}
@@ -1726,9 +1708,28 @@ function CreateApprovalModal({
               setFiles((prev) => prev.filter((_, idx) => idx !== i))
             }
           />
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<Send size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Send to approvers
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 
@@ -2270,12 +2271,11 @@ function ApprovalDetailDrawer({
               right={
                 data.status === "open" && availableToAdd.length > 0 ? (
                   <div style={{ display: "flex", gap: 6 }}>
-                    <Select
-                      size="small"
+                    <SearchableDropdown
                       placeholder="Add approver"
                       value={addingPortalUserId || undefined}
-                      onChange={(v) => setAddingPortalUserId(v)}
-                      style={{ width: 200 }}
+                      onChange={(v) => setAddingPortalUserId(v as string)}
+                      width={200}
                       options={availableToAdd.map((u) => ({
                         value: u.id,
                         label: u.displayName || u.email,

@@ -4,12 +4,14 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Spin, message } from "antd";
+import { Menu } from "lucide-react";
 import {
   UserOutlined,
   IdcardOutlined,
   BankOutlined,
   HistoryOutlined,
   LaptopOutlined,
+  FileTextOutlined,
   ArrowLeftOutlined,
   ArrowRightOutlined,
   CheckOutlined,
@@ -22,6 +24,7 @@ import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
 import EmployeHistory from "@/components/onboarding/EmployeeHistory";
 import Assets from "@/components/onboarding/Assets";
+import Documents from "@/components/onboarding/Documents";
 import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 
@@ -47,6 +50,7 @@ const STEPS = [
   { key: "bank", label: "Bank & Payroll", icon: <BankOutlined />, color: PALETTE.violet, tint: TINT.violet },
   { key: "history", label: "History", icon: <HistoryOutlined />, color: PALETTE.amber, tint: TINT.amber },
   { key: "assets", label: "Assets", icon: <LaptopOutlined />, color: PALETTE.grey, tint: TINT.grey },
+  { key: "documents", label: "Documents", icon: <FileTextOutlined />, color: PALETTE.blue, tint: TINT.blue },
 ] as const;
 
 const OnboardingContent = () => {
@@ -67,7 +71,16 @@ const OnboardingContent = () => {
     }
   }, [authLoading, canCreateOnboarding, canUpdateOnboarding, isEdit, router]);
 
-  const [current, setCurrent] = useState(0);
+  const stepKeys = ["personal", "employment", "bank", "history", "assets", "documents"];
+
+  const [current, setCurrent] = useState(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      const idx = stepKeys.indexOf(tabParam);
+      if (idx !== -1) return idx;
+    }
+    return 0;
+  });
   const [dataLoading, setDataLoading] = useState(false);
 
   const [allData, setAllData] = useState<any>({
@@ -76,18 +89,18 @@ const OnboardingContent = () => {
     bank: {},
     history: [],
     assets: [],
+    documents: [],
   });
   const [resetKey, setResetKey] = useState(0);
-
-  const stepKeys = ["personal", "employment", "bank", "history", "assets"];
 
   const personalRef = useRef<any>(null);
   const employmentRef = useRef<any>(null);
   const bankRef = useRef<any>(null);
   const historyRef = useRef<any>(null);
   const assetsRef = useRef<any>(null);
+  const documentsRef = useRef<any>(null);
 
-  const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
+  const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef, documentsRef];
 
   const { createOnboarding, updateOnboarding, loading: submitting }: any =
     useEmployeeOnboarding();
@@ -113,6 +126,7 @@ const OnboardingContent = () => {
               bank: employeeData.bankAndPayroll || employeeData.bank || {},
               history: employeeData.previousCompanyDetails || employeeData.history || [],
               assets: employeeData.assets || [],
+              documents: employeeData.documents || [],
             });
             // Update resetKey to force re-render of components with new data
             setResetKey(prev => prev + 1);
@@ -212,7 +226,7 @@ const OnboardingContent = () => {
         message.success("Profile created and saved as draft");
       }
 
-      if (current < 4) setCurrent(prev => prev + 1);
+      if (current < 5) setCurrent(prev => prev + 1);
       else router.push("/onboarding/onboarded");
     } catch (error) {
       console.log("Save & Skip Failed:", error);
@@ -238,6 +252,7 @@ const OnboardingContent = () => {
         bank: "bank",
         history: "history",
         assets: "assets",
+        documents: "documents",
       };
 
       const finalPayload: any = {};
@@ -263,10 +278,16 @@ const OnboardingContent = () => {
 
   return (
     <div className="onb">
-      {/* ── Slim sticky header: icon chip + title/subtitle + compact step indicator ── */}
       <div className="onb-header">
         <div className="onb-header-top">
           <div className="onb-header-about">
+            <button 
+              className="ob-mobile-menu-btn" 
+              onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
             <div
               className="onb-header-icon"
               style={{ background: activeStep.tint, color: activeStep.color }}
@@ -358,6 +379,14 @@ const OnboardingContent = () => {
             data={allData.assets}
           />
         </div>
+
+        <div style={{ display: current === 5 ? "block" : "none" }}>
+          <Documents
+            key={`documents-${resetKey}`}
+            ref={documentsRef}
+            data={allData.documents}
+          />
+        </div>
       </div>
 
       {/* ── Slim sticky footer: Back / Save & Next / Continue / Submit ── */}
@@ -375,7 +404,7 @@ const OnboardingContent = () => {
         </div>
 
         <div className="onb-footer-actions">
-          {current < 4 && (
+          {current < 5 && (
             <>
               <Button
                 onClick={saveAndSkip}
@@ -395,7 +424,7 @@ const OnboardingContent = () => {
             </>
           )}
 
-          {current === 4 && (
+          {current === 5 && (
             <Button
               type="primary"
               onClick={submitAll}
@@ -425,15 +454,15 @@ const OnboardingContent = () => {
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           backdrop-filter: blur(12px);
-          padding: 12px 0 0;
-          margin-bottom: 16px;
+          padding: 12px 24px 0 28px;
+          margin: -12px -22px 16px;
         }
         .onb-header-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 0 4px 12px;
+          padding: 0 0 12px;
         }
         .onb-header-about {
           display: flex;
@@ -558,11 +587,11 @@ const OnboardingContent = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 12px 4px;
+          padding: 6px 28px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
-          margin: 0 -4px;
+          margin: 0 -22px;
         }
         .onb-footer-actions {
           display: flex;
@@ -570,7 +599,7 @@ const OnboardingContent = () => {
           gap: 10px;
         }
         .onb-btn {
-          height: 38px !important;
+          height: 40px !important;
           border-radius: 8px !important;
           font-weight: 600 !important;
           display: inline-flex;
@@ -588,6 +617,46 @@ const OnboardingContent = () => {
         .onb-btn--primary {
           background: ${PALETTE.blue} !important;
           border-color: ${PALETTE.blue} !important;
+        }
+
+        /* Enforce 8px border-radius and exact uniform height on all form inputs */
+        .onb .ant-input,
+        .onb .ant-select-single .ant-select-selector,
+        .onb .ant-picker,
+        .onb .ant-input-number,
+        .onb .ant-input-password {
+          border-radius: 8px !important;
+          height: 40px !important;
+          display: flex;
+          align-items: center;
+        }
+        .onb .ant-select-multiple .ant-select-selector {
+          border-radius: 8px !important;
+          min-height: 40px !important;
+          height: auto !important;
+          padding-top: 2px !important;
+          padding-bottom: 2px !important;
+        }
+        .onb .ant-select-single .ant-select-selection-search-input {
+          height: 38px !important;
+        }
+        .onb .ant-select-single .ant-select-selection-item,
+        .onb .ant-select-single .ant-select-selection-placeholder {
+          line-height: 38px !important;
+        }
+        .onb .ant-picker-input > input {
+          height: 100% !important;
+        }
+
+
+        @media (max-width: 900px) {
+          .onb-header {
+            padding: 12px 16px 0 16px;
+          }
+          .onb-header-top {
+            flex-direction: column;
+            align-items: flex-start;
+          }
         }
       `}</style>
     </div>

@@ -51,7 +51,7 @@ import {
 } from '@ant-design/icons';
 import { Drawer, Divider } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -123,10 +123,15 @@ const accentFor = (key: string): [string, string] => {
 };
 
 export default function EscalationListPage() {
+  console.log("Forcing HMR reload for EscalationListPage 2");
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
+  const pathname = usePathname();
+  // When rendered under /my-hub, this is the personal "escalations targeting me"
+  // view: locked to targeted-member, excluding ones I raised, with no switcher.
+  const isMyHub = pathname?.startsWith('/my-hub') ?? false;
   const { user, isLoading } = useAuth();
-  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog, canReadMyHubEscalation } = usePermission();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -196,16 +201,19 @@ export default function EscalationListPage() {
   };
 
   useEffect(() => {
-    if (!isLoading && user && !canReadEscalation) {
+    // My Hub self-service view only needs my_hub.escalation.read; the full
+    // escalations module requires escalation.read.
+    const hasAccess = canReadEscalation || (isMyHub && canReadMyHubEscalation);
+    if (!isLoading && user && !hasAccess) {
       router.push('/dashboard');
     }
-  }, [user, isLoading, canReadEscalation, router]);
+  }, [user, isLoading, canReadEscalation, canReadMyHubEscalation, isMyHub, router]);
 
   useEffect(() => {
-    if (canReadEscalation) {
+    if (canReadEscalation || (isMyHub && canReadMyHubEscalation)) {
       fetchEscalations();
     }
-  }, [canReadEscalation]);
+  }, [canReadEscalation, canReadMyHubEscalation, isMyHub]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -374,7 +382,13 @@ export default function EscalationListPage() {
       list = list.filter((e) => set.has(e.category?.name || e.category_name));
     }
 
-    if (savedView === 'my-involvement') {
+    if (isMyHub) {
+      // My Hub: escalations where I'm a targeted member, excluding ones I raised.
+      list = list.filter((e) =>
+        (e.targetMembers || []).some((m: any) => m.user?.id === user?.id) &&
+        (e.createdBy?.id || e.created_by_id) !== user?.id
+      );
+    } else if (savedView === 'my-involvement') {
       list = list.filter((e) =>
         (e.targetMembers || []).some((m: any) => m.user?.id === user?.id)
       );
@@ -389,7 +403,7 @@ export default function EscalationListPage() {
     });
 
     return list;
-  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, savedView, user]);
+  }, [escalations, searchText, statusFilter, priorityFilter, categoryFilter, savedView, user, isMyHub]);
 
   useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, priorityFilter, categoryFilter]);
 
@@ -729,7 +743,7 @@ export default function EscalationListPage() {
       <div className="es-empty-orb"><AlertOutlined style={{ fontSize: 26 }} /></div>
       <div className="es-empty-title">No escalations found</div>
       <div className="es-empty-sub">Monitor and resolve manual escalations related to quality and regressions.</div>
-      {canCreateEscalation && (
+      {canCreateEscalation && !isMyHub && (
         <Button type="primary" icon={<PlusOutlined />} className="es-btn-primary" onClick={() => setCreateDrawerOpen(true)} style={{ marginTop: 14 }}>
           Raise Escalation
         </Button>
@@ -741,6 +755,10 @@ export default function EscalationListPage() {
     <MainLayout>
       <div className="es-shell">
         {/* ============================ SIDEBAR ============================ */}
+        {/* My Hub uses a single "targeting me" view, so the left rail is dropped
+            and its header is moved into the main area (below). */}
+        {!isMyHub && (
+        <>
         {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
         <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="es-sidebar-top">
@@ -752,7 +770,7 @@ export default function EscalationListPage() {
               </div>
             </div>
 
-            {canCreateEscalation && (
+            {canCreateEscalation && !isMyHub && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -766,85 +784,62 @@ export default function EscalationListPage() {
           </div>
 
           <div className="es-side-scroll">
-            <div className="es-side-section-label">Views</div>
-            <div className="es-side-list">
-              {viewsList.map((v) => {
-                const active = savedView === v.key;
-                return (
-                  <button
-                    key={v.key}
-                    type="button"
-                    className={`es-view-item ${active ? 'is-active' : ''}`}
-                    onClick={() => {
-                      if (v.key === 'trash') {
-                        router.push('/escalations/trash');
-                      } else {
-                        setSavedView(v.key);
-                        router.replace(`/escalations?view=${v.key}`);
-                      }
-                    }}
-                  >
-                    <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
-                    <span className="es-view-label">{v.label}</span>
-                    <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="es-side-section-label">Filters</div>
-            <div className="es-side-filters">
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Category"
-                searchPlaceholder="Search category"
-                itemNoun="categories"
-                value={categoryFilter}
-                onChange={(v) => setCategoryFilter(v || [])}
-                options={categoryOptions}
-                width="100%"
-              />
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Priority"
-                searchPlaceholder="Search priority"
-                itemNoun="priorities"
-                value={priorityFilter}
-                onChange={(v) => setPriorityFilter(v || [])}
-                options={priorityOptions}
-                width="100%"
-              />
-              <SearchableDropdown
-                mode="multiple"
-                className="es-side-sd"
-                placeholder="Status"
-                searchPlaceholder="Search status"
-                itemNoun="statuses"
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v || [])}
-                options={statusOptions}
-                width="100%"
-              />
-              {hasActiveFilters && (
-                <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
-                  <CloseCircleOutlined /> Clear filters
-                </button>
-              )}
-            </div>
+            {!isMyHub && (
+              <>
+                <div className="es-side-section-label">Views</div>
+                <div className="es-side-list">
+                  {viewsList.map((v) => {
+                    const active = savedView === v.key;
+                    return (
+                      <button
+                        key={v.key}
+                        type="button"
+                        className={`es-view-item ${active ? 'is-active' : ''}`}
+                        onClick={() => {
+                          if (v.key === 'trash') {
+                            router.push('/escalations/trash');
+                          } else {
+                            setSavedView(v.key);
+                            router.replace(`/escalations?view=${v.key}`);
+                          }
+                        }}
+                      >
+                        <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                        <span className="es-view-label">{v.label}</span>
+                        <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </aside>
+        </>
+        )}
 
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
+          {/* My Hub: header moved here from the (removed) left rail */}
+          {isMyHub && (
+            <div className="es-mh-header">
+              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
+              <div className="es-side-head-text">
+                <div className="es-side-title">Escalations</div>
+                <div className="es-side-subtitle">Quality & Performance</div>
+              </div>
+            </div>
+          )}
           <div className="es-topbar">
             <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
-              <Button
-                className="es-mobile-menu-btn"
-                type="text"
-                icon={<Menu size={18} />}
-                onClick={() => setMobileSidebarOpen(true)}
-              />
+              {!isMyHub && (
+                <Button
+                  className="es-mobile-menu-btn"
+                  type="text"
+                  icon={<Menu size={18} />}
+                  onClick={() => setMobileSidebarOpen(true)}
+                />
+              )}
               <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
                 <SearchOutlined className="es-search-icon" />
                 <input
@@ -854,7 +849,7 @@ export default function EscalationListPage() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-                <span className="es-kbd">⌘K</span>
+
               </div>
             </div>
 
@@ -898,6 +893,48 @@ export default function EscalationListPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Filters (moved from the left sidebar to a bar above the table) */}
+          <div className="es-filter-bar">
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Category"
+              searchPlaceholder="Search category"
+              itemNoun="categories"
+              value={categoryFilter}
+              onChange={(v) => setCategoryFilter(v || [])}
+              options={categoryOptions}
+              width="180px"
+            />
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Priority"
+              searchPlaceholder="Search priority"
+              itemNoun="priorities"
+              value={priorityFilter}
+              onChange={(v) => setPriorityFilter(v || [])}
+              options={priorityOptions}
+              width="180px"
+            />
+            <SearchableDropdown
+              mode="multiple"
+              className="es-side-sd"
+              placeholder="Status"
+              searchPlaceholder="Search status"
+              itemNoun="statuses"
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v || [])}
+              options={statusOptions}
+              width="180px"
+            />
+            {hasActiveFilters && (
+              <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
+                <CloseCircleOutlined /> Clear filters
+              </button>
+            )}
           </div>
 
           {/* Table / grid */}
@@ -1278,7 +1315,7 @@ export default function EscalationListPage() {
                       "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
                     );
                   }
-                  
+
                   if (fileUrl.includes(".r2.dev") && !fileUrl.includes(".r2.dev/")) {
                     fileUrl = fileUrl.replace(".r2.dev", ".r2.dev/");
                   }
@@ -1554,6 +1591,12 @@ export default function EscalationListPage() {
         }
         .es-side-filters { display: flex; flex-direction: column; gap: 7px; padding: 0; }
         .es-side-sd { border-radius: 8px !important; }
+        /* Filter bar above the table (moved from the left sidebar) */
+        .es-filter-bar {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .es-filter-bar .es-clear-filters { margin-left: 4px; }
         .es-side-select .ant-select-selector {
           border-radius: 8px !important; border-color: var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
@@ -1566,6 +1609,12 @@ export default function EscalationListPage() {
 
         /* ---------------- Main ---------------- */
         .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
+        /* My Hub header (moved here from the removed left rail) */
+        .es-mh-header {
+          display: flex; align-items: center; gap: 12px;
+          padding: 4px 0 12px; margin-bottom: 10px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
         .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .es-search-wrap {
@@ -1633,12 +1682,32 @@ export default function EscalationListPage() {
 
         /* Table */
         .es-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .es-table .ant-table { background: transparent; font-size: 12px; }
-        .es-table .ant-table-thead > tr > th {
+        .es-table,
+        .es-table.ant-table-wrapper,
+        .es-table .ant-table,
+        .es-table .ant-table-wrapper,
+        .es-table .ant-table-container,
+        .es-table .ant-table-content,
+        .es-table .ant-table-header,
+        .es-table .ant-table-body {
+          background: transparent !important;
+          border-radius: 0px !important;
+        }
+        .es-table .ant-table-thead > tr > th, .es-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+        }
+        .es-table .ant-table-thead > tr > th::before { display: none !important; }
+        [data-theme='dark'] .es-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .es-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
+          color: #94A3B8 !important;
+          border-bottom-color: #374151 !important;
         }
         .es-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; background: var(--bg-pure-white) !important; }
         .es-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1770,13 +1839,7 @@ export default function EscalationListPage() {
         .es-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
         .es-action-pop .ant-dropdown-menu-item-danger .es-menu-title { color: #ef4444; }
 
-        @media (max-width: 700px) {
-          .es-grid { grid-template-columns: 1fr; }
-        }
 
-        @media (max-width: 1100px) {
-          .es-stats { grid-template-columns: repeat(2, 1fr); }
-        }
         [data-theme='dark'] .es-shell {
           background:
             radial-gradient(1200px 400px at 0% -100px, rgba(59, 130, 246, 0.08), transparent 60%),
@@ -1841,8 +1904,8 @@ export default function EscalationListPage() {
           border-color: #1F2937 !important;
         }
         [data-theme='dark'] .es-table .ant-table-thead > tr > th {
-          background: #0B0F1A !important;
-          border-bottom-color: #1F2937 !important;
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
           color: #94A3B8 !important;
         }
         [data-theme='dark'] .es-table .ant-table-tbody > tr > td {
@@ -1906,15 +1969,22 @@ export default function EscalationListPage() {
 
         .es-mobile-menu-btn { display: none !important; }
 
+        @media (max-width: 1100px) {
+          .es-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
         @media (max-width: 820px) {
-          .es-shell { flex-direction: column; }
+          .es-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .es-main { height: auto; overflow: visible; }
+          .es-body { overflow: visible; }
+
           .es-mobile-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
           }
           .es-sidebar {
             position: fixed; top: 0; left: -320px; bottom: 0;
-            z-index: 999; height: 100%; max-height: none;
+            z-index: 1100; height: 100%; max-height: none;
             border-right: 1px solid var(--border-slate-200); border-bottom: 0;
             display: flex; flex-direction: column; align-items: stretch;
             background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
@@ -1927,6 +1997,11 @@ export default function EscalationListPage() {
           .es-topbar-actions { width: 100%; justify-content: flex-start; }
           .es-topbar-meta { display: none; }
           .es-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+        }
+
+        @media (max-width: 700px) {
+          .es-grid { grid-template-columns: 1fr; }
+          .es-stats { grid-template-columns: 1fr; }
         }
       `}</style>
 

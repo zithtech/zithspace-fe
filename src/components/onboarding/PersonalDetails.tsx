@@ -3,7 +3,7 @@ import { UserOutlined, EnvironmentOutlined, PhoneOutlined, IdcardOutlined } from
 import { Users } from "lucide-react";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
-
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 const { Option } = Select;
 
 const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
@@ -159,12 +159,11 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "24px" }}>
       {/* Basic Information */}
-      <Card
-        title={<Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={basicForm}
           layout="vertical"
@@ -174,7 +173,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           }
         >
           <Row gutter={24}>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>First Name</span>}
                 name="firstName"
@@ -194,7 +193,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Last Name</span>}
                 name="lastName"
@@ -211,20 +210,24 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Gender</span>}
                 name="gender"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Gender">
-                  <Option value="male">Male</Option>
-                  <Option value="female">Female</Option>
-                  <Option value="other">Other</Option>
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Gender"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={[
+                    { label: "Male", value: "male" },
+                    { label: "Female", value: "female" },
+                    { label: "Other", value: "other" }
+                  ]}
+                />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Date of Birth</span>}
                 name="dob"
@@ -233,31 +236,31 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 <DatePicker style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Blood Group</span>}
                 name="bloodGroup"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Select placeholder="Select Blood Group">
-                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
-                    <Option key={bg} value={bg}>{bg}</Option>
-                  ))}
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Blood Group"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => ({ label: bg, value: bg }))}
+                />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Mobile Number</span>}
                 name="mobile"
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]{10}$/, message: "Invalid format (10 digits)" },
+                  { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" },
                 ]}
               >
                 <Input
                   placeholder="Mobile Number"
-                  maxLength={10}
+                  maxLength={15}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key.length === 1) {
                       e.preventDefault();
@@ -266,35 +269,37 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item
                 label={<span style={labelStyle}>Personal Email</span>}
                 name="personalEmail"
                 rules={[{ required: true, type: "email", message: "Invalid email" }]}
+                getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
               >
                 <Input placeholder="Personal Email" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} md={12}>
               <Form.Item
                 label={<span style={labelStyle}>Work Email</span>}
                 name="workEmail"
                 rules={[{ required: true, type: "email", message: "Invalid email" }]}
+                getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
               >
                 <Input placeholder="Work Email" />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       {/* Address Information */}
-      <Card
-        title={<Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>}
-        bordered={false}
-        style={{ background: "transparent", border: "none" }}
-        styles={{ body: { padding: "24px 40px" } }}
-      >
+      <div style={{ background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+          <Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>
+        </div>
+        <div style={{ padding: "24px 40px" }}>
         <Form
           form={addressForm}
           layout="vertical"
@@ -304,17 +309,17 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             Current Address
           </div>
           <Row gutter={24}>
-            <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="c_flat" rules={[{ required: true }]}>
+            <Col xs={24} md={8}>
+              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="c_flat" rules={[{ required: true, message: "Required" }, { pattern: /^[A-Za-z0-9\s,./-]+$/, message: "No special characters allowed" }]}>
                 <Input placeholder="Flat No" />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Area</span>} name="c_area" rules={[{ required: true }]}>
+            <Col xs={24} md={8}>
+              <Form.Item label={<span style={labelStyle}>Area</span>} name="c_area" rules={[{ required: true, message: "Required" }, { pattern: /^[A-Za-z0-9\s,./-]+$/, message: "No special characters allowed" }]}>
                 <Input placeholder="Area" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>City</span>}
                 name="c_city"
@@ -331,7 +336,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>State</span>}
                 name="c_state"
@@ -348,7 +353,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Pincode</span>}
                 name="c_pincode"
@@ -368,12 +373,12 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Country</span>}
                 name="c_country"
                 rules={[
-                  { required: true },
+                  { required: true, message: "Required" },
                   { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
                 ]}
               >
@@ -399,35 +404,39 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           </div>
 
           <Row gutter={24}>
-            <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="p_flat">
+            <Col xs={24} md={8}>
+              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="p_flat" rules={[{ pattern: /^[A-Za-z0-9\s,./-]+$/, message: "No special characters allowed" }]}>
                 <Input placeholder="Flat No" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Area</span>} name="p_area">
+            <Col xs={24} md={8}>
+              <Form.Item label={<span style={labelStyle}>Area</span>} name="p_area" rules={[{ pattern: /^[A-Za-z0-9\s,./-]+$/, message: "No special characters allowed" }]}>
                 <Input placeholder="Area" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>City</span>}
                 name="p_city"
                 rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
               >
-                <Input placeholder="City" disabled={sameAsCurrent} />
+                <Input placeholder="City" disabled={sameAsCurrent} onKeyPress={(e) => {
+                  if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>State</span>}
                 name="p_state"
                 rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
               >
-                <Input placeholder="State" disabled={sameAsCurrent} />
+                <Input placeholder="State" disabled={sameAsCurrent} onKeyPress={(e) => {
+                  if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Pincode</span>}
                 name="p_pincode"
@@ -445,42 +454,54 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} md={8}>
               <Form.Item
                 label={<span style={labelStyle}>Country</span>}
                 name="p_country"
-                rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
+                rules={[
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
               >
-                <Input placeholder="Country" disabled={sameAsCurrent} />
+                <Input placeholder="Country" disabled={sameAsCurrent} onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </Card>
+        </div>
+      </div>
 
       <Row gutter={24}>
-        <Col span={12}>
+        <Col xs={24} md={12}>
           {/* Relationship & Emergency Contact */}
-          <Card
-            title={<Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
+          <div style={{ height: "100%", background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+            <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+              <Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>
+            </div>
+            <div style={{ padding: "24px 40px" }}>
             <Form form={emergencyInfoForm} layout="vertical" requiredMark={false}>
               <Form.Item label={<span style={labelStyle}>Relationship</span>} name="relationship" rules={[{ required: true }]}>
-                <Select placeholder="Select Relationship">
-                  <Option value="father">Father</Option>
-                  <Option value="mother">Mother</Option>
-                  <Option value="spouse">Spouse</Option>
-                  <Option value="guardian">Guardian</Option>
-                </Select>
+                <SearchableDropdown
+                  placeholder="Select Relationship"
+                  style={{ height: "40px", minHeight: "40px" }}
+                  options={[
+                    { label: "Father", value: "father" },
+                    { label: "Mother", value: "mother" },
+                    { label: "Spouse", value: "spouse" },
+                    { label: "Guardian", value: "guardian" }
+                  ]}
+                />
               </Form.Item>
               <Form.Item
                 label={<span style={labelStyle}>Name</span>}
                 name="relationName"
                 rules={[
-                  { required: true },
+                  { required: true, message: "Emergency contact name is required" },
+                  { min: 3, message: "Name must be at least 3 characters" },
                   { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
                 ]}
               >
@@ -496,12 +517,12 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 name="relationMobile"
                 rules={[
                   { required: true },
-                  { pattern: /^[0-9]{10}$/, message: "Invalid format (10 digits)" }
+                  { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" }
                 ]}
               >
                 <Input
                   placeholder="Mobile Number"
-                  maxLength={10}
+                  maxLength={15}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key.length === 1) {
                       e.preventDefault();
@@ -510,17 +531,17 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
             </Form>
-          </Card>
+            </div>
+          </div>
         </Col>
 
-        <Col span={12}>
+        <Col xs={24} md={12}>
           {/* Identity Information */}
-          <Card
-            title={<Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>}
-            bordered={false}
-            style={{ height: "100%", background: "transparent", border: "none" }}
-            styles={{ body: { padding: "24px 40px" } }}
-          >
+          <div style={{ height: "100%", background: "transparent", border: "1px solid var(--border-slate-100)", borderRadius: "0px" }}>
+            <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)", fontSize: "16px", fontWeight: 600 }}>
+              <Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>
+            </div>
+            <div style={{ padding: "24px 40px" }}>
             <Form form={identityForm} layout="vertical" requiredMark={false}>
               <Form.Item
                 label={<span style={labelStyle}>Aadhaar Number</span>}
@@ -541,19 +562,25 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 />
               </Form.Item>
               <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item label={<span style={labelStyle}>PAN Number</span>} name="pan" rules={[{ required: true }]}>
+                <Col xs={24} md={12}>
+                  <Form.Item label={<span style={labelStyle}>PAN Number</span>} name="pan" rules={[
+                    { required: true, message: "Required" },
+                    { pattern: /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/, message: "Enter a valid PAN number (e.g., ABCDE1234F)" }
+                  ]}>
                     <Input placeholder="PAN" style={{ textTransform: "uppercase" }} />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item label={<span style={labelStyle}>Passport (Optional)</span>} name="passport">
+                <Col xs={24} md={12}>
+                  <Form.Item label={<span style={labelStyle}>Passport (Optional)</span>} name="passport" rules={[
+                    { pattern: /^[A-Za-z]{1}[0-9]{7}$/, message: "Enter a valid Passport number (e.g., A1234567)" }
+                  ]}>
                     <Input placeholder="Passport" style={{ textTransform: "uppercase" }} />
                   </Form.Item>
                 </Col>
               </Row>
             </Form>
-          </Card>
+            </div>
+          </div>
         </Col>
       </Row>
     </div>

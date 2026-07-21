@@ -43,7 +43,7 @@ import {
   ArrowLeftOutlined,
   EllipsisOutlined,
 } from '@ant-design/icons';
-import { Sparkles, Check, AlertCircle, LayoutGrid, List } from 'lucide-react';
+import { Sparkles, Check, AlertCircle, LayoutGrid, List, Menu } from 'lucide-react';
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
@@ -87,6 +87,7 @@ export default function AccountsSettingsPage() {
     </div>
   );
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -321,7 +322,10 @@ export default function AccountsSettingsPage() {
     <MainLayout>
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><BankOutlined /></div>
             <div className="pp-side-head-text">
@@ -399,6 +403,9 @@ export default function AccountsSettingsPage() {
         <main className="pp-main">
           {/* Top search & views bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <Menu size={20} />
+            </button>
             <div className="pp-search-wrap">
               <SearchOutlined className="pp-search-icon" />
               <input
@@ -643,7 +650,9 @@ export default function AccountsSettingsPage() {
                   dataSource={pagedCategories}
                   rowKey="id"
                   loading={loading}
+                  className="pp-table"
                   pagination={false}
+                  scroll={{ x: 'max-content' }}
                   locale={{ emptyText: emptyState }}
                   onRow={(record) => ({
                     onClick: (e) => {
@@ -707,7 +716,7 @@ export default function AccountsSettingsPage() {
             </div>
           </div>
         }
-        width={420}
+        width={720}
         open={drawerVisible}
         onClose={() => {
           setDrawerVisible(false);
@@ -754,7 +763,11 @@ export default function AccountsSettingsPage() {
       >
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
           onFinish={handleSubmit}
           initialValues={{ isActive: true, color: "#3b82f6" }}
           requiredMark={false}
@@ -977,10 +990,10 @@ export default function AccountsSettingsPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -1009,12 +1022,14 @@ export default function AccountsSettingsPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1141,7 +1156,7 @@ export default function AccountsSettingsPage() {
 
         .settings-section {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 16px; padding: 12px 14px 4px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+          border-radius: 0 !important; padding: 16px 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
         .settings-section__head {
           display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px;
@@ -1203,9 +1218,40 @@ export default function AccountsSettingsPage() {
         .settings-status-toggle__text { display: inline-flex; align-items: center; gap: 8px; margin-left: 12px; font-size: 12px; font-weight: 600; color: var(--text-slate-700); }
         .settings-status-toggle__dot { width: 8px; height: 8px; border-radius: 999px; }
 
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        @media (max-width: 1024px) {
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+            display: flex;
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
         }
 
         /* ---------------- Cards ---------------- */

@@ -33,6 +33,8 @@ import {
   AttendanceState,
 } from '@/services/attendanceService';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
+import { getDeviceLocation } from '@/lib/geolocation';
+import { useSocket } from '@/providers/SocketProvider';
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
 const PALETTE = {
@@ -85,7 +87,9 @@ const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 //   4) Current-month table   5) Sticky bottom pager
 export default function ClockInOutPanel() {
   const { user } = useAuth();
-  const { canClockInOut, canReadAttendance } = usePermission();
+  const { socket } = useSocket();
+  const { canClockInOut, canReadAttendance, canReadMyHubAttendance } = usePermission();
+  console.log("Forcing HMR reload for ClockInOutPanel");
 
   const [today, setToday] = useState<TodayStatus | null>(null);
   const [summary, setSummary] = useState<any>(null);
@@ -143,24 +147,38 @@ export default function ClockInOutPanel() {
   }, [user?.id, tablePage, tablePageSize, monthStart, monthEnd]);
 
   useEffect(() => {
-    if (canClockInOut || canReadAttendance) loadTop();
-  }, [canClockInOut, canReadAttendance, loadTop]);
+    if (canClockInOut || canReadAttendance || canReadMyHubAttendance) loadTop();
+  }, [canClockInOut, canReadAttendance, canReadMyHubAttendance, loadTop]);
 
   useEffect(() => {
-    if (canClockInOut || canReadAttendance) loadMonth();
-  }, [canClockInOut, canReadAttendance, loadMonth]);
+    if (canClockInOut || canReadAttendance || canReadMyHubAttendance) loadMonth();
+  }, [canClockInOut, canReadAttendance, canReadMyHubAttendance, loadMonth]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     loadTop();
     loadMonth();
-  };
+  }, [loadTop, loadMonth]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('attendance:updated', refresh);
+    return () => {
+      socket.off('attendance:updated', refresh);
+    };
+  }, [socket, refresh]);
+
+  useEffect(() => {
+    window.addEventListener('attendance:refresh', refresh);
+    return () => window.removeEventListener('attendance:refresh', refresh);
+  }, [refresh]);
 
   const runAction = async (fn: () => Promise<unknown>, okMsg: string) => {
     setActing(true);
     try {
       await fn();
       message.success(okMsg);
-      await refresh();
+      // Wait for socket to trigger refresh, or trigger it manually
+      refresh();
     } catch (err: any) {
       message.error(err?.message || 'Action failed');
     } finally {
@@ -174,11 +192,16 @@ export default function ClockInOutPanel() {
   const syncTimer = useTimeTrackerStore((s) => s.syncTimer);
   const pausedTimerCount = activeEntries.filter((e) => e.status === 'PAUSED').length;
 
-  const clockIn = () => runAction(() => AttendanceService.clockIn(), 'Clocked in');
+  const clockIn = () =>
+    runAction(async () => {
+      const loc = await getDeviceLocation(); // best-effort; null if denied/unavailable
+      await AttendanceService.clockIn(loc ?? undefined);
+    }, 'Clocked in');
   const pause = (breakType?: string, reason?: string) =>
     runAction(() => AttendanceService.pause({ breakType, reason }), 'Paused — enjoy your break');
   const resume = (resumeTimers = true) =>
     runAction(async () => {
+      const loc = await getDeviceLocation(); // capture where work resumed (best-effort)
       if (resumeTimers) {
         // Optimistically flip paused timers to RUNNING so the header widget ticks
         // the instant the user confirms; the socket + refetch reconcile right after.
@@ -193,7 +216,7 @@ export default function ClockInOutPanel() {
             }),
           );
       }
-      await AttendanceService.resume({ resumeTimers });
+      await AttendanceService.resume({ resumeTimers, ...(loc ?? {}) });
       await fetchActiveTimer(); // reconcile the widget with server truth
     }, resumeTimers ? 'Welcome back — time tracking resumed' : 'Welcome back — time tracking stays paused');
   const complete = () => runAction(() => AttendanceService.complete(), 'Day completed');
@@ -280,7 +303,7 @@ export default function ClockInOutPanel() {
     );
   };
 
-  if (!canClockInOut && !canReadAttendance) {
+  if (!canClockInOut && !canReadAttendance && !canReadMyHubAttendance) {
     return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view this page.</div>;
   }
 
@@ -468,7 +491,7 @@ export default function ClockInOutPanel() {
         <CalendarOutlined /> {monthLabel} · My Attendance
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
-      <div className="cio-table-wrap">
+      <div className="cio-table-wrap" style={{ overflowX: 'auto' }}>
         <Table
           rowKey="id"
           size="small"
@@ -477,6 +500,7 @@ export default function ClockInOutPanel() {
           columns={columns}
           dataSource={rows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'cio-row' })}
           expandable={{
             expandedRowRender: renderSessions,
@@ -523,13 +547,14 @@ export default function ClockInOutPanel() {
 
       <style jsx global>{`
         .cio { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .cio > * { flex-shrink: 0; }
 
         /* 1) Header */
         .cio-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200);
+          padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap;
         }
-        .cio-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .cio-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .cio-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -648,12 +673,14 @@ export default function ClockInOutPanel() {
 
         /* 4) Table */
         .cio-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .cio-table .ant-table { background: transparent; font-size: 12px; }
-        .cio-table .ant-table-thead > tr > th {
+        .cio-table, .cio-table.ant-table-wrapper, .cio-table .ant-table, .cio-table .ant-table-container, .cio-table .ant-table-content, .cio-table .ant-table-header, .cio-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .cio-table .ant-table-thead > tr > th,
+        .cio-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .cio-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .cio-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -665,7 +692,7 @@ export default function ClockInOutPanel() {
           height: 52px; box-sizing: border-box;
         }
         .cio-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px;
+          position: sticky; bottom: 0; z-index: 20; margin: auto -32px 0; padding: 0 32px;
           background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }
@@ -689,6 +716,10 @@ export default function ClockInOutPanel() {
           .cio-band-action { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--border-slate-100); }
           .cio-band-stats { flex: 1 1 100%; }
           .cio-insights { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .cio-insights { grid-template-columns: 1fr; }
+          .cio-band-stats { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>
     </div>

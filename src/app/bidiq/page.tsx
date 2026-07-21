@@ -25,8 +25,9 @@ import {
   LayoutGrid,
   List as ListIcon,
   Snowflake,
+  Menu,
 } from "lucide-react";
-import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select } from "antd";
+import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -96,6 +97,7 @@ const fmtDate = (d?: string) => {
 };
 
 export default function BidIqPage() {
+  console.log("Forcing HMR reload for BidIqPage");
   useActivitySource({ section: "WORK", module: "BidIq", page: "BidIqList" });
   const { user, isLoading } = useAuth();
   const { canReadBidiq } = usePermission();
@@ -109,6 +111,7 @@ export default function BidIqPage() {
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Route guard — gated by the dedicated BidIq read permission.
   useEffect(() => {
@@ -241,7 +244,6 @@ export default function BidIqPage() {
       </div>
       {subtle && <span className="biq-stat-subtle">{subtle}</span>}
       {chart && <div className="biq-stat-chart">{chart}</div>}
-      <span className="biq-stat-accent" style={{ background: accent }} />
     </div>
   );
 
@@ -365,8 +367,9 @@ export default function BidIqPage() {
       <MainLayout>
         <div className="biq-page">
           <div className="biq-shell">
+            {mobileSidebarOpen && <div className="biq-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
             {/* ─── Sidebar ─────────────────────────────── */}
-            <aside className="biq-sidebar">
+            <aside className={`biq-sidebar ${mobileSidebarOpen ? "is-open" : ""}`}>
               <div className="biq-sidebar-top">
                 <div className="biq-side-head">
                   <div className="biq-side-logo">
@@ -443,15 +446,23 @@ export default function BidIqPage() {
             <div className="biq-main">
               {/* Topbar */}
               <div className="biq-topbar">
-                <div className="biq-topbar-search-wrap">
-                  <Input
-                    allowClear
-                    prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                    placeholder="Search lead, client, or platform…"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="biq-search-input"
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, maxWidth: 400, width: "100%" }}>
+                  <Button
+                    className="biq-mobile-menu-btn"
+                    type="text"
+                    icon={<Menu size={18} />}
+                    onClick={() => setMobileSidebarOpen(true)}
                   />
+                  <div className="biq-topbar-search-wrap" style={{ flex: 1, margin: 0, maxWidth: "none" }}>
+                    <Input
+                      allowClear
+                      prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                      placeholder="Search lead, client, or platform…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      className="biq-search-input"
+                    />
+                  </div>
                 </div>
                 <div className="biq-topbar-actions">
                   <RangePicker
@@ -824,13 +835,12 @@ export default function BidIqPage() {
           @media (max-width: 1100px) { .biq-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
           @media (max-width: 600px) { .biq-stat-grid { grid-template-columns: 1fr; } }
           .biq-stat-card {
-            position: relative; background: var(--bg-pure-white);
+            position: relative; background: transparent;
             border: 1px solid var(--border-slate-100); border-radius: 0;
             padding: 6px 12px; overflow: hidden; transition: border-color .15s ease;
           }
           .biq-stat-card:hover { border-color: var(--border-slate-200); }
-          .biq-stat-card:hover .biq-stat-accent { opacity: 1; }
-          .biq-stat-accent { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; opacity: 0.55; transition: opacity .25s ease; pointer-events: none; }
+          .biq-stat-card:hover { border-color: var(--border-slate-200); }
           .biq-stat-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
           .biq-stat-icon { width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
           .biq-stat-label {
@@ -880,14 +890,27 @@ export default function BidIqPage() {
             position: relative; background: var(--bg-pure-white);
             border-radius: 0; border: 1px solid var(--border-slate-200); overflow: hidden;
           }
-          .biq-table.ant-table-wrapper .ant-table { background: transparent !important; font-size: 12px; }
-          .biq-table.ant-table-wrapper .ant-table-thead > tr > th {
-            background: var(--bg-slate-50) !important; color: var(--text-slate-400) !important;
-            font-weight: 700 !important; text-transform: uppercase !important; font-size: 10px !important;
-            letter-spacing: 0.04em !important; padding: 6px 10px !important;
-            border-bottom: 1px solid var(--border-slate-200) !important; white-space: nowrap !important;
+          .biq-table,
+          .biq-table.ant-table-wrapper,
+          .biq-table .ant-table,
+          .biq-table .ant-table-wrapper,
+          .biq-table .ant-table-container,
+          .biq-table .ant-table-content,
+          .biq-table .ant-table-header,
+          .biq-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
           }
-          .biq-table.ant-table-wrapper .ant-table-thead > tr > th::before { display: none !important; }
+          .biq-table .ant-table-thead > tr > th, .biq-table .ant-table-thead > tr > td {
+            background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .biq-table .ant-table-thead > tr > th::before { display: none !important; }
           .biq-table.ant-table-wrapper .ant-table-tbody > tr > td {
             padding: 14px 10px !important; border-bottom: 1px solid var(--border-slate-100) !important;
             transition: background .15s ease; position: relative;
@@ -969,14 +992,44 @@ export default function BidIqPage() {
           .biq-empty-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); }
           .biq-empty-text { font-size: 13px; color: var(--text-slate-500); margin-top: 4px; }
 
+          .biq-mobile-menu-btn { display: none !important; }
+
+          @media (max-width: 700px) {
+            .biq-grid { grid-template-columns: 1fr; }
+            .biq-stats { grid-template-columns: 1fr !important; }
+          }
+          @media (max-width: 1100px) {
+            .biq-stats { grid-template-columns: repeat(2, 1fr); }
+          }
+          @media (max-width: 820px) {
+            .biq-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+            .biq-main { height: auto; overflow: visible; }
+            .biq-body { overflow: visible; }
+            .biq-sidebar {
+              position: fixed; top: 0; left: -320px; bottom: 0; z-index: 1100;
+              height: 100%; max-height: none; display: flex; flex-direction: column;
+              align-items: stretch; background: var(--bg-pure-white); width: 280px;
+              box-sizing: border-box; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 4px 0 24px rgba(0,0,0,0.08); display: flex !important;
+            }
+            .biq-sidebar.is-open { left: 0; }
+            .biq-topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .biq-topbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+            .biq-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
+            .biq-mobile-overlay {
+              position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            }
+          }
+
           /* ---------- Dark theme — mirrors Leads page ---------- */
           /* Surfaces (page/shell/sidebar/grid-card/bottom-bar) use --bg-pure-white,
              which flips to #0B0F1A in dark automatically — no override needed.
              Only elevated cards + the table internals get explicit overrides. */
-          [data-theme='dark'] .biq-stat-card,
           [data-theme='dark'] .biq-table-card { background: var(--bg-secondary); border-color: var(--border-slate-100); }
           [data-theme='dark'] .biq-search-input.ant-input-affix-wrapper { background: var(--bg-secondary) !important; }
-          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > th { background: var(--bg-primary) !important; border-bottom-color: var(--border-slate-100) !important; }
+          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > th,
+          [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-thead > tr > td { background: #161B22 !important; color: #94A3B8 !important; border-bottom-color: #374151 !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-tbody > tr > td { border-bottom-color: var(--border-slate-100) !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .biq-row:hover > td { background: var(--bg-primary) !important; }
           [data-theme='dark'] .biq-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right { background: var(--bg-pure-white) !important; }

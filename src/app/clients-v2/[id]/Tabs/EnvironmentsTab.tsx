@@ -7,7 +7,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   DatePicker,
   message,
   Popconfirm,
@@ -60,6 +59,7 @@ import {
   ModalFooterActions,
 } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 type Mode = "light" | "dark";
@@ -1256,52 +1256,75 @@ function CreateEnvModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onClose={onClose}
-      width={660}
-      c={c}
-      ribbonColor={c.accentText}
-      iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
-      icon={<Server size={20} />}
-      title="Add an environment"
-      subtitle="Production · Staging · UAT — anything you want to track for this client. Visibility controls whether it shows in their portal."
-      tip={
-        <span>
-          <ShieldCheck
-            size={11}
-            style={{ verticalAlign: -1, marginRight: 5, color: c.successText }}
-          />
-          SSL and backup fields are color-coded in the client portal based on
-          how soon they expire.
-        </span>
-      }
-      footer={
-        <ModalFooterActions c={c} kbdHint="⌘ ↵ to save">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            onClick={() => form.submit()}
-            icon={<Server size={14} />}
-          >
-            Save environment
-          </Button>
-        </ModalFooterActions>
-      }
-    >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+      >
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <Server size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Add an environment</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  Production · Staging · UAT — anything you want to track for this client. Visibility controls whether it shows in their portal.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <div className="mb-6 p-3 rounded-lg flex gap-3" style={{ background: c.successBg, border: `1px solid ${c.successBorder}` }}>
+              <ShieldCheck size={16} className="shrink-0 mt-0.5" style={{ color: c.successText }} />
+              <div className="text-[12.5px] font-medium" style={{ color: c.successText }}>
+                SSL and backup fields are color-coded in the client portal based on
+                how soon they expire.
+              </div>
+            </div>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ span: 7 }}
+        wrapperCol={{ span: 17 }}
+        labelAlign="left"
+        onFinish={submit}
+        requiredMark={false}
+      >
+        <SectionCard
           title="Identity"
-          description="What this environment is, where it lives, and who sees it."
-          icon={<Server size={11} />}
-          plain
+          subtitle="What this environment is, where it lives, and who sees it."
+          icon={<Server size={14} />}
+          step="STEP 1"
         >
           <Form.Item
             name="name"
-            label={<L c={c}>Display name</L>}
+            label="Display name"
             rules={[{ required: true, message: "Name is required" }]}
             style={{ marginBottom: 12 }}
           >
@@ -1312,57 +1335,49 @@ function CreateEnvModal({
             />
           </Form.Item>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 10,
-            }}
+          <Form.Item
+            name="kind"
+            label="Type"
+            rules={[{ required: true, message: "Type is required" }]}
+            style={{ marginBottom: 12 }}
           >
-            <Form.Item
-              name="kind"
-              label={<L c={c}>Type</L>}
-              rules={[{ required: true, message: "Type is required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                options={(Object.keys(KIND_META) as EnvKind[]).map((k) => ({
-                  value: k,
-                  label: KIND_META[k].label,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="status"
-              label={<L c={c}>Status</L>}
-              rules={[{ required: true, message: "Status is required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                options={(Object.keys(STATUS_META) as EnvStatus[]).map((s) => ({
-                  value: s,
-                  label: STATUS_META[s].label,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="visibility"
-              label={<L c={c}>Visibility</L>}
-              rules={[{ required: true, message: "Visibility is required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                options={[
-                  { value: "client", label: "Visible to client" },
-                  { value: "internal", label: "Internal only" },
-                ]}
-              />
-            </Form.Item>
-          </div>
+            <SearchableDropdown
+              options={(Object.keys(KIND_META) as EnvKind[]).map((k) => ({
+                value: k,
+                label: KIND_META[k].label,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="Status"
+            rules={[{ required: true, message: "Status is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              options={(Object.keys(STATUS_META) as EnvStatus[]).map((s) => ({
+                value: s,
+                label: STATUS_META[s].label,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="visibility"
+            label="Visibility"
+            rules={[{ required: true, message: "Visibility is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <SearchableDropdown
+              options={[
+                { value: "client", label: "Visible to client" },
+                { value: "internal", label: "Internal only" },
+              ]}
+            />
+          </Form.Item>
 
           <Form.Item
             name="url"
-            label={<L c={c}>URL</L>}
+            label="URL"
             rules={[
               { required: true, message: "URL is required" },
               {
@@ -1377,60 +1392,52 @@ function CreateEnvModal({
               placeholder="https://app.example.com"
             />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
 
-        <ModalSection
-          c={c}
+        <SectionCard
           title="Health & metadata"
-          description="Version, SSL expiry and backup state — all surfaced as color-coded chips in the portal."
-          icon={<ShieldCheck size={11} />}
+          subtitle="Version, SSL expiry and backup state — all surfaced as color-coded chips in the portal."
+          icon={<ShieldCheck size={14} />}
+          step="STEP 2"
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1.2fr",
-              gap: 10,
-            }}
-          >
-            <Form.Item
-              name="currentVersion"
-              label={<L c={c}>Current version</L>}
+          <Form.Item
+            name="currentVersion"
+            label="Current version"
               rules={[{ required: true, message: "Current version is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Input placeholder="e.g. v2.4.1" maxLength={60} />
-            </Form.Item>
-            <Form.Item
-              name="sslExpiresAt"
-              label={<L c={c}>SSL expires</L>}
-              rules={[{ required: true, message: "SSL expiry date is required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-            </Form.Item>
-            <Form.Item
-              name="lastBackupAt"
-              label={<L c={c}>Last backup</L>}
-              rules={[{ required: true, message: "Last backup date is required" }]}
-              style={{ marginBottom: 12 }}
-            >
-              <DatePicker
-                showTime
-                style={{ width: "100%" }}
-                format="YYYY-MM-DD HH:mm"
-              />
-            </Form.Item>
-          </div>
+          </Form.Item>
+          <Form.Item
+            name="sslExpiresAt"
+            label="SSL expires"
+            rules={[{ required: true, message: "SSL expiry date is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+          </Form.Item>
+          <Form.Item
+            name="lastBackupAt"
+            label="Last backup"
+            rules={[{ required: true, message: "Last backup date is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <DatePicker
+              showTime
+              style={{ width: "100%" }}
+              format="YYYY-MM-DD HH:mm"
+            />
+          </Form.Item>
 
           <Form.Item
             name="projectId"
-            label={<L c={c}>Project</L>}
+            label="Project"
             rules={[{ required: true, message: "Project is required" }]}
             style={{ marginBottom: 12 }}
           >
-            <Select
-              allowClear
+            <SearchableDropdown
               placeholder="—"
+              searchPlaceholder="Search projects..."
               options={projects.map((p) => ({
                 value: p.id,
                 label: p.code ? `${p.name} · ${p.code}` : p.name,
@@ -1440,14 +1447,33 @@ function CreateEnvModal({
 
           <Form.Item
             name="notes"
-            label={<L c={c} hint="optional">Notes</L>}
+            label="Notes (optional)"
             style={{ marginBottom: 0 }}
           >
             <Input.TextArea rows={2} placeholder="Anything else worth noting" />
           </Form.Item>
-        </ModalSection>
+        </SectionCard>
       </Form>
-    </PremiumModal>
+    </div>
+    
+    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+        Cancel
+      </Button>
+      <Button
+        type="primary"
+        htmlType="submit"
+        loading={submitting}
+        onClick={() => form.submit()}
+        icon={<Server size={14} />}
+        className="font-medium shadow-sm hover:opacity-90"
+      >
+        Save environment
+      </Button>
+    </div>
+  </div>
+</Drawer>
+</>
   );
 }
 
@@ -2057,7 +2083,7 @@ function SettingsForm({
             label={<L c={c}>Type</L>}
             rules={[{ required: true, message: "Type is required" }]}
           >
-            <Select
+            <SearchableDropdown
               options={(Object.keys(KIND_META) as EnvKind[]).map((k) => ({
                 value: k,
                 label: KIND_META[k].label,
@@ -2069,7 +2095,7 @@ function SettingsForm({
             label={<L c={c}>Status</L>}
             rules={[{ required: true, message: "Status is required" }]}
           >
-            <Select
+            <SearchableDropdown
               options={(Object.keys(STATUS_META) as EnvStatus[]).map((s) => ({
                 value: s,
                 label: STATUS_META[s].label,
@@ -2142,7 +2168,7 @@ function SettingsForm({
             label={<L c={c}>Visibility</L>}
             rules={[{ required: true, message: "Visibility is required" }]}
           >
-            <Select
+            <SearchableDropdown
               options={[
                 { value: "client", label: "Client" },
                 { value: "internal", label: "Internal" },
@@ -2154,8 +2180,8 @@ function SettingsForm({
             label={<L c={c}>Project</L>}
             rules={[{ required: true, message: "Project is required" }]}
           >
-            <Select
-              allowClear
+            <SearchableDropdown
+              searchPlaceholder="Search projects..."
               options={projects.map((p) => ({
                 value: p.id,
                 label: p.code ? `${p.name} · ${p.code}` : p.name,
@@ -2509,7 +2535,7 @@ function LogDeploymentModal({
               <Input placeholder="e.g. v2.4.2" maxLength={60} />
             </Form.Item>
             <Form.Item name="status" label={<L c={c}>Status</L>}>
-              <Select
+              <SearchableDropdown
                 options={(Object.keys(DEPLOY_STATUS_META) as DeployStatus[]).map(
                   (s) => ({
                     value: s,

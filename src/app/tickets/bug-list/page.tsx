@@ -51,7 +51,7 @@ export default function BugListRoute() {
           margin: 0,
           padding: 0,
           background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)",
+          height: "100%",
           overflow: "hidden",
           width: "100%",
           maxWidth: "100vw",

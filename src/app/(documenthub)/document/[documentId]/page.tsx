@@ -9,63 +9,42 @@ import { useCreateBlockNote } from '@blocknote/react'
 import DocumentEditor from '@/components/common/DocumentEditor'
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { FloatButton, Tooltip } from 'antd'
+import { FloatButton, Tooltip, message } from 'antd'
 import { FilePdfOutlined } from '@ant-design/icons'
 
-function PreviewContent({ content, title }: { content: any, title: string }) {
+import { useAuth } from '@/context/AuthContext'
+
+function PreviewContent({ content, title, documentData }: { content: any, title: string, documentData?: any }) {
+    const { user } = useAuth();
     const editor = useCreateBlockNote({
         initialContent: content ? (Array.isArray(content) ? content : []) : undefined
     })
     const contentRef = useRef<HTMLDivElement>(null);
 
     const handleExportPdf = async () => {
-        if (!contentRef.current) return;
+        if (!documentData?.id) {
+            message.error('Document ID not found');
+            return;
+        }
 
-        const html2pdf = (await import('html2pdf.js')).default;
-
-        // Clone the element to modify styles for PDF generation without affecting UI
-        const element = contentRef.current.cloneNode(true) as HTMLElement;
-
-
-        // Apply PDF-specific styles to the clone
-        element.style.width = '100%';
-        element.style.maxWidth = '800px'; // A4 width approx
-        element.style.margin = '0';
-        element.style.padding = '0px';
-        element.style.background = 'white';
-        element.style.border = 'none';
-        element.style.boxShadow = 'none';
-        element.style.height = 'auto';
-        element.style.overflow = 'visible';
-        element.style.zoom = '1'; // Reset zoom
-
-        // Create a temporary container
-        const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.top = '0';
-        container.appendChild(element);
-        document.body.appendChild(container);
-
-        const opt = {
-            margin: [1, 1, 1, 1], // top, left, bottom, right
-            filename: `${title || 'document'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                letterRendering: true
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
+        const hide = message.loading('Generating PDF...', 0);
         try {
-            await (html2pdf() as any).set(opt).from(element).save();
-        } finally {
-            // Clean up
-            document.body.removeChild(container);
+            const blob = await documentHubService.downloadDocumentPdf(documentData.id);
+            const url = window.URL.createObjectURL(blob);
+            const link = window.document.createElement('a');
+            link.href = url;
+            link.download = `${title || 'document'}.pdf`;
+            window.document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            hide();
+            message.success('PDF generated successfully');
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+            hide();
+            message.error('Failed to generate PDF');
         }
     };
 
@@ -124,7 +103,7 @@ export default function DocumentPreviewPage({ params }: { params: Promise<{ docu
 
     return (
         <MainLayout>
-            <PreviewContent content={document.content} title={document.title} />
+            <PreviewContent content={document.content} title={document.title} documentData={document} />
         </MainLayout>
     )
 }

@@ -50,7 +50,8 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
 
   useEffect(() => {
     if (visible && lead) {
-      const initialBody = `<p>Hi ${lead.client_name},</p><p>I'm reaching out regarding the ${lead.title} project. Please find the proposal attached.</p><p>Best regards,<br/>${user?.name || "Team"}</p>`;
+      const proposalText = lead.proposal_id ? " Please find the proposal attached." : " I would love to discuss this opportunity further.";
+      const initialBody = `<p>Hi ${lead.client_name},</p><p>I'm reaching out regarding the ${lead.title} project.${proposalText}</p><p>Best regards,<br/>${user?.name || "Team"}</p>`;
       form.setFieldsValue({
         from: fromEmail || "",
         to: lead.client_mail || "",

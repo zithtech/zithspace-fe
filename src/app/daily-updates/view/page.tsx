@@ -21,6 +21,7 @@ import {
   Segmented,
   Tag,
   Pagination,
+  Avatar,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -113,7 +114,7 @@ export default function ViewDailyUpdatesPage() {
 
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
+  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog, canReadDailyUpdate } = usePermission();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -217,9 +218,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const pageStart = totalCards === 0 ? 0 : (cardPage - 1) * cardPageSize + 1;
   const pageEnd = Math.min(cardPage * cardPageSize, totalCards);
   const currentCardUpdates = updates.slice((cardPage - 1) * cardPageSize, cardPage * cardPageSize);
-
-  const canViewTeam = canManageDailyUpdateTime || user?.position === "Project Manager";
-
+  const canViewTeam = canReadDailyUpdate;
   useEffect(() => {
     fetchProjects();
     fetchUpdates();
@@ -325,6 +324,19 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
     return {
       label: name as string,
       value: update?.userId as string,
+      badge: (
+        <Avatar
+          src={update?.user?.avatarUrl || undefined}
+          size={20}
+          style={{
+            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+            fontSize: 9,
+            fontWeight: 800,
+          }}
+        >
+          {((name as string) || "?").charAt(0).toUpperCase()}
+        </Avatar>
+      )
     };
   });
 
@@ -483,6 +495,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         .du-main-scroll {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 0 24px 0 24px;
           display: flex;
           flex-direction: column;
@@ -516,6 +529,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         @media (max-width: 820px) {
           .btn-text-mobile-hide { display: none; }
           .du-main-header { padding: 12px 16px !important; }
+          .du-main-scroll { padding: 0 16px 0 16px !important; }
+          .du-footer--sticky { margin-left: -16px !important; margin-right: -16px !important; padding: 12px 16px !important; }
           .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           .du-sidebar {
             position: fixed;
@@ -776,7 +791,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             </div>
           </div>
 
-          {canViewTeam && (
+          {canManageDailyUpdateTime && (
             <Button type="primary" icon={<Clock size={16} />} className="du-side-create" onClick={() => setManageTimeOpen(true)} block>
               Manage Time
             </Button>
@@ -869,7 +884,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       </aside>
 
       <main className="du-main">
-        <header className="du-main-header" style={{ height: 'auto', minHeight: 52, padding: '12px 24px', flexWrap: 'wrap', gap: '12px 16px' }}>
+        <header className="du-main-header" style={{ height: 'auto', minHeight: 52, flexWrap: 'wrap', gap: '12px 16px' }}>
           <div className="flex items-center gap-4 flex-wrap" style={{ flex: '1 1 280px' }}>
             <div className="flex items-center gap-3">
               <Button

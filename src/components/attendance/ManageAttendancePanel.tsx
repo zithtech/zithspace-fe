@@ -16,6 +16,8 @@ import {
   Col,
   Space,
   Avatar,
+  Modal,
+  Input,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -33,17 +35,21 @@ import {
   ClockCircleOutlined,
   TeamOutlined,
   UserOutlined,
+  MinusCircleOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor, avatarColorFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from '@/components/common/DrawerSection';
 import { AttendanceService, Attendance } from '@/services/attendanceService';
+import LeaveV2Service from '@/services/leaveV2Service';
 import { MembersService, Member } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
 import { useSocket } from '@/providers/SocketProvider';
-import { breakLabel } from '@/components/attendance/breakTypes';
-import { CoffeeOutlined } from '@ant-design/icons';
+import { breakLabel, BREAK_TYPES } from '@/components/attendance/breakTypes';
+import { CoffeeOutlined, EnvironmentOutlined } from '@ant-design/icons';
 
 interface LiveStatus {
   state?: string;
@@ -82,6 +88,14 @@ const STATUS_META: Record<string, { label: string; color: string; tint: string; 
   absent: { label: 'Absent', color: PALETTE.red, tint: TINT.red, icon: <CloseCircleOutlined /> },
 };
 
+// Interval-type options for the timeline editor: Work + the shared break catalog.
+const INTERVAL_TYPE_OPTIONS = [
+  { value: 'work', label: 'Work' },
+  ...BREAK_TYPES.map((b) => ({ value: b.value, label: b.label })),
+];
+// Break types that invite an optional free-text reason.
+const REASON_TYPES = new Set(BREAK_TYPES.filter((b) => b.reasonHint).map((b) => b.value));
+
 const formatDuration = (minutes?: number) => {
   if (!minutes) return '-';
   const h = Math.floor(minutes / 60);
@@ -93,76 +107,15 @@ const fieldLabel = (t: string) => (
   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{t}</span>
 );
 
-// Section card — matches the Leave Type drawer (icon chip + title + subtitle +
-// STEP pill, wrapping its fields in a square white card).
-function SectionCard({
-  icon,
-  tint,
-  color,
-  title,
-  subtitle,
-  step,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  step: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 0,
-        padding: '12px 22px',
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 0,
-            background: tint,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 500 }}>{subtitle}</div>
-        </div>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: 999,
-            background: 'var(--bg-secondary, #f1f5f9)',
-            color: 'var(--text-slate-500)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {step}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
+const localAttStyles = `
+  [data-theme='dark'] .att-timeline-item {
+    background: transparent !important;
+    border-color: #1f2937 !important;
+  }
+`;
+
+
+
 
 // Smooth area sparkline — identical to the Leave Type stat cards.
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
@@ -244,6 +197,15 @@ export default function ManageAttendancePanel() {
   const [editing, setEditing] = useState<ExtendedAttendance | null>(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+  const statusValue = Form.useWatch('status', form);
+
+  // reopen-day modal
+  const [reopenTarget, setReopenTarget] = useState<ExtendedAttendance | null>(null);
+  const [reopenTime, setReopenTime] = useState<dayjs.Dayjs | null>(null);
+  const [reopenSaving, setReopenSaving] = useState(false);
+
+  // validation modal
+  const [overlapModalVisible, setOverlapModalVisible] = useState(false);
 
   // Reference data (members + projects) loaded once.
   useEffect(() => {
@@ -354,19 +316,57 @@ export default function ManageAttendancePanel() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), status: 'present' });
+    form.setFieldsValue({
+      date: dayjs(),
+      status: 'present',
+      timeline: [{ type: 'work', start: null, end: null, reason: '' }],
+    });
     setDrawerOpen(true);
   };
 
   const openEdit = (record: ExtendedAttendance) => {
     setEditing(record);
+
+    // Rebuild the editable timeline from the day's work sessions: each session is
+    // a work row; a session that owns a break adds a break row bridging to the
+    // next session. Legacy records fall back to a single work row.
+    const sessions = record.sessions || [];
+    const timeline: any[] = [];
+    if (sessions.length) {
+      sessions.forEach((s, idx) => {
+        timeline.push({
+          type: 'work',
+          start: s.clockIn ? dayjs(s.clockIn) : null,
+          end: s.clockOut ? dayjs(s.clockOut) : null,
+          reason: '',
+        });
+        const next = sessions[idx + 1];
+        if (s.breakType && next) {
+          timeline.push({
+            type: s.breakType,
+            start: s.clockOut ? dayjs(s.clockOut) : null,
+            end: next.clockIn ? dayjs(next.clockIn) : null,
+            reason: s.breakReason || '',
+          });
+        }
+      });
+    } else if (record.clockIn || record.clockOut) {
+      timeline.push({
+        type: 'work',
+        start: record.clockIn ? dayjs(record.clockIn) : null,
+        end: record.clockOut ? dayjs(record.clockOut) : null,
+        reason: '',
+      });
+    } else {
+      timeline.push({ type: 'work', start: null, end: null, reason: '' });
+    }
+
     form.setFieldsValue({
       member: record.member?.id,
       date: record.date ? dayjs(record.date) : dayjs(),
       status: record.status,
-      clockIn: record.clockIn ? dayjs(record.clockIn) : null,
-      clockOut: record.clockOut ? dayjs(record.clockOut) : null,
       notes: record.notes,
+      timeline,
     });
     setDrawerOpen(true);
   };
@@ -375,33 +375,81 @@ export default function ManageAttendancePanel() {
     let values: any;
     try {
       values = await form.validateFields();
-    } catch {
+    } catch (error) {
+      console.error("Validation failed:", error);
       return;
     }
     setSaving(true);
     try {
       const selectedDate = dayjs(values.date);
-      const clockIn = values.clockIn
-        ? selectedDate.hour(values.clockIn.hour()).minute(values.clockIn.minute()).second(0).toISOString()
-        : undefined;
-      const clockOut = values.clockOut
-        ? selectedDate.hour(values.clockOut.hour()).minute(values.clockOut.minute()).second(0).toISOString()
-        : undefined;
 
-      const payload = {
+      // Validate if the member has an approved leave on this date using the new LeaveV2Service
+      const allLeaveRequests = await LeaveV2Service.getApprovals();
+      
+      let hasOverlap = false;
+      
+      if (allLeaveRequests && allLeaveRequests.length > 0) {
+        const selectedDateStr = selectedDate.format('YYYY-MM-DD');
+        for (const leave of allLeaveRequests) {
+          // Filter by the selected member's user ID
+          if (leave.userId !== values.member) continue;
+          
+          const lStatus = leave.status || 'unknown';
+          const lStart = dayjs(leave.fromDate).format('YYYY-MM-DD');
+          const lEnd = dayjs(leave.toDate).format('YYYY-MM-DD');
+          
+          // Check locally if the leave is approved (case-insensitive)
+          if (lStatus.toLowerCase() !== 'approved') continue;
+          
+          if (selectedDateStr >= lStart && selectedDateStr <= lEnd) {
+            hasOverlap = true;
+            break;
+          }
+        }
+      }
+
+      if (hasOverlap) {
+        setOverlapModalVisible(true);
+        setSaving(false);
+        return;
+      }
+
+      const atDate = (t: dayjs.Dayjs) =>
+        selectedDate.hour(t.hour()).minute(t.minute()).second(0).millisecond(0);
+
+      // Fold the timeline into normalized work sessions. Each work row becomes a
+      // session; a break row attaches its type/reason to the preceding work
+      // session (the gap to the next session IS the break duration).
+      const rows = (values.timeline || [])
+        .filter((r: any) => r && r.start)
+        .map((r: any) => ({ ...r, s: atDate(r.start), e: r.end ? atDate(r.end) : null }))
+        .sort((a: any, b: any) => a.s.valueOf() - b.s.valueOf());
+
+      const sessions: { clockIn: string; clockOut: string | null; breakType: string | null; breakReason: string | null }[] = [];
+      for (const r of rows) {
+        if (r.type === 'work') {
+          sessions.push({ clockIn: r.s.toISOString(), clockOut: r.e ? r.e.toISOString() : null, breakType: null, breakReason: null });
+        } else if (sessions.length) {
+          sessions[sessions.length - 1].breakType = r.type;
+          sessions[sessions.length - 1].breakReason = r.reason || null;
+        }
+      }
+
+      const useSessions = values.status !== 'absent' && sessions.length > 0;
+
+      const payload: any = {
         userId: values.member,
         date: selectedDate.toISOString(),
         status: values.status,
-        clockIn,
-        clockOut,
         notes: values.notes,
       };
+      if (useSessions) payload.sessions = sessions;
 
       if (editing) {
-        await AttendanceService.updateAttendance(editing.id, payload as any);
+        await AttendanceService.updateAttendance(editing.id, payload);
         message.success('Attendance record updated');
       } else {
-        await AttendanceService.createAttendance(payload as any);
+        await AttendanceService.createAttendance(payload);
         message.success('Attendance record created');
       }
       setDrawerOpen(false);
@@ -410,6 +458,40 @@ export default function ManageAttendancePanel() {
       message.error(err?.message || 'Failed to save attendance record');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Reopen-day handlers ──────────────────────────────────────────────────────
+  const openReopen = (record: ExtendedAttendance) => {
+    setReopenTarget(record);
+    setReopenTime(record.clockOut ? dayjs(record.clockOut) : dayjs());
+  };
+
+  const submitReopen = async () => {
+    if (!reopenTarget || !reopenTime) return;
+    setReopenSaving(true);
+    try {
+      // Anchor the picked time on the completed day itself (clock-out > date), so
+      // the calendar day and timezone match what the picker shows.
+      const base = reopenTarget.clockOut
+        ? dayjs(reopenTarget.clockOut)
+        : reopenTarget.date
+          ? dayjs(reopenTarget.date)
+          : dayjs();
+      const resumeAt = base
+        .hour(reopenTime.hour())
+        .minute(reopenTime.minute())
+        .second(0)
+        .millisecond(0);
+      await AttendanceService.reopenDay(reopenTarget.id, resumeAt.toISOString());
+      message.success('Day reopened');
+      setReopenTarget(null);
+      setReopenTime(null);
+      await load();
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to reopen day');
+    } finally {
+      setReopenSaving(false);
     }
   };
 
@@ -429,8 +511,17 @@ export default function ManageAttendancePanel() {
       key: 'member',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar size={32} src={r.member?.avatarUrl} style={{ backgroundColor: PALETTE.blue, borderRadius: 8 }}>
-            {r.member?.name?.charAt(0)}
+          <Avatar 
+            size={32} 
+            src={r.member?.avatarUrl} 
+            style={{ 
+              backgroundColor: r.member?.avatarUrl ? 'transparent' : avatarColorFor(r.member?.id || r.member?.name || ''), 
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600
+            }}
+          >
+            {initialsFor(r.member?.name || '')}
           </Avatar>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{r.member?.name || '—'}</div>
@@ -494,6 +585,17 @@ export default function ManageAttendancePanel() {
       align: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+          {canUpdateAttendance && r.clockOut && (
+            <Tooltip title="Reopen day">
+              <Button
+                type="text"
+                size="small"
+                icon={<PlayCircleOutlined />}
+                style={{ color: PALETTE.green }}
+                onClick={() => openReopen(r)}
+              />
+            </Tooltip>
+          )}
           {canUpdateAttendance && (
             <Tooltip title="Edit"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
           )}
@@ -536,6 +638,29 @@ export default function ManageAttendancePanel() {
                 </span>
                 <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--text-slate-700)' }}>{formatDuration(s.workMinutes)}</span>
               </div>
+              {s.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${s.location.latitude},${s.location.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View clock-in location on Google Maps"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 90, maxWidth: 520,
+                    fontSize: 11.5, fontWeight: 500, color: PALETTE.blue, textDecoration: 'none',
+                  }}
+                >
+                  <EnvironmentOutlined />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.location.address ||
+                      `${s.location.latitude.toFixed(5)}, ${s.location.longitude.toFixed(5)}`}
+                  </span>
+                  {s.location.accuracy != null && (
+                    <span style={{ color: 'var(--text-slate-400)', fontWeight: 500, flexShrink: 0 }}>
+                      ±{Math.round(s.location.accuracy)}m
+                    </span>
+                  )}
+                </a>
+              )}
               {gap > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 90, fontSize: 11.5, fontWeight: 600, color: PALETTE.amber }}>
                   <CoffeeOutlined /> {breakLabel(s.breakType)} · {formatDuration(gap)}
@@ -633,7 +758,7 @@ export default function ManageAttendancePanel() {
           itemNoun="members"
           value={memberFilter}
           onChange={(v) => setMemberFilter((v as string) ?? undefined)}
-          options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
+          options={members.map((m) => ({ value: m.id, label: m.name || '—', avatarUrl: m.avatarUrl }))}
           style={{ width: 170 }}
           width={240}
         />
@@ -663,7 +788,7 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
-      <div className="att-table-wrap">
+      <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <Table
           rowKey="id"
           size="small"
@@ -672,6 +797,7 @@ export default function ManageAttendancePanel() {
           columns={columns}
           dataSource={rows}
           pagination={false}
+          scroll={{ x: 'max-content' }}
           onRow={() => ({ className: 'att-row' })}
           expandable={{
             expandedRowRender: renderSessions,
@@ -708,198 +834,566 @@ export default function ManageAttendancePanel() {
 
       {/* ── 5) Create / Edit DRAWER ───────────────────────────────────────────── */}
       <Drawer
+        rootClassName="leave-drawer-root"
         title={null}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={480}
+        width={720}
         closable={false}
         destroyOnClose
         styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
           header: { display: 'none' },
-          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+          footer: { padding: 0, border: 'none' },
+          wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
         }}
-      >
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-pure-white)' }}>
-          {/* Header */}
+        footer={
           <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
             style={{
-              padding: '16px 18px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--bg-pure-white)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
+              background: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 0,
-                  background: editing ? TINT.green : TINT.blue,
-                  color: editing ? PALETTE.green : PALETTE.blue,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
-              >
-                {editing ? <EditOutlined /> : <PlusOutlined />}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  {editing ? 'Edit Attendance Record' : 'Add Attendance Record'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                  {editing ? `Update details for ${editing.member?.name || 'this member'}` : 'Create a manual entry for a team member'}
-                </div>
-              </div>
-            </div>
-            <Button type="text" shape="circle" icon={<CloseOutlined />} onClick={() => setDrawerOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
-          </div>
-
-          {/* Content */}
-          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--bg-secondary, #f8fafc)' }}>
-            <Form form={form} layout="vertical" requiredMark="optional" className="att-drawer-form">
-              {/* STEP 1 — Record Details */}
-              <SectionCard
-                icon={<InfoCircleOutlined />}
-                tint={TINT.blue}
-                color={PALETTE.blue}
-                title="Record Details"
-                subtitle="Who, when and the attendance status"
-                step="STEP 1"
-              >
-                <Row gutter={16} align="top">
-                  <Col span={24}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="member"
-                      label={fieldLabel('Team member')}
-                      rules={[{ required: true, message: 'Member is required' }]}
-                    >
-                      <SearchableDropdown
-                        className="att-dd-flat"
-                        placeholder="Select member"
-                        searchPlaceholder="Search members"
-                        itemNoun="members"
-                        disabled={!!editing}
-                        options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
-                        style={{ width: '100%', height: 40 }}
-                        width={240}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={14}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="date"
-                      label={fieldLabel('Date')}
-                      rules={[{ required: true, message: 'Date is required' }]}
-                    >
-                      <DatePicker size="large" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={10}>
-                    <Form.Item
-                      style={{ marginBottom: 14 }}
-                      name="status"
-                      label={fieldLabel('Status')}
-                      rules={[{ required: true, message: 'Status is required' }]}
-                    >
-                      <SearchableDropdown
-                        className="att-dd-flat"
-                        placeholder="Status"
-                        searchPlaceholder="Search statuses"
-                        itemNoun="statuses"
-                        allowClear={false}
-                        options={[
-                          { value: 'present', label: 'Present' },
-                          { value: 'late', label: 'Late' },
-                          { value: 'absent', label: 'Absent' },
-                        ]}
-                        style={{ width: '100%', height: 40 }}
-                        width={210}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </SectionCard>
-
-              {/* STEP 2 — Time Logs */}
-              <SectionCard
-                icon={<ClockCircleOutlined />}
-                tint={TINT.green}
-                color={PALETTE.green}
-                title="Time Logs"
-                subtitle="Optional clock-in and clock-out times"
-                step="STEP 2"
-              >
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 0 }} name="clockIn" label={fieldLabel('Clock In')}>
-                      <TimePicker format="HH:mm" size="large" style={{ width: '100%' }} placeholder="09:00" popupClassName="att-tp-popup" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item style={{ marginBottom: 0 }} name="clockOut" label={fieldLabel('Clock Out')}>
-                      <TimePicker format="HH:mm" size="large" needConfirm={false} style={{ width: '100%' }} placeholder="18:00" popupClassName="att-tp-popup" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </SectionCard>
-            </Form>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '14px 22px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-pure-white)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              bottom: 0,
-            }}
-          >
-            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
               Fields marked required must be filled
             </span>
-            <Space size={10}>
-              <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={submit}
-                loading={saving}
-                icon={editing ? <EditOutlined /> : <PlusOutlined />}
-                style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
-              >
-                {editing ? 'Save Changes' : 'Create Record'}
-              </Button>
-            </Space>
+            <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={submit}
+              loading={saving}
+              icon={editing ? <EditOutlined /> : <PlusOutlined />}
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              {editing ? 'Save Changes' : 'Create Record'}
+            </Button>
           </div>
+        }
+      >
+        <style>{formStyles}</style>
+        <style>{localAttStyles}</style>
+        {/* HEADER */}
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: editing ? TINT.green : TINT.blue,
+                color: editing ? PALETTE.green : PALETTE.blue,
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              {editing ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
+            </div>
+            <div className="min-w-0">
+              <div
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {editing ? 'Edit Attendance Record' : 'Add Attendance Record'}
+              </div>
+              <div
+                className="text-[12px] mt-0.5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {editing ? `Update details for ${editing.member?.name || 'this member'}` : 'Create a manual entry for a team member'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <CloseOutlined />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+          <Form 
+            form={form} 
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            requiredMark="optional" 
+            className="customer-drawer-form att-drawer-form"
+          >
+            {/* STEP 1 — Record Details */}
+            <SectionCard
+              icon={<InfoCircleOutlined />}
+              title="Record Details"
+              subtitle="Who, when and the attendance status"
+              step="STEP 1"
+            >
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="member"
+                label="Team member"
+                rules={[{ required: true, message: 'Member is required' }]}
+              >
+                <SearchableDropdown
+                  className="att-dd-flat"
+                  placeholder="Select member"
+                  searchPlaceholder="Search members"
+                  itemNoun="members"
+                  disabled={!!editing}
+                  options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
+                  style={{ width: '100%', height: 40 }}
+                  width={240}
+                />
+              </Form.Item>
+
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="date"
+                label="Date"
+                rules={[{ required: true, message: 'Date is required' }]}
+              >
+                <DatePicker size="large" style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                style={{ marginBottom: 14 }}
+                name="status"
+                label="Status"
+                rules={[{ required: true, message: 'Status is required' }]}
+              >
+                <SearchableDropdown
+                  className="att-dd-flat"
+                  placeholder="Status"
+                  searchPlaceholder="Search statuses"
+                  itemNoun="statuses"
+                  allowClear={false}
+                  options={[
+                    { value: 'present', label: 'Present' },
+                    { value: 'late', label: 'Late' },
+                    { value: 'absent', label: 'Absent' },
+                  ]}
+                  style={{ width: '100%', height: 40 }}
+                  width={210}
+                />
+              </Form.Item>
+            </SectionCard>
+
+              {/* STEP 2 — Work & Breaks timeline */}
+              {statusValue !== 'absent' && (
+                <SectionCard
+                  icon={<ClockCircleOutlined />}
+                  title="Work & Breaks"
+                  subtitle="Build the day's intervals — work periods split by typed breaks"
+                  step="STEP 2"
+                >
+                  <Form.List name="timeline">
+                    {(fields, { add, remove }) => {
+                      const addRow = (type: string) => {
+                        const tl = form.getFieldValue('timeline') || [];
+                        const last = tl[tl.length - 1];
+                        add({ type, start: last?.end || null, end: null, reason: '' });
+                      };
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {fields.map((field, idx) => (
+                            <Form.Item key={field.key} noStyle shouldUpdate>
+                              {() => {
+                                const type = form.getFieldValue(['timeline', field.name, 'type']) || 'work';
+                                const isWork = type === 'work';
+                                const bt = BREAK_TYPES.find((b) => b.value === type);
+                                const accent = isWork ? PALETTE.blue : bt?.color || PALETTE.grey;
+                                const start = form.getFieldValue(['timeline', field.name, 'start']);
+                                const end = form.getFieldValue(['timeline', field.name, 'end']);
+                                const normStart = start ? dayjs().hour(dayjs(start).hour()).minute(dayjs(start).minute()).second(0).millisecond(0) : null;
+                                const normEnd = end ? dayjs().hour(dayjs(end).hour()).minute(dayjs(end).minute()).second(0).millisecond(0) : null;
+                                const dur =
+                                  normStart && normEnd && normEnd.isAfter(normStart)
+                                    ? normEnd.diff(normStart, 'minute')
+                                    : 0;
+                                const needReason = REASON_TYPES.has(type);
+                                return (
+                                  <div
+                                    className="att-timeline-item"
+                                    style={{
+                                      border: '1px solid var(--border-color)',
+                                      borderLeft: `3px solid ${accent}`,
+                                      borderRadius: 8,
+                                      padding: '10px 12px 12px',
+                                      background: 'var(--bg-pure-white)',
+                                    }}
+                                  >
+                                    {/* Row header: index + label + duration + remove */}
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        marginBottom: 8,
+                                      }}
+                                    >
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                        <span
+                                          style={{
+                                            width: 20,
+                                            height: 20,
+                                            borderRadius: 999,
+                                            background: `${accent}1A`,
+                                            color: accent,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 10.5,
+                                            fontWeight: 800,
+                                          }}
+                                        >
+                                          {idx + 1}
+                                        </span>
+                                        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent, letterSpacing: '-0.01em' }}>
+                                          {isWork ? 'Work interval' : bt?.label || 'Break'}
+                                        </span>
+                                      </span>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                        {dur > 0 && (
+                                          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-slate-500)', fontVariantNumeric: 'tabular-nums' }}>
+                                            {formatDuration(dur)}
+                                          </span>
+                                        )}
+                                        {fields.length > 1 && (
+                                          <Tooltip title="Remove">
+                                            <Button
+                                              type="text"
+                                              size="small"
+                                              danger
+                                              icon={<MinusCircleOutlined />}
+                                              onClick={() => remove(field.name)}
+                                            />
+                                          </Tooltip>
+                                        )}
+                                      </span>
+                                    </div>
+
+                                    <Row gutter={10} align="top">
+                                      <Col span={10}>
+                                        <Form.Item
+                                          {...field}
+                                          key="type"
+                                          name={[field.name, 'type']}
+                                          rules={[{ required: true, message: 'Type' }]}
+                                        >
+                                          <Select size="large" options={INTERVAL_TYPE_OPTIONS} placeholder="Type" />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={7}>
+                                        <Form.Item
+                                          {...field}
+                                          key="start"
+                                          name={[field.name, 'start']}
+                                          rules={[{ required: true, message: 'Start' }]}
+                                        >
+                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={7}>
+                                        <Form.Item
+                                          {...field}
+                                          key="end"
+                                          name={[field.name, 'end']}
+                                          rules={[
+                                            ({ getFieldValue }) => ({
+                                              validator(_, value) {
+                                                const s = getFieldValue(['timeline', field.name, 'start']);
+                                                if (!value || !s) return Promise.resolve();
+                                                const normS = dayjs().hour(dayjs(s).hour()).minute(dayjs(s).minute()).second(0).millisecond(0);
+                                                const normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
+                                                if (normE.isAfter(normS)) return Promise.resolve();
+                                                return Promise.reject(new Error('After start'));
+                                              },
+                                            }),
+                                          ]}
+                                        >
+                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
+                                        </Form.Item>
+                                      </Col>
+                                    </Row>
+
+                                    {needReason && (
+                                      <Form.Item
+                                        {...field}
+                                        key="reason"
+                                        name={[field.name, 'reason']}
+                                        style={{ marginBottom: 0, marginTop: 10 }}
+                                      >
+                                        <Input size="large" placeholder="Reason (optional)" />
+                                      </Form.Item>
+                                    )}
+                                  </div>
+                                );
+                              }}
+                            </Form.Item>
+                          ))}
+
+                          <Row gutter={10}>
+                            <Col span={12}>
+                              <Button block type="dashed" onClick={() => addRow('work')} icon={<PlusOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                                Add work interval
+                              </Button>
+                            </Col>
+                            <Col span={12}>
+                              <Button block type="dashed" onClick={() => addRow('lunch')} icon={<CoffeeOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                                Add break
+                              </Button>
+                            </Col>
+                          </Row>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              background: TINT.blue,
+                              fontSize: 11.5,
+                              color: 'var(--text-slate-600)',
+                              fontWeight: 500,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            <InfoCircleOutlined style={{ color: PALETTE.blue, marginTop: 2, flexShrink: 0 }} />
+                            <span>
+                              The last work interval's end time becomes the clock-out (day complete). Gaps
+                              between work intervals are counted as breaks.
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </Form.List>
+                </SectionCard>
+              )}
+          </Form>
         </div>
       </Drawer>
 
+      {/* ── Reopen-day modal ──────────────────────────────────────────────────── */}
+      <Modal
+        open={!!reopenTarget}
+        title={null}
+        footer={null}
+        closable={false}
+        width={440}
+        centered
+        destroyOnClose
+        onCancel={() => {
+          setReopenTarget(null);
+          setReopenTime(null);
+        }}
+        styles={{
+          content: { padding: 0, overflow: 'hidden', borderRadius: 12 },
+          mask: { backdropFilter: 'blur(2px)', background: 'rgba(15,23,42,0.45)' },
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '18px 20px',
+            borderBottom: '1px solid var(--border-color)',
+          }}
+        >
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 10,
+              background: TINT.green,
+              color: PALETTE.green,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+              flexShrink: 0,
+            }}
+          >
+            <PlayCircleOutlined />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+              Reopen day
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+              Continue a day that was completed by mistake
+            </div>
+          </div>
+          <Button
+            type="text"
+            shape="circle"
+            icon={<CloseOutlined />}
+            onClick={() => {
+              setReopenTarget(null);
+              setReopenTime(null);
+            }}
+            style={{ color: 'var(--text-slate-500)' }}
+          />
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 20 }}>
+          {/* Member + date summary */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'var(--bg-secondary, #f8fafc)',
+              border: '1px solid var(--border-color)',
+              marginBottom: 16,
+            }}
+          >
+            <Avatar
+              size={36}
+              src={reopenTarget?.member?.avatarUrl}
+              style={{ background: PALETTE.blue, flexShrink: 0 }}
+              icon={<UserOutlined />}
+            >
+              {reopenTarget?.member?.name?.[0]?.toUpperCase()}
+            </Avatar>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {reopenTarget?.member?.name || 'This member'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+                {reopenTarget?.date ? dayjs(reopenTarget.date).format('dddd, MMM DD, YYYY') : 'this day'}
+              </div>
+            </div>
+            {reopenTarget?.clockOut && (
+              <div style={{ marginLeft: 'auto', textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Completed
+                </div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: PALETTE.red, fontVariantNumeric: 'tabular-nums' }}>
+                  {dayjs(reopenTarget.clockOut).format('HH:mm')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Resume time */}
+          <div style={{ marginBottom: 14 }}>
+            {fieldLabel('Resume work from')}
+            <TimePicker
+              format="h:mm a"
+              use12Hours
+              value={reopenTime}
+              onChange={(t) => setReopenTime(t)}
+              needConfirm={false}
+              allowClear={false}
+              style={{ width: '100%', marginTop: 6 }}
+              popupClassName="att-tp-popup"
+            />
+          </div>
+
+          {/* Explanation */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: TINT.green,
+              fontSize: 11.5,
+              color: 'var(--text-slate-600)',
+              fontWeight: 500,
+              lineHeight: 1.5,
+            }}
+          >
+            <InfoCircleOutlined style={{ color: PALETTE.green, marginTop: 2, flexShrink: 0 }} />
+            <span>
+              This clears the clock-out and opens a new work session at the time above, so the day
+              flips back to <strong>working</strong>. The user can continue and complete it again.
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 10,
+            padding: '14px 20px',
+            borderTop: '1px solid var(--border-color)',
+            background: 'var(--bg-pure-white)',
+          }}
+        >
+          <Button
+            onClick={() => {
+              setReopenTarget(null);
+              setReopenTime(null);
+            }}
+            style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            onClick={submitReopen}
+            loading={reopenSaving}
+            disabled={!reopenTime}
+            icon={<PlayCircleOutlined />}
+            style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px', background: PALETTE.green, borderColor: PALETTE.green }}
+          >
+            Reopen day
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        title={<span style={{ color: '#1e293b' }}>Cannot Manage Attendance</span>}
+        open={overlapModalVisible}
+        onOk={() => setOverlapModalVisible(false)}
+        onCancel={() => setOverlapModalVisible(false)}
+        okText="OK"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        zIndex={2000}
+        width={400}
+        styles={{
+          mask: { zIndex: 2000 },
+          content: { background: '#ffffff', color: '#1e293b', borderRadius: '12px', padding: '16px 20px' },
+          header: { background: '#ffffff', borderBottom: 'none', paddingBottom: '4px', marginBottom: '8px' },
+          footer: { background: '#ffffff', borderTop: 'none', paddingTop: '12px', marginTop: '4px' }
+        }}
+      >
+        <p style={{ color: '#475569', margin: 0, fontSize: '13.5px', lineHeight: 1.5 }}>
+          This employee has an approved leave on the selected date. Attendance cannot be created for that day.
+        </p>
+      </Modal>
+
       <style jsx global>{`
         .att-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .att-panel > * { flex-shrink: 0; }
         /* 1) Header */
         .att-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap;
         }
-        .att-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .att-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .att-header-icon {
           width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
           background: ${TINT.blue}; color: ${PALETTE.blue};
@@ -907,7 +1401,7 @@ export default function ManageAttendancePanel() {
         }
         .att-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .att-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
-        .att-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .att-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; max-width: 100%; }
         .att-search-wrap {
           position: relative; display: flex; align-items: center; height: 34px; width: 240px;
           border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px;
@@ -958,12 +1452,14 @@ export default function ManageAttendancePanel() {
 
         /* 4) Table */
         .att-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .att-table .ant-table { background: transparent; font-size: 12px; }
-        .att-table .ant-table-thead > tr > th {
+        .att-table, .att-table.ant-table-wrapper, .att-table .ant-table, .att-table .ant-table-container, .att-table .ant-table-content, .att-table .ant-table-header, .att-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .att-table .ant-table-thead > tr > th,
+        .att-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; }
         .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -975,7 +1471,7 @@ export default function ManageAttendancePanel() {
           height: 52px; box-sizing: border-box;
         }
         .att-footer--sticky {
-          position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px;
+          position: sticky; bottom: 0; z-index: 20; margin: auto -32px 0; padding: 0 32px;
           background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }
@@ -1018,6 +1514,13 @@ export default function ManageAttendancePanel() {
         }
         .att-drawer-form .att-dd-flat.sd-trigger { display: flex; align-items: center; }
         .att-tp-popup .ant-picker-footer { display: none !important; }
+
+        @media (max-width: 1024px) {
+          .att-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .att-stats { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

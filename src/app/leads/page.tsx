@@ -70,7 +70,10 @@ import {
   Award,
   Star,
   Menu,
-  Maximize2
+  X as XIcon,
+  Maximize2,
+  Building2,
+  MapPin
 } from "lucide-react";
 import {
   Card,
@@ -141,6 +144,7 @@ import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
 import { api, apiClient } from "@/lib/axios";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
@@ -167,7 +171,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
         </Col>
 
         <Col span={21}>
-          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} style={{ marginBottom: 8 }}>
+          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')} style={{ marginBottom: 8 }}>
             <Input
               placeholder="Document Title (e.g. Project Brief)"
               className="premium-input"
@@ -358,149 +362,69 @@ const FiverrGlyph = ({ size = 13 }: { size?: number }) => (
 // Slim form for own-website inquiries (Zukvo, Zithtech). Skips gig-platform
 // fields (skills, budget, AI score) and leads with the company-side block.
 const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
-  const sectionCard: React.CSSProperties = {
-    marginBottom: 20,
-    padding: '20px',
-    borderRadius: 0,
-    border: '1px solid var(--border-slate-100)',
-  };
-  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
-  const stepBadge = (color: string, n: string): React.CSSProperties => ({
-    width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    background: `${color}14`, color, border: `1px solid ${color}33`,
-  });
   const labelStyle = { fontSize: 12, color: '#64748b' } as const;
 
   return (
     <>
-      {/* 01 — Source */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#6366f1', '01')}>01</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Globe size={15} color="#3b82f6" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry Source</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Which website did this come from</Text>
-          </div>
-        </div>
+      <SectionCard step="STEP 1" icon={<Globe size={13} color="#3b82f6" />} title="Inquiry Source" subtitle="Which website did this come from">
         <Form.Item name="websiteSource" label={<Text strong style={labelStyle}>Website</Text>} initialValue="zukvo">
-          <Select style={{ borderRadius: 0 }}>
+          <Select style={{ borderRadius: 6 }}>
             <Select.Option value="zukvo">Zukvo</Select.Option>
             <Select.Option value="zithtech">Zithtech</Select.Option>
             <Select.Option value="other">Other</Select.Option>
           </Select>
         </Form.Item>
-      </div>
+      </SectionCard>
 
-      {/* 02 — Contact */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#0ea5e9', '02')}>02</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <User size={15} color="#0ea5e9" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Who reached out — name, email, phone, location</Text>
-          </div>
-        </div>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="priya@acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="clientPhone"
-              label={<Text strong style={labelStyle}>Phone</Text>}
-              getValueFromEvent={(e) => {
-                const value = e.target.value;
-                let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
-                if (sanitized.includes('+')) {
-                  const hasPlusAtStart = sanitized.startsWith('+');
-                  sanitized = sanitized.replace(/\+/g, '');
-                  if (hasPlusAtStart) {
-                    sanitized = '+' + sanitized;
-                  }
-                }
-                let digitsCount = 0;
-                let limited = '';
-                for (let i = 0; i < sanitized.length; i++) {
-                  const char = sanitized[i];
-                  if (/\d/.test(char)) {
-                    if (digitsCount < 15) {
-                      digitsCount++;
-                      limited += char;
-                    }
-                  } else {
-                    limited += char;
-                  }
-                }
-                return limited;
-              }}
-              rules={[
-                {
-                  validator: (_, value) => {
-                    if (!value || value.trim() === '') {
-                      return Promise.resolve();
-                    }
-                    const digits = value.replace(/\D/g, '');
-                    if (digits.length < 7) {
-                      return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-            >
-              <Input placeholder="+91 …" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
-              <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-      </div>
+      <SectionCard step="STEP 2" icon={<User size={13} color="#0ea5e9" />} title="Contact" subtitle="Who reached out — name, email, phone, location">
+        <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
+          <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+          <Input placeholder="priya@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item
+          name="clientPhone"
+          label={<Text strong style={labelStyle}>Phone</Text>}
+          getValueFromEvent={(e) => {
+            const value = e.target.value;
+            let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+            if (sanitized.includes('+')) {
+              const hasPlusAtStart = sanitized.startsWith('+');
+              sanitized = sanitized.replace(/\+/g, '');
+              if (hasPlusAtStart) sanitized = '+' + sanitized;
+            }
+            let digitsCount = 0; let limited = '';
+            for (let i = 0; i < sanitized.length; i++) {
+              const char = sanitized[i];
+              if (/\d/.test(char)) {
+                if (digitsCount < 15) { digitsCount++; limited += char; }
+              } else { limited += char; }
+            }
+            return limited;
+          }}
+          rules={[{ validator: (_, value) => {
+            if (!value || value.trim() === '') return Promise.resolve();
+            if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+            return Promise.resolve();
+          }}]}
+        >
+          <Input placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
+          <Input placeholder="City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+      </SectionCard>
 
-      {/* 03 — Company */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#f59e0b', '03')}>03</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Briefcase size={15} color="#f59e0b" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Where they work and how big the team is</Text>
-          </div>
-        </div>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
-              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
-              <Input placeholder="acme.com" style={{ borderRadius: 0 }} autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
+      <SectionCard step="STEP 3" icon={<Briefcase size={13} color="#f59e0b" />} title="Company" subtitle="Where they work and how big the team is">
+        <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.&'()]+$/, message: 'Please enter a valid company name' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.&'()]/g, '')}>
+          <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>} rules={[{ pattern: /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/, message: 'Please enter a valid domain' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\-.]/g, '')}>
+          <Input placeholder="acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
         <Form.Item name="companySize" label={<Text strong style={labelStyle}>Team Size</Text>}>
-          <Select placeholder="Select range" style={{ borderRadius: 0 }} allowClear>
+          <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear>
             <Select.Option value="1-10">1 – 10</Select.Option>
             <Select.Option value="11-50">11 – 50</Select.Option>
             <Select.Option value="51-200">51 – 200</Select.Option>
@@ -509,34 +433,20 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
             <Select.Option value="1000+">1,000+</Select.Option>
           </Select>
         </Form.Item>
-      </div>
+      </SectionCard>
 
-      {/* 04 — Inquiry */}
-      <div style={sectionCard}>
-        <div style={sectionHead}>
-          <span style={stepBadge('#10b981', '04')}>04</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Mail size={15} color="#10b981" />
-              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry</span>
-            </div>
-            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>What they said and where it sits in your pipeline</Text>
-          </div>
-        </div>
-        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
-          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 0 }} autoComplete="off" />
+      <SectionCard step="STEP 4" icon={<Mail size={13} color="#10b981" />} title="Inquiry" subtitle="What they said and where it sits in your pipeline">
+        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
+          <Input placeholder="e.g. Quote request" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
-          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 0 }} autoComplete="off" />
+          <TextArea rows={4} placeholder="Their message verbatim" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
-          <Select placeholder="Select pipeline" style={{ borderRadius: 0 }}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 6 }}>
             {configStatuses.map((s: any) => (
               <Select.Option key={s.id} value={s.name}>
-                <Space>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                  {s.name}
-                </Space>
+                <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
               </Select.Option>
             ))}
           </Select>
@@ -544,7 +454,167 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="platform" hidden initialValue="Website">
           <Input />
         </Form.Item>
-      </div>
+      </SectionCard>
+    </>
+  );
+}; // Lead Intake — capture a full company profile plus a repeatable list of
+// decision-maker contacts. Company-level fields map onto the shared lead
+// columns at save time; the intake-only extras + decisionMakers[] array are
+// persisted in leads.form_data (JSONB).
+// Shared phone helpers — keep the intake fields consistent with the platform /
+// website forms (digits, spaces, dashes, parens, optional leading +; 7–15 digits).
+const sanitizePhone = (e: any) => {
+  const value = e.target.value as string;
+  let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+  if (sanitized.includes('+')) {
+    const hasPlusAtStart = sanitized.startsWith('+');
+    sanitized = sanitized.replace(/\+/g, '');
+    if (hasPlusAtStart) sanitized = '+' + sanitized;
+  }
+  let digitsCount = 0;
+  let limited = '';
+  for (let i = 0; i < sanitized.length; i++) {
+    const char = sanitized[i];
+    if (/\d/.test(char)) {
+      if (digitsCount < 15) { digitsCount++; limited += char; }
+    } else {
+      limited += char;
+    }
+  }
+  return limited;
+};
+
+const phoneRule = {
+  validator: (_: any, value: any) => {
+    if (!value || value.trim() === '') return Promise.resolve();
+    if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+    return Promise.resolve();
+  }
+};
+
+const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
+  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
+  const label = (t: string) => <Text strong style={labelStyle}>{t}</Text>;
+
+  return (
+    <>
+      <SectionCard step="STEP 1" icon={<Building2 size={13} color="#6366f1" />} title="Company Information" subtitle="The organisation you're building a relationship with">
+            <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
+              <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
+              <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+        <Form.Item name="intakeCoreBusiness" label={label('Core Business')}>
+          <Input placeholder="What the company primarily does" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
+          <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+              <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+              <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeWebsite" label={label('Website URL')}>
+              <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
+              <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeLocation" label={label('Company Location')}>
+              <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
+              <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
+                <Select.Option value="1-10">1 – 10</Select.Option>
+                <Select.Option value="11-50">11 – 50</Select.Option>
+                <Select.Option value="51-200">51 – 200</Select.Option>
+                <Select.Option value="201-500">201 – 500</Select.Option>
+                <Select.Option value="501-1000">501 – 1,000</Select.Option>
+                <Select.Option value="1000+">1,000+</Select.Option>
+              </Select>
+            </Form.Item>
+      </SectionCard>
+
+      <SectionCard step="STEP 2" icon={<Star size={13} color="#f59e0b" />} title="Research" subtitle="Reputation signals and your own working notes">
+        <Form.Item name="intakeReviews" label={label('Company Reviews / Notes')}>
+          <TextArea rows={3} placeholder="Glassdoor / Clutch ratings, reputation, press — anything that helps qualify the account." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeInternalNotes" label={
+          <Space size={6}>
+            {label('Internal Notes')}
+            <span style={{ padding: '1px 7px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+          </Space>
+        }>
+          <TextArea rows={2} placeholder="Private notes for your team — never shown to the client." style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+            <Form.Item name="intakeStatus" label={label('Pipeline')}>
+              <Select placeholder="Select pipeline" style={{ borderRadius: 6 }} allowClear>
+                {configStatuses.map((s: any) => (
+                  <Select.Option key={s.id} value={s.name}>
+                    <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+      </SectionCard>
+
+      <SectionCard step="STEP 3" icon={<Users size={13} color="#10b981" />} title="Decision Makers" subtitle="One company, many contacts — add everyone worth knowing">
+        <Form.List name="decisionMakers">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field, idx) => (
+                <div key={field.key} className="dm-card" style={{ marginBottom: 16 }}>
+                  <div className="dm-card-head" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span className="dm-card-index" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <User size={13} />
+                      Decision Maker {idx + 1}
+                    </span>
+                    <Tooltip title="Remove contact">
+                      <Button type="text" danger size="small" icon={<Trash2 size={15} />} onClick={() => remove(field.name)} />
+                    </Tooltip>
+                  </div>
+                  
+                      <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]}>
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')}>
+                        <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                  
+                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+                        <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+                        <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                  
+                      <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')}>
+                        <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
+                        <Space size={6}>
+                          {label('Remarks / Notes')}
+                          <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+                        </Space>
+                      } style={{ marginBottom: 0 }}>
+                        <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 6 }} autoComplete="off" />
+                      </Form.Item>
+
+                  {idx < fields.length - 1 && <div style={{ height: 1, background: 'var(--border-slate-100)', marginTop: 24, marginBottom: 8 }} />}
+                </div>
+              ))}
+              <Form.Item wrapperCol={{ span: 24 }}>
+                <Button type="dashed" onClick={() => add({})} block icon={<UserPlus size={16} />} style={{ borderRadius: 6, height: 42 }}>
+                  Add Decision Maker
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+      </SectionCard>
     </>
   );
 };
@@ -578,6 +648,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 };
 
 export default function LeadsPage() {
+  console.log("Forcing HMR reload for LeadsPage 2");
   useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
@@ -593,6 +664,9 @@ export default function LeadsPage() {
   } = usePermission();
 
   const [form] = Form.useForm();
+  // Watch the lead-kind picker once, at the top level — calling Form.useWatch
+  // inside the render ternary would run the hook a variable number of times.
+  const leadSourceKindWatch = Form.useWatch('leadSourceKind', form) || 'platform';
   const { message: messageApi, modal } = App.useApp();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -610,7 +684,7 @@ export default function LeadsPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal" | "my_leads">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
@@ -1694,6 +1768,10 @@ export default function LeadsPage() {
 
   const handleEdit = (record: Lead) => {
     setEditingKey(record.id);
+    // form_data arrives as parsed JSON from pg, but guard against a raw string.
+    const fd: any = typeof record.form_data === 'string'
+      ? (() => { try { return JSON.parse(record.form_data as any); } catch { return {}; } })()
+      : (record.form_data || {});
     form.setFieldsValue({
       clientName: record.client_name,
       clientMail: record.client_mail,
@@ -1735,6 +1813,23 @@ export default function LeadsPage() {
       companySize: record.company_size,
       inquiryMessage: record.inquiry_message,
       websiteSource: record.website_source,
+
+      // Lead Intake — rehydrate the company profile + decision makers from
+      // the mapped columns and the form_data JSONB blob.
+      intakeCompanyName: record.company || record.client_name,
+      intakeCompanyType: fd.companyType,
+      intakeCoreBusiness: fd.coreBusiness,
+      intakeCompanyDescription: fd.companyDescription ?? record.summary,
+      intakeCompanyEmail: record.client_mail,
+      intakeCompanyPhone: record.client_phone,
+      intakeWebsite: fd.website,
+      intakeLinkedin: fd.linkedin,
+      intakeLocation: fd.location ?? record.client_location,
+      intakeTeamSize: fd.teamSize ?? record.company_size,
+      intakeReviews: fd.reviews,
+      intakeInternalNotes: fd.internalNotes,
+      intakeStatus: record.status,
+      decisionMakers: Array.isArray(fd.decisionMakers) ? fd.decisionMakers : [],
     });
     setIsDrawerVisible(true);
   };
@@ -1768,8 +1863,60 @@ export default function LeadsPage() {
     });
   };
 
+  // Pull a bare domain out of a website URL for the company_domain column.
+  const deriveDomain = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    return url.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[/?#]/)[0] || undefined;
+  };
+
   const handleSaveLead = async (values: any) => {
     try {
+      // Lead Intake mode: the "client" is the company itself. Map the company
+      // fields onto the required lead columns so the row renders in the table,
+      // and stash the intake-only extras + decisionMakers[] in form_data.
+      if (values.leadSourceKind === 'intake') {
+        const decisionMakers = (values.decisionMakers || [])
+          .filter((c: any) => c && (c.name || c.email || c.phone || c.designation || c.linkedin));
+        const intakePayload = {
+          leadSourceKind: 'intake',
+          clientName: values.intakeCompanyName,
+          clientMail: values.intakeCompanyEmail,
+          clientPhone: values.intakeCompanyPhone,
+          clientLocation: values.intakeLocation,
+          title: values.intakeCompanyName,
+          summary: values.intakeCompanyDescription,
+          company: values.intakeCompanyName,
+          companyDomain: deriveDomain(values.intakeWebsite),
+          companySize: values.intakeTeamSize,
+          status: values.intakeStatus,
+          platform: 'Direct',
+          internalNotes: values.intakeInternalNotes,
+          formData: {
+            companyType: values.intakeCompanyType,
+            teamSize: values.intakeTeamSize,
+            coreBusiness: values.intakeCoreBusiness,
+            companyDescription: values.intakeCompanyDescription,
+            website: values.intakeWebsite,
+            linkedin: values.intakeLinkedin,
+            location: values.intakeLocation,
+            reviews: values.intakeReviews,
+            internalNotes: values.intakeInternalNotes,
+            decisionMakers,
+          },
+        };
+        if (editingKey) {
+          await updateLead(editingKey, intakePayload);
+          messageApi.success("Lead Updated");
+        } else {
+          await createLead(intakePayload);
+          messageApi.success("Lead Created");
+        }
+        setIsDrawerVisible(false);
+        form.resetFields();
+        setEditingKey(null);
+        return;
+      }
+
       // Map custom platform if 'Other' is selected
       const finalValues = { ...values };
       if (values.platform === 'Other') {
@@ -1872,6 +2019,8 @@ export default function LeadsPage() {
         matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
       } else if (activeSegment === "with_proposal") {
         matchesSegment = !!item.proposal_id;
+      } else if (activeSegment === "my_leads") {
+        matchesSegment = (item as any).created_by === user?.id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
@@ -2158,6 +2307,10 @@ export default function LeadsPage() {
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(today)).length;
   }, [leads]);
 
+  const myLeadsCount = useMemo(() => {
+    return leads.filter(l => (l as any).created_by === user?.id).length;
+  }, [leads, user]);
+
   const leadsThisWeek = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(weekAgo)).length;
@@ -2388,6 +2541,7 @@ export default function LeadsPage() {
                 <div className="lm-side-list">
                   {[
                     { key: 'all', label: 'All Leads', icon: <Layers size={14} />, count: leads.length, color: '#3b82f6' },
+                    { key: 'my_leads', label: 'My Leads', icon: <User size={14} />, count: myLeadsCount, color: '#8b5cf6' },
                     { key: 'hot', label: 'Hot Leads', icon: <Flame size={14} />, count: hotLeadsCount, color: '#ef4444' },
                     { key: 'today', label: 'Added Today', icon: <Zap size={14} />, count: leadsToday, color: '#f59e0b' },
                     { key: 'with_proposal', label: 'With Proposal', icon: <FileText size={14} />, count: leads.filter(l => !!l.proposal_id).length, color: '#10b981' },
@@ -2397,11 +2551,13 @@ export default function LeadsPage() {
                       ? (!filterPlatform && !filterStatus && activeSegment === 'all')
                       : v.key === 'hot'
                         ? activeSegment === 'hot'
-                        : v.key === 'today'
-                          ? activeSegment === 'today'
-                          : v.key === 'with_proposal'
-                            ? activeSegment === 'with_proposal'
-                            : false;
+                        : v.key === 'my_leads'
+                          ? activeSegment === 'my_leads'
+                          : v.key === 'today'
+                            ? activeSegment === 'today'
+                            : v.key === 'with_proposal'
+                              ? activeSegment === 'with_proposal'
+                              : false;
                     return (
                       <button
                         key={v.key}
@@ -2412,6 +2568,8 @@ export default function LeadsPage() {
                           setFilterStatus(null);
                           if (v.key === 'all') {
                             setActiveSegment('all');
+                          } else if (v.key === 'my_leads') {
+                            setActiveSegment('my_leads');
                           } else if (v.key === 'hot') {
                             setActiveSegment('hot');
                           } else if (v.key === 'today') {
@@ -2471,21 +2629,23 @@ export default function LeadsPage() {
 
             <div className="lm-main">
               <div className="lm-topbar">
-                <div className="pp-search-wrap">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, maxWidth: 400 }}>
                   <Button
                     className="lm-mobile-menu-btn"
                     type="text"
-                    icon={<Menu size={18} style={{ marginRight: 6 }} />}
+                    icon={<Menu size={18} />}
                     onClick={() => setMobileSidebarOpen(true)}
                   />
-                  <SearchOutlined className="pp-search-icon" />
-                  <input
-                    ref={searchRef}
-                    className="pp-search"
-                    placeholder="Search subject, target…"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
+                  <div className="pp-search-wrap" style={{ flex: 1, margin: 0, maxWidth: 'none' }}>
+                    <SearchOutlined className="pp-search-icon" />
+                    <input
+                      ref={searchRef}
+                      className="pp-search"
+                      placeholder="Search subject, target…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Space.Compact className="ticket-filter-group">
@@ -4039,190 +4199,140 @@ export default function LeadsPage() {
 
         {/* Lead Form Drawer */}
         <Drawer
-          title={
-            <div className="lead-drawer-header" style={{ position: "relative", overflow: "hidden", margin: "-16px -24px", padding: "20px 24px" }}>
-              <div
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "transparent",
-                  pointerEvents: "none",
-                }}
-              />
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 0,
-                    background: "#3b82f6",
-                    color: "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "none",
-                    flexShrink: 0,
-                  }}
-                >
-                  {editingKey ? <Edit2 size={20} /> : <Sparkles size={20} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <div className="premium-title" style={{ fontSize: 18, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
-                      {editingKey ? "Edit Opportunity" : "New Lead Entry"}
-                    </div>
-                    <span
-                      className="lead-drawer-badge"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "2px 8px",
-                        borderRadius: 0,
-                        background: "rgba(59, 130, 246, 0.1)",
-                        color: "#2563eb",
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        border: "1px solid rgba(59, 130, 246, 0.2)",
-                      }}
-                    >
-                      <Sparkles size={10} /> AI-ready
-                    </span>
-                  </div>
-                  <div className="premium-text-sec" style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
-                    {editingKey
-                      ? "Refine details and re-sync this opportunity to your pipeline"
-                      : "4 quick sections — client, job, platform & docs. Takes under a minute."}
-                  </div>
-                </div>
-              </div>
-            </div>
-          }
-          width={540}
+          {...commonDrawerProps}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
-          className="premium-drawer lead-drawer"
-          headerStyle={{ borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
-          bodyStyle={{ padding: '24px', background: 'var(--bg-pure-white)' }}
-          footerStyle={{ borderTop: '1px solid var(--border-slate-100)', padding: '14px 24px', background: 'var(--bg-pure-white)' }}
-          footer={
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
-                <ShieldCheck size={13} style={{ color: "#10b981" }} />
-                Auto-saved to your secure workspace
+        >
+          <div className="customer-drawer-header" style={{ padding: "22px 24px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.04) 45%, rgba(255,255,255,0) 100%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 13,
+                  background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 8px 20px -6px rgba(59,130,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25)",
+                  flexShrink: 0,
+                }}
+              >
+                {editingKey ? <Edit2 size={20} /> : <Sparkles size={20} />}
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 0, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
-                  <Button
-                    type="primary"
-                    loading={loading}
-                    onClick={() => form.submit()}
-                    className="lead-drawer-submit"
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <div className="premium-title" style={{ fontSize: 18, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+                    {editingKey ? "Edit Opportunity" : "New Lead Entry"}
+                  </div>
+                  <span
+                    className="lead-drawer-badge"
                     style={{
-                      borderRadius: 0,
-                      height: 40,
-                      padding: "0 22px",
-                      background: "#3b82f6",
-                      border: "none",
-                      fontWeight: 700,
-                      boxShadow: "none",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 4,
+                      padding: "2px 8px",
+                      borderRadius: 0,
+                      background: "rgba(59, 130, 246, 0.1)",
+                      color: "#2563eb",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      border: "1px solid rgba(59, 130, 246, 0.2)",
                     }}
                   >
-                    {editingKey ? "Update Lead" : "Create Lead"}
-                    <ArrowUpRight size={15} />
-                  </Button>
-                )}
+                    <Sparkles size={10} /> AI-ready
+                  </span>
+                </div>
+                <div className="premium-text-sec" style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
+                  {editingKey
+                    ? "Refine details and re-sync this opportunity to your pipeline"
+                    : "4 quick sections — client, job, platform & docs. Takes under a minute."}
+                </div>
               </div>
             </div>
-          }
-        >
-          <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form" autoComplete="off">
+            <Button 
+              type="text" 
+              icon={<XIcon size={16} />} 
+              onClick={() => setIsDrawerVisible(false)} 
+              style={{ color: 'var(--text-secondary)' }}
+            />
+          </div>
+          <div style={{ padding: 24, paddingBottom: 100 }}>
+            <style>{drawerFormStyles}</style>
+          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
             {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
-              <Segmented
-                block
+            <Form.Item name="leadSourceKind" hidden initialValue="platform">
+              <Input />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
+              <Tabs
+                activeKey={leadSourceKindWatch}
+                onChange={(key) => form.setFieldValue('leadSourceKind', key)}
                 size="large"
-                options={[
+                type="line"
+                tabBarStyle={{
+                  background: 'transparent',
+                  marginBottom: 0,
+                }}
+                items={[
                   {
-                    value: 'platform',
+                    key: 'platform',
                     label: (
-                      <div style={{ padding: '4px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Briefcase size={14} />
-                          Online Platform
-                        </div>
-                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
-                          Upwork · LinkedIn · Freelancer · Fiverr
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Briefcase size={16} />
+                        <span style={{ fontWeight: 600 }}>Online Platform</span>
+                      </Space>
                     ),
                   },
                   {
-                    value: 'website',
+                    key: 'website',
                     label: (
-                      <div style={{ padding: '4px 0' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-                          <Globe size={14} />
-                          Website Inquiry
-                        </div>
-                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
-                          Zukvo · Zithtech contact forms
-                        </div>
-                      </div>
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Globe size={16} />
+                        <span style={{ fontWeight: 600 }}>Website Inquiry</span>
+                      </Space>
+                    ),
+                  },
+                  {
+                    key: 'intake',
+                    label: (
+                      <Space size={8} style={{ padding: "4px 8px" }}>
+                        <Building2 size={16} />
+                        <span style={{ fontWeight: 600 }}>Lead Intake</span>
+                      </Space>
                     ),
                   },
                 ]}
               />
             </Form.Item>
 
-            {(Form.useWatch('leadSourceKind', form) || 'platform') === 'website' ? (
+            {leadSourceKindWatch === 'intake' ? (
+              <LeadIntakeFields configStatuses={configStatuses} />
+            ) : leadSourceKindWatch === 'website' ? (
               <WebsiteLeadFields configStatuses={configStatuses} />
             ) : (
               <>
                 {/* Client Details Section */}
-                <div className="premium-drawer-section lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb",
-                      border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>01</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <User size={15} color="#3b82f6" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
-                    </div>
-                  </div>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
+                <SectionCard step="STEP 1" icon={<User size={13} color="#3b82f6" />} title="Client Information" subtitle="Who you're pitching — contact, location, and trust signals">
+                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
                         <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
+                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
                         <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
                       <Form.Item
                         name="clientPhone"
                         label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
@@ -4268,27 +4378,15 @@ export default function LeadsPage() {
                       >
                         <Input placeholder="+1 234..." style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
+                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
+                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>} rules={[{ pattern: /^([0-5](\.\d{1,2})?(\/5)?)$/, message: 'Please enter a valid rating (e.g. 4.9 or 4.9/5)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-5./]/g, '')}>
                         <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
+                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>} rules={[{ pattern: /^[\$0-9kKMB,\.+\s]+$/, message: 'Please enter a valid amount (e.g. $10k+)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\$0-9kKMB,\.+\s]/g, '')}>
                         <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
                       <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
                         <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
@@ -4299,8 +4397,6 @@ export default function LeadsPage() {
                           </Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
                         <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
                           <Select.Option value={true}>
@@ -4311,35 +4407,14 @@ export default function LeadsPage() {
                           </Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Job Details Section */}
-                <div className="premium-drawer-section-alt lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>02</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Briefcase size={15} color="#3b82f6" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
-                    </div>
-                  </div>
-                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
+                <SectionCard step="STEP 2" icon={<Briefcase size={15} color="#3b82f6" />} title="Job Specification" subtitle="Scope, skills, and budget — what success looks like">
+                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
                     <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
                   </Form.Item>
-                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
+                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>} rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]} getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}>
                     <TextArea
                       rows={4}
                       placeholder="Enter the full job description or client request..."
@@ -4363,6 +4438,8 @@ export default function LeadsPage() {
                         <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
                       </Space>
                     }
+                    rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]}
+                    getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}
                   >
                     <TextArea
                       rows={4}
@@ -4376,62 +4453,27 @@ export default function LeadsPage() {
                       autoComplete="off"
                     />
                   </Form.Item>
-                  <Row gutter={16}>
-                    <Col span={24}>
-                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
-                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
+                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
+                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={8}>
-                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
                         <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                        <InputNumber style={{ width: '100%', borderRadius: 0 }} min={0} autoComplete="off" />
+                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
+                        <Input placeholder="e.g. 50" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
+                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
                         <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
+                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>} rules={[{ pattern: /^[A-Za-z\/\-]+$/, message: 'Please enter a valid type' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\/\-]/g, '')}>
                         <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Timeline & Meta Section */}
-                <div className="premium-drawer-section lead-section-card" style={{
-                  marginBottom: 20,
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>03</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <LinkIcon size={15} color="#10b981" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
-                    </div>
-                  </div>
-                  <Row gutter={16}>
-                    <Col span={12}>
+                <SectionCard step="STEP 3" icon={<LinkIcon size={15} color="#10b981" />} title="Platform & Status" subtitle="Where this came from and where it sits in your pipeline">
                       <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                        <Select placeholder="Select Platform" style={{ borderRadius: 0 }}>
+                        <Select placeholder="Select Platform" style={{ borderRadius: 6 }}>
                           <Select.Option value="Upwork">Upwork</Select.Option>
                           <Select.Option value="LinkedIn">LinkedIn</Select.Option>
                           <Select.Option value="Freelancer">Freelancer</Select.Option>
@@ -4440,11 +4482,9 @@ export default function LeadsPage() {
                           <Select.Option value="Other">Other</Select.Option>
                         </Select>
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
                       <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                        <Select placeholder="Select Status" style={{ borderRadius: 0 }}>
-                          {configStatuses.map(s => (
+                        <Select placeholder="Select Status" style={{ borderRadius: 6 }}>
+                          {configStatuses.map((s: any) => (
                             <Select.Option key={s.id} value={s.name}>
                               <Space>
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
@@ -4454,21 +4494,17 @@ export default function LeadsPage() {
                           ))}
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                    <Input placeholder="https://..." style={{ borderRadius: 0 }} autoComplete="off" />
-                  </Form.Item>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                        <DatePicker style={{ width: '100%', borderRadius: 0 }} />
+                  
+                      <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
+                        <Input placeholder="https://..." style={{ borderRadius: 6 }} autoComplete="off" />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
+                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
+                        <DatePicker style={{ width: '100%', borderRadius: 6 }} />
+                      </Form.Item>
+
                       <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 0 }}>
-                          {configActions.map(a => (
+                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 6 }}>
+                          {configActions.map((a: any) => (
                             <Select.Option key={a.id} value={a.name}>
                               <Space>
                                 {renderActionIcon(a.icon)}
@@ -4478,35 +4514,10 @@ export default function LeadsPage() {
                           ))}
                         </Select>
                       </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
+                </SectionCard>
 
                 {/* Documents Section */}
-                <div className="premium-drawer-section-alt lead-section-card" style={{
-                  padding: '20px',
-                  borderRadius: 0,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <span className="lead-section-step" style={{
-                      width: 30, height: 30, borderRadius: 0, fontWeight: 800, fontSize: 12,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(59, 130, 246, 0.08)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.18)",
-                    }}>04</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <FileText size={15} color="#ec4899" />
-                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
-                        <span style={{
-                          padding: "1px 7px", borderRadius: 0, background: "#f1f5f9",
-                          color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                          textTransform: "uppercase",
-                        }}>Optional</span>
-                      </div>
-                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
-                    </div>
-                  </div>
+                <SectionCard step="STEP 4" icon={<FileText size={15} color="#ec4899" />} title="Supporting Documents" subtitle="Briefs, mockups, or contract drafts shared by the client">
                   <Form.List name="documents">
                     {(fields, { add, remove }) => (
                       <>
@@ -4519,22 +4530,55 @@ export default function LeadsPage() {
                             messageApi={messageApi}
                           />
                         ))}
-                        <Button
-                          type="dashed"
-                          onClick={() => add({ type: 'file' })}
-                          block
-                          icon={<PlusCircle size={16} />}
-                          className="doc-add-btn"
-                        >
-                          Add Supporting Document
-                        </Button>
+                        <Form.Item wrapperCol={{ span: 24 }}>
+                          <Button
+                            type="dashed"
+                            onClick={() => add({ type: 'file' })}
+                            block
+                            icon={<PlusCircle size={16} />}
+                            className="doc-add-btn"
+                          >
+                            Add Supporting Document
+                          </Button>
+                        </Form.Item>
                       </>
                     )}
                   </Form.List>
-                </div>
+                </SectionCard>
               </>
             )}
           </Form>
+          </div>
+          <div
+            className="customer-drawer-footer"
+            style={{
+              padding: "12px 16px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "var(--bg-secondary)",
+              position: "sticky",
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
+            <span className="lset-drawer-footer-hint" style={{ fontSize: 11, color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck size={12} /> Auto-saved to your secure workspace
+            </span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button htmlType="button" onClick={() => setIsDrawerVisible(false)}>Cancel</Button>
+              {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                <Button
+                  type="primary"
+                  loading={loading}
+                  onClick={() => form.submit()}
+                >
+                  {editingKey ? "Update" : "Create"} Lead
+                </Button>
+              )}
+            </div>
+          </div>
         </Drawer>
 
         <LeadMailDrawer
@@ -4685,7 +4729,7 @@ export default function LeadsPage() {
             /* ---------------- Proposals Page CSS matching styles ---------------- */
             .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
             .pp-stat-card {
-              background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+              background: transparent; border: 1px solid var(--border-slate-200);
               border-radius: 0; padding: 12px 14px; min-height: 92px;
               display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
               box-shadow: 0 1px 2px rgba(15,23,42,0.04);
@@ -4724,7 +4768,7 @@ export default function LeadsPage() {
             
             /* Dark theme overrides for pp- stats & search */
             [data-theme='dark'] .pp-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .pp-search-wrap {
@@ -4837,6 +4881,11 @@ export default function LeadsPage() {
               flex: 1;
               min-height: 0;
               overflow-y: auto;
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+            .lm-body::-webkit-scrollbar {
+              display: none;
             }
 
             .lm-sidebar {
@@ -5570,9 +5619,9 @@ export default function LeadsPage() {
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
-              background: var(--bg-primary) !important;
-              color: var(--text-slate-400) !important;
-              border-bottom-color: var(--border-slate-100) !important;
+              background: #161B22 !important;
+              color: #94A3B8 !important;
+              border-bottom-color: #374151 !important;
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
               border-bottom-color: var(--border-slate-100) !important;
@@ -6419,7 +6468,7 @@ export default function LeadsPage() {
 
             /* ---------- Dark theme overrides for new lm-* ---------- */
             [data-theme='dark'] .lm-stat-card {
-              background: var(--bg-secondary);
+              background: transparent;
               border-color: var(--border-slate-100);
             }
             [data-theme='dark'] .lm-search-input.ant-input-affix-wrapper {
@@ -6432,17 +6481,32 @@ export default function LeadsPage() {
               background: var(--bg-primary);
             }
 
-            .premium-table .ant-table { background: transparent; }
-            .premium-table .ant-table-thead > tr > th { 
-              background: #f8fafc; 
-              color: #64748b; 
-              font-weight: 700; 
-              font-size: 11px; 
-              text-transform: uppercase; 
-              letter-spacing: 0.05em;
-              border-bottom: 1px solid #f1f5f9;
-              padding: 16px 20px;
+            .premium-table,
+            .premium-table.ant-table-wrapper,
+            .premium-table .ant-table,
+            .premium-table .ant-table-wrapper,
+            .premium-table .ant-table-container,
+            .premium-table .ant-table-content,
+            .premium-table .ant-table-header,
+            .premium-table .ant-table-body {
+              background: transparent !important;
+              border-radius: 0px !important;
             }
+            .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td { 
+              background: var(--bg-slate-50) !important; 
+              color: var(--text-slate-400) !important; 
+              font-weight: 700 !important; 
+              font-size: 10px !important; 
+              text-transform: uppercase !important; 
+              letter-spacing: 0.04em !important;
+              border-bottom: 1px solid var(--border-slate-200) !important;
+              padding: 6px 10px !important;
+              white-space: nowrap !important;
+              border-radius: 0 !important;
+              border-start-start-radius: 0 !important;
+              border-start-end-radius: 0 !important;
+            }
+            .premium-table .ant-table-thead > tr > th::before { display: none !important; }
             .premium-table .ant-table-tbody > tr > td { 
               padding: 16px 20px; 
               border-bottom: 1px solid #f8fafc;
@@ -6537,12 +6601,18 @@ export default function LeadsPage() {
 
             .lead-section-card {
               background: var(--bg-pure-white);
-              transition: border-color 0.18s ease, box-shadow 0.18s ease;
+              border-radius: 14px !important;
+              box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+              transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
             }
             .lead-section-card:hover {
-              border-color: #e2e8f0 !important;
-              box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+              border-color: #dbe3ee !important;
+              box-shadow: 0 6px 20px -8px rgba(15, 23, 42, 0.12), 0 1px 3px 0 rgba(15, 23, 42, 0.05);
             }
+            /* rounded step badges & chips inside the drawer */
+            .lead-drawer .lead-section-step { border-radius: 10px !important; }
+            .lead-drawer .lead-drawer-badge,
+            .lead-drawer .lead-ai-chip { border-radius: 7px !important; }
 
             .lead-drawer-form .ant-form-item-label > label {
               font-weight: 700 !important;
@@ -6556,9 +6626,21 @@ export default function LeadsPage() {
             .lead-drawer-form .ant-input-affix-wrapper,
             .lead-drawer-form .ant-select-selector,
             .lead-drawer-form .ant-picker {
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid #e2e8f0 !important;
               transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            }
+            /* keep the inner number input flush with its rounded wrapper */
+            .lead-drawer-form .ant-input-number .ant-input-number-input { border-radius: 10px !important; }
+            .lead-drawer-form .ant-input-number-group-addon { border-radius: 10px !important; }
+            /* icon-prefixed inputs: the affix wrapper owns the border — the inner
+               input must stay borderless, else it renders a box-inside-a-box */
+            .lead-drawer-form .ant-input-affix-wrapper > .ant-input,
+            .lead-drawer-form .ant-input-affix-wrapper > input.ant-input {
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              background: transparent !important;
             }
             .lead-drawer-form .ant-input:hover,
             .lead-drawer-form .ant-input-number:hover,
@@ -6602,7 +6684,131 @@ export default function LeadsPage() {
               box-shadow: 0 10px 24px -6px rgba(99, 102, 241, 0.55) !important;
             }
             .lead-drawer-submit {
+              border-radius: 10px !important;
+              background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+              box-shadow: 0 6px 16px -6px rgba(99, 102, 241, 0.5) !important;
               transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+
+            /* ---- Premium rounding pass: everything inside the Lead drawer ---- */
+            .lead-drawer .premium-btn-cancel,
+            .lead-drawer .ant-btn { border-radius: 10px !important; }
+            .lead-drawer .premium-btn-cancel {
+              border: 1px solid #e2e8f0 !important;
+              transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+            }
+            .lead-drawer .premium-btn-cancel:hover {
+              border-color: #c7d2fe !important;
+              color: #4f46e5 !important;
+            }
+            /* rounded segmented (lead-kind picker + doc file/link toggle) */
+            .lead-drawer .ant-segmented {
+              border-radius: 12px !important;
+              padding: 3px !important;
+              background: var(--bg-slate-100, #f1f5f9) !important;
+              border: 1px solid var(--border-slate-100, #e2e8f0) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item,
+            .lead-drawer .ant-segmented .ant-segmented-thumb { border-radius: 10px !important; }
+            /* lead-kind picker: compact single-row options */
+            .lead-drawer .ant-segmented .ant-segmented-item .ant-segmented-item-label {
+              padding: 2px 10px !important;
+              min-height: 32px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+            }
+            /* unselected option — quiet slate text + subtle hover lift */
+            .lead-drawer .ant-segmented .ant-segmented-item:not(.ant-segmented-item-selected) {
+              color: var(--text-slate-600, #475569) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item:not(.ant-segmented-item-selected):hover {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            /* selected option — light blue highlight with blue text */
+            .lead-drawer .ant-segmented .ant-segmented-item-selected,
+            .lead-drawer .ant-segmented .ant-segmented-thumb {
+              background: #dbeafe !important;
+              box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.35) !important;
+            }
+            .lead-drawer .ant-segmented .ant-segmented-item-selected,
+            .lead-drawer .ant-segmented .ant-segmented-item-selected *,
+            .lead-drawer .ant-segmented .ant-segmented-thumb,
+            .lead-drawer .ant-segmented .ant-segmented-thumb * {
+              color: #1d4ed8 !important;
+            }
+            /* soften the subtitle so the title stays dominant */
+            .lead-drawer .ant-segmented .ant-segmented-item-selected .lead-kind-sub,
+            .lead-drawer .ant-segmented .ant-segmented-thumb .lead-kind-sub {
+              color: #3b82f6 !important;
+            }
+            /* drawer close button */
+            .lead-drawer .ant-drawer-close { border-radius: 9px !important; }
+            /* AI intelligence textarea keeps rounded corners too */
+            .lead-drawer .lead-ai-textarea { border-radius: 10px !important; }
+            /* rounded tag/skill pills already 999px, doc rows already rounded — leave as-is */
+
+            /* ---- Lead Intake: Decision Maker cards ---- */
+            .lead-drawer .dm-card {
+              position: relative;
+              padding: 16px 16px 14px;
+              margin-bottom: 14px;
+              border: 1px solid #e6ebf2;
+              border-radius: 13px;
+              background: linear-gradient(180deg, #fbfcfe 0%, #ffffff 42%);
+              box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+              transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            }
+            .lead-drawer .dm-card:hover {
+              border-color: #dbe3ee;
+              box-shadow: 0 6px 18px -8px rgba(15,23,42,0.14);
+            }
+            .lead-drawer .dm-card-head {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 12px;
+            }
+            .lead-drawer .dm-card-index {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              color: #10b981;
+              background: rgba(16,185,129,0.08);
+              border: 1px solid rgba(16,185,129,0.2);
+              padding: 3px 10px;
+              border-radius: 999px;
+            }
+            .lead-drawer .dm-remove-btn { border-radius: 8px !important; }
+            .lead-drawer .dm-add-btn {
+              margin-top: 2px !important;
+              height: 44px !important;
+              border-radius: 11px !important;
+              color: #10b981 !important;
+              border-color: #bbf7d0 !important;
+              background: #f6fefb !important;
+              font-weight: 700 !important;
+              transition: all 0.18s ease !important;
+            }
+            .lead-drawer .dm-add-btn:hover {
+              color: #059669 !important;
+              border-color: #86efac !important;
+              background: #ecfdf5 !important;
+              transform: translateY(-1px);
+            }
+            /* Dark theme for Decision Maker cards */
+            [data-theme='dark'] .lead-drawer .dm-card {
+              background: #0d1117;
+              border-color: #30363d;
+            }
+            [data-theme='dark'] .lead-drawer .dm-card:hover { border-color: #3d444d; }
+            [data-theme='dark'] .lead-drawer .dm-add-btn {
+              background: rgba(16,185,129,0.06) !important;
+              border-color: rgba(16,185,129,0.35) !important;
             }
 
             /* DARK DRAWER ENHANCEMENTS */
@@ -6634,10 +6840,11 @@ export default function LeadsPage() {
 
             /* DARK THEME OVERRIDES */
             [data-theme='dark'] .leads-page-wrapper { background: #0d1117 !important; }
-            [data-theme='dark'] .premium-table .ant-table-thead > tr > th { 
-              background: #161b22 !important; 
-              color: #8b949e !important; 
-              border-bottom-color: #30363d !important; 
+            [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+            [data-theme='dark'] .premium-table .ant-table-thead > tr > td { 
+              background: #161B22 !important; 
+              color: #94A3B8 !important; 
+              border-bottom-color: #374151 !important; 
             }
             [data-theme='dark'] .premium-table .ant-table-tbody > tr > td { 
               border-bottom-color: #21262d !important; 
@@ -6733,7 +6940,7 @@ export default function LeadsPage() {
             .doc-type-segmented.ant-segmented {
               background: var(--bg-slate-50) !important;
               padding: 3px !important;
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid var(--border-slate-100) !important;
               transition: all 0.2s ease;
             }
@@ -6886,7 +7093,7 @@ export default function LeadsPage() {
             }
 
             .premium-input {
-              border-radius: 0 !important;
+              border-radius: 10px !important;
               border: 1px solid #e2e8f0 !important;
             }
 
@@ -6958,20 +7165,31 @@ export default function LeadsPage() {
             .lm-topbar-search-wrap { display: flex; align-items: center; width: 600px; gap: 8px; }
 
             @media (max-width: 820px) {
+              .lm-page {
+                height: auto;
+                min-height: calc(100vh - 64px);
+                overflow: visible;
+              }
               .lm-shell {
                 flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 64px);
+                overflow: visible;
               }
+              .lm-main { height: auto; overflow: visible; }
+              .lm-body { overflow: visible; }
+
               .lm-mobile-overlay {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(15, 23, 42, 0.4);
                 backdrop-filter: blur(2px);
-                z-index: 998;
+                z-index: 1099;
               }
               .lm-sidebar {
                 position: fixed;
                 top: 0; left: -320px; bottom: 0;
-                z-index: 999;
+                z-index: 1100;
                 height: 100%;
                 max-height: none;
                 border-right: 1px solid var(--border-slate-200);

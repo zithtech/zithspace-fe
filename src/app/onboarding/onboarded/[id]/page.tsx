@@ -82,7 +82,7 @@ const SectionTitle = ({ icon, color, tint, text }: any) => (
       style={{
         fontSize: 11,
         fontWeight: 700,
-        color: "var(--text-slate-700, #334155)",
+        color: "var(--text-slate-900, #0f172a)",
         textTransform: "uppercase",
         letterSpacing: "0.04em",
       }}
@@ -99,7 +99,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
       alignItems: "center",
       marginBottom: "6px",
       padding: "8px 10px",
-      background: "#ffffff",
+      background: "var(--bg-secondary, #ffffff)",
       borderRadius: "8px",
       border: "1px solid var(--border-slate-200, #e2e8f0)",
     }}
@@ -138,7 +138,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
       <div
         style={{
           fontSize: "12.5px",
-          color: "var(--text-slate-800, #1e293b)",
+          color: "var(--text-slate-900, #0f172a)",
           fontWeight: 500,
         }}
       >
@@ -245,7 +245,7 @@ const EmploymentTab = ({ data }: any) => {
       <Divider style={{ margin: "16px 0" }} />
 
       <div style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-700, #334155)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assigned Projects</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-900, #0f172a)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assigned Projects</span>
       </div>
       <Space wrap size={8}>
         {employment.projects?.length > 0 ? (
@@ -298,7 +298,7 @@ const AssetsTab = ({ data }: any) => {
               {asset.image ? <Image alt="asset" src={asset.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: PALETTE.grey }}><Laptop size={26} /></div>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-800, #1e293b)', marginBottom: 2 }}>{asset.item}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-slate-900, #0f172a)', marginBottom: 2 }}>{asset.item}</div>
               <div style={{ fontSize: 12.5, color: 'var(--text-slate-500, #64748b)' }}>{asset.brand} - {asset.model}</div>
               <div style={{ marginTop: 6, fontSize: 10.5, color: PALETTE.grey, textTransform: 'uppercase', letterSpacing: 0.4 }}>S/N: {asset.modelNumber}</div>
             </div>
@@ -316,6 +316,19 @@ export default function OnboardedViewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("1");
+
+  const getEditTabName = (key: string) => {
+    switch (key) {
+      case "1": return "personal";
+      case "2": return "employment";
+      case "3": return "bank";
+      case "4": return "history";
+      case "5": return "assets";
+      case "6": return "documents";
+      default: return "personal";
+    }
+  };
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -417,7 +430,7 @@ export default function OnboardedViewPage() {
 
   return (
     <OnboardingGuard itemKey="employees">
-        <div style={{ padding: "16px 20px", background: "#ffffff", minHeight: "100vh" }}>
+        <div style={{ padding: "16px 20px", background: "var(--bg-pure-white, #ffffff)", minHeight: "100vh" }}>
           {/* Slim Header */}
           <div
             style={{
@@ -485,7 +498,7 @@ export default function OnboardedViewPage() {
             </div>
             <Button
               icon={<Edit2 size={14} />}
-              onClick={() => router.push(`/onboarding/create?id=${id}`)}
+              onClick={() => router.push(`/onboarding/create?id=${id}&tab=${getEditTabName(activeTab)}`)}
               style={{ borderRadius: 8, height: 34, fontWeight: 600, fontSize: 13, flexShrink: 0 }}
             >
               Edit Profile
@@ -493,7 +506,8 @@ export default function OnboardedViewPage() {
           </div>
 
           <Tabs
-            defaultActiveKey="1"
+            activeKey={activeTab}
+            onChange={setActiveTab}
             className="premium-tabs"
             items={[
               {

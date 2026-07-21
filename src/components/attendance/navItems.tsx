@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Clock, UserCheck } from 'lucide-react';
+import { Permissions } from '@/types/permissions';
 
 // Single source of truth for the Attendance left-rail.
 // Each item is a real route (own URL) gated by permission, so RBAC can be
@@ -29,7 +30,10 @@ export const ATTENDANCE_NAV_ITEMS: AttendanceNavItem[] = [
     href: '/attendance/clock-in-out',
     icon: <Clock size={16} />,
     color: '#10B981',
-    anyPerm: ['canClockInOut', 'canReadAttendance'],
+    // canReadMyHubAttendance is the My Hub self-service permission so that
+    // users granted my_hub.attendance.read (without full attendance module
+    // access) can still reach this page via My Hub.
+    anyPerm: ['canClockInOut', 'canReadAttendance', 'canReadMyHubAttendance'],
   },
   {
     key: 'manage',

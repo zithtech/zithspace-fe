@@ -48,6 +48,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <style dangerouslySetInnerHTML={{ __html: `
+          .ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker, .ant-input-number-input, .ant-input-number-affix-wrapper {
+            background-color: transparent !important;
+            background: transparent !important;
+          }
+        ` }} />
         <AntdRegistry>
           <ThemeProvider>
             <ThemeConfigProvider>

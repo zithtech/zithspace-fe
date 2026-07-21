@@ -14,9 +14,28 @@ import {
   X,
   Check,
   RefreshCw,
+  Menu,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
+
+const PALETTE = {
+  blue: '#2563eb',
+  green: '#16a34a',
+  red: '#dc2626',
+  grey: '#64748b'
+};
+
+const TINT = {
+  blue: '#eff6ff',
+  green: '#f0fdf4',
+  red: '#fef2f2',
+  grey: '#f8fafc'
+};
+
 import { useEmployeeSetting } from "@/hooks/use-employee-settings";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -518,77 +537,138 @@ function DocumentsNeededTab() {
 
       {/* Add Document drawer */}
       <Drawer
-        title={null}
+        {...commonDrawerProps}
         open={drawerOpen}
         onClose={resetAdd}
-        width={460}
-        closable={false}
-        destroyOnClose
-        styles={{
-          body: { padding: 0, background: "var(--bg-pure-white)" },
-          header: { display: "none" },
-          mask: { backdropFilter: "blur(2px)", background: "rgba(15,23,42,0.45)" },
-        }}
       >
-        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <style>{drawerFormStyles}</style>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column" }} className="customer-drawer-form">
           {/* Header */}
-          <div className="docn-drawer-head">
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              <span className="docn-drawer-icon"><FileText size={18} /></span>
+          <div
+            className="customer-drawer-header"
+            style={{
+              padding: "16px 14px 12px 14px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 0,
+                  background: "rgba(59, 130, 246, 0.10)",
+                  color: "#3b82f6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 18,
+                  flexShrink: 0,
+                }}
+              >
+                <FileText size={20} />
+              </div>
               <div style={{ minWidth: 0 }}>
-                <div className="docn-drawer-title">Add Document</div>
-                <div className="docn-drawer-sub">Pick from common documents or type your own</div>
+                <div
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Add Document
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
+                  Pick from common documents or type your own
+                </div>
               </div>
             </div>
             <Button type="text" shape="circle" icon={<X size={18} />} onClick={resetAdd} />
           </div>
 
           {/* Body */}
-          <div className="docn-drawer-body">
-            <div className="docn-field">
-              <label className="docn-field-label">
-                Name <span style={{ color: "#ef4444" }}>*</span>
-              </label>
-              <AutoComplete
-                value={name}
-                onChange={(v) => setName(v)}
-                style={{ width: "100%" }}
-                allowClear
-                options={DOC_SUGGESTIONS.map((s) => ({ value: s }))}
-                filterOption={(input, option) =>
-                  String(option?.value ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-                placeholder="Search or type a document name…"
-              >
-                <Input maxLength={120} onPressEnter={create} />
-              </AutoComplete>
-              <span className="docn-field-hint">
-                Choose a suggestion or enter a custom document name.
-              </span>
-            </div>
+          <div className="flex-1 overflow-y-auto" style={{ padding: 24, background: "var(--bg-pure-white, #ffffff)" }}>
+            <div className="customer-drawer-card" style={{ border: "1px solid var(--border-color)", borderRadius: "0px", background: "var(--bg-secondary, #ffffff)" }}>
+              <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px dashed var(--border-color)" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "8px", background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                  01
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>Document Details</div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500, margin: "2px 0 0" }}>Enter the basic information for this document</div>
+                </div>
+              </div>
 
-            <div className="docn-field">
-              <label className="docn-field-label">Description</label>
-              <Input.TextArea
-                value={description}
-                maxLength={240}
-                rows={3}
-                placeholder="Optional — what this is / why it's needed"
-                onChange={(e) => setDescription(e.target.value)}
-                style={{ borderRadius: 8 }}
-              />
+              <div style={{ padding: "20px" }}>
+                <div style={{ display: "flex", marginBottom: 20 }}>
+                  <div style={{ width: 140, flexShrink: 0, paddingRight: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", height: 40 }}>
+                      Name <span style={{ color: "#ef4444", marginLeft: 4 }}>*</span>
+                    </label>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <SearchableDropdown
+                      value={name}
+                      onChange={(v) => setName(v || "")}
+                      style={{ width: "100%", height: 40 }}
+                      allowClear
+                      options={DOC_SUGGESTIONS.map((s) => ({ value: s, label: s }))}
+                      placeholder="Search or type a document name…"
+                      freeText
+                    />
+                    <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-secondary)" }}>
+                      Choose a suggestion or enter a custom document name.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex" }}>
+                  <div style={{ width: 140, flexShrink: 0, paddingRight: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", paddingTop: 8 }}>
+                      Description
+                    </label>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Input.TextArea
+                      value={description}
+                      maxLength={240}
+                      rows={3}
+                      placeholder="Optional — what this is / why it's needed"
+                      onChange={(e) => setDescription(e.target.value)}
+                      style={{ borderRadius: 8 }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="docn-drawer-foot">
-            <Button onClick={resetAdd} className="docn-btn-sm">Cancel</Button>
+          <div
+            className="customer-drawer-footer"
+            style={{
+              padding: "16px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "8px",
+            }}
+          >
+            <Button onClick={resetAdd}>Cancel</Button>
             <Button
               type="primary"
               icon={<Save size={15} />}
               loading={saving}
               onClick={create}
-              className="docn-btn-sm"
             >
               Save Document
             </Button>
@@ -606,6 +686,7 @@ function DocumentsNeededTab() {
           columns={columns}
           dataSource={rows}
           pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
+          scroll={{ x: 'max-content' }}
           locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
         />
       </div>
@@ -660,14 +741,14 @@ function DocumentsNeededTab() {
 
         .docn-table-wrap {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 12px; overflow: hidden;
+          border-radius: 0px; overflow: hidden;
         }
         .docn-table .ant-table { background: transparent; font-size: 13px; }
         .docn-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 9px 14px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
         }
         .docn-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 10px 14px !important; }
         .docn-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -693,15 +774,25 @@ const Settings = () => {
 
   return (
     <OnboardingGuard itemKey="settings">
-      <div style={{ width: "100%", padding: "24px 24px 40px" }}>
+      <div className="onbs">
         {/* 1 — Header + subtitle + divider (full width) */}
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "var(--text-slate-900)", letterSpacing: "-0.02em" }}>
-          Settings
-        </h1>
-        <p style={{ color: "var(--text-slate-500)", marginTop: 4, marginBottom: 0, fontSize: 13 }}>
-          Manage your employee onboarding configuration
-        </p>
-        <div style={{ height: 1, background: "var(--border-slate-200)", margin: "16px 0 4px" }} />
+        <div className="onbs-header">
+          <div className="onbs-header-about">
+            <button
+              className="ob-mobile-menu-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-ob-sidebar'))}
+            >
+              <Menu size={20} />
+            </button>
+            <div className="onbs-header-icon">
+              <SettingsIcon size={20} />
+            </div>
+            <div>
+              <h1 className="onbs-header-title">Settings</h1>
+              <p className="onbs-header-sub">Manage your employee onboarding configuration</p>
+            </div>
+          </div>
+        </div>
 
         {/* 2 — Tabs (extensible)   ·   3 — Content (no card, full width) */}
         <Tabs
@@ -731,11 +822,45 @@ const Settings = () => {
       </div>
 
       <style jsx global>{`
+        .onbs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        
+        .onbs-header {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          position: sticky; top: 0; z-index: 30;
+        }
+        .onbs-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .onbs-header-icon {
+          width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+          background: ${TINT.blue}; color: ${PALETTE.blue};
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .onbs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+        .onbs-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
+
         .onb-settings-tabs .ant-tabs-nav { margin-bottom: 22px; }
         .onb-settings-tabs .ant-tabs-tab { padding: 12px 2px !important; font-weight: 600; color: var(--text-slate-500); }
         .onb-settings-tabs .ant-tabs-tab + .ant-tabs-tab { margin-left: 28px !important; }
         .onb-settings-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563eb !important; }
         .onb-settings-tabs .ant-tabs-ink-bar { background: #2563eb !important; height: 3px !important; border-radius: 3px 3px 0 0; }
+
+        @media (max-width: 900px) {
+          .onbs-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 16px;
+            gap: 12px;
+          }
+          .empc-structure {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .empc-dash { display: none; }
+          .docn-table-wrap {
+            overflow-x: auto;
+          }
+        }
       `}</style>
     </OnboardingGuard>
   );

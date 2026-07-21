@@ -6,7 +6,6 @@ import {
   Drawer,
   Form,
   Input,
-  Select,
   DatePicker,
   message,
   Popconfirm,
@@ -42,8 +41,8 @@ import {
   CreateReleasePayload,
 } from "@/services/releaseService";
 import { useTheme } from "@/context/ThemeContext";
-import { ModalSection } from "./_PremiumModal";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
@@ -1346,169 +1345,114 @@ function ReleaseModal({
     : "Log a new version. Pick the milestone it ships under and describe what changed.";
 
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      width={760}
-      title={null}
-      closable={false}
-      destroyOnClose
-      styles={{
-        mask: { backgroundColor: c.overlay },
-        content: { background: c.surfaceElevated },
-        header: { display: "none" },
-        body: {
-          padding: 0,
-          background: c.surfaceElevated,
-          display: "flex",
-          flexDirection: "column",
-        },
-      }}
-    >
-      {/* Custom header */}
-      <div
-        style={{
-          padding: "18px 22px",
-          borderBottom: `1px solid ${c.border}`,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-          flexShrink: 0,
-        }}
+    <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
+        open={open}
+        onClose={onClose}
+        destroyOnClose
       >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            background: c.accentBg,
-            color: c.accentText,
-            border: `1px solid ${c.accentBorder}`,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: c.accentBg, border: `1px solid ${c.accentBorder}`, color: c.accentText }}
+              >
+                <Rocket size={16} />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">{title}</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: c.accentText,
+                  lineHeight: 1.5,
+                }}>
+                  {subtitle}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+        <Form
+          form={form}
+          layout="horizontal"
+          labelCol={{ span: 7 }}
+          wrapperCol={{ span: 17 }}
+          labelAlign="left"
+          onFinish={submit}
+          requiredMark={false}
         >
-          <Rocket size={20} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: c.text,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {title}
-          </div>
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 12.5,
-              color: c.textSubtle,
-              lineHeight: 1.5,
-            }}
-          >
-            {subtitle}
-          </div>
-        </div>
-        <Button
-          type="text"
-          onClick={onClose}
-          icon={<X size={16} color={c.textSubtle} />}
-          style={{ marginTop: -4 }}
-          aria-label="Close"
-        />
-      </div>
-
-      {/* Scrollable body */}
-      <div
-        style={{
-          padding: 22,
-          flex: 1,
-          overflowY: "auto",
-        }}
-      >
-        <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-          <ModalSection
-            c={c}
+          <SectionCard
             title="What ships"
-            description="Title and version, plus the milestone this release belongs to."
-            icon={<Rocket size={11} />}
-            plain
+            subtitle="Title and version, plus the milestone this release belongs to."
+            icon={<Rocket size={14} />}
+            step="STEP 1"
           >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.6fr 1fr",
-                gap: 10,
-                marginBottom: 12,
-              }}
+            <Form.Item
+              name="title"
+              label="Title"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: 12 }}
             >
-              <Form.Item
-                name="title"
-                label={<L c={c}>Title</L>}
-                rules={[{ required: true, message: "Required" }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input placeholder="e.g. Payments hardening" maxLength={200} />
-              </Form.Item>
-              <Form.Item
-                name="version"
-                label={<L c={c}>Version</L>}
-                style={{ marginBottom: 0 }}
-              >
-                <Input placeholder="e.g. v1.2.0" maxLength={64} />
-              </Form.Item>
-            </div>
+              <Input placeholder="e.g. Payments hardening" maxLength={200} />
+            </Form.Item>
+            <Form.Item
+              name="version"
+              label="Version"
+              style={{ marginBottom: 12 }}
+            >
+              <Input placeholder="e.g. v1.2.0" maxLength={64} />
+            </Form.Item>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 10,
-                marginBottom: 12,
-              }}
+            <Form.Item
+              name="projectId"
+              label="Project"
+              style={{ marginBottom: 12 }}
             >
-              <Form.Item
-                name="projectId"
-                label={<L c={c}>Project</L>}
-                style={{ marginBottom: 0 }}
-              >
-                <Select
-                  allowClear
-                  placeholder={
-                    projects.length === 0 ? "No projects linked" : "Select project"
-                  }
-                  disabled={projects.length === 0}
-                  showSearch
-                  optionFilterProp="label"
-                  onChange={(v) => onProjectChange(v)}
-                  onClear={() => onProjectChange(undefined)}
-                  options={projects.map((p) => ({
-                    value: p.id,
-                    label: p.code ? `${p.name} · ${p.code}` : p.name,
-                  }))}
-                />
-              </Form.Item>
-              <Form.Item
-                name="releaseDate"
-                label={<L c={c}>Release date</L>}
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </div>
+              <SearchableDropdown
+                placeholder={
+                  projects.length === 0 ? "No projects linked" : "Select project"
+                }
+                searchPlaceholder="Search projects..."
+                disabled={projects.length === 0}
+                onChange={(v) => onProjectChange(v as string)}
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: p.code ? `${p.name} · ${p.code}` : p.name,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="releaseDate"
+              label="Release date"
+              style={{ marginBottom: 12 }}
+            >
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
 
             <Form.Item
               name="milestoneId"
-              label={<L c={c}>Milestone</L>}
-              style={{ marginBottom: 4 }}
+              label="Milestone"
+              style={{ marginBottom: 0 }}
             >
-              <Select
-                allowClear
+              <SearchableDropdown
                 placeholder={
                   loadingMilestones
                     ? "Loading…"
@@ -1516,31 +1460,23 @@ function ReleaseModal({
                       ? "Select milestone for this project"
                       : "Select milestone"
                 }
+                searchPlaceholder="Search milestones..."
                 loading={loadingMilestones}
-                showSearch
-                optionFilterProp="label"
                 options={filteredMilestones.map((m) => ({
                   value: m.id,
                   label: m.projectName ? `${m.name} · ${m.projectName}` : m.name,
                 }))}
-                notFoundContent={
-                  loadingMilestones
-                    ? "Loading…"
-                    : selectedProjectId
-                      ? "No active milestones for this project"
-                      : "No active milestones"
-                }
               />
             </Form.Item>
-          </ModalSection>
+          </SectionCard>
 
-          <ModalSection
-            c={c}
+          <SectionCard
             title="Description"
-            description="Release notes — what changed, why, and anything the client should know."
-            icon={<Flag size={11} />}
+            subtitle="Release notes — what changed, why, and anything the client should know."
+            icon={<Flag size={14} />}
+            step="STEP 2"
           >
-            <Form.Item name="description" style={{ marginBottom: 0 }}>
+            <Form.Item name="description" style={{ marginBottom: 0 }} wrapperCol={{ span: 24 }}>
               <TiptapEditor
                 content={descHtml}
                 onChange={(html) => {
@@ -1551,35 +1487,29 @@ function ReleaseModal({
                 maxHeight={420}
               />
             </Form.Item>
-          </ModalSection>
+          </SectionCard>
         </Form>
       </div>
 
       {/* Sticky footer */}
-      <div
-        style={{
-          padding: "14px 22px",
-          borderTop: `1px solid ${c.border}`,
-          background: c.surfaceElevated,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: 8,
-          flexShrink: 0,
-        }}
-      >
-        <Button onClick={onClose}>Cancel</Button>
+      <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+        <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+          Cancel
+        </Button>
         <Button
           type="primary"
           htmlType="submit"
           loading={submitting}
           onClick={() => form.submit()}
           icon={<Plus size={14} />}
+          className="font-medium shadow-sm hover:opacity-90"
         >
           {editing ? "Save changes" : "Create release"}
         </Button>
       </div>
-    </Drawer>
+    </div>
+  </Drawer>
+  </>
   );
 }
 

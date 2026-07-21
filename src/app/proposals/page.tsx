@@ -43,6 +43,7 @@ import {
   StarFilled,
   RestOutlined,
   CaretDownOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { Sparkles, Mail } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
@@ -142,7 +143,18 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase();
 
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
+
 export default function ProposalsListPage() {
+  console.log("Forcing HMR reload for ProposalsListPage");
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'ProposalList' });
   const { user, isLoading } = useAuth();
   const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
@@ -159,6 +171,7 @@ export default function ProposalsListPage() {
   const [dateRange, setDateRange] = useState<any>(null);
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [view, setView] = useState<'list' | 'grid'>('grid');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [starred, setStarred] = useState<Record<string, boolean>>({});
   const [recents, setRecents] = useState<any[]>([]);
@@ -327,11 +340,11 @@ export default function ProposalsListPage() {
   const handleDelete = async (id: string) => {
     try {
       await ProposalService.deleteProposal(id);
-      messageApi.success('Proposal deleted');
+      messageApi.success('Moved to trash');
       fetchProposals();
     } catch (err) {
       console.error('Delete error:', err);
-      messageApi.error('Failed to delete proposal');
+      messageApi.error('Failed to move to trash');
     }
   };
 
@@ -526,7 +539,24 @@ export default function ProposalsListPage() {
       const c = p.createdBy;
       if (c?.id && c?.name && !byId.has(c.id)) byId.set(c.id, { id: c.id, name: c.name, avatarUrl: c.avatarUrl || c.avatar });
     });
-    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)).map((u) => ({ value: u.id, label: u.name }));
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)).map((u) => ({
+      value: u.id,
+      label: u.name,
+      badge: (
+        <Avatar
+          src={u.avatarUrl || undefined}
+          size={20}
+          style={{
+            backgroundColor: u.avatarUrl ? "transparent" : avatarColorFor(u.name || ""),
+            color: "#fff",
+            fontSize: 9,
+            fontWeight: 800,
+          }}
+        >
+          {initialsOf(u.name)}
+        </Avatar>
+      )
+    }));
   }, [users, proposals]);
 
   const statusOptions: { value: StatusKey; label: string }[] = [
@@ -601,9 +631,9 @@ export default function ProposalsListPage() {
           <ConfirmDialog
             tone="danger"
             icon={<DeleteOutlined style={{ fontSize: 15 }} />}
-            title="Delete Proposal"
-            description="Are you sure you want to delete this proposal? This action cannot be undone."
-            confirmText="Delete"
+            title="Move to Trash"
+            description="Are you sure you want to move this proposal to trash?"
+            confirmText="Move to Trash"
             cancelText="Cancel"
             placement="left"
             onConfirm={() => handleDelete(p.id)}
@@ -619,7 +649,7 @@ export default function ProposalsListPage() {
                 e.stopPropagation();
               }}
             >
-              {menuLabel('Delete', 'Remove this proposal', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+              {menuLabel('Move to trash', 'Move this proposal to trash', <DeleteOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
             </div>
           </ConfirmDialog>
         )
@@ -712,7 +742,7 @@ export default function ProposalsListPage() {
         if (!creator?.name) return <Text className="pp-muted">—</Text>;
         return (
           <div className="pp-creator">
-            <Avatar size={20} src={creator.avatarUrl || creator.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
+            <Avatar size={20} src={creator.avatarUrl || creator.avatar} style={{ backgroundColor: (creator.avatarUrl || creator.avatar) ? "transparent" : avatarColorFor(creator.name || ""), color: '#fff', fontSize: 9, fontWeight: 700 }}>
               {initialsOf(creator.name)}
             </Avatar>
             <span className="pp-creator-name">{creator.name}</span>
@@ -790,7 +820,8 @@ export default function ProposalsListPage() {
         {messageHolder}
         {modalContextHolder}
 
-        <div className="pp-shell">
+        <div className={`pp-shell ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+          <div className="pp-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
           {/* ============================ SIDEBAR ============================ */}
           <aside className="pp-sidebar">
             <div className="pp-side-head">
@@ -901,15 +932,19 @@ export default function ProposalsListPage() {
               </div>
             </div>
 
-            <button type="button" className="pp-trash" onClick={() => messageApi.info('No trashed proposals')}>
-              <RestOutlined /> Trash
-            </button>
           </aside>
 
           {/* ============================ MAIN ============================ */}
           <main className="pp-main">
             {/* Search / status / view toggle bar */}
             <div className="pp-topbar">
+              <button
+                type="button"
+                className="pp-mobile-toggle"
+                onClick={() => setIsMobileSidebarOpen(true)}
+              >
+                <MenuOutlined />
+              </button>
               <div className="pp-search-wrap">
                 <SearchOutlined className="pp-search-icon" />
                 <input
@@ -919,7 +954,7 @@ export default function ProposalsListPage() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-                <span className="pp-kbd">⌘K</span>
+
               </div>
 
               <div className="pp-topbar-meta">
@@ -1287,10 +1322,10 @@ export default function ProposalsListPage() {
           .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
           .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
           .pp-search {
-            flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
+            flex: 1; min-width: 0; border: none; outline: none; background: transparent; margin-left: 9px;
             font-size: 13px; color: var(--text-slate-900);
           }
-          .pp-search::placeholder { color: var(--text-slate-400); }
+          .pp-search::placeholder { color: var(--text-slate-400); text-overflow: ellipsis; }
           .pp-kbd {
             font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
             background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
@@ -1340,12 +1375,32 @@ export default function ProposalsListPage() {
 
           /* Table */
           .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-          .pp-table .ant-table { background: transparent; font-size: 12px; }
-          .pp-table .ant-table-thead > tr > th {
+          .pp-table,
+          .pp-table.ant-table-wrapper,
+          .pp-table .ant-table,
+          .pp-table .ant-table-wrapper,
+          .pp-table .ant-table-container,
+          .pp-table .ant-table-content,
+          .pp-table .ant-table-header,
+          .pp-table .ant-table-body {
+            background: transparent !important;
+            border-radius: 0px !important;
+          }
+          .pp-table .ant-table-thead > tr > th, .pp-table .ant-table-thead > tr > td {
             background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-            text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+            font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
+            text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
             white-space: nowrap !important;
+            border-radius: 0 !important;
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+          }
+          .pp-table .ant-table-thead > tr > th::before { display: none !important; }
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+          [data-theme='dark'] .pp-table .ant-table-thead > tr > td {
+            background: #161B22 !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #374151 !important;
           }
           .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
           .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -1432,7 +1487,7 @@ export default function ProposalsListPage() {
           .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
           .pp-btn-primary {
             background: #3B82F6 !important; border: none !important;
-            border-radius: 0 !important; font-weight: 600 !important;
+            border-radius: 8px !important; font-weight: 600 !important;
           }
           .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
           .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
@@ -1484,7 +1539,8 @@ export default function ProposalsListPage() {
 
           /* Premium action dropdown */
           .pp-action-pop .ant-dropdown-menu {
-            padding: 6px; border-radius: 0; min-width: 236px;
+            padding: 6px; border-radius: 0 !important; min-width: 236px;
+            overflow: hidden !important;
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-100);
             box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
@@ -1508,20 +1564,103 @@ export default function ProposalsListPage() {
           .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
           .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
           .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+          /* Dark Theme Action Popup */
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+            background: #0B0F1A !important;
+            border-radius: 0 !important;
+            overflow: hidden !important;
+            border: 1px solid #1E293B !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover {
+            background: #161B22 !important;
+          }
+          [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider {
+            background: #1E293B !important;
+          }
+          [data-theme='dark'] .pp-menu-title {
+            color: #cbd5e1 !important;
+          }
+          [data-theme='dark'] .pp-menu-desc {
+            color: #64748b !important;
+          }
+
           .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
           .pc-status-tag .anticon { font-size: 9px; }
           .pc-mail-val { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; }
 
-          @media (max-width: 700px) {
-            .pp-grid { grid-template-columns: 1fr; }
+          .pp-mobile-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-200);
+            border-radius: 8px;
+            color: var(--text-slate-700);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-right: 12px;
           }
+          .pp-mobile-toggle:hover {
+            background: var(--bg-slate-50);
+            border-color: var(--text-slate-400);
+          }
+          [data-theme="dark"] .pp-mobile-toggle {
+            background: #111720;
+            border-color: #2d3748;
+            color: #cbd5e1;
+          }
+          .pp-backdrop { display: none; }
+
 
           @media (max-width: 1100px) {
             .pp-stats { grid-template-columns: repeat(2, 1fr); }
           }
           @media (max-width: 820px) {
-            .pp-sidebar { display: none; }
+            .pp-topbar { flex-wrap: wrap; height: auto; }
+            .pp-search-wrap { min-width: 140px; }
             .pp-topbar-meta { display: none; }
+            .pp-mobile-toggle { display: inline-flex; }
+
+            .pp-sidebar {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 280px;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.2s ease;
+              box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+              padding-bottom: 24px;
+            }
+
+            .is-mobile-open .pp-sidebar {
+              transform: translateX(0);
+            }
+
+            .pp-backdrop {
+              display: none;
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(15, 23, 42, 0.4);
+              backdrop-filter: blur(2px);
+              z-index: 999;
+            }
+
+            .is-mobile-open .pp-backdrop {
+              display: block;
+            }
+          }
+
+          @media (max-width: 700px) {
+            .pp-grid { grid-template-columns: 1fr; }
+            .pp-stats { grid-template-columns: 1fr; }
           }
         `}</style>
       </MainLayout>

@@ -21,6 +21,7 @@ import {
   Avatar,
   Tooltip,
   Dropdown,
+  Drawer,
 } from "antd";
 import {
   Plus,
@@ -37,11 +38,14 @@ import {
   X,
   LayoutGrid,
   List,
+  Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { useTenant } from "@/context/TenantContext";
 import { usePermission } from "@/hooks/usePermission";
 import { api } from "@/lib/axios";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const { Option } = Select;
@@ -111,6 +115,18 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+
+  /* Live preview of the contact being created (drives the hero avatar/title). */
+  const addFirstName = Form.useWatch("firstName", form);
+  const addLastName = Form.useWatch("lastName", form);
+  const addDesignation = Form.useWatch("designation", form);
+  const addIsPrimary = Form.useWatch("isPrimary", form);
+  const addInitials =
+    `${(addFirstName || "").trim().charAt(0)}${(addLastName || "").trim().charAt(0)}`.toUpperCase();
+  const addFullName = [addFirstName, addLastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any>(null);
@@ -651,34 +667,67 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         </div>
       )}
 
-      {/* Add Modal */}
-      <Modal
+      {/* Add Drawer */}
+      <>
+      <style>{drawerFormStyles}</style>
+      <Drawer
+        {...commonDrawerProps}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        title={null}
-        width={540}
-        centered
+        onClose={() => setIsModalOpen(false)}
         destroyOnClose
-        className="pmodal pmodal-compact"
-        closeIcon={<X size={16} />}
       >
-        <Form form={form} layout="vertical" onFinish={handleAdd}>
-          <div className="pmodal-hero pmodal-hero-slim">
-            <div className="pmodal-hero-content">
-              <div className="pmodal-hero-icon">
-                <User size={18} />
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
+              >
+                <User size={16} />
               </div>
-              <div className="pmodal-hero-text">
-                <div className="pmodal-hero-title">Add New Contact</div>
-                <div className="pmodal-hero-sub">A new representative for this client account</div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Add Contact Person</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "#3b82f6",
+                  lineHeight: 1.5,
+                }}>
+                  Add a new representative for this client
+                </div>
               </div>
             </div>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
           </div>
 
-          <div className="pmodal-body pmodal-body-compact">
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <Form 
+              form={form} 
+              layout="horizontal"
+              labelCol={{ span: 7 }}
+              wrapperCol={{ span: 17 }}
+              labelAlign="left"
+              onFinish={handleAdd}
+              requiredMark={false}
+            >
+              <SectionCard
+                title="Identity"
+                subtitle="Provide the first and last name along with their job title."
+                icon={<User size={14} />}
+                step="STEP 1"
+              >
                 <Form.Item
                   name="firstName"
                   label="First name"
@@ -699,8 +748,6 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
                   label="Last name"
@@ -721,26 +768,30 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-            </Row>
+                <Form.Item name="designation" label="Job designation">
+                  <Input
+                    placeholder="e.g. CTO, Hiring Manager"
+                    prefix={<Briefcase size={14} style={{ color: "var(--text-slate-400)" }} />}
+                  />
+                </Form.Item>
+              </SectionCard>
 
-            <Form.Item name="designation" label="Job designation">
-              <Input placeholder="e.g. CTO, Hiring Manager" />
-            </Form.Item>
-
-            <Form.Item
-              name="officialEmail"
-              label="Official email"
-              rules={[{ required: true, type: "email", message: "Valid email required" }]}
-            >
-              <Input
-                placeholder="john.smith@company.com"
-                prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
-              />
-            </Form.Item>
-
-            <Row gutter={12} align="top">
-              <Col xs={24} sm={12}>
+              <SectionCard
+                title="Contact details"
+                subtitle="Official communication channels for this person."
+                icon={<Mail size={14} />}
+                step="STEP 2"
+              >
+                <Form.Item
+                  name="officialEmail"
+                  label="Official email"
+                  rules={[{ required: true, type: "email", message: "Valid email required" }]}
+                >
+                  <Input
+                    placeholder="john.smith@company.com"
+                    prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
+                  />
+                </Form.Item>
                 <Form.Item
                   name="mobileNumber"
                   label="Contact number"
@@ -774,20 +825,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
                 <Form.Item
                   name="isPrimary"
-                  label="Designation"
+                  label="Contact type"
                   initialValue={false}
                 >
                   <Segmented
                     block
-                    className="pmodal-segmented"
                     options={[
                       {
                         label: (
-                          <span className="pmodal-seg-label">
+                          <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
                             <ShieldCheck size={12} /> Primary
                           </span>
                         ),
@@ -797,61 +845,97 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     ]}
                   />
                 </Form.Item>
-              </Col>
-            </Row>
+              </SectionCard>
+            </Form>
           </div>
 
-          <div className="pmodal-footer pmodal-footer-compact">
-            <Button
-              onClick={() => setIsModalOpen(false)}
-              className="pmodal-btn-cancel"
-            >
+          <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+            <span style={{ marginRight: 'auto', fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={12} /> This contact can be linked to the client portal later
+            </span>
+            <Button onClick={() => setIsModalOpen(false)} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
               Cancel
             </Button>
             <Button
               type="primary"
               htmlType="submit"
               loading={loading}
+              onClick={() => form.submit()}
               icon={<Plus size={14} />}
-              className="pmodal-btn-primary"
+              className="font-medium shadow-sm hover:opacity-90"
             >
               Create Contact
             </Button>
           </div>
-        </Form>
-      </Modal>
+        </div>
+      </Drawer>
+      </>
 
-      {/* Edit Modal */}
-      <Modal
+      {/* Edit Drawer */}
+      <>
+      <Drawer
+        {...commonDrawerProps}
         open={isEditModalOpen}
-        onCancel={() => {
+        onClose={() => {
           setIsEditModalOpen(false);
           setEditingContact(null);
         }}
-        footer={null}
-        title={null}
-        width={540}
-        centered
         destroyOnClose
-        className="pmodal pmodal-compact"
-        closeIcon={<X size={16} />}
       >
-        <Form form={editForm} layout="vertical" onFinish={handleEdit}>
-          <div className="pmodal-hero pmodal-hero-slim">
-            <div className="pmodal-hero-content">
-              <div className="pmodal-hero-icon">
-                <Edit2 size={18} />
+        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
+              >
+                <Edit2 size={16} />
               </div>
-              <div className="pmodal-hero-text">
-                <div className="pmodal-hero-title">Update Contact Information</div>
-                <div className="pmodal-hero-sub">Modify details for this representative</div>
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Update Contact Information</h2>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  background: `rgba(59,130,246,0.08)`,
+                  border: `1px solid rgba(59,130,246,0.22)`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "#3b82f6",
+                  lineHeight: 1.5,
+                }}>
+                  Modify details for this representative
+                </div>
               </div>
             </div>
+            <button
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditingContact(null);
+              }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
           </div>
 
-          <div className="pmodal-body pmodal-body-compact">
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
+          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+            <Form 
+              form={editForm} 
+              layout="horizontal"
+              labelCol={{ span: 7 }}
+              wrapperCol={{ span: 17 }}
+              labelAlign="left"
+              onFinish={handleEdit}
+            >
+              <SectionCard
+                title="Identity"
+                subtitle="Modify the first and last name along with their job title."
+                icon={<User size={14} />}
+                step="STEP 1"
+              >
                 <Form.Item
                   name="firstName"
                   label="First name"
@@ -872,8 +956,6 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
                   label="Last name"
@@ -894,26 +976,27 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-            </Row>
+                <Form.Item name="designation" label="Job designation">
+                  <Input placeholder="e.g. CTO, Hiring Manager" />
+                </Form.Item>
+              </SectionCard>
 
-            <Form.Item name="designation" label="Job designation">
-              <Input placeholder="e.g. CTO, Hiring Manager" />
-            </Form.Item>
-
-            <Form.Item
-              name="officialEmail"
-              label="Official email"
-              rules={[{ required: true, type: "email", message: "Valid email required" }]}
-            >
-              <Input
-                placeholder="john.smith@company.com"
-                prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
-              />
-            </Form.Item>
-
-            <Row gutter={12} align="top">
-              <Col xs={24} sm={12}>
+              <SectionCard
+                title="Contact details"
+                subtitle="Official communication channels for this person."
+                icon={<Mail size={14} />}
+                step="STEP 2"
+              >
+                <Form.Item
+                  name="officialEmail"
+                  label="Official email"
+                  rules={[{ required: true, type: "email", message: "Valid email required" }]}
+                >
+                  <Input
+                    placeholder="john.smith@company.com"
+                    prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
+                  />
+                </Form.Item>
                 <Form.Item
                   name="mobileNumber"
                   label="Contact number"
@@ -947,20 +1030,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
                 <Form.Item
                   name="isPrimary"
-                  label="Designation"
+                  label="Contact type"
                   initialValue={false}
                 >
                   <Segmented
                     block
-                    className="pmodal-segmented"
                     options={[
                       {
                         label: (
-                          <span className="pmodal-seg-label">
+                          <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
                             <ShieldCheck size={12} /> Primary
                           </span>
                         ),
@@ -970,17 +1050,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     ]}
                   />
                 </Form.Item>
-              </Col>
-            </Row>
+              </SectionCard>
+            </Form>
           </div>
 
-          <div className="pmodal-footer pmodal-footer-compact">
+          <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
             <Button
               onClick={() => {
                 setIsEditModalOpen(false);
                 setEditingContact(null);
               }}
-              className="pmodal-btn-cancel"
+              className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent"
             >
               Cancel
             </Button>
@@ -988,14 +1068,16 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               type="primary"
               htmlType="submit"
               loading={loading}
+              onClick={() => editForm.submit()}
               icon={<Check size={14} />}
-              className="pmodal-btn-primary"
+              className="font-medium shadow-sm hover:opacity-90"
             >
               Save Changes
             </Button>
           </div>
-        </Form>
-      </Modal>
+        </div>
+      </Drawer>
+      </>
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -1459,6 +1541,187 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         [data-theme="dark"] .pmodal .ant-modal-close:hover {
           background: rgba(255, 255, 255, 0.16) !important;
           color: #fff !important;
+        }
+
+        /* ============================================================ */
+        /*  Add New Contact — premium hero (avatar preview + glow)      */
+        /* ============================================================ */
+        .pmodal-hero-contact {
+          padding: 16px 18px !important;
+          background: linear-gradient(135deg, #eff6ff 0%, #ede9fe 100%) !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .pmc-hero-glow {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background:
+            radial-gradient(420px 130px at 0% 0%, rgba(139, 92, 246, 0.20), transparent 60%),
+            radial-gradient(360px 130px at 100% 100%, rgba(59, 130, 246, 0.18), transparent 60%);
+        }
+        .pmodal-hero-contact .pmodal-hero-content {
+          gap: 13px;
+          align-items: center;
+        }
+        .pmc-avatar {
+          width: 44px;
+          height: 44px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          color: #fff;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+          transition: all 0.22s ease;
+        }
+        .pmc-avatar[data-empty="true"] {
+          color: #6366f1;
+          background: rgba(99, 102, 241, 0.12);
+          border: 1px solid rgba(99, 102, 241, 0.28);
+          box-shadow: none;
+        }
+        .pmodal-hero-contact .pmodal-hero-title {
+          color: var(--text-slate-900) !important;
+          font-size: 15px !important;
+        }
+        .pmodal-hero-contact .pmodal-hero-sub {
+          color: var(--text-slate-500) !important;
+        }
+        .pmc-badge {
+          margin-left: auto;
+          align-self: center;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          color: var(--text-slate-500);
+          background: rgba(15, 23, 42, 0.05);
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          padding: 4px 8px;
+        }
+        .pmc-badge.is-primary {
+          color: #6d28d9;
+          background: rgba(139, 92, 246, 0.14);
+          border-color: rgba(139, 92, 246, 0.30);
+        }
+        /* Gradient CTA + spacious footer, scoped to the Add Contact modal */
+        .pmodal-contact-add .pmodal-btn-primary {
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.30) !important;
+        }
+        .pmodal-contact-add .pmodal-footer {
+          background: var(--bg-slate-50);
+        }
+
+        [data-theme="dark"] .pmodal-hero-contact {
+          background:
+            radial-gradient(500px 150px at -10% 0%, rgba(139, 92, 246, 0.40), transparent 65%),
+            radial-gradient(420px 150px at 110% 100%, rgba(59, 130, 246, 0.35), transparent 65%),
+            linear-gradient(135deg, #0b1220 0%, #111827 100%) !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+        [data-theme="dark"] .pmodal-hero-contact .pmodal-hero-title {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .pmodal-hero-contact .pmodal-hero-sub {
+          color: rgba(226, 232, 240, 0.78) !important;
+        }
+        [data-theme="dark"] .pmc-avatar[data-empty="true"] {
+          color: #c4b5fd;
+          background: rgba(167, 139, 250, 0.16);
+          border-color: rgba(167, 139, 250, 0.32);
+        }
+        [data-theme="dark"] .pmc-badge {
+          color: rgba(226, 232, 240, 0.78);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        /* ============================================================ */
+        /*  Add New Contact — uniform control heights + soft radius     */
+        /* ============================================================ */
+        /* Round the shell and clip the edge-to-edge hero to it */
+        .pmodal-contact-add .ant-modal-content {
+          border-radius: 14px !important;
+          overflow: hidden !important;
+        }
+
+        /* Every input/select shares one height (40px) and a soft radius */
+        .pmodal-contact-add .pmodal-body .ant-input,
+        .pmodal-contact-add .pmodal-body .ant-input-affix-wrapper,
+        .pmodal-contact-add .pmodal-body .ant-select-selector,
+        .pmodal-contact-add .pmodal-body .ant-input-number {
+          height: 40px !important;
+          min-height: 40px !important;
+          border-radius: 8px !important;
+        }
+        .pmodal-contact-add .pmodal-body .ant-input-affix-wrapper {
+          display: flex !important;
+          align-items: center !important;
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+        }
+        /* Inner input of an affix wrapper must not re-impose its own height */
+        .pmodal-contact-add .pmodal-body .ant-input-affix-wrapper > .ant-input {
+          height: auto !important;
+          min-height: 0 !important;
+        }
+
+        /* Segmented control lines up with the inputs beside it */
+        .pmodal-contact-add .pmodal-body .ant-segmented {
+          height: 40px !important;
+          border-radius: 8px !important;
+          padding: 3px !important;
+          display: flex !important;
+          align-items: center !important;
+        }
+        .pmodal-contact-add .pmodal-body .ant-segmented .ant-segmented-item {
+          flex: 1 !important;
+          border-radius: 6px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .pmodal-contact-add .pmodal-body .ant-segmented .ant-segmented-item-label {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 30px !important;
+          line-height: 1 !important;
+        }
+
+        /* Buttons, close, avatar, icon, badge — matching radius */
+        .pmodal-contact-add .pmodal-btn-primary,
+        .pmodal-contact-add .pmodal-btn-cancel {
+          height: 38px !important;
+          border-radius: 8px !important;
+        }
+        .pmodal-contact-add .pmc-avatar,
+        .pmodal-contact-add .pmodal-hero-icon {
+          border-radius: 10px !important;
+        }
+        .pmodal-contact-add .pmc-badge {
+          border-radius: 6px !important;
+        }
+
+        /* Close button: round it and reserve space so the NEW badge
+           never slides underneath it */
+        .pmodal-contact-add .ant-modal-close {
+          top: 14px !important;
+          right: 14px !important;
+          width: 28px !important;
+          height: 28px !important;
+          border-radius: 8px !important;
+        }
+        .pmodal-contact-add .pmodal-hero-contact {
+          padding-right: 54px !important;
         }
 
         /* Prevent horizontal overflow from edge-to-edge header bleed */

@@ -1,6 +1,20 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+/** Force-download a file — routes through a server-side proxy to avoid CORS / PDF viewer issues. */
+function forceDownload(url: string, filename: string) {
+  // Use our Next.js proxy route which fetches the file server-side and sends it
+  // back with Content-Disposition: attachment — guaranteed download, no new tab.
+  const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+  const a = document.createElement('a');
+  a.href = proxyUrl;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 import {
   Avatar,
   Button,
@@ -131,8 +145,13 @@ export default function GeneratedReportsPanel() {
 
   const resolveAvatar = async (url?: string | null): Promise<string | null> => {
     if (!url) return null;
+    if (url.startsWith('data:')) return url;
     try {
-      const res = await fetch(url, { mode: 'cors' });
+      // Route through the backend proxy — html2canvas can't capture CORS-blocked images.
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error('Proxy failed');
       const blob = await res.blob();
       return await new Promise<string | null>((resolve) => {
         const reader = new FileReader();
@@ -310,7 +329,7 @@ export default function GeneratedReportsPanel() {
   );
   const wizPositions = useMemo(() => uniq(candidates.map((c) => c.position)), [candidates]);
   const wizMemberOptions = useMemo(
-    () => candidates.filter((c) => !wizPosition || c.position === wizPosition).map((c) => ({ value: c.id, label: c.name })),
+    () => candidates.filter((c) => !wizPosition || c.position === wizPosition).map((c) => ({ value: c.id, label: c.name, avatarUrl: c.avatarUrl })),
     [candidates, wizPosition]
   );
   const wizResolved = useMemo(() => {
@@ -339,13 +358,15 @@ export default function GeneratedReportsPanel() {
     [allReports, dept]
   );
   const memberOptions = useMemo(() => {
-    const seen = new Map<string, string>();
+    const seen = new Map<string, { label: string; avatarUrl: string | null }>();
     allReports
       .filter((r) => (!dept || r.userDepartment === dept) && (!subDept || r.userSubDepartment === subDept))
       .forEach((r) => {
-        if (r.userId && !seen.has(r.userId)) seen.set(r.userId, r.userName || r.userId);
+        if (r.userId && !seen.has(r.userId)) {
+          seen.set(r.userId, { label: r.userName || r.userId, avatarUrl: r.userAvatar || null });
+        }
       });
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(seen.entries()).map(([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl }));
   }, [allReports, dept, subDept]);
 
   // ── apply filters ───────────────────────────────────────────────────────────
@@ -375,7 +396,7 @@ export default function GeneratedReportsPanel() {
   return (
     <div className="gr-wrap">
       {/* 1. Title */}
-      <div className="gr-head">
+      <div className="gr-header">
         <div className="gr-titlerow">
           <h2 className="gr-title">Generated Reports</h2>
           <Divider type="vertical" className="gr-hdivider" />
@@ -385,7 +406,6 @@ export default function GeneratedReportsPanel() {
 
       {/* 2. Count + search + generate */}
       <div className="gr-bar">
-        <span className="gr-bar-info">{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
         <div className="gr-bar-actions">
           <Input
             allowClear
@@ -513,7 +533,14 @@ export default function GeneratedReportsPanel() {
                     <span className="gr-gen">Generated {dayjs(r.generatedAt).format('MMM D, YYYY')}</span>
                     <div className="gr-actions">
                       <a href={r.fileUrl} target="_blank" rel="noopener noreferrer"><Button size="small" icon={<FilePdfOutlined />}>Open</Button></a>
-                      <a href={r.fileUrl} download><Button size="small" icon={<DownloadOutlined />} /></a>
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const filename = r.fileUrl.split('/').pop()?.split('?')[0] || 'report.pdf';
+                          forceDownload(r.fileUrl, filename);
+                        }}
+                      />
                       {canUpdatePerformanceReportSetting && (
                         <Popconfirm title="Delete this report?" onConfirm={() => onDelete(r.id)} okText="Delete" okButtonProps={{ danger: true }}>
                           <Button size="small" danger icon={<DeleteOutlined />} />
@@ -530,6 +557,7 @@ export default function GeneratedReportsPanel() {
 
       {/* 4. Fixed bottom pagination */}
       <div className="gr-footer">
+        <span className="gr-bar-info" style={{ marginRight: 'auto' }}>{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
         <Pagination current={page} pageSize={PAGE_SIZE} total={total} showSizeChanger={false} onChange={setPage} />
       </div>
 
@@ -637,7 +665,7 @@ export default function GeneratedReportsPanel() {
 
       {/* Off-screen printable for the current member being generated */}
       {printJob && (
-        <div style={{ position: 'fixed', left: -99999, top: 0, zIndex: -1 }} aria-hidden>
+        <div style={{ display: 'none' }} aria-hidden>
           <ReportPrintable ref={printRef} member={printJob.member} range={printJob.range} model={printJob.model} statusMarks={settingsRef.current.statusMarks} avatarDataUrl={printJob.avatar} />
         </div>
       )}
@@ -647,15 +675,18 @@ export default function GeneratedReportsPanel() {
         /* Box-shaped: square every corner on the page (avatars stay round). */
         .gr-wrap *, .gr-wrap *::before, .gr-wrap *::after { border-radius: 0 !important; }
         .gr-wrap .ant-avatar { border-radius: 50% !important; }
-        .gr-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-        .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .gr-header {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+        }
+        .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
         .gr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; white-space: nowrap; }
         .gr-hdivider { height: 20px; border-color: #cbd5e1; margin: 0; }
-        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; }
+        .gr-bar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
         .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
-        .gr-bar-actions { display: flex; align-items: center; gap: 10px; }
-        .gr-search { width: 320px; border-radius: 10px; }
+        .gr-bar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
+        .gr-search { width: 100%; max-width: 320px; border-radius: 10px; flex: 1; min-width: 200px; }
         .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); margin-bottom: 16px; }
         .gr-filters-label {
           display: inline-flex; align-items: center; gap: 7px;

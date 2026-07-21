@@ -31,7 +31,7 @@ import {
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { MenuProps } from "antd";
-import { RestOutlined, ReloadOutlined } from "@ant-design/icons";
+import { RestOutlined, ReloadOutlined, MenuOutlined } from "@ant-design/icons";
 import {
   FileText,
   DollarSign,
@@ -218,6 +218,7 @@ export default function InvoiceInvoicesPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
   const [searchText, setSearchText] = useState("");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } = useInvoices();
   const invoices = data?.data ?? [];
@@ -776,7 +777,7 @@ export default function InvoiceInvoicesPage() {
         const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
           <div className="flex items-center gap-2.5 truncate">
-            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
+            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-none text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
               {companyName.charAt(0)}
             </div>
             <div className="truncate" style={{ lineHeight: 1.25 }}>
@@ -992,7 +993,10 @@ export default function InvoiceInvoicesPage() {
     <MainLayout>
       <div className="pp-shell">
         {/* ============================ SIDEBAR ============================ */}
-        <aside className="pp-sidebar">
+        {isMobileOpen && (
+          <div className="pp-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <aside className={`pp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
           <div className="pp-side-head">
             <div className="pp-side-logo"><FileText size={20} /></div>
             <div className="pp-side-head-text">
@@ -1127,6 +1131,9 @@ export default function InvoiceInvoicesPage() {
         <main className="pp-main">
           {/* Top search & views bar */}
           <div className="pp-topbar">
+            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+              <MenuOutlined style={{ fontSize: 16 }} />
+            </button>
             <div className="pp-search-wrap">
               <Search className="pp-search-icon" size={14} />
               <input
@@ -1143,7 +1150,7 @@ export default function InvoiceInvoicesPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -1159,7 +1166,7 @@ export default function InvoiceInvoicesPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -1245,7 +1252,7 @@ export default function InvoiceInvoicesPage() {
             {/* Bulk Action Bar */}
             {selectedRowKeys.length > 0 && (
               <div
-                className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
+                className="rounded-none px-4 py-2.5 mb-3 flex items-center justify-between"
                 style={{
                   background: "var(--bg-blue-50)",
                   border: "1px solid var(--border-blue-200)",
@@ -1326,8 +1333,8 @@ export default function InvoiceInvoicesPage() {
                     dataSource={[]}
                     loading={true}
                     pagination={false}
-                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                     className="pp-table"
+                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                   />
                 </div>
               )
@@ -1632,7 +1639,7 @@ export default function InvoiceInvoicesPage() {
       >
         <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
+            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
               <CreditCard size={20} />
             </div>
             <div>
@@ -1644,19 +1651,19 @@ export default function InvoiceInvoicesPage() {
 
         <div className="p-6">
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
               <Text strong className="text-sm">
                 ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
               <Text strong className="text-sm" style={{ color: 'var(--accounts-emerald-text)' }}>
                 ${Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
-            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
+            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
               <Text strong className="text-sm" style={{ color: 'var(--text-sky-500)' }}>
                 ${Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -1691,7 +1698,7 @@ export default function InvoiceInvoicesPage() {
                 max={statusInvoice?.balanceDue}
                 placeholder="0.00"
                 prefix={<span className="text-slate-400">$</span>}
-                className="h-12 rounded-xl text-lg font-bold"
+                className="h-12 rounded-none text-lg font-bold"
                 step="0.01"
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               />
@@ -1703,7 +1710,7 @@ export default function InvoiceInvoicesPage() {
                 name="paymentMethod"
                 initialValue="BANK_TRANSFER"
               >
-                <Select className="h-11 rounded-xl" popupClassName="rounded-xl">
+                <Select className="h-11 rounded-none" popupClassName="rounded-none">
                   <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
                   <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
                   <Select.Option value="CASH">Cash</Select.Option>
@@ -1720,8 +1727,8 @@ export default function InvoiceInvoicesPage() {
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm"
-                  className="h-11 w-full rounded-xl"
-                  popupClassName="rounded-xl"
+                  className="h-11 w-full rounded-none"
+                  popupClassName="rounded-none"
                 />
               </Form.Item>
             </div>
@@ -1733,7 +1740,7 @@ export default function InvoiceInvoicesPage() {
               <Input.TextArea
                 rows={2}
                 placeholder="Reference number or memo..."
-                className="rounded-xl p-3"
+                className="rounded-none p-3"
                 maxLength={200}
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               />
@@ -1742,7 +1749,7 @@ export default function InvoiceInvoicesPage() {
             <div className="flex gap-3 mt-8">
               <Button
                 onClick={() => setStatusModalVisible(false)}
-                className="h-11 flex-1 rounded-xl font-semibold"
+                className="h-11 flex-1 rounded-none font-semibold"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
                 Cancel
@@ -1751,7 +1758,7 @@ export default function InvoiceInvoicesPage() {
                 type="primary"
                 htmlType="submit"
                 loading={updateStatusMutation.isPending}
-                className="h-11 flex-1 rounded-xl font-semibold border-none"
+                className="h-11 flex-1 rounded-none font-semibold border-none"
                 style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
               >
                 Update Payment
@@ -1809,7 +1816,7 @@ export default function InvoiceInvoicesPage() {
       >
         <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
+            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
               <RefreshCw size={20} />
             </div>
             <div>
@@ -1820,7 +1827,7 @@ export default function InvoiceInvoicesPage() {
         </div>
 
         <div className="p-6">
-          <div className="rounded-2xl p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+          <div className="rounded-none p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
             <div className="text-center flex-1 min-w-0">
               <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
               <div className="flex justify-center">
@@ -1867,8 +1874,8 @@ export default function InvoiceInvoicesPage() {
                 size="large"
                 value={selectedNewStatus}
                 onChange={(value) => setSelectedNewStatus(value)}
-                popupClassName="rounded-xl"
-                className="rounded-xl border-slate-200"
+                popupClassName="rounded-none"
+                className="rounded-none border-slate-200"
                 options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
                   label: (
                     <div className="flex items-center gap-2 py-1">
@@ -1884,7 +1891,7 @@ export default function InvoiceInvoicesPage() {
             </div>
 
             {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
-              <div className="p-4 rounded-2xl border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
+              <div className="p-4 rounded-none border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
                 <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: '#d48806' }} />
                 <div className="text-xs leading-relaxed" style={{ color: '#d48806' }}>
                   <Text strong className="block mb-1" style={{ color: '#ad6800' }}>Payment Required</Text>
@@ -1900,7 +1907,7 @@ export default function InvoiceInvoicesPage() {
                 setStatusChangeModalVisible(false);
                 setSelectedNewStatus(null);
               }}
-              className="h-11 flex-1 rounded-xl font-semibold"
+              className="h-11 flex-1 rounded-none font-semibold"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               Cancel
@@ -1910,7 +1917,7 @@ export default function InvoiceInvoicesPage() {
               onClick={handleGeneralStatusUpdate}
               loading={updateStatusMutation.isPending}
               disabled={!selectedNewStatus}
-              className="h-11 flex-1 rounded-xl font-semibold border-none"
+              className="h-11 flex-1 rounded-none font-semibold border-none"
               style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
             >
               Update Status
@@ -1923,7 +1930,7 @@ export default function InvoiceInvoicesPage() {
       <Drawer
         title={
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-lg" style={{ backgroundColor: 'var(--customers-header-icon-color)' }}>
+            <div className="flex items-center justify-center size-8 rounded-none" style={{ backgroundColor: 'var(--customers-header-icon-color)' }}>
               <DollarSign size={16} className="text-white" />
             </div>
             <div>
@@ -1961,7 +1968,7 @@ export default function InvoiceInvoicesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="rounded-none border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div>
@@ -2096,7 +2103,7 @@ export default function InvoiceInvoicesPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="rounded-none border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
               <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
@@ -2136,7 +2143,7 @@ export default function InvoiceInvoicesPage() {
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
                         {paymentHistory.payments.map((payment: any, index: number) => (
-                          <tr key={payment.id || index} className="hover:bg-gray-50" style={{ backgroundColor: 'transparent' }}>
+                          <tr key={payment.id || index} className="hover:bg-[var(--bg-slate-50)]" style={{ backgroundColor: 'transparent' }}>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
                                 {payment.date || dayjs(payment.paymentDate).format('MMM DD, YYYY')}
@@ -2200,7 +2207,7 @@ export default function InvoiceInvoicesPage() {
             </div>
 
             {paymentHistory.payments && paymentHistory.payments.length > 0 && (
-              <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+              <div className="rounded-none border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
                     <Clock size={12} style={{ color: 'var(--customers-header-icon-color)' }} />
@@ -2310,7 +2317,7 @@ export default function InvoiceInvoicesPage() {
           >
             <div className="flex items-start gap-3 min-w-0">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-none flex items-center justify-center flex-shrink-0"
                 style={{
                   background: "var(--bg-blue-50)",
                   color: "var(--text-blue-700)",
@@ -2453,7 +2460,7 @@ export default function InvoiceInvoicesPage() {
           </div>
 
           <div className="flex-1 flex flex-col p-6 h-full overflow-hidden" style={{ background: "var(--customers-page-bg)" }}>
-            <div className="flex-1 rounded-xl border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
+            <div className="flex-1 rounded-none border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
               {viewedProofFile ? (
                 <>
                   <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -2537,8 +2544,7 @@ export default function InvoiceInvoicesPage() {
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          height: calc(100vh - 54px);
-          overflow: hidden;
+          min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -2667,10 +2673,10 @@ export default function InvoiceInvoicesPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
+          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200); padding: 0 10px;
         }
@@ -2715,12 +2721,14 @@ export default function InvoiceInvoicesPage() {
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table { background: transparent; font-size: 12px; }
-        .pp-table .ant-table-thead > tr > th {
+        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
         .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
@@ -2752,9 +2760,44 @@ export default function InvoiceInvoicesPage() {
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
-        @media (max-width: 820px) {
-          .pp-sidebar { display: none; }
-          .pp-topbar-meta { display: none; }
+        .pp-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px);
+          z-index: 999;
+        }
+        .pp-mobile-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--text-slate-600);
+          margin-right: 12px;
+        }
+        @media (max-width: 1024px) {
+          .pp-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 54px;
+            bottom: 0;
+            height: calc(100vh - 54px);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+            display: flex;
+          }
+          .pp-sidebar.is-open { left: 0; }
+          .pp-backdrop { display: block; }
+          .pp-mobile-toggle { display: flex; }
+          .pp-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .pp-stats { grid-template-columns: 1fr; }
         }
 
         /* Grid view cards (matching accounts dashboard) */

@@ -1,5 +1,6 @@
 'use client';
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -415,7 +416,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               background: record.color
                 ? `linear-gradient(135deg, ${record.color} 0%, ${record.color}cc 100%)`
                 : 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-              boxShadow: record.color ? `0 4px 12px ${record.color}40, inset 0 1px 0 rgba(255,255,255,0.3)` : 'none',
+              boxShadow: 'none',
             }}
           >
             {!record.color && <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>?</span>}
@@ -523,7 +524,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                       backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
                       color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
                       fontSize: 10,
-                      boxShadow: 'none',
+                      boxShadow: "none",
                       border: 'none'
                     }}
                   />
@@ -573,7 +574,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                         className="dm-hero-icon"
                         style={{
                           background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
-                          boxShadow: `0 12px 32px ${type.color}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                          boxShadow: 'none',
                         }}
                       >
                         {React.cloneElement(type.icon as React.ReactElement, {
@@ -643,7 +644,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                             className="dm-primary-btn"
                             style={{
                               background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                              boxShadow: `0 6px 14px ${type.color}40`,
+                              boxShadow: "none",
                             }}
                           >
                             New Definition
@@ -761,11 +762,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       <Drawer
         open={modalVisible}
         onClose={() => setModalVisible(false)}
-        width={560}
+        width={680}
         placement="right"
-        closable={false}
-        className="dm-drawer"
-        rootClassName="dm-drawer-root"
+        destroyOnHidden
         maskClosable={!loading}
         title={
           (() => {
@@ -773,225 +772,180 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               dropdownTypes.find(t => t.key === (editingOption?.type || activeTab)) ||
               dropdownTypes[0];
             return (
-              <div
-                className="dm-drawer-header"
-                style={{
-                  background: `linear-gradient(135deg, ${drawerType.color}1f 0%, ${drawerType.color}08 60%, transparent 100%)`,
-                  borderBottom: `1px solid ${drawerType.color}26`,
-                }}
-              >
-                <div
-                  className="dm-drawer-header-glow"
-                  style={{ background: `radial-gradient(circle at 90% 0%, ${drawerType.color}40 0%, transparent 60%)` }}
-                />
-                <div className="dm-drawer-header-row">
-                  <div
-                    className="dm-drawer-icon"
-                    style={{
-                      background: `linear-gradient(135deg, ${drawerType.color} 0%, ${drawerType.color}cc 100%)`,
-                      boxShadow: `0 10px 24px ${drawerType.color}45, inset 0 1px 0 rgba(255,255,255,0.3)`,
-                    }}
-                  >
-                    {editingOption ? <EditOutlined style={{ color: '#fff', fontSize: 18 }} /> : <PlusOutlined style={{ color: '#fff', fontSize: 18 }} />}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 0,
+                  background: drawerType.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                }}>
+                  {editingOption ? <EditOutlined style={{ fontSize: 16 }} /> : <PlusOutlined style={{ fontSize: 16 }} />}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                    {editingOption ? 'Edit Mapping Definition' : 'New Mapping Definition'}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="dm-drawer-eyebrow">
-                      <span style={{ color: drawerType.color }}>●</span>
-                      {editingOption ? 'EDITING' : 'NEW'} · {drawerType.label.toUpperCase()}
-                    </div>
-                    <div className="dm-drawer-title">
-                      {editingOption ? 'Edit Mapping Definition' : 'New Mapping Definition'}
-                    </div>
-                    <div className="dm-drawer-sub">
-                      Configure synchronization parameters for ticket taxonomies.
-                    </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {editingOption ? 'EDITING' : 'NEW'} · {drawerType.label.toUpperCase()}
                   </div>
-                  <button className="dm-drawer-close" onClick={() => setModalVisible(false)} aria-label="Close">
-                    ×
-                  </button>
                 </div>
               </div>
             );
           })()
         }
         styles={{
-          header: { padding: 0, border: 'none' },
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          wrapper: { boxShadow: '-24px 0 60px rgba(15, 23, 42, 0.2)' },
+          header: { borderBottom: '1px solid var(--border-color)', padding: '12px 16px', background: 'var(--bg-secondary)' },
+          body: { padding: '12px 16px', backgroundColor: 'var(--bg-primary)' },
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
         }}
-        footer={
-          <div className="dm-drawer-footer">
-            <div className="dm-drawer-footer-hint">
-              <InfoCircleOutlined />
-              {editingOption ? 'Changes apply across all projects after save.' : 'New definitions are activated immediately.'}
-            </div>
-            <Space size={10}>
-              <Button
-                onClick={() => setModalVisible(false)}
-                className="dm-drawer-cancel"
-              >
-                Discard
-              </Button>
-              <Button
-                type="primary"
-                onClick={() => form.submit()}
-                loading={loading}
-                icon={editingOption ? <EditOutlined /> : <PlusOutlined />}
-                className="dm-drawer-submit"
-              >
-                {editingOption ? 'Update Definition' : 'Deploy Definition'}
-              </Button>
-            </Space>
-          </div>
+        extra={
+          <Space size={8}>
+            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 0, fontWeight: 600, fontSize: 12, height: 32 }}>Discard</Button>
+            <Button
+              type="primary"
+              loading={loading}
+              onClick={() => form.submit()}
+              icon={editingOption ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
+              style={{
+                borderRadius: 0,
+                fontSize: 12,
+                fontWeight: 700,
+                background: '#2563eb',
+                border: 'none',
+                height: 32,
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              }}
+            >
+              {editingOption ? 'Update Definition' : 'Deploy Definition'}
+            </Button>
+          </Space>
         }
       >
-        <div className="dm-drawer-body">
+        <div style={{ position: 'relative', height: '100%' }}>
           <ConfigProvider
             theme={{
-              algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
               token: {
-                colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
-                colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+                borderRadius: 0,
+                borderRadiusSM: 0,
+                borderRadiusLG: 0,
+                borderRadiusXS: 0,
+              },
+              components: {
+                Select: { borderRadius: 0 },
+                Input: { borderRadius: 0 },
+                Button: { borderRadius: 0 },
+                InputNumber: { borderRadius: 0 },
               }
             }}
           >
+            <style>{drawerFormStyles}</style>
             <Form
               form={form}
-              layout="vertical"
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
               onFinish={handleSubmit}
               requiredMark="optional"
+              className="lead-drawer-form customer-drawer-form"
             >
               <DefinitionPreview form={form} dropdownTypes={dropdownTypes} />
-              {/* ── Section: Taxonomy ─────────────────────────────── */}
-              <div className="dm-form-section">
-                <div className="dm-form-section-title">
-                  <span className="dm-form-section-num">01</span>
-                  Taxonomy
-                </div>
-                <Row gutter={20}>
-                  <Col span={14}>
-                    <Form.Item
-                      name="type"
-                      label={<span className="dm-form-label"><AppstoreOutlined /> Classification Type</span>}
-                      rules={[{ required: true }]}
-                    >
-                      <Select disabled={!!editingOption} size="large" className="dm-input">
-                        {dropdownTypes.map(type => (
-                          <Select.Option key={type.key} value={type.key}>
-                            <Space size={8}>
-                              <span className="dm-select-dot" style={{ background: type.color }} />
-                              {type.label}
-                            </Space>
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={10}>
-                    <Form.Item
-                      name="order"
-                      label={<span className="dm-form-label"><HolderOutlined /> Display Priority</span>}
-                      rules={[{ required: true }]}
-                      tooltip="Lower numbers appear first in dropdowns"
-                    >
-                      <InputNumber min={1} style={{ width: '100%' }} size="large" className="dm-input" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* ── Section: Identity ─────────────────────────────── */}
-              <div className="dm-form-section">
-                <div className="dm-form-section-title">
-                  <span className="dm-form-section-num">02</span>
-                  Identity
-                </div>
-                <Row gutter={20}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="label"
-                      label={<span className="dm-form-label"><EditOutlined /> Display Label</span>}
-                      rules={[{ required: true, message: 'Label is required' }]}
-                    >
-                      <Input placeholder="e.g. High Priority" size="large" className="dm-input" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="value"
-                      label={<span className="dm-form-label"><CodeOutlined /> System Key (Value)</span>}
-                      rules={[{ required: true, message: 'Key is required' }]}
-                      tooltip="Internal identifier (usually uppercase/lowercase without spaces)"
-                    >
-                      <Input placeholder="e.g. HIGH" size="large" className="dm-input dm-input-mono" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* ── Section: Appearance & Visibility ──────────────── */}
-              <div className="dm-form-section">
-                <div className="dm-form-section-title">
-                  <span className="dm-form-section-num">03</span>
-                  Appearance &amp; Visibility
-                </div>
-                <Row gutter={[20, 16]} align="top">
-                  <Col span={24}>
-                    <Form.Item
-                      name="color"
-                      label={<span className="dm-form-label"><StarFilled style={{ color: '#a855f7' }} /> Visual Identity</span>}
-                      style={{ marginBottom: 12 }}
-                    >
-                      <div className="dm-color-picker-row">
-                        <ColorPicker showText />
-                        <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
-                      </div>
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item
-                      name="isActive"
-                      label={<span className="dm-form-label"><CheckCircleFilled style={{ color: '#10b981' }} /> Availability</span>}
-                      valuePropName="checked"
-                      style={{ marginBottom: 0 }}
-                    >
-                      <div className="dm-availability-toggle">
+              
+              <SectionCard step="STEP 1" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Taxonomy" subtitle="Classification details">
+                <Form.Item
+                  name="type"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Classification Type</Text>}
+                  rules={[{ required: true }]}
+                >
+                  <Select disabled={!!editingOption}>
+                    {dropdownTypes.map(type => (
+                      <Select.Option key={type.key} value={type.key}>
                         <Space size={8}>
-                          <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-                          <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
+                          <span className="dm-select-dot" style={{ background: type.color }} />
+                          {type.label}
                         </Space>
-                        <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-                      </div>
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item
+                  name="order"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Display Priority</Text>}
+                  rules={[{ required: true }]}
+                  extra="Lower numbers appear first in dropdowns"
+                >
+                  <InputNumber min={1} style={{ width: '100%' }} />
+                </Form.Item>
+              </SectionCard>
 
-              {/* ── Section: Context ──────────────────────────────── */}
-              <div className="dm-form-section dm-form-section-last">
-                <div className="dm-form-section-title">
-                  <span className="dm-form-section-num">04</span>
-                  Context
-                </div>
+              <SectionCard step="STEP 2" icon={<EditOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Identity" subtitle="Core identifiers">
+                <Form.Item
+                  name="label"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Display Label</Text>}
+                  rules={[{ required: true, message: 'Label is required' }]}
+                >
+                  <Input placeholder="e.g. High Priority" />
+                </Form.Item>
+                <Form.Item
+                  name="value"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>System Key (Value)</Text>}
+                  rules={[{ required: true, message: 'Key is required' }]}
+                  extra="Internal identifier (uppercase/lowercase without spaces)"
+                >
+                  <Input placeholder="e.g. HIGH" className="dm-input-mono" />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard step="STEP 3" icon={<StarFilled style={{ color: '#a855f7', fontSize: 13 }} />} title="Appearance & Visibility" subtitle="Visual and toggle options">
+                <Form.Item
+                  name="color"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Visual Identity</Text>}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <ColorPicker showText />
+                  </div>
+                </Form.Item>
+                <Form.Item
+                  name="isActive"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Availability</Text>}
+                  valuePropName="checked"
+                  extra="Enable for all projects"
+                >
+                  <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard step="STEP 4" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Context" subtitle="Usage instructions">
                 <Form.Item
                   name="description"
-                  label={<span className="dm-form-label"><InfoCircleOutlined /> Usage Instructions</span>}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Usage Instructions</Text>}
                 >
                   <TextArea
                     rows={3}
                     placeholder="Explain when to use this specific classification…"
-                    className="dm-input"
                     showCount
                     maxLength={280}
                   />
                 </Form.Item>
-              </div>
+              </SectionCard>
             </Form>
           </ConfigProvider>
         </div>
       </Drawer>
-
       <style jsx global>{`
+        /* ── Header Sticky Wrapper ────────────────────────────────── */
+        .ts-sticky-header {
+          border-left: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme='dark'] .ts-sticky-header {
+          border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
         /* ── Tabs structural fix ──────────────────────────────────── */
         .manager-tabs, 
         .manager-tabs .ant-tabs-content, 
@@ -1003,26 +957,26 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         /* ── Desktop Left Sidebar Nav ──────────────────────────────────────── */
         .manager-tabs.ant-tabs-left > .ant-tabs-nav {
           width: 264px;
-          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
+          background: transparent;
           margin-bottom: 0 !important;
-          border-right: 1px solid var(--border-slate-100);
+          border-right: 1px solid rgba(0, 0, 0, 0.08);
           padding: 20px 10px;
         }
         [data-theme='dark'] .manager-tabs.ant-tabs-left > .ant-tabs-nav {
-          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
+          background: transparent !important;
           border-right-color: #1f2937 !important;
         }
         
         /* ── Mobile/Tablet Top Nav ─────────────────────────────────────────── */
         .manager-tabs.ant-tabs-top > .ant-tabs-nav {
           width: 100%;
-          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
+          background: transparent;
           margin-bottom: 0 !important;
-          border-bottom: 1px solid var(--border-slate-100);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           padding: 10px 16px 0;
         }
         [data-theme='dark'] .manager-tabs.ant-tabs-top > .ant-tabs-nav {
-          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
+          background: transparent !important;
           border-bottom-color: #1f2937 !important;
         }
         .manager-tabs.ant-tabs-top .tab-label-container {
@@ -1070,9 +1024,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: rgba(255, 255, 255, 0.04) !important;
         }
         .manager-tabs .ant-tabs-tab-active {
-          background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%) !important;
-          border-color: rgba(59, 130, 246, 0.18) !important;
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08), 0 1px 0 rgba(255,255,255,0.6) inset !important;
+          background: transparent !important;
+          border-color: transparent !important;
+          box-shadow: none;
         }
         .manager-tabs.ant-tabs-left .ant-tabs-tab-active::before {
           content: '';
@@ -1084,12 +1038,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           height: 24px;
           background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
           border-radius: 2px;
-          box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+          box-shadow: none;
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-tab-active {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
-          border-color: rgba(59, 130, 246, 0.25) !important;
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.18) !important;
+          background: transparent !important;
+          border-color: transparent !important;
+          box-shadow: none;
         }
         .manager-tabs .ant-tabs-ink-bar {
           display: none;
@@ -1127,12 +1081,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }
         .tab-icon-box.active {
           background: var(--bg-pure-white);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+          box-shadow: none;
           transform: scale(1.05);
         }
         [data-theme='dark'] .tab-icon-box.active {
           background: #1a2035 !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+          box-shadow: none;
           border-color: rgba(255, 255, 255, 0.08) !important;
         }
         .tab-title {
@@ -1353,11 +1307,11 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           flex: 1;
           max-width: 420px;
           transition: all 0.2s ease;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          box-shadow: none;
         }
         .dm-search-box:focus-within {
           border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          box-shadow: none;
         }
         [data-theme='dark'] .dm-search-box {
           background: #161b22 !important;
@@ -1365,7 +1319,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }
         [data-theme='dark'] .dm-search-box:focus-within {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+          box-shadow: none;
         }
         .dm-search-icon {
           color: #94a3b8;
@@ -1437,10 +1391,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border-color: #cbd5e1;
         }
         .dm-chip.active {
-          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-          border-color: #1e293b;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          border-color: #3b82f6;
           color: #fff;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         [data-theme='dark'] .dm-chip {
           background: #161b22 !important;
@@ -1477,14 +1431,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
         /* ── Table wrapper ────────────────────────────────────────── */
         .dm-table-wrapper {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-100);
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
           border-radius: 16px;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: none;
         }
         [data-theme='dark'] .dm-table-wrapper {
-          background: #0d1117 !important;
+          background: transparent !important;
           border-color: #1f2937 !important;
         }
 
@@ -1583,16 +1537,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          background:
-            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.04) 0%, transparent 35%),
-            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.03) 0%, transparent 35%),
-            var(--bg-pure-white);
+          background: transparent;
         }
         [data-theme='dark'] .tab-content-area {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 35%),
-            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.05) 0%, transparent 35%),
-            #0b0f1a !important;
+          background: transparent !important;
         }
 
         /* ── Category header ──────────────────────────────────────── */
@@ -1761,7 +1709,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
         /* ── Left sidebar badge counts ────────────────────────────── */
         [data-theme='dark'] .manager-tabs .ant-tabs-tab .ant-badge-count {
-          box-shadow: none !important;
+          box-shadow: none;
         }
 
         /* ── Drag handle color ────────────────────────────────────── */
@@ -1938,7 +1886,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           font-size: 13px !important;
           background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
           border: none !important;
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35) !important;
+          box-shadow: none;
         }
         .dm-drawer-submit:hover {
           filter: brightness(1.08);
@@ -1966,7 +1914,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .dm-drawer .ant-input-number-focused,
         .dm-drawer .ant-select-focused .ant-select-selector {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+          box-shadow: none;
         }
         .dm-drawer .dm-input-mono input,
         .dm-drawer .dm-input-mono.ant-input {
@@ -2063,7 +2011,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .dm-modal .ant-input-number-focused,
         .dm-modal .ant-select-focused .ant-select-selector {
           border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+          box-shadow: none;
         }
         .dm-input-mono input,
         .dm-input-mono.ant-input {
@@ -2076,7 +2024,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+          box-shadow: none;
         }
 
         /* ── Live preview card in modal ───────────────────────────── */
@@ -2117,7 +2065,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: var(--bg-pure-white);
           border-radius: 10px;
           border: 1px solid var(--border-slate-100);
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          box-shadow: none;
           width: fit-content;
         }
         [data-theme='dark'] .dm-preview-chip {

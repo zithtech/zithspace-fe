@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Typography,
@@ -58,6 +59,7 @@ import {
   AppstoreOutlined,
   CloseCircleOutlined,
   TableOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -130,6 +132,7 @@ const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color })
 };
 
 export default function SprintPlanComponent() {
+  console.log("Forcing HMR reload for SprintPlanComponent 3");
   const { theme } = useTheme();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -165,6 +168,7 @@ export default function SprintPlanComponent() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [, setSearchLoading] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const ticketOptions = useMemo(() => {
     const optionsMap = new Map<string, { label: string; value: string; item: any }>();
@@ -799,7 +803,10 @@ export default function SprintPlanComponent() {
       <div className="sp-shell-wrap">
         <div className="sp-shell">
           {/* ── Sidebar ──────────────────────────────────────────── */}
-          <aside className="sp-sidebar">
+          {isMobileOpen && (
+            <div className="sp-backdrop" onClick={() => setIsMobileOpen(false)} />
+          )}
+          <aside className={`sp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
             <div className="sp-sidebar-top">
               <div className="sp-sidebar-brand">
                 <div className="sp-hero-icon-box">
@@ -856,7 +863,7 @@ export default function SprintPlanComponent() {
                         onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
                         title={proj.label}
                       >
-                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}1A`, color: color, borderColor: `${color}3D`, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                        <span className="sp-sidebar-item-avatar" style={{ color: color, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
                           {initials}
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
@@ -902,7 +909,7 @@ export default function SprintPlanComponent() {
                       >
                         <span
                           className="sp-sidebar-status-chip"
-                          style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                          style={{}}
                         >
                           {seg.k === 'all' ? (
                             <span
@@ -946,15 +953,20 @@ export default function SprintPlanComponent() {
           <main className="sp-main">
             {/* Top bar: search · live stats · view controls */}
             <div className="sp-main-topbar">
-              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 320 }}>
-                <SearchOutlined className="pp-search-icon" />
-                <input
-                  className="pp-search"
-                  placeholder="Search by name, goal, or description..."
-                  value={tableFilters.search}
-                  onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
-                />
-                {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 320 }}>
+                <button className="sp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
+                  <MenuOutlined style={{ fontSize: 16 }} />
+                </button>
+                <div className="pp-search-wrap" style={{ flex: 1 }}>
+                  <SearchOutlined className="pp-search-icon" />
+                  <input
+                    className="pp-search"
+                    placeholder="Search by name, goal, or description..."
+                    value={tableFilters.search}
+                    onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+                  />
+                  {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
+                </div>
               </div>
 
               <div className="sp-main-stats" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
@@ -2150,7 +2162,7 @@ export default function SprintPlanComponent() {
           }
           open={showCreateModal}
           onClose={handleCloseModal}
-          width={560}
+          width={680}
           maskClosable={true}
           destroyOnClose
           extra={
@@ -2172,7 +2184,8 @@ export default function SprintPlanComponent() {
             mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
           }}
         >
-          <Form form={form} layout="vertical" requiredMark={false}>
+          <style>{drawerFormStyles}</style>
+          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark={false} className="lead-drawer-form customer-drawer-form">
             <ConfigProvider
               theme={{
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -2188,53 +2201,35 @@ export default function SprintPlanComponent() {
               }}
             >
               {/* Section: Basic Information */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon slate">
-                    <InfoCircleOutlined style={{ color: 'var(--text-slate-600)', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>General Details</Text>
-                </div>
+              <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="General Details" subtitle="Core sprint information">
 
                 <Form.Item
-                  label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Sprint Name</Text>}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Sprint Name</Text>}
                   name="name"
                   rules={[{ required: true, message: "Sprint Name is required" }]}
-                  style={{ marginBottom: 20 }}
+
                 >
                   <Input placeholder="e.g. Q2 Core Infrastructure - Sprint 04" size="middle" />
                 </Form.Item>
 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Target Project</Text>} name="project" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                      <Select
-                        placeholder="Select project"
-                        size="middle"
-                        onChange={handleProjectChange}
-                        disabled={!!editingPlan}
-                        options={projects}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Primary Objective</Text>} name="goal" style={{ marginBottom: 0 }}>
-                      <Input placeholder="High-level goal..." size="middle" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>} name="project" rules={[{ required: true }]}>
+                  <Select
+                    placeholder="Select project"
+                    size="middle"
+                    onChange={handleProjectChange}
+                    disabled={!!editingPlan}
+                    options={projects}
+                  />
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Objective</Text>} name="goal">
+                  <Input placeholder="High-level goal..." size="middle" />
+                </Form.Item>
+              </SectionCard>
 
               {/* Section: Timeline & Planning */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon orange">
-                    <CalendarOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Planning & Schedule</Text>
-                </div>
+              <SectionCard step="STEP 2" icon={<CalendarOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Planning & Schedule" subtitle="Timeframe for the sprint">
 
-                <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Release Cycle Duration</Text>} style={{ marginBottom: 20 }}>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Release Cycle Duration</Text>}>
                   <Select
                     placeholder="Select duration"
                     size="middle"
@@ -2255,34 +2250,22 @@ export default function SprintPlanComponent() {
                   </Select>
                 </Form.Item>
 
-                <Row gutter={12}>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Start Date</Text>} name="startDate" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                      <DatePicker size="middle" style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>End Date</Text>} name="endDate" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                      <DatePicker size="middle" style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>} name="startDate" rules={[{ required: true }]}>
+                  <DatePicker size="middle" style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>End Date</Text>} name="endDate" rules={[{ required: true }]}>
+                  <DatePicker size="middle" style={{ width: "100%" }} />
+                </Form.Item>
+              </SectionCard>
 
               {/* Section: Backlog Allocation */}
-              <div className="sp-form-section">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                  <div className="sp-section-icon green">
-                    <ProjectOutlined style={{ color: '#10b981', fontSize: 14 }} />
-                  </div>
-                  <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Backlog Allocation</Text>
-                </div>
+              <SectionCard step="STEP 3" icon={<ProjectOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Backlog Allocation" subtitle="Assign existing backlog tickets to this sprint session">
 
                 <Form.Item
-                  label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>Assign Selected Issues</Text>}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assign Selected Issues</Text>}
                   name="tickets"
                   tooltip="Map existing backlog tickets to this sprint session"
-                  style={{ marginBottom: 12 }}
+
                 >
                   <Select
                     mode="multiple"
@@ -2309,11 +2292,13 @@ export default function SprintPlanComponent() {
                     }}
                   />
                 </Form.Item>
-                <div className="sp-info-hint">
-                  <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-600)' }} />
-                  <Text style={{ fontSize: 10, color: 'var(--text-slate-600)', fontWeight: 500 }}>Only unassigned tickets from the selected project are visible</Text>
-                </div>
-              </div>
+                <Form.Item wrapperCol={{ span: 24 }}>
+                  <div className="sp-info-hint">
+                    <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-600)' }} />
+                    <Text style={{ fontSize: 10, color: 'var(--text-slate-600)', fontWeight: 500 }}>Only unassigned tickets from the selected project are visible</Text>
+                  </div>
+                </Form.Item>
+              </SectionCard>
             </ConfigProvider>
             <Form.Item name="deadline" hidden><Input /></Form.Item>
           </Form>
@@ -3512,8 +3497,8 @@ export default function SprintPlanComponent() {
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tbl-head {
-          background: #0B0F1A !important;
-          border-bottom-color: #243042 !important;
+          background: #161B22 !important;
+          border-bottom-color: #374151 !important;
         }
         .sp-tbl-th {
           font-size: 10.5px;
@@ -3809,25 +3794,31 @@ export default function SprintPlanComponent() {
         .sp-premium-table {
           margin-bottom: 16px;
         }
-        .sp-premium-table .ant-table {
+        .sp-premium-table .ant-table, .sp-premium-table.ant-table-wrapper, .sp-premium-table .ant-table-container, .sp-premium-table .ant-table-content, .sp-premium-table .ant-table-header, .sp-premium-table .ant-table-body {
           background: transparent !important;
+          border-radius: 0 !important;
         }
-        .sp-premium-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-50);
-          font-weight: 700;
-          color: var(--text-slate-500);
-          font-size: 10.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 12px 16px;
-          white-space: nowrap;
-          border-bottom: 1px solid var(--border-slate-200);
+        .sp-premium-table .ant-table-thead > tr > th,
+        .sp-premium-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-500) !important;
+          font-size: 10.5px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.06em !important;
+          padding: 12px 16px !important;
+          white-space: nowrap !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
         }
-        .sp-premium-table .ant-table-thead > tr > th::before { display: none; }
-        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > th {
-          background: #0f1419 !important;
+        .sp-premium-table .ant-table-thead > tr > th::before { display: none !important; }
+        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .sp-premium-table .ant-table-thead > tr > td {
+          background: #161B22 !important;
           color: #94a3b8 !important;
-          border-bottom-color: #1f2937 !important;
+          border-bottom-color: #374151 !important;
         }
         .sp-premium-table .ant-table-tbody > tr > td {
           padding: 16px;
@@ -5026,6 +5017,7 @@ export default function SprintPlanComponent() {
           background: #f8fafc;
           display: flex;
           flex-direction: column;
+          grid-column: 2;
         }
         [data-theme='dark'] .sp-main {
           background: transparent !important;
@@ -5033,16 +5025,30 @@ export default function SprintPlanComponent() {
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
         .sp-sidebar {
+          width: 240px;
           background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200) !important;
-          position: sticky;
-          top: 0;
+          position: fixed;
+          top: 54px;
+          bottom: 0;
           height: calc(100vh - 54px);
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
           align-self: flex-start;
           z-index: 10;
+        }
+        .sp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
+        .sp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
+        @media (max-width: 1024px) {
+          .sp-shell { display: flex; flex-direction: column; }
+          .sp-sidebar {
+            position: fixed !important; left: -280px !important; top: 0 !important; bottom: 0 !important; height: 100vh !important; width: 280px !important;
+            transition: left 0.3s ease; z-index: 1000 !important; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+          }
+          .sp-sidebar.is-open { left: 0 !important; }
+          .sp-backdrop { display: block; }
+          .sp-mobile-toggle { display: flex; }
         }
         .sp-sidebar-top {
           padding: 14px 14px 12px 18px;
@@ -5152,7 +5158,6 @@ export default function SprintPlanComponent() {
         }
         .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
           color: #3b82f6 !important;
-          border-color: #3b82f6 !important;
         }
         [data-theme='dark'] .sp-sidebar-item.active {
           background: rgba(59, 130, 246, 0.18) !important;
@@ -5160,13 +5165,11 @@ export default function SprintPlanComponent() {
         }
         [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
           color: #60a5fa !important;
-          border-color: #60a5fa !important;
         }
         .sp-sidebar-status-chip {
           width: 22px;
           height: 22px;
           border-radius: 6px;
-          border: 1px solid;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -5185,7 +5188,6 @@ export default function SprintPlanComponent() {
           width: 22px;
           height: 22px;
           border-radius: 6px;
-          border: 1px solid;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -5195,13 +5197,9 @@ export default function SprintPlanComponent() {
           letter-spacing: -0.01em;
         }
         .sp-sidebar-item-avatar-all {
-          background: var(--bg-slate-50);
-          border-color: var(--border-slate-200);
           color: var(--text-slate-600);
         }
         [data-theme='dark'] .sp-sidebar-item-avatar-all {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
           color: #94a3b8 !important;
         }
         .sp-sidebar-item-label {
@@ -5391,6 +5389,7 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
           gap: 16px;
           padding: 6px 20px;
           position: sticky;

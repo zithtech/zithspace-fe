@@ -2299,7 +2299,7 @@ const DocumentHubPage = () => {
                   searchPlaceholder="Search by name or code"
                   itemNoun="projects"
                   loading={projectsLoading}
-                  width={280}
+                  width="100%"
                   style={{ width: '100%' }}
                   options={projects.map((p: any) => ({ value: p.value, label: p.label, description: p.code }))}
                 />
@@ -2310,7 +2310,7 @@ const DocumentHubPage = () => {
                   searchPlaceholder="Search by number or title"
                   itemNoun="tickets"
                   loading={filterTicketsLoading}
-                  width={300}
+                  width="100%"
                   style={{ width: '100%' }}
                   options={(() => {
                     const source = filterProjectId
@@ -2332,7 +2332,7 @@ const DocumentHubPage = () => {
                   searchPlaceholder="Search by name"
                   itemNoun="people"
                   loading={membersLoading}
-                  width={260}
+                  width="100%"
                   style={{ width: '100%' }}
                   options={members.map((m: any) => ({
                     value: m.value,

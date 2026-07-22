@@ -678,20 +678,6 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
           scroll={{ x: "max-content" }}
           className="premium-table"
           locale={{ emptyText: <div style={{ color: c.textSubtle }}>No portal users found</div> }}
-          onRow={() => ({
-            onMouseEnter: (e) => {
-              const tr = e.currentTarget as HTMLTableRowElement;
-              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
-                td.style.setProperty("background", c.surfaceSubtle, "important");
-              });
-            },
-            onMouseLeave: (e) => {
-              const tr = e.currentTarget as HTMLTableRowElement;
-              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
-                td.style.setProperty("background", c.surfaceElevated, "important");
-              });
-            },
-          })}
         />
       ) : (
         <div className="pp-grid">
@@ -900,7 +886,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
         }
         /* Dark mode fixed columns */
         [data-theme="dark"] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
-          background: var(--bg-secondary) !important;
+          background: #0B0F1A !important;
         }
         [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
           background: var(--bg-slate-800) !important;

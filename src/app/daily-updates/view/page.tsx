@@ -495,7 +495,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         .du-main-scroll {
           flex: 1;
           overflow-y: auto;
-          overflow-x: hidden;
+          overflow-x: auto;
           padding: 0 24px 0 24px;
           display: flex;
           flex-direction: column;
@@ -513,9 +513,27 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           margin-bottom: 24px;
         }
         
-        @media (max-width: 767px) {
+        @media (max-width: 820px) {
           .updates-grid {
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 16px;
+            padding-bottom: 16px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+          }
+          .updates-grid::-webkit-scrollbar {
+            height: 6px;
+          }
+          .updates-grid::-webkit-scrollbar-thumb {
+            background: var(--border-slate-300);
+            border-radius: 4px;
+          }
+          .updates-grid > * {
+            flex: 0 0 85%;
+            min-width: 280px;
+            scroll-snap-align: center;
           }
         }
 

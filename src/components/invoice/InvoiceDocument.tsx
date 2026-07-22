@@ -24,7 +24,28 @@ export function InvoiceDocument({
 }: any) {
   const isDark = false;
   return (
-    <Card
+    <>
+      <style>{`
+        @media print {
+          #invoice {
+            --text-primary: #000000 !important;
+            --text-secondary: #333333 !important;
+          }
+          #invoice .ant-typography {
+            color: #000000 !important;
+          }
+          #invoice .ant-typography.ant-typography-secondary {
+            color: #333333 !important;
+          }
+          #invoice .ant-table-cell {
+            color: #000000 !important;
+          }
+          #invoice .ant-table-cell .ant-typography {
+            color: #000000 !important;
+          }
+        }
+      `}</style>
+      <Card
           id="invoice"
           style={{
             backgroundColor: "var(--invoice-paper-bg)",
@@ -629,5 +650,6 @@ export function InvoiceDocument({
             </div>
           </div>
         </Card>
+    </>
   );
 }

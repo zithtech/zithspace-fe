@@ -44,6 +44,8 @@ import {
   FileOutlined,
   SendOutlined,
   PaperClipOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts, useMailUnreadCount } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
@@ -182,6 +184,20 @@ function MailPageContent() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [toFilter, setToFilter] = useState<string | null>(null);
   const [fromFilter, setFromFilter] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1100) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { data: threadsData = [], isLoading: threadsLoading } = useMailThreads(
     selectedFolder, 
@@ -604,12 +620,45 @@ function MailPageContent() {
         .ant-message, .ant-message-wrapper {
           z-index: 100000 !important;
         }
-        .mail-shell {
-          height: calc(100vh - 64px);
-          display: flex;
+
+        /* Sidebar Toggle Button */
+        .mail-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           background: var(--bg-pure-white);
+          border: 1px solid ${PALETTE.slate200};
+          color: ${PALETTE.slate500};
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .mail-sidebar-show-toggle:hover {
+          background: var(--bg-slate-50);
+          color: ${PALETTE.slate900};
+          border-color: ${PALETTE.slate300};
+        }
+        [data-theme='dark'] .mail-sidebar-show-toggle {
+          background: #1e293b;
+          border-color: #334155;
+          color: #94a3b8;
+        }
+        [data-theme='dark'] .mail-sidebar-show-toggle:hover {
+          background: #334155;
+          color: #f8fafc;
+        }
+
+        .mail-shell {
+          display: flex;
+          height: calc(100vh - 60px);
           overflow: hidden;
         }
+        .mail-shell.is-sidebar-closed .mail-sidebar {
+          display: none;
+        }
+
         .mail-sidebar {
           width: 224px;
           flex-shrink: 0;
@@ -650,7 +699,56 @@ function MailPageContent() {
           transition: opacity 0.15s ease;
           width: 100%;
         }
-        .mail-compose-btn:hover { opacity: 0.88; }
+        .mail-compose-btn:hover { background: #eff6ff; }
+        [data-theme='dark'] .mail-compose-btn:hover { background: rgba(37,99,235,0.15); }
+
+        .mail-sidebar-backdrop { display: none; }
+
+        @media (max-width: 1099.98px) {
+          .mail-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            max-height: none;
+            z-index: 1050;
+            background: var(--bg-pure-white);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+          [data-theme='dark'] .mail-sidebar {
+            background: #0B0F1A !important;
+            border-right-color: #1F2937 !important;
+          }
+          .mail-shell.is-sidebar-open .mail-sidebar {
+            transform: translateX(0);
+            display: flex; /* Override display: none from desktop if it was closed */
+          }
+          .mail-shell.is-sidebar-closed .mail-sidebar {
+            transform: translateX(-100%);
+            display: flex;
+          }
+          .mail-sidebar-backdrop {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1040;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+          .mail-sidebar-backdrop.is-open {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        }
 
         .mail-folder-item {
           display: flex;
@@ -1218,7 +1316,12 @@ function MailPageContent() {
         .mail-thread-list-wrap::-webkit-scrollbar-thumb:hover { background: ${PALETTE.slate300}; }
       `}</style>
 
-      <div className="mail-shell">
+      <div className={`mail-shell ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        <div
+          className={`mail-sidebar-backdrop ${isSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
         {/* ============== SIDEBAR ============== */}
         <aside className="mail-sidebar">
           <div className="mail-side-head">
@@ -1286,6 +1389,22 @@ function MailPageContent() {
         <main className="mail-main">
           <div className="mail-topbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+                <button
+                  type="button"
+                  className="mail-sidebar-show-toggle"
+                  onClick={() => setIsSidebarOpen((v) => !v)}
+                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                  aria-pressed={!isSidebarOpen}
+                >
+                  {isSidebarOpen ? (
+                    <MenuFoldOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+                  )}
+                </button>
+              </Tooltip>
+
               <div className="mail-search">
                 <Search size={16} color={PALETTE.slate400} />
                 <input
@@ -1688,9 +1807,7 @@ function MailPageContent() {
                   </Tooltip>
                 </Popconfirm>
               )}
-              <button className="mail-icon-btn">
-                <MoreHorizontal size={16} />
-              </button>
+
             </Space>
           )
         }

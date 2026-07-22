@@ -119,6 +119,20 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!triggerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setTriggerWidth((entry.target as HTMLElement).offsetWidth);
+      }
+    });
+    observer.observe(triggerRef.current);
+    setTriggerWidth(triggerRef.current.offsetWidth);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -228,8 +242,9 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     );
   };
 
+  const finalWidth = width === "100%" ? (triggerWidth || 'auto') : width;
   const overlay = (
-    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width }}>
+    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: finalWidth, minWidth: width === "100%" ? 'auto' : undefined }}>
       <div className="sd-search-box">
         <Search size={14} className="sd-search-icon" />
         <input
@@ -324,9 +339,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       destroyOnHidden
     >
       {customTrigger ? (
-        customTrigger
+        <div ref={triggerRef} style={{ display: 'contents' }}>
+          {customTrigger}
+        </div>
       ) : (
-        <div className={triggerClasses} style={style}>
+        <div ref={triggerRef} className={triggerClasses} style={style}>
           <div className="sd-trigger-content">
             {triggerLabel && (
               <span className="sd-trigger-label">{triggerLabel}</span>
@@ -495,7 +512,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 [data-theme='dark'] .sd-trigger-value { color: #e2e8f0; }
 [data-theme='dark'] .sd-trigger.is-active .sd-trigger-value { color: #f8fafc; }
 
-.sd-overlay-popover.ant-popover { padding-top: 4px; }
+.sd-overlay-popover.ant-popover { padding-top: 4px; z-index: 10000 !important; }
 .sd-overlay-popover .ant-popover-content {
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
   border-radius: 8px !important;

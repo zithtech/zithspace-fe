@@ -639,9 +639,53 @@ export const hivebugStyles = `
   display: flex; flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
   max-width: 100%;
   background: var(--hb-bg);
 }
+
+.hb-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--hb-bg-elev);
+  border: 1px solid var(--hb-border);
+  border-radius: 8px;
+  color: var(--hb-text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.hb-sidebar-toggle:hover {
+  background: var(--hb-bg-hover);
+  border-color: var(--hb-border-strong);
+  color: var(--hb-text);
+}
+.hb-sidebar-toggle[aria-pressed='true'] {
+  background: var(--hb-bg-active);
+  border-color: rgba(var(--hb-accent-rgb), 0.32);
+  color: var(--hb-accent);
+}
+.hb-light .hb-sidebar-toggle {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.hb-light .hb-sidebar-toggle:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+.hb-light .hb-sidebar-toggle[aria-pressed='true'] {
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.32);
+  color: #3b82f6;
+}
+
 .hb-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 14px;
@@ -1281,6 +1325,7 @@ export const hivebugStyles = `
   flex: 1;
   display: flex; flex-direction: column;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   padding: 6px 14px 8px 14px;
 }
@@ -4397,7 +4442,6 @@ export const hivebugStyles = `
 /* Compact laptops — tighten chrome but keep the desktop layout */
 @media (max-width: 1440px) {
   .hb-root { padding-left: 0; gap: 0; }
-  .hb-sidebar { width: 230px; }
   .hb-search { width: 240px; }
   .hb-header { padding: 0 14px; gap: 12px; height: 53px; }
   .hb-header-tools .hb-btn-text { display: none; }  
@@ -4405,9 +4449,8 @@ export const hivebugStyles = `
 }
 
 /* Compact laptops — tighten chrome but keep the desktop layout */
-@media (max-width: 1280px) {
+@media (max-width: 1200px) {
   .hb-root { padding-left: 0; gap: 0; }
-  .hb-sidebar { width: 230px; }
   .hb-search { width: 240px; }
   .hb-header { padding: 0 14px; gap: 12px; height: 53px; }
   .hb-content { padding: 6px 14px 8px 14px; }
@@ -4415,7 +4458,6 @@ export const hivebugStyles = `
 
 /* Tablet landscape — wrap header tools, narrow sidebar, 2-col stats */
 @media (max-width: 1024px) {
-  .hb-sidebar { width: 200px; }
   .hb-header {
     flex-wrap: wrap;
     align-items: flex-start;
@@ -4458,7 +4500,7 @@ export const hivebugStyles = `
     height: 100%;
     min-height: calc(100vh - 54px);
     padding-left: 0;
-    padding: 8px;
+    padding: 8px 0;
     gap: 8px;
     overflow: hidden;
   }
@@ -4543,7 +4585,7 @@ export const hivebugStyles = `
 
 /* Mobile — single column, dense */
 @media (max-width: 480px) {
-  .hb-root { padding: 6px; gap: 6px; }
+  .hb-root { padding: 6px 0; gap: 6px; }
   .hb-brand { padding: 14px 14px 12px 18px; }
   .hb-header { padding: 8px 10px; gap: 8px; flex-wrap: wrap; height: auto; min-height: 53px; }
   .hb-header-tools { width: 100%; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }

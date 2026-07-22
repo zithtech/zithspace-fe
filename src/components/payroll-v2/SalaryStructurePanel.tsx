@@ -438,7 +438,7 @@ export default function SalaryStructurePanel() {
 
       {/* TABLE */}
       <div className="pvs-table-wrap">
-        <Table rowKey="id" size="small" className="pvs-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} />
+        <Table rowKey="id" size="small" className="pvs-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
       </div>
 
       {total > 0 && (
@@ -581,8 +581,8 @@ export default function SalaryStructurePanel() {
 
       <style jsx global>{`
         .pvs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .pvs-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvs-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvs-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.violet}; color: ${PALETTE.violet}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .pvs-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }

@@ -348,12 +348,12 @@ export default function ReportsHub() {
         icon: <FilePdfOutlined />,
         disabled: !!exportTarget,
       },
-      {
-        key: "docx",
-        label: "Download Word",
-        icon: <FileWordOutlined />,
-        disabled: !!exportTarget,
-      },
+      // {
+      //   key: "docx",
+      //   label: "Download Word",
+      //   icon: <FileWordOutlined />,
+      //   disabled: !!exportTarget,
+      // },
       { type: "divider" as const },
       { key: "regen", label: "Regenerate", icon: <RegenOutlined /> },
     ],
@@ -370,7 +370,7 @@ export default function ReportsHub() {
   const downloadMenu = (r: SprintReportListItem) => ({
     items: [
       { key: "pdf", label: "Download PDF", icon: <FilePdfOutlined />, disabled: !!exportTarget },
-      { key: "docx", label: "Download Word", icon: <FileWordOutlined />, disabled: !!exportTarget },
+      // { key: "docx", label: "Download Word", icon: <FileWordOutlined />, disabled: !!exportTarget },
     ],
     onClick: ({ key, domEvent }: { key: string; domEvent: any }) => {
       domEvent.stopPropagation();
@@ -604,52 +604,52 @@ export default function ReportsHub() {
 
       {/* ============================ MAIN ============================ */}
       <main className="pp-main">
-        {/* Project context header */}
-        <div className="rh-main-head">
-          <div className="rh-main-title-row">
-            <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
-              <Menu size={20} />
-            </button>
-            <h1 className="rh-main-title">{selectedProject?.label ?? "Select a project"}</h1>
-            {selectedProject?.code ? <span className="rh-main-code">{selectedProject.code}</span> : null}
-          </div>
-          <p className="rh-main-desc">
-            Reports are generated when a sprint is completed. Open one for a full delivery,
-            scope, and quality breakdown.
-          </p>
-        </div>
-
-        {/* Topbar */}
-        <div className="pp-topbar">
-          <div className="pp-search-wrap">
-            <SearchOutlined className="pp-search-icon" />
-            <input
-              ref={searchRef}
-              className="pp-search"
-              placeholder="Search sprints, reports…"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-
-          <div className="pp-topbar-meta">
-            <span className="pp-meta-item"><span className="pp-pulse" /><strong>{generatedCount}</strong> generated</span>
-            <span className="pp-meta-dot">·</span>
-            <span className="pp-meta-item"><strong>{reports.length}</strong> completed sprints</span>
-          </div>
-
-          <div className="pp-topbar-actions">
-            <div className="pp-segmented">
-              <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><UnorderedListOutlined /></button>
-              <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><AppstoreOutlined /></button>
+        <div className="rh-sticky-header">
+          {/* Project context header */}
+          <div className="rh-main-head">
+            <div className="rh-main-title-row">
+              <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
+                <Menu size={20} />
+              </button>
+              <h1 className="rh-main-title">{selectedProject?.label ?? "Select a project"}</h1>
+              {selectedProject?.code ? <span className="rh-main-code">{selectedProject.code}</span> : null}
             </div>
-            <Tooltip title="Refresh">
-              <button type="button" className="pp-ghost-btn" onClick={() => fetchReports(projectId)}><ReloadOutlined spin={loading} /></button>
-            </Tooltip>
+            <p className="rh-main-desc">
+              Reports are generated when a sprint is completed. Open one for a full delivery,
+              scope, and quality breakdown.
+            </p>
+          </div>
+
+          {/* Topbar */}
+          <div className="pp-topbar">
+            <div className="pp-search-wrap">
+              <SearchOutlined className="pp-search-icon" />
+              <input
+                ref={searchRef}
+                className="pp-search"
+                placeholder="Search sprints, reports…"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+
+            <div className="pp-topbar-meta">
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{generatedCount}</strong> generated</span>
+              <span className="pp-meta-dot">·</span>
+              <span className="pp-meta-item"><strong>{reports.length}</strong> completed sprints</span>
+            </div>
+
+            <div className="pp-topbar-actions">
+              <div className="pp-segmented">
+                <button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><UnorderedListOutlined /></button>
+                <button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><AppstoreOutlined /></button>
+              </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={() => fetchReports(projectId)}><ReloadOutlined spin={loading} /></button>
+              </Tooltip>
+            </div>
           </div>
         </div>
-
-        <div className="pp-divider" />
 
         {/* Stat cards */}
         <div className="pp-stats">
@@ -687,7 +687,7 @@ export default function ReportsHub() {
                 rowKey="sprintId"
                 size="small"
                 className="pp-table"
-                scroll={{ x: 1120 }}
+                scroll={{ x: 'max-content' }}
                 pagination={false}
                 locale={{ emptyText: emptyState }}
                 onRow={(record) => ({
@@ -905,8 +905,21 @@ export default function ReportsHub() {
         .pp-trash .anticon { font-size: 15px; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+        .pp-main { flex: 1; min-width: 0; padding: 0 18px 0; display: flex; flex-direction: column; overflow-y: auto; }
         .pp-body { flex: 1 0 auto; min-width: 0; }
+        .rh-sticky-header {
+          position: sticky;
+          top: 0;
+          z-index: 40;
+          background: var(--bg-primary) !important;
+          padding: 8px 18px 0;
+          margin: 0 -18px 14px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .rh-sticky-header {
+          background: var(--bg-primary) !important;
+          border-bottom-color: #1F2937;
+        }
         .rh-main-head { padding: 6px 0 10px; }
         .rh-main-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .rh-main-title { font-size: 22px; font-weight: 800; letter-spacing: -0.025em; color: var(--text-slate-900); line-height: 1.1; margin: 0; }
@@ -1050,7 +1063,8 @@ export default function ReportsHub() {
         }
         .pp-footer--sticky {
           position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
-          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          background: var(--bg-primary) !important;
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
           height: 52px !important; box-sizing: border-box;
         }
         .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }

@@ -557,6 +557,7 @@ export default function SalaryComponentPanel() {
           dataSource={pagedRows}
           pagination={false}
           onRow={() => ({ className: 'pvc-row' })}
+          scroll={{ x: 'max-content' }}
         />
       </div>
 
@@ -757,8 +758,8 @@ export default function SalaryComponentPanel() {
 
       <style jsx global>{`
         .pvc { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .pvc-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvc-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvc-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvc-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .pvc-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }

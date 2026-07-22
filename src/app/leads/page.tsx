@@ -684,7 +684,7 @@ export default function LeadsPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal">("all");
+  const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "today" | "with_proposal" | "my_leads">("all");
   const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
@@ -2019,6 +2019,8 @@ export default function LeadsPage() {
         matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
       } else if (activeSegment === "with_proposal") {
         matchesSegment = !!item.proposal_id;
+      } else if (activeSegment === "my_leads") {
+        matchesSegment = (item as any).created_by === user?.id;
       }
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
@@ -2305,6 +2307,10 @@ export default function LeadsPage() {
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(today)).length;
   }, [leads]);
 
+  const myLeadsCount = useMemo(() => {
+    return leads.filter(l => (l as any).created_by === user?.id).length;
+  }, [leads, user]);
+
   const leadsThisWeek = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
     return leads.filter(l => dayjs(l.created_at || l.posted_on).isAfter(weekAgo)).length;
@@ -2535,6 +2541,7 @@ export default function LeadsPage() {
                 <div className="lm-side-list">
                   {[
                     { key: 'all', label: 'All Leads', icon: <Layers size={14} />, count: leads.length, color: '#3b82f6' },
+                    { key: 'my_leads', label: 'My Leads', icon: <User size={14} />, count: myLeadsCount, color: '#8b5cf6' },
                     { key: 'hot', label: 'Hot Leads', icon: <Flame size={14} />, count: hotLeadsCount, color: '#ef4444' },
                     { key: 'today', label: 'Added Today', icon: <Zap size={14} />, count: leadsToday, color: '#f59e0b' },
                     { key: 'with_proposal', label: 'With Proposal', icon: <FileText size={14} />, count: leads.filter(l => !!l.proposal_id).length, color: '#10b981' },
@@ -2544,11 +2551,13 @@ export default function LeadsPage() {
                       ? (!filterPlatform && !filterStatus && activeSegment === 'all')
                       : v.key === 'hot'
                         ? activeSegment === 'hot'
-                        : v.key === 'today'
-                          ? activeSegment === 'today'
-                          : v.key === 'with_proposal'
-                            ? activeSegment === 'with_proposal'
-                            : false;
+                        : v.key === 'my_leads'
+                          ? activeSegment === 'my_leads'
+                          : v.key === 'today'
+                            ? activeSegment === 'today'
+                            : v.key === 'with_proposal'
+                              ? activeSegment === 'with_proposal'
+                              : false;
                     return (
                       <button
                         key={v.key}
@@ -2559,6 +2568,8 @@ export default function LeadsPage() {
                           setFilterStatus(null);
                           if (v.key === 'all') {
                             setActiveSegment('all');
+                          } else if (v.key === 'my_leads') {
+                            setActiveSegment('my_leads');
                           } else if (v.key === 'hot') {
                             setActiveSegment('hot');
                           } else if (v.key === 'today') {

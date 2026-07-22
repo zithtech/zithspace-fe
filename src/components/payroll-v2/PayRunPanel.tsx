@@ -373,7 +373,7 @@ export default function PayRunPanel() {
       <div className="pvr-table-wrap">
         {runs.length === 0 && !loading
           ? <div style={{ padding: 48 }}><Empty description="No pay runs yet — create one to get started" /></div>
-          : <Table rowKey="id" size="small" className="pvr-table" loading={loading} columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} />}
+          : <Table rowKey="id" size="small" className="pvr-table" loading={loading} columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} />}
       </div>
 
       {/* CREATE MODAL */}
@@ -608,7 +608,7 @@ export default function PayRunPanel() {
                 )}
 
                 <Table
-                  rowKey="id" size="small" className="pvr-items" columns={itemColumns} dataSource={detail.items} pagination={false}
+                  rowKey="id" size="small" className="pvr-items" columns={itemColumns} dataSource={detail.items} pagination={false} scroll={{ x: 'max-content' }}
                   expandable={{
                     expandedRowRender: (it) => (
                       <div className="pvr-breakdown">
@@ -633,7 +633,7 @@ export default function PayRunPanel() {
 
       <style jsx global>{`
         .pvr { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
+        .pvr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvr-header-about { display: flex; align-items: center; gap: 12px; }
         .pvr-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvr-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -665,9 +665,9 @@ export default function PayRunPanel() {
         .pvr-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border-slate-100); background: var(--bg-slate-50); }
         .pvr-modal .ant-select-selector, .pvr-modal .ant-input, .pvr-modal textarea.ant-input { border-radius: 8px !important; }
 
-        .pvr-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 12px; overflow: hidden; }
-        .pvr-table .ant-table, .pvr-items .ant-table { background: transparent; font-size: 12px; }
-        .pvr-table .ant-table-thead > tr > th, .pvr-items .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; }
+        .pvr-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0px !important; overflow: hidden; }
+        .pvr-table .ant-table, .pvr-items .ant-table, .pvr-table .ant-table-container, .pvr-items .ant-table-container { background: transparent; font-size: 12px; border-radius: 0px !important; }
+        .pvr-table .ant-table-thead > tr > th, .pvr-items .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important; white-space: nowrap !important; border-radius: 0px !important; }
         .pvr-table .ant-table-tbody > tr > td, .pvr-items .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .pvr-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
 

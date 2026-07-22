@@ -795,12 +795,12 @@ const ProjectsManageContent: React.FC = () => {
               placement="left"
               onConfirm={() => handleDelete(project.id)}
             >
-              <div 
-                style={{ 
-                  margin: '-5px -12px', 
+              <div
+                style={{
+                  margin: '-5px -12px',
                   padding: '5px 12px',
                   width: 'calc(100% + 24px)',
-                  height: '100%' 
+                  height: '100%'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3124,7 +3124,7 @@ const ProjectsManageContent: React.FC = () => {
 
         @media (max-width: 1024px) {
           .pp-stats {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
         @media (max-width: 640px) {

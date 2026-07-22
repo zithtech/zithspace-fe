@@ -1,6 +1,7 @@
 "use client";
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState } from "react";
 import {
   Button,
@@ -356,7 +357,7 @@ function ConfigSection({
       ),
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       width: 96,
       align: "right",
@@ -375,22 +376,22 @@ function ConfigSection({
               disabled={!canUpdateTicketSetting}
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
             title="Delete this option?"
             description={
               row.isDefault
                 ? "This is the current default for new bugs."
                 : undefined
             }
-            okText="Delete"
-            okButtonProps={{ danger: true }}
+            confirmText="Delete"
             onConfirm={() => onDelete(row.id)}
             disabled={!canDeleteTicketSetting}
           >
             <Tooltip title="Delete">
               <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={!canDeleteTicketSetting} />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       ),
     },
@@ -598,14 +599,14 @@ function OptionEditor({
       }}
       extra={
         <Space size={8}>
-          <Button onClick={onClose} disabled={submitting} style={{ borderRadius: 0, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
           <Button
             type="primary"
             loading={submitting}
             onClick={handleOk}
             icon={isEdit ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
             style={{
-              borderRadius: 0,
+              borderRadius: 8,
               fontSize: 12,
               fontWeight: 700,
               background: '#2563eb',
@@ -1023,8 +1024,7 @@ function BcmStyles() {
       }
       .bcm-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
       .bcm-table .ant-table-tbody > tr:hover > td { background: var(--bcm-bg-soft) !important; }
-      .bcm-table .ant-table-row-actions { opacity: 0; transition: opacity 120ms ease; }
-      .bcm-table .ant-table-tbody > tr:hover .ant-table-row-actions { opacity: 1; }
+      .bcm-table .ant-table-row-actions { opacity: 1; }
       .bcm-dark .bcm-table .ant-btn { color: var(--bcm-text-soft); }
       .bcm-dark .bcm-table .ant-btn:hover { color: var(--bcm-text); }
       .bcm-dark .bcm-table .ant-btn-dangerous { color: #ff8a7d; }

@@ -1749,9 +1749,10 @@ const leadViewStyles = (
         align-items: center;
         justify-content: space-between;
         gap: 16px;
+        flex-wrap: wrap;
       }
       .lv-topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-      .lv-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+      .lv-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
       .lv-back-btn.ant-btn {
         width: 34px !important;

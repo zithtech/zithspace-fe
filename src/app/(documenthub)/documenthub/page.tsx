@@ -3575,12 +3575,6 @@ const DocumentHubPage = () => {
             z-index: 1150;
           }
           .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
-          .dh-main {
-            height: auto;
-            min-height: calc(100vh - 54px);
-            overflow: visible;
-          }
-          .dh-main-scroll { overflow: visible; }
           .dh-main-topbar { flex-wrap: wrap; padding: 8px 14px; min-height: 0; }
           .dh-mobile-menu-btn {
             display: inline-flex !important;

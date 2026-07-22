@@ -971,6 +971,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
             loading={loading}
             pagination={false}
             size="small"
+            scroll={{ x: 550 }}
             locale={{
               emptyText: (
                 <div className="mtt-tracker-card__empty">
@@ -999,6 +1000,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                 rowKey="label"
                 pagination={false}
                 size="small"
+                scroll={{ x: 550 }}
               />
             </div>
             <div className="perf-summary__col">
@@ -1009,6 +1011,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                 rowKey="label"
                 pagination={false}
                 size="small"
+                scroll={{ x: 550 }}
               />
             </div>
           </div>
@@ -1312,6 +1315,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           letter-spacing: 0.05em !important;
           border-bottom: 1px solid var(--border-slate-200) !important;
           padding: 7px 14px !important;
+          white-space: nowrap !important;
         }
         .ant-table-tbody > tr > td {
           padding: 7px 14px !important;

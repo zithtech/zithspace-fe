@@ -176,49 +176,44 @@ const SubscriptionPaywallContent = () => {
         </div>
 
         {!loading && subscription && plans.find(p => p.id === subscription.plan_id) && (
-          <div className="mb-16">
-            <Card className="rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
-              <Title level={4} className="!mb-6 !mt-0 !text-slate-800 dark:!text-slate-200">Current Subscription</Title>
-              <Row gutter={[24, 24]}>
-                <Col xs={24} sm={12} md={6}>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <Text type="secondary" className="block mb-1 text-xs uppercase tracking-wider font-semibold">Current Plan</Text>
-                    <Text strong className="text-lg block">{plans.find(p => p.id === subscription.plan_id)?.name}</Text>
-                    <Text type="secondary">${subscription.billing_cycle === 'YEARLY' ? plans.find(p => p.id === subscription.plan_id)?.yearly_amount : plans.find(p => p.id === subscription.plan_id)?.monthly_amount}/{subscription.billing_cycle === 'YEARLY' ? 'year' : 'month'}</Text>
-                  </div>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <Text type="secondary" className="block mb-1 text-xs uppercase tracking-wider font-semibold">Auto Renew</Text>
-                    <Text strong className="text-lg text-emerald-600 dark:text-emerald-400">
-                      {subscription.auto_renew ? 'ON' : 'OFF'}
-                    </Text>
-                  </div>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <Text type="secondary" className="block mb-1 text-xs uppercase tracking-wider font-semibold">Status</Text>
-                    <Text strong className="text-lg capitalize">{subscription.status?.toLowerCase() || 'N/A'}</Text>
-                  </div>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <Text type="secondary" className="block mb-1 text-xs uppercase tracking-wider font-semibold">Expires</Text>
-                    <Text strong className="text-lg block">
-                      {subscription.expires_at ? dayjs(subscription.expires_at).format('DD MMM YYYY') : 'N/A'}
-                    </Text>
-                  </div>
-                </Col>
-              </Row>
+          <div className="mb-10">
+            <Card className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#0a0a0a]" bodyStyle={{ padding: '20px' }}>
+              <div className="flex items-center justify-between mb-4">
+                <Title level={5} className="!m-0 !text-slate-800 dark:!text-slate-200 font-semibold">Current Subscription</Title>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-50 dark:bg-[#111] p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <Text type="secondary" className="block mb-1 text-[10px] uppercase tracking-wider font-semibold">Plan</Text>
+                  <Text strong className="text-base block dark:text-white">{plans.find(p => p.id === subscription.plan_id)?.name}</Text>
+                  <Text type="secondary" className="text-xs">${subscription.billing_cycle === 'YEARLY' ? plans.find(p => p.id === subscription.plan_id)?.yearly_amount : plans.find(p => p.id === subscription.plan_id)?.monthly_amount}/{subscription.billing_cycle === 'YEARLY' ? 'year' : 'month'}</Text>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#111] p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <Text type="secondary" className="block mb-1 text-[10px] uppercase tracking-wider font-semibold">Auto Renew</Text>
+                  <Text strong className="text-base text-emerald-600 dark:text-emerald-400">
+                    {subscription.auto_renew ? 'ON' : 'OFF'}
+                  </Text>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#111] p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <Text type="secondary" className="block mb-1 text-[10px] uppercase tracking-wider font-semibold">Status</Text>
+                  <Text strong className="text-base capitalize dark:text-white">{subscription.status?.toLowerCase() || 'N/A'}</Text>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#111] p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <Text type="secondary" className="block mb-1 text-[10px] uppercase tracking-wider font-semibold">Expires</Text>
+                  <Text strong className="text-base block dark:text-white">
+                    {subscription.expires_at ? dayjs(subscription.expires_at).format('DD MMM YYYY') : 'N/A'}
+                  </Text>
+                </div>
+              </div>
             </Card>
           </div>
+
         )}
 
         <Title level={3} className="text-center !text-slate-800 dark:!text-slate-200 !font-semibold !mb-10">Available Plans</Title>
         {loading ? (
           <div className="text-center py-20"><Spin size="large" /></div>
         ) : (
-          <Row gutter={[32, 32]} justify="center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-[1600px] mx-auto">
             {plans.map(plan => {
               // Fallback to URL param if state hasn't populated it or it's provided explicitly
               const urlPlanIdParam = searchParams.get('current_plan_id');
@@ -241,72 +236,94 @@ const SubscriptionPaywallContent = () => {
               }
 
               return (
-                <Col xs={24} sm={20} md={12} lg={8} key={plan.id} className="flex">
+                <div key={plan.id} className="flex">
                   <Card 
                     hoverable 
-                    className="w-full flex flex-col rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-xl group"
+                    className="w-full flex flex-col rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 transition-all duration-300 bg-white dark:bg-[#0a0a0a] shadow-sm hover:shadow-xl group"
                     bodyStyle={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0' }}
                   >
-                    <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-700/50">
-                      <Title level={4} className="!text-slate-900 dark:!text-white flex items-center justify-between !mb-2">
-                        {plan.name}
+                    <div className="p-5 flex flex-col h-full gap-3">
+                      {/* Top Label */}
+                      <div className="text-[10px] font-semibold tracking-[0.15em] text-slate-500 dark:text-slate-400 uppercase">
+                        For Your Team
+                      </div>
+                      
+                      {/* Title & Badge */}
+                      <div className="flex items-center justify-between">
+                        <Title level={4} className="!m-0 !text-slate-900 dark:!text-white font-bold tracking-tight">
+                          {plan.name}
+                        </Title>
                         {isCurrentPlan && (
-                          <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs px-3 py-1 rounded-full flex items-center font-medium border border-amber-200 dark:border-amber-700/50">
-                            <CrownOutlined className="mr-1.5" /> Current
+                          <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded-full flex items-center font-bold border border-amber-200 dark:border-amber-700/50 uppercase tracking-wider">
+                            Current
                           </span>
                         )}
-                      </Title>
-                      <Text className="text-slate-500 dark:text-slate-400 block h-10 line-clamp-2">{plan.description}</Text>
-                      <div className="mt-6 flex items-baseline">
-                        <span className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.monthly_amount}</span>
-                        <span className="text-slate-500 dark:text-slate-400 ml-2 font-medium">/ month</span>
                       </div>
-                    </div>
-                    
-                    <div className="p-6 sm:p-8 flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-800/30">
-                      <div className="flex-1 overflow-y-auto max-h-[280px] pr-2 mb-8 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                        <ul className="space-y-4 m-0 p-0 list-none">
-                          {(plan.includes || []).map((point: any, idx: number) => {
-                            const title = typeof point === 'string' ? point : point.title;
-                            const subPoints = typeof point === 'string' ? [] : (point.subPoints || []);
-                            
-                            return (
-                              <li key={idx} className="flex flex-col text-slate-600 dark:text-slate-300">
-                                <div className="flex items-start">
-                                  <CheckCircleOutlined className="text-emerald-500 text-lg mr-3 shrink-0 mt-0.5" />
-                                  <span className="text-sm font-medium leading-relaxed">{title}</span>
-                                </div>
-                                {subPoints.length > 0 && (
-                                  <ul className="mt-2 ml-8 space-y-2">
-                                    {subPoints.map((sub: string, sIdx: number) => (
-                                      <li key={sIdx} className="flex items-start text-slate-500 dark:text-slate-400">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mr-2.5 mt-2 shrink-0"></span>
-                                        <span className="text-sm leading-relaxed">{sub}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
+
+                      {/* Price Block */}
+                      <div className="mt-1">
+                        <div className="flex items-baseline mb-0.5">
+                          <span className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">${plan.monthly_amount}</span>
+                          <span className="text-slate-500 dark:text-slate-400 ml-1.5 font-medium text-xs">/ month</span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Billed monthly · Global</span>
                       </div>
+                      
+                      {/* Button */}
                       <Button 
                         type={isCurrentPlan ? 'default' : 'primary'}
                         disabled={isButtonDisabled}
                         block 
                         size="large" 
                         onClick={() => handlePayNow(plan)} 
-                        className={`mt-auto h-12 text-base font-semibold rounded-xl transition-all ${isCurrentPlan ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-none' : 'bg-blue-600 hover:bg-blue-700 text-white border-none shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40'}`}
+                        className={`mt-3 h-[40px] text-sm font-semibold rounded-full transition-all ${isCurrentPlan ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-none' : 'bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-100 text-slate-100 dark:text-black border-none'}`}
                       >
-                        {buttonLabel}
+                        {buttonLabel === 'Select Plan' ? 'Get started' : buttonLabel}
                       </Button>
+
+                      {/* Divider & Features */}
+                      <div className="border-t border-slate-200 dark:border-slate-800 mt-4 pt-4 flex-1 flex flex-col">
+                        <div className="text-[10px] font-semibold tracking-[0.15em] text-slate-500 dark:text-slate-400 uppercase mb-3">
+                          Includes
+                        </div>
+                        
+                        {/* Features List */}
+                        <div className="flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+                          <ul className="space-y-2.5 m-0 p-0 list-none">
+                            {(plan.includes || []).map((point: any, idx: number) => {
+                              const title = typeof point === 'string' ? point : point.title;
+                              const subPoints = typeof point === 'string' ? [] : (point.subPoints || []);
+                              
+                              return (
+                                <li key={idx} className="flex flex-col text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-start">
+                                    <svg className="w-4 h-4 text-blue-500 mr-2 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span className="text-[13px] font-medium leading-relaxed">{title}</span>
+                                  </div>
+                                  {subPoints.length > 0 && (
+                                    <ul className="mt-1 ml-6 space-y-1">
+                                      {subPoints.map((sub: string, sIdx: number) => (
+                                        <li key={sIdx} className="flex items-start text-slate-500 dark:text-slate-400">
+                                          <span className="text-[10px] mr-1.5 mt-0.5 shrink-0 opacity-60">◆</span>
+                                          <span className="text-xs leading-relaxed">{sub}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </Card>
-                </Col>
+                </div>
               );
             })}
-          </Row>
+          </div>
         )}
 
         <div className="mt-16 text-center">

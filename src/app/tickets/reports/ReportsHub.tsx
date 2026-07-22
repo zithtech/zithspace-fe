@@ -905,19 +905,19 @@ export default function ReportsHub() {
         .pp-trash .anticon { font-size: 15px; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; overflow-y: auto; }
+        .pp-main { flex: 1; min-width: 0; padding: 0 18px 0; display: flex; flex-direction: column; overflow-y: auto; }
         .pp-body { flex: 1 0 auto; min-width: 0; }
         .rh-sticky-header {
           position: sticky;
           top: 0;
           z-index: 40;
-          background: var(--bg-pure-white);
+          background: var(--bg-primary) !important;
           padding: 8px 18px 0;
-          margin: -8px -18px 14px;
+          margin: 0 -18px 14px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .rh-sticky-header {
-          background: #0B0F1A;
+          background: var(--bg-primary) !important;
           border-bottom-color: #1F2937;
         }
         .rh-main-head { padding: 6px 0 10px; }
@@ -1063,7 +1063,8 @@ export default function ReportsHub() {
         }
         .pp-footer--sticky {
           position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
-          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          background: var(--bg-primary) !important;
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
           height: 52px !important; box-sizing: border-box;
         }
         .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }

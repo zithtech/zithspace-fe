@@ -560,6 +560,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <Form.Item
                 name="position"
                 label="Position"
+                preserve={false}
                 rules={[{ required: true, message: "Please select position" }]}
               >
                 <SearchableDropdown
@@ -575,6 +576,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <Form.Item
                 name="positionTitle"
                 label="Position Title"
+                preserve={false}
                 normalize={(value) => (value || '').replace(/[^a-zA-Z\s]/g, '')}
                 rules={[
                   { required: true, message: "Please enter position title" },

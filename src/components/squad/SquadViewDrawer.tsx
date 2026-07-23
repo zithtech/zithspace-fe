@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Drawer, Input, Button, Tooltip, App, Avatar } from 'antd';
+import { Drawer, Input, Button, Tooltip, App, Avatar, Space } from 'antd';
 import {
   TeamOutlined,
   CrownOutlined,
@@ -18,6 +18,7 @@ import { Squad, SquadMember } from '@/services/squadService';
 import { usePermission } from '@/hooks/usePermission';
 import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
+import { commonDrawerProps, SectionCard, drawerFormStyles } from '@/components/common/DrawerSection';
 
 interface SquadViewDrawerProps {
   visible: boolean;
@@ -115,7 +116,11 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
         }}
       >
         <div className="svd-member-card__avatar">
-          {m.member.name.charAt(0).toUpperCase()}
+          {m.member.avatarUrl || (m.member as any).avatar ? (
+            <Avatar src={m.member.avatarUrl || (m.member as any).avatar} size={32} style={{ border: 'none' }} />
+          ) : (
+            m.member.name.charAt(0).toUpperCase()
+          )}
           <span className="svd-member-card__avatar-badge">{meta.badgeIcon}</span>
         </div>
         <div className="svd-member-card__main">
@@ -190,67 +195,104 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
   return (
     <>
       <Drawer
-        className="squad-drawer"
-        extra={
-          <div style={{ display: 'flex', gap: 8 }}>
-            {canReadActivityLog && squad && (
-              <Button
-                icon={<History size={14} />}
-                onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}
-                size="small"
+        {...commonDrawerProps}
+        open={visible}
+        onClose={onClose}
+      >
+        <style>{drawerFormStyles}</style>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          {/* Drawer Header */}
+          <div
+            className="customer-drawer-header"
+            style={{
+              padding: "16px 14px 12px 14px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 0,
+                  background: "rgba(59, 130, 246, 0.10)",
+                  color: "var(--premium-blue, #3b82f6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 18,
+                  flexShrink: 0,
+                }}
               >
-                History
-              </Button>
-            )}
-            {onManage && canUpdateSquad && (
-              <Button
-                type="primary"
-                icon={<SettingOutlined />}
-                onClick={handleManageClick}
-                size="small"
-                style={{ background: '#3b82f6', border: 'none', boxShadow: 'none' }}
-              >
-                Manage Squad
-              </Button>
-            )}
-          </div>
-        }
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span
-              style={{
-                width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "inline-flex",
-                alignItems: "center", justifyContent: "center",
-                background: "#3B82F6", color: "#fff",
-              }}
-            >
-              <TeamOutlined style={{ fontSize: 14 }} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>
-                {squad.squadName}
+                <TeamOutlined />
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
-                {squad.squadCode} • {statusLabel}
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "var(--text-slate-900)",
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {squad.squadName}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                  {squad.squadCode} • {statusLabel}
+                </div>
               </div>
             </div>
+            <Space>
+              {canReadActivityLog && squad && (
+                <Button
+                  icon={<History size={14} />}
+                  onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}
+                  size="small"
+                >
+                  History
+                </Button>
+              )}
+              {onManage && canUpdateSquad && (
+                <Button
+                  type="primary"
+                  icon={<SettingOutlined />}
+                  onClick={handleManageClick}
+                  size="small"
+                  style={{ background: '#3b82f6', border: 'none', boxShadow: 'none' }}
+                >
+                  Manage Squad
+                </Button>
+              )}
+              <Button
+                type="text"
+                shape="circle"
+                icon={<CloseOutlined />}
+                onClick={onClose}
+                style={{ color: "var(--text-slate-500)" }}
+              />
+            </Space>
           </div>
-        }
-        width={580}
-        onClose={onClose}
-        open={visible}
-        destroyOnHidden
-        closeIcon={<CloseOutlined style={{ fontSize: 14 }} />}
-      >
-        {/* Premium Details Card */}
-        <div style={{
-          background: 'var(--bg-pure-white)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 6,
-          padding: 16,
-          marginBottom: 20,
-          boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
-        }}>
+
+          <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }} className="customer-drawer-form">
+            <div style={{
+              background: 'var(--bg-pure-white)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 6,
+              padding: 16,
+              marginBottom: 20,
+              boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
+            }}>
           {/* Top Row */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             {/* Avatar */}
@@ -269,14 +311,14 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
                 {squad.squadName}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'transparent', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)', fontFamily: 'monospace' }}>
                   {squad.squadCode}
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: squad.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: squad.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${squad.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                   <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor', marginRight: 4 }}></span>
                   {statusLabel}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'transparent', color: 'var(--text-slate-600)', border: '1px solid var(--border-color)' }}>
                   <UserOutlined style={{ marginRight: 4 }} />
                   {total} members
                 </span>
@@ -319,8 +361,10 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-slate-500)', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
             </div>
           </div>
-        </div>
+            </div>
 
+            <SectionCard icon={<TeamOutlined />} title="Squad Members" subtitle="Assign and manage leadership">
+              <div style={{ padding: '0 4px' }}>
         {/* Filter bar */}
         {total > 0 && (
           <>
@@ -364,30 +408,34 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
           </>
         )}
 
-        {/* Body */}
-        {total === 0 ? (
-          <div className="svd-empty">
-            <div className="svd-empty__icon">
-              <InboxOutlined />
-            </div>
-            <div className="svd-empty__title">No members yet</div>
-            <div className="svd-empty__sub">
-              This squad doesn’t have any members assigned. Use Manage to add heads, sub-heads, and members.
-            </div>
+              {/* Body */}
+              {total === 0 ? (
+                <div className="svd-empty">
+                  <div className="svd-empty__icon">
+                    <InboxOutlined />
+                  </div>
+                  <div className="svd-empty__title">No members yet</div>
+                  <div className="svd-empty__sub">
+                    This squad doesn’t have any members assigned. Use Manage to add heads, sub-heads, and members.
+                  </div>
+                </div>
+              ) : totalVisible === 0 ? (
+                <div className="svd-empty">
+                  <div className="svd-empty__icon">
+                    <SearchOutlined />
+                  </div>
+                  <div className="svd-empty__title">No matches</div>
+                  <div className="svd-empty__sub">
+                    No members match {search ? `“${search}”` : 'the current filter'}.
+                  </div>
+                </div>
+              ) : (
+                rolesToRender.map(renderGroup)
+              )}
+              </div>
+            </SectionCard>
           </div>
-        ) : totalVisible === 0 ? (
-          <div className="svd-empty">
-            <div className="svd-empty__icon">
-              <SearchOutlined />
-            </div>
-            <div className="svd-empty__title">No matches</div>
-            <div className="svd-empty__sub">
-              No members match {search ? `“${search}”` : 'the current filter'}.
-            </div>
-          </div>
-        ) : (
-          rolesToRender.map(renderGroup)
-        )}
+        </div>
       </Drawer>
       {squad && (
         <TransactionHistoryDrawer

@@ -156,8 +156,9 @@ export default function PerformanceReportLayout({ children }: { children: React.
           .pr-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
           .pr-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
           
-          /* Stretch panel headers to the edges (overriding content padding) */
-          .pr-content > * > [class*="-header"] {
+          /* Stretch panel headers and footers to the edges (overriding content padding) */
+          .pr-content > * > [class*="-header"],
+          .pr-content > * > [class*="-footer"] {
             margin-left: -32px !important;
             margin-right: -32px !important;
             padding-left: 32px !important;
@@ -236,7 +237,8 @@ export default function PerformanceReportLayout({ children }: { children: React.
             .pr-content {
               padding: 4px 16px 0;
             }
-            .pr-content > * > [class*="-header"] {
+            .pr-content > * > [class*="-header"],
+            .pr-content > * > [class*="-footer"] {
               margin-left: -16px !important;
               margin-right: -16px !important;
               padding-left: 16px !important;

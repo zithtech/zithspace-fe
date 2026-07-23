@@ -23,6 +23,17 @@ export interface LeaveTypeV2 {
   updatedAt: string;
 }
 
+export interface LeaveMailConfig {
+  replyToMode: 'logged_in_user' | 'custom';
+  customReplyToEmail?: string;
+  reportsToEnabled: boolean;
+  additionalToEmails: string[];
+  customToEmails: string[];
+  officeCcEnabled: boolean;
+  additionalCcEmails: string[];
+  customCcEmails: string[];
+}
+
 export interface CreateLeaveTypeInput {
   name: string;
   code: string;
@@ -521,7 +532,6 @@ export const LeaveV2Service = {
     return unwrap<WithdrawalResult>(res.data);
   },
 
-  // Scope target options for a given scope type (reuses existing org endpoints).
   async getScopeOptions(scopeType: PolicyScopeType): Promise<ScopeOption[]> {
     if (scopeType === 'org') return [];
     const res = await apiClient.get(SCOPE_ENDPOINTS[scopeType]);
@@ -531,6 +541,18 @@ export const LeaveV2Service = {
     }
     return items.map((e: any) => ({ value: e.id, label: e.name ?? e.title ?? e.label ?? e.code }));
   },
+
+  // ─── Settings ─────────────────────────────────────────────────────────
+
+  async getMailSettings(): Promise<LeaveMailConfig> {
+    const { data } = await apiClient.get('/api/v2/leave/settings/mail');
+    return data.data;
+  },
+
+  async updateMailSettings(payload: LeaveMailConfig): Promise<LeaveMailConfig> {
+    const { data } = await apiClient.put('/api/v2/leave/settings/mail', payload);
+    return data.data;
+  }
 };
 
 export default LeaveV2Service;

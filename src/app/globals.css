@@ -14026,16 +14026,17 @@ select:-webkit-autofill:focus {
 }
 
 .pb-action-btn--primary.ant-btn {
-  background: #0f172a !important;
-  border: 1px solid #0f172a !important;
+  background: #1677ff !important;
+  border: 1px solid #1677ff !important;
   color: #fff !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.10) inset, 0 6px 14px rgba(15, 23, 42, 0.20) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.10) inset, 0 6px 14px rgba(22, 119, 255, 0.20) !important;
 }
 
 .pb-action-btn--primary.ant-btn:hover {
-  background: #1e293b !important;
+  background: #4096ff !important;
+  border-color: #4096ff !important;
   filter: none !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 22px rgba(15, 23, 42, 0.28) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 22px rgba(22, 119, 255, 0.28) !important;
 }
 
 [data-theme='dark'] .pb-action-btn--primary.ant-btn {
@@ -26620,3 +26621,5 @@ select:-webkit-autofill:focus {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
+.zai-round-checkbox .ant-checkbox-inner { border-radius: 50% !important; }
+.zai-round-checkbox .ant-checkbox-checked .ant-checkbox-inner { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }

@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Modal, Input, message, Typography, Progress, Checkbox } from 'antd';
+import { Button, Modal, Input, message, Typography, Progress, Checkbox, Dropdown, Popover } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { Sparkles, Wand2, Zap } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { nanoid } from 'nanoid';
 import { BLOCK_META } from './BlockPalette';
-
+import { PALETTE } from './library/composerComponents';
+import { useTheme } from '@/context/ThemeContext';
 
 const { Text } = Typography;
 
@@ -419,13 +421,18 @@ interface EndToEndZaiModalProps {
 }
 
 export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onClose, onComplete }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [prompt, setPrompt] = useState('');
   const [extraTerms, setExtraTerms] = useState(DEFAULT_TERMS_HINT);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stepLabel, setStepLabel] = useState('');
   const [step, setStep] = useState<'prompt' | 'components'>('prompt');
-  const [selectedComponents, setSelectedComponents] = useState<string[]>(BLOCK_META.filter(b => b.type !== 'section').map(b => b.type));
+  const [activePhases, setActivePhases] = useState<{ id: string; type: string; checked: boolean }[]>(
+    BLOCK_META.filter(b => b.type !== 'section').map(b => ({ id: nanoid(), type: b.type, checked: true }))
+  );
 
   const { setBlocks } = useProposalStore();
 
@@ -460,7 +467,19 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
     setProgress(0);
 
     const brief = parseBrief(prompt);
-    const phases = buildPhasesOrder(brief, prompt, extraTerms).filter(p => selectedComponents.includes(p.type));
+    const defaultPhases = buildPhasesOrder(brief, prompt, extraTerms);
+    const phases = activePhases.filter(p => p.checked).map(p => {
+      const dp = defaultPhases.find(d => d.type === p.type);
+      if (dp) return { ...dp, id: p.id };
+      const meta = BLOCK_META.find(b => b.type === p.type);
+      const pal = PALETTE.find(b => b.kind === p.type);
+      const label = meta?.label || pal?.label || p.type;
+      return {
+        type: p.type as BlockType,
+        label: `Generating ${label}…`,
+        hint: `Return JSON for a "${p.type}" block relevant to the project brief. Ensure it follows standard structure. Keep it short.`
+      };
+    });
 
     if (phases.length === 0) {
       message.warning('Please select at least one component to generate.');
@@ -549,6 +568,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                 </p>
               </div>
             </div>
+
             <button className="zai-close" onClick={() => !generating && onClose()} aria-label="Close">×</button>
           </div>
         </div>
@@ -667,26 +687,122 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
               ) : (
                 <>
                   <div className="zai-components-selection" style={{ padding: '24px 0' }}>
-                    <div style={{ marginBottom: 12, fontWeight: 600, color: 'var(--text-slate-900)' }}>Select Components to Generate</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      {BLOCK_META.filter(meta => meta.type !== 'section').map(meta => (
-                        <Checkbox
-                          key={meta.type}
-                          checked={selectedComponents.includes(meta.type)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedComponents([...selectedComponents, meta.type]);
-                            } else {
-                              setSelectedComponents(selectedComponents.filter(t => t !== meta.type));
-                            }
-                          }}
-                        >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: meta.color }}>{meta.icon}</span>
-                            {meta.label}
-                          </span>
-                        </Checkbox>
-                      ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? '#f8fafc' : '#1e293b' }}>Select Components to Generate</div>
+                      <Dropdown 
+                        overlayStyle={{ minWidth: 220 }}
+                        trigger={['click']}
+                        menu={{ 
+                          style: { maxHeight: 340, overflowY: 'auto', padding: '8px', borderRadius: 12, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' },
+                          items: Object.entries(
+                            PALETTE
+                              .filter(meta => !activePhases.some(p => p.type === meta.kind))
+                              .reduce((acc, meta) => {
+                                const g = meta.group || 'Other';
+                                if (!acc[g]) acc[g] = [];
+                                acc[g].push({
+                                  key: meta.paletteId || meta.kind,
+                                  style: { padding: '8px 12px', margin: '2px 4px', borderRadius: 8 },
+                                  label: (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 500, color: '#334155' }}>
+                                      <span style={{ color: meta.accent || '#3b82f6', display: 'flex', opacity: 0.9 }}>{meta.icon}</span>
+                                      {meta.label}
+                                    </span>
+                                  ),
+                                  onClick: () => {
+                                    setActivePhases([...activePhases, { id: nanoid(), type: meta.kind, checked: true }]);
+                                  }
+                                });
+                                return acc;
+                              }, {} as Record<string, any[]>)
+                          ).map(([groupName, children]) => ({
+                            type: 'group',
+                            label: <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 4 }}>{groupName}</span>,
+                            children
+                          }))
+                        }}
+                        placement="bottomRight"
+                      >
+                        <Button type="primary" ghost size="small" icon={<PlusOutlined />} style={{ borderRadius: 6, fontWeight: 500, padding: '0 12px' }}>
+                          Add Components
+                        </Button>
+                      </Dropdown>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
+                      {activePhases.map((phase) => {
+                        const meta = BLOCK_META.find(b => b.type === phase.type);
+                        const pal = PALETTE.find(b => b.kind === phase.type);
+                        const label = meta?.label || pal?.label || phase.type;
+                        const icon = meta?.icon || pal?.icon || <Zap size={16} />;
+                        const color = meta?.color || pal?.accent || '#3b82f6';
+                        
+                        return (
+                          <div
+                            key={phase.id}
+                            onClick={() => {
+                              setActivePhases(activePhases.map(p => 
+                                p.id === phase.id ? { ...p, checked: !p.checked } : p
+                              ));
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 12,
+                              padding: '12px 16px',
+                              borderRadius: 12,
+                              border: phase.checked ? `2px solid ${color}` : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                              backgroundColor: phase.checked ? (isDark ? `${color}15` : `${color}08`) : (isDark ? '#1e293b' : '#ffffff'),
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxShadow: phase.checked ? `0 4px 12px ${color}15` : '0 1px 2px rgba(0,0,0,0.02)',
+                              opacity: phase.checked ? 1 : 0.7
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!phase.checked) {
+                                e.currentTarget.style.borderColor = isDark ? '#475569' : '#cbd5e1';
+                                e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f8fafc';
+                                e.currentTarget.style.opacity = '1';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!phase.checked) {
+                                e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
+                                e.currentTarget.style.backgroundColor = isDark ? '#1e293b' : '#ffffff';
+                                e.currentTarget.style.opacity = '0.7';
+                              }
+                            }}
+                          >
+                            <span style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              width: 32, 
+                              height: 32, 
+                              borderRadius: 8,
+                              backgroundColor: phase.checked ? `${color}15` : (isDark ? '#334155' : '#f1f5f9'),
+                              color: phase.checked ? color : (isDark ? '#94a3b8' : '#64748b'),
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {icon}
+                            </span>
+                            <span style={{ 
+                              fontSize: 14, 
+                              fontWeight: phase.checked ? 600 : 500, 
+                              color: phase.checked ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#cbd5e1' : '#475569'),
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {label}
+                            </span>
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Checkbox 
+                                checked={phase.checked} 
+                                className="zai-round-checkbox"
+                                style={{ pointerEvents: 'none' }} // Let the parent div handle the click
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 

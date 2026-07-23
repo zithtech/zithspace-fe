@@ -47,6 +47,7 @@ export interface CreateMemberData {
   isActive?: boolean; // ADDED: Missing isActive field
   sendEmailTo?: string; // ADDED: Target email for welcome notification ('work' | 'personal')
   minWorkingHours?: number;
+  employeeId?: string | null; // Links this user to an onboarding invite employee record
 }
 
 export interface UpdateMemberData {

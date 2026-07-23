@@ -5831,12 +5831,12 @@ select:-webkit-autofill:focus {
 }
 
 [data-theme='dark'] .svd-member-card {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 [data-theme='dark'] .svd-member-card__avatar-badge {
-  background: var(--bg-secondary);
-  border-color: var(--bg-secondary);
+  background: #0B0F1A;
+  border-color: #0B0F1A;
 }
 
 [data-theme='dark'] .svd-tab.is-active {
@@ -5845,7 +5845,16 @@ select:-webkit-autofill:focus {
 }
 
 [data-theme='dark'] .svd-empty {
-  background: var(--bg-secondary);
+  background: transparent;
+}
+
+[data-theme='dark'] .svd-search.ant-input-affix-wrapper,
+[data-theme='dark'] .svd-tabs {
+  background: transparent !important;
+}
+
+[data-theme='dark'] .svd-tab__count {
+  background: transparent !important;
 }
 
 /* ============================================================

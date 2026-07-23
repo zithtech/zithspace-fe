@@ -2310,20 +2310,20 @@ export default function ClientV2DetailsPage() {
             [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper,
             [data-theme="dark"] .documents-search-input.ant-input-affix-wrapper,
             [data-theme="dark"] .contacts-search-input.ant-picker {
-              background: var(--bg-secondary) !important;
-              border-color: var(--border-slate-200) !important;
+              background: transparent !important;
+              border-color: var(--border-slate-800) !important;
             }
             [data-theme="dark"] .contacts-search-input.ant-input-affix-wrapper:hover,
             [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper:hover,
             [data-theme="dark"] .documents-search-input.ant-input-affix-wrapper:hover,
             [data-theme="dark"] .contacts-search-input.ant-picker:hover {
-              border-color: var(--border-slate-200) !important;
+              border-color: var(--border-slate-700) !important;
             }
             [data-theme="dark"] .contacts-search-input.ant-input-affix-wrapper:focus-within,
             [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper:focus-within,
             [data-theme="dark"] .documents-search-input.ant-input-affix-wrapper:focus-within,
             [data-theme="dark"] .contacts-search-input.ant-picker-focused {
-              background: var(--bg-slate-900) !important;
+              background: transparent !important;
               border-color: #8b5cf6 !important;
             }
 
@@ -2407,16 +2407,16 @@ export default function ClientV2DetailsPage() {
               box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
             }
             [data-theme="dark"] .contacts-filter-select-sd.sd-trigger {
-              background: var(--bg-secondary) !important;
-              border-color: var(--border-slate-200) !important;
+              background: transparent !important;
+              border-color: var(--border-slate-800) !important;
             }
             [data-theme="dark"] .contacts-filter-select-sd.sd-trigger:hover {
-              background: var(--bg-secondary) !important;
-              border-color: var(--border-slate-200) !important;
+              background: transparent !important;
+              border-color: var(--border-slate-700) !important;
             }
             [data-theme="dark"] .contacts-filter-select-sd.sd-trigger.is-active,
             [data-theme="dark"] .contacts-filter-select-sd.sd-trigger.is-open {
-              background: var(--bg-slate-900) !important;
+              background: transparent !important;
               border-color: #8b5cf6 !important;
             }
 

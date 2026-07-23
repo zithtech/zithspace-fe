@@ -140,7 +140,7 @@ export default function GeneratedReportsPanel() {
           weights: (s?.modules ?? []).map((m) => ({ key: m.moduleKey as ModuleWeight['key'], weight: Number(m.weight) || 0, enabled: m.isEnabled })),
         };
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const resolveAvatar = async (url?: string | null): Promise<string | null> => {
@@ -572,16 +572,16 @@ export default function GeneratedReportsPanel() {
           wizStep === 'month'
             ? null
             : [
-                <Button key="back" onClick={() => setWizStep('month')}>Back</Button>,
-                <Button
-                  key="go"
-                  type="primary"
-                  disabled={wizSelected.length === 0}
-                  onClick={() => wizMonth && runGeneration(wizSelected, wizMonth.range, wizMonth.key)}
-                >
-                  {wizSelected.length ? `Generate ${wizSelected.length} report${wizSelected.length === 1 ? '' : 's'}` : 'Select members'}
-                </Button>,
-              ]
+              <Button key="back" onClick={() => setWizStep('month')}>Back</Button>,
+              <Button
+                key="go"
+                type="primary"
+                disabled={wizSelected.length === 0}
+                onClick={() => wizMonth && runGeneration(wizSelected, wizMonth.range, wizMonth.key)}
+              >
+                {wizSelected.length ? `Generate ${wizSelected.length} report${wizSelected.length === 1 ? '' : 's'}` : 'Select members'}
+              </Button>,
+            ]
         }
       >
         {wizStep === 'month' ? (
@@ -672,7 +672,6 @@ export default function GeneratedReportsPanel() {
 
       <style jsx global>{`
         .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        /* Box-shaped: square every corner on the page (avatars stay round). */
         .gr-wrap *, .gr-wrap *::before, .gr-wrap *::after { border-radius: 0 !important; }
         .gr-wrap .ant-avatar { border-radius: 50% !important; }
         .gr-header {
@@ -687,7 +686,7 @@ export default function GeneratedReportsPanel() {
         .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
         .gr-bar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
         .gr-search { width: 100%; max-width: 320px; border-radius: 10px; flex: 1; min-width: 200px; }
-        .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: var(--bg-secondary); margin-bottom: 16px; }
+        .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 0 !important; background: transparent; margin-bottom: 16px; }
         .gr-filters-label {
           display: inline-flex; align-items: center; gap: 7px;
           font-size: 13px; font-weight: 700; color: var(--text-slate-700); padding-right: 4px; white-space: nowrap;
@@ -699,18 +698,18 @@ export default function GeneratedReportsPanel() {
         .gr-body { flex: 1; min-height: 0; }
         .gr-center { display: flex; align-items: center; justify-content: center; padding: 56px 0; min-height: 280px; }
         .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-        .gr-card { border: 1px solid var(--border-slate-200); border-radius: 16px; background: var(--bg-secondary); padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
+        .gr-card { border: 1px solid var(--border-slate-200); border-radius: 16px; background: transparent; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
         .gr-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.07); border-color: var(--border-slate-200); }
         .gr-card-top { display: flex; align-items: center; gap: 11px; }
         .gr-name { font-size: 14.5px; font-weight: 800; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gr-pos { font-size: 11.5px; color: var(--text-slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-period { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: var(--bg-slate-100); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .gr-period { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: transparent; border: 1px solid var(--border-slate-200); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
         .gr-score-row { display: flex; align-items: baseline; gap: 6px; }
         .gr-score { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
         .gr-score-max { font-size: 12px; font-weight: 700; color: var(--text-slate-400); }
         .gr-band { margin-left: auto; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; align-self: center; }
         .gr-modules { display: flex; gap: 6px; }
-        .gr-mod { flex: 1; text-align: center; background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); border-radius: 8px; padding: 6px 2px; }
+        .gr-mod { flex: 1; text-align: center; background: transparent; border: 1px solid var(--border-slate-100); border-radius: 8px; padding: 6px 2px; }
         .gr-mod-val { font-size: 14px; font-weight: 800; }
         .gr-mod-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-slate-400); margin-top: 1px; }
         .gr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border-slate-100); }
@@ -721,8 +720,7 @@ export default function GeneratedReportsPanel() {
           display: flex; align-items: center; justify-content: flex-end; gap: 12px;
           padding: 14px 2px; margin: 8px 0 0;
           border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
-          background: var(--bg-secondary);
-          box-shadow: 0 -6px 18px rgba(15,23,42,0.05);
+          background: transparent;
         }
         .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
 

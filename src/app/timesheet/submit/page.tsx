@@ -33,7 +33,7 @@ export default function SubmitTimesheetPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <SubmittimesheetTab
         onSubmitted={() => router.push("/timesheet")}
       />

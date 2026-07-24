@@ -3445,7 +3445,7 @@ export default function SubmittimesheetTab({
           alignItems: "center",
           gap: 12,
           padding: "10px 16px",
-          background: isLeave ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "var(--bg-pure-white)",
+          background: isLeave ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "transparent",
           borderBottom: "1px solid var(--border-slate-100)",
           transition: "all 0.2s ease",
           opacity: isWeekendDay && !isFieldEditable(row) ? 0.6 : 1,
@@ -3578,22 +3578,40 @@ export default function SubmittimesheetTab({
   };
   return (
     <>
-      <div style={{
-        margin: "0 -24px",
-        background: "var(--bg-pure-white)",
-        height: "calc(100vh - 64px)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden"
-      }}>
-        <TimeTrackingHeader
-          style={{ padding: '9.5px 32px' }}
-          icon={<ClipboardList size={20} color="#0ea5e9" />}
-          title={isEditMode ? "Edit Timesheet" : "Submit Timesheet"}
-          description={isEditMode ? "Review and save your updated timesheet for this period." : "Please fill in your working hours for the current week."}
-          extra={
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-table-header)", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)", height: 38 }}>
+      <div className="du-shell">
+        {/* SIDEBAR */}
+        <div className="du-sidebar">
+          <div className="ts-side-head">
+            <div className="ts-side-logo"><Calendar size={20} /></div>
+            <div className="ts-side-head-text">
+              <div className="ts-side-title">{isEditMode ? "Edit Timesheet" : "Submit Timesheet"}</div>
+              <div className="ts-side-subtitle">Time · Tracking</div>
+            </div>
+          </div>
+          
+          <div className="du-sidebar-scroll">
+            <div className="du-side-group">
+              <div className="du-side-label">Overview</div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 12px" }}>
+                <div style={{ padding: "4px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Project Count
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-slate-900)" }}>
+                    {new Set(rows.filter((r) => !r.isLeave && !r.isHoliday && r.projectName).map((r) => r.projectName)).size}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN AREA */}
+        <div className="du-main">
+          <div className="du-main-header">
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)", height: 38 }}>
                 <Button
                   type="text"
                   icon={<ChevronLeft size={16} />}
@@ -3617,10 +3635,11 @@ export default function SubmittimesheetTab({
                   alignItems: "center",
                   gap: 12,
                   padding: "6px 12px",
-                  background: "var(--bg-table-header)",
+                  background: "transparent",
                   borderRadius: 12,
                   border: "1px solid var(--border-slate-200)",
-                  height: 38
+                  height: 38,
+                  marginLeft: 8
                 }}>
                   <Clock size={16} color="var(--text-slate-600)" />
                   <div style={{ width: 60 }}>
@@ -3635,7 +3654,9 @@ export default function SubmittimesheetTab({
                   <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>{totalHours}h</Text>
                 </div>
               </Tooltip>
+            </div>
 
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Button
                 icon={<Save size={16} />}
                 loading={saveDraftLoading}
@@ -3655,44 +3676,43 @@ export default function SubmittimesheetTab({
                 Submit
               </Button>
             </div>
+          </div>
+
+          <style dangerouslySetInnerHTML={{
+            __html: `
+          .timesheet-scroll-area { 
+            scrollbar-width: none !important; 
+            -ms-overflow-style: none !important;
           }
-        />
+          .timesheet-scroll-area::-webkit-scrollbar { 
+            display: none !important; 
+          }
+          .day-card { 
+            transition: all 0.2s ease; 
+            border: 1px solid var(--border-slate-100) !important;
+          }
+          .day-card:hover { 
+            border-color: var(--text-sky-500) !important;
+            box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.05) !important;
+          }
+          .entry-row-active {
+            background: transparent;
+          }
+          .entry-row-leave {
+            background: var(--bg-leave);
+          }
+          .entry-row-holiday {
+            background: var(--bg-holiday);
+          }
+        `}} />
 
-        <style dangerouslySetInnerHTML={{
-          __html: `
-        .timesheet-scroll-area { 
-          scrollbar-width: none !important; 
-          -ms-overflow-style: none !important;
-        }
-        .timesheet-scroll-area::-webkit-scrollbar { 
-          display: none !important; 
-        }
-        .day-card { 
-          transition: all 0.2s ease; 
-          border: 1px solid var(--border-slate-100) !important;
-        }
-        .day-card:hover { 
-          border-color: var(--text-sky-500) !important;
-          box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.05) !important;
-        }
-        .entry-row-active {
-          background: var(--bg-pure-white);
-        }
-        .entry-row-leave {
-          background: var(--bg-leave);
-        }
-        .entry-row-holiday {
-          background: var(--bg-holiday);
-        }
-      `}} />
-
-        {/* Main Content Card Wrapper */}
-        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          {/* Main Content Card Wrapper */}
+          <div className="timesheet-scroll-area du-main-scroll" style={{ flex: 1, padding: "24px" }}>
           <Card
             bordered={false}
             style={{
               borderRadius: 16,
-              background: "var(--bg-pure-white)",
+              background: "transparent",
               border: "1px solid var(--border-slate-100)",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               overflow: "hidden",
@@ -3712,7 +3732,7 @@ export default function SubmittimesheetTab({
             >
               {weekLeaveCount > 0 && (
                 <div style={{ padding: "12px 16px", background: "var(--bg-leave)", borderRadius: 12, border: "1px solid var(--border-blue-200)", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ background: "var(--bg-pure-white)", padding: 6, borderRadius: 8, color: "#f43f5e", display: "flex" }}>
+                  <div style={{ background: "transparent", padding: 6, borderRadius: 8, color: "#f43f5e", display: "flex" }}>
                     <AlertCircle size={18} />
                   </div>
                   <Text style={{ color: "#9f1239", fontSize: 13 }}>
@@ -3723,7 +3743,7 @@ export default function SubmittimesheetTab({
 
               {weekHolidayCount > 0 && (
                 <div style={{ padding: "12px 16px", background: "var(--bg-holiday)", borderRadius: 12, border: "1px solid var(--border-blue-200)", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ background: "var(--bg-pure-white)", padding: 6, borderRadius: 8, color: "#10b981", display: "flex" }}>
+                  <div style={{ background: "transparent", padding: 6, borderRadius: 8, color: "#10b981", display: "flex" }}>
                     <Calendar size={18} />
                   </div>
                   <Text style={{ color: "#166534", fontSize: 13 }}>
@@ -3761,7 +3781,7 @@ export default function SubmittimesheetTab({
                     style={{
                       borderRadius: 12,
                       border: isToday ? "1px solid var(--text-sky-500)" : "1px solid var(--border-slate-100)",
-                      background: isLeaveDay ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "var(--bg-pure-white)",
+                      background: isLeaveDay ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "transparent",
                       cursor: "pointer",
                     }}
                     bodyStyle={{ padding: 16 }}
@@ -3774,14 +3794,14 @@ export default function SubmittimesheetTab({
                         <div style={{
                           width: 44,
                           height: 44,
-                          background: isToday ? "var(--text-sky-500)" : isLeaveDay ? "#f43f5e" : isHoliday ? "#10b981" : "var(--bg-table-header)",
+                          background: isToday ? "var(--text-sky-500)" : isLeaveDay ? "#f43f5e" : isHoliday ? "#10b981" : "transparent",
+                          border: isToday || isLeaveDay || isHoliday ? "none" : "1px solid var(--border-slate-200)",
                           borderRadius: 10,
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
                           color: isToday || isLeaveDay || isHoliday ? "white" : "var(--text-slate-600)",
-                          border: isToday || isLeaveDay || isHoliday ? "none" : "1px solid var(--border-slate-200)"
                         }}>
                           <Text style={{ color: "inherit", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{day.label.toUpperCase()}</Text>
                           <Text style={{ color: "inherit", fontSize: 16, fontWeight: 800, lineHeight: 1.2 }}>{day.dayNumber}</Text>
@@ -4112,7 +4132,100 @@ export default function SubmittimesheetTab({
             )}
           </div>
         </Modal>
+        </div>
       </div>
+      <style jsx global>{`
+        .du-shell {
+          margin: 0;
+          display: flex;
+          align-items: stretch;
+          min-height: calc(100vh - 64px);
+          background: transparent;
+        }
+
+        .du-sidebar {
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          height: calc(100vh - 64px);
+          width: 240px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          background: transparent;
+          border-right: 1px solid var(--border-slate-200);
+        }
+
+        .ts-side-head {
+          display: flex; align-items: center; gap: 12px; padding: 18px 18px 14px; margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .ts-side-logo {
+          width: 32px; height: 32px; border-radius: 8px;
+          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+        }
+        .ts-side-head-text { display: flex; flex-direction: column; min-width: 0; }
+        .ts-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .ts-side-subtitle {
+          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
+          text-transform: uppercase; letter-spacing: 0.07em;
+        }
+
+        .du-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .du-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+        .du-side-group { margin-bottom: 13px; }
+
+        .du-side-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+
+        .du-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          height: calc(100vh - 64px);
+        }
+
+        .du-main-header {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          height: 52px;
+          border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+        }
+
+        .du-main-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
+        }
+      `}</style>
     </>
   );
 }

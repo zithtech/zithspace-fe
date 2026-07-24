@@ -1,6 +1,7 @@
 'use client';
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -477,14 +478,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               className="action-btn-edit"
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
             title="Delete mapping?"
             description="Warning: This may break ticket integrity."
             onConfirm={() => handleDelete(record)}
-            okText="Confirm Delete"
+            confirmText="Confirm Delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true, style: { borderRadius: 8 } }}
-            cancelButtonProps={{ style: { borderRadius: 8 } }}
           >
             <Button
               type="text"
@@ -493,7 +493,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               disabled={!canDeleteTicketSetting}
               className="action-btn-delete"
             />
-          </Popconfirm>
+          </ConfirmDialog>
         </Space>
       )
     }
@@ -804,14 +804,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }}
         extra={
           <Space size={8}>
-            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 0, fontWeight: 600, fontSize: 12, height: 32 }}>Discard</Button>
+            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Discard</Button>
             <Button
               type="primary"
               loading={loading}
               onClick={() => form.submit()}
               icon={editingOption ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
               style={{
-                borderRadius: 0,
+                borderRadius: 8,
                 fontSize: 12,
                 fontWeight: 700,
                 background: '#2563eb',

@@ -3283,6 +3283,11 @@ export default function BucketManagementPage() {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
+        @media (max-width: 800px) {
+          .pp-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
         @media (max-width: 640px) {
           .pp-stats {
             grid-template-columns: 1fr;

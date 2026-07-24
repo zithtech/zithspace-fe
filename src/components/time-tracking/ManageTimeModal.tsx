@@ -57,13 +57,31 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     return null;
   }, [startTime, endTime]);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const projectsQueryParam = selectedProjectIds.length > 0 ? selectedProjectIds.join(',') : undefined;
+
   const { data: userTicketsResponse, isLoading: loadingTickets } = useQuery({
-    queryKey: ['user-tickets', selectedUserId],
-    queryFn: () => TicketService.getTickets({ assigneeId: selectedUserId, limit: 1000, sprintId: 'active' }),
+    queryKey: ['user-tickets', selectedUserId, projectsQueryParam, debouncedSearch],
+    queryFn: () => TicketService.getTickets({ 
+      assigneeId: selectedUserId, 
+      projectId: projectsQueryParam,
+      search: debouncedSearch || undefined,
+      limit: 20 
+    }),
     enabled: !!selectedUserId
   });
 
-  const allUserTickets = useMemo(() => userTicketsResponse?.data || [], [userTicketsResponse]);
+  const filteredTickets = useMemo(() => userTicketsResponse?.data || [], [userTicketsResponse]);
+  const allUserTickets = filteredTickets;
 
   const { data: userProjectsResponse, isLoading: loadingProjects } = useQuery({
     queryKey: ['user-projects-manage', selectedUserId],
@@ -76,21 +94,17 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     return projects.map((p: any) => ({ value: p.id, label: p.name }));
   }, [userProjectsResponse]);
 
-  const filteredTickets = useMemo(() => {
-    if (selectedProjectIds.length === 0) return allUserTickets;
-    return allUserTickets.filter((t: any) => {
-      const pId = (t.project && typeof t.project === 'object') ? t.project.id : t.project;
-      return selectedProjectIds.includes(pId);
-    });
-  }, [allUserTickets, selectedProjectIds]);
-
   useEffect(() => {
     form.setFieldsValue({ projectIds: [], ticketIds: [] });
+    setSearchTerm('');
+    setDebouncedSearch('');
   }, [selectedUserId, form]);
 
   useEffect(() => {
     if (open) {
       form.resetFields();
+      setSearchTerm('');
+      setDebouncedSearch('');
     }
   }, [open, form]);
 
@@ -291,14 +305,9 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
               loading={loadingTickets}
               maxTagCount="responsive"
               showSearch
-              filterOption={(input, option) => {
-                const ticket = allUserTickets.find((t: any) => t.id === option?.value);
-                if (!ticket) return false;
-                return (
-                  ticket.title.toLowerCase().includes(input.toLowerCase()) ||
-                  ticket.ticketNumber.toLowerCase().includes(input.toLowerCase())
-                );
-              }}
+              onSearch={setSearchTerm}
+              onClear={() => setSearchTerm('')}
+              filterOption={false}
               optionLabelProp="label"
             >
               {filteredTickets.map((t: any) => (

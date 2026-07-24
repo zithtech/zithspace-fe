@@ -2065,7 +2065,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           placement="left"
                           onConfirm={() => handleDeleteTicket(record.id)}
                         >
-                          <div 
+                          <div
                             className="tl-menu-item"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -3593,8 +3593,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               placement="left"
               open={isSidebarOpen}
               onClose={() => setIsSidebarOpen(false)}
-              styles={{ 
-                body: { padding: 0, background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }, 
+              styles={{
+                body: { padding: 0, background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" },
                 header: { display: "none" },
                 mask: { background: "rgba(0, 0, 0, 0.45)" },
                 content: { background: theme === "dark" ? "#0B0F1A" : "#FFFFFF" }
@@ -3603,199 +3603,199 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               closeIcon={null}
             >
               <TicketSidebar
-            activeSprint={activeSprint as any}
-            overallSprintTickets={sidebarSprintPool as any}
-            totalBacklog={totalBacklogCount}
-            myBacklogCount={myBacklogCount}
-            currentUserId={user?.id}
-            currentUserName={user?.name}
-            typeOptions={finalTypeOptions as any}
-            recentComments={recentActivity?.comments || []}
-            recentAttachments={recentActivity?.attachments || []}
-            activeSection={effectiveSection}
-            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
-            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
-            commentedFilterActive={activeQuickFilters.commented}
-            attachedFilterActive={activeQuickFilters.attached}
-            overdueFilterActive={activeQuickFilters.overdue}
-            overdueTickets={recentActivity?.overdue || []}
-            onShowOverdueTickets={() => {
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onShowCommentedTickets={() => {
-              // Remember where the user was so the filtered view can go back.
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onShowAttachedTickets={() => {
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onNavigate={(section) => {
-              // Leaving the filtered view should clear the quick filters too,
-              // so the user goes back to a clean Sprint/Backlog view.
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              // If the user was in a "My Sprint/Backlog Tickets" view (assignee
-              // pinned to self), clicking the plain Sprint/Backlog row should
-              // drop that filter and show the full section.
-              if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
-                setFilters(prev => ({ ...prev, assignee: [] }));
-              }
-              setSidebarActiveSection(section);
-              // In Board view, switch the kanban scope to match instead of
-              // dragging the user into List view. Calendar stays as-is.
-              if (viewMode === 'board') {
-                setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
-              } else if (viewMode === 'calendar' && section === 'backlog') {
-                // Calendar has no backlog representation — fall back to List
-                // so the user actually sees the backlog table.
-                setViewMode('list');
-              }
-            }}
-            onShowMySprintTickets={() => {
-              if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
-              const newAssignee = isOn ? [] : [user.id];
-              if (sidebarActiveSection !== 'sprint') {
-                filterSnapshotsRef.current.sprint.assignee = newAssignee;
-              }
-              setFilters(prev => ({
-                ...prev,
-                assignee: newAssignee,
-              }));
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              setSidebarActiveSection('sprint');
-              if (viewMode === 'board') setKanbanScope('active');
-            }}
-            onShowMyBacklog={() => {
-              if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
-              const newAssignee = isOn ? [] : [user.id];
-              if (sidebarActiveSection !== 'backlog') {
-                filterSnapshotsRef.current.backlog.assignee = newAssignee;
-              }
-              setFilters(prev => ({
-                ...prev,
-                assignee: newAssignee,
-              }));
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              setSidebarActiveSection('backlog');
-              if (viewMode === 'board') setKanbanScope('backlog');
-              else if (viewMode === 'calendar') setViewMode('list');
-            }}
-            onTicketClick={(id) => setSelectedTicketId(id)}
-          />
+                activeSprint={activeSprint as any}
+                overallSprintTickets={sidebarSprintPool as any}
+                totalBacklog={totalBacklogCount}
+                myBacklogCount={myBacklogCount}
+                currentUserId={user?.id}
+                currentUserName={user?.name}
+                typeOptions={finalTypeOptions as any}
+                recentComments={recentActivity?.comments || []}
+                recentAttachments={recentActivity?.attachments || []}
+                activeSection={effectiveSection}
+                isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+                isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+                commentedFilterActive={activeQuickFilters.commented}
+                attachedFilterActive={activeQuickFilters.attached}
+                overdueFilterActive={activeQuickFilters.overdue}
+                overdueTickets={recentActivity?.overdue || []}
+                onShowOverdueTickets={() => {
+                  if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                    setPreviousSection(sidebarActiveSection);
+                  }
+                  setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
+                  setPagination((prev) => ({ ...prev, current: 1 }));
+                  if (viewMode !== 'list') setViewMode('list');
+                }}
+                onShowCommentedTickets={() => {
+                  // Remember where the user was so the filtered view can go back.
+                  if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                    setPreviousSection(sidebarActiveSection);
+                  }
+                  setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
+                  setPagination((prev) => ({ ...prev, current: 1 }));
+                  if (viewMode !== 'list') setViewMode('list');
+                }}
+                onShowAttachedTickets={() => {
+                  if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                    setPreviousSection(sidebarActiveSection);
+                  }
+                  setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
+                  setPagination((prev) => ({ ...prev, current: 1 }));
+                  if (viewMode !== 'list') setViewMode('list');
+                }}
+                onNavigate={(section) => {
+                  // Leaving the filtered view should clear the quick filters too,
+                  // so the user goes back to a clean Sprint/Backlog view.
+                  if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                  // If the user was in a "My Sprint/Backlog Tickets" view (assignee
+                  // pinned to self), clicking the plain Sprint/Backlog row should
+                  // drop that filter and show the full section.
+                  if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
+                    setFilters(prev => ({ ...prev, assignee: [] }));
+                  }
+                  setSidebarActiveSection(section);
+                  // In Board view, switch the kanban scope to match instead of
+                  // dragging the user into List view. Calendar stays as-is.
+                  if (viewMode === 'board') {
+                    setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
+                  } else if (viewMode === 'calendar' && section === 'backlog') {
+                    // Calendar has no backlog representation — fall back to List
+                    // so the user actually sees the backlog table.
+                    setViewMode('list');
+                  }
+                }}
+                onShowMySprintTickets={() => {
+                  if (!user?.id) return;
+                  const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+                  const newAssignee = isOn ? [] : [user.id];
+                  if (sidebarActiveSection !== 'sprint') {
+                    filterSnapshotsRef.current.sprint.assignee = newAssignee;
+                  }
+                  setFilters(prev => ({
+                    ...prev,
+                    assignee: newAssignee,
+                  }));
+                  if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                  setSidebarActiveSection('sprint');
+                  if (viewMode === 'board') setKanbanScope('active');
+                }}
+                onShowMyBacklog={() => {
+                  if (!user?.id) return;
+                  const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+                  const newAssignee = isOn ? [] : [user.id];
+                  if (sidebarActiveSection !== 'backlog') {
+                    filterSnapshotsRef.current.backlog.assignee = newAssignee;
+                  }
+                  setFilters(prev => ({
+                    ...prev,
+                    assignee: newAssignee,
+                  }));
+                  if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                  setSidebarActiveSection('backlog');
+                  if (viewMode === 'board') setKanbanScope('backlog');
+                  else if (viewMode === 'calendar') setViewMode('list');
+                }}
+                onTicketClick={(id) => setSelectedTicketId(id)}
+              />
             </Drawer>
           ) : (
             <TicketSidebar
-            activeSprint={activeSprint as any}
-            overallSprintTickets={sidebarSprintPool as any}
-            totalBacklog={totalBacklogCount}
-            myBacklogCount={myBacklogCount}
-            currentUserId={user?.id}
-            currentUserName={user?.name}
-            typeOptions={finalTypeOptions as any}
-            recentComments={recentActivity?.comments || []}
-            recentAttachments={recentActivity?.attachments || []}
-            activeSection={effectiveSection}
-            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
-            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
-            commentedFilterActive={activeQuickFilters.commented}
-            attachedFilterActive={activeQuickFilters.attached}
-            overdueFilterActive={activeQuickFilters.overdue}
-            overdueTickets={recentActivity?.overdue || []}
-            onShowOverdueTickets={() => {
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onShowCommentedTickets={() => {
-              // Remember where the user was so the filtered view can go back.
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onShowAttachedTickets={() => {
-              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
-                setPreviousSection(sidebarActiveSection);
-              }
-              setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
-              setPagination((prev) => ({ ...prev, current: 1 }));
-              if (viewMode !== 'list') setViewMode('list');
-            }}
-            onNavigate={(section) => {
-              // Leaving the filtered view should clear the quick filters too,
-              // so the user goes back to a clean Sprint/Backlog view.
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              // If the user was in a "My Sprint/Backlog Tickets" view (assignee
-              // pinned to self), clicking the plain Sprint/Backlog row should
-              // drop that filter and show the full section.
-              if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
-                setFilters(prev => ({ ...prev, assignee: [] }));
-              }
-              setSidebarActiveSection(section);
-              // In Board view, switch the kanban scope to match instead of
-              // dragging the user into List view. Calendar stays as-is.
-              if (viewMode === 'board') {
-                setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
-              } else if (viewMode === 'calendar' && section === 'backlog') {
-                // Calendar has no backlog representation — fall back to List
-                // so the user actually sees the backlog table.
-                setViewMode('list');
-              }
-            }}
-            onShowMySprintTickets={() => {
-              if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
-              const newAssignee = isOn ? [] : [user.id];
-              if (sidebarActiveSection !== 'sprint') {
-                filterSnapshotsRef.current.sprint.assignee = newAssignee;
-              }
-              setFilters(prev => ({
-                ...prev,
-                assignee: newAssignee,
-              }));
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              setSidebarActiveSection('sprint');
-              if (viewMode === 'board') setKanbanScope('active');
-            }}
-            onShowMyBacklog={() => {
-              if (!user?.id) return;
-              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
-              const newAssignee = isOn ? [] : [user.id];
-              if (sidebarActiveSection !== 'backlog') {
-                filterSnapshotsRef.current.backlog.assignee = newAssignee;
-              }
-              setFilters(prev => ({
-                ...prev,
-                assignee: newAssignee,
-              }));
-              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-              setSidebarActiveSection('backlog');
-              if (viewMode === 'board') setKanbanScope('backlog');
-              else if (viewMode === 'calendar') setViewMode('list');
-            }}
-            onTicketClick={(id) => setSelectedTicketId(id)}
-          />
+              activeSprint={activeSprint as any}
+              overallSprintTickets={sidebarSprintPool as any}
+              totalBacklog={totalBacklogCount}
+              myBacklogCount={myBacklogCount}
+              currentUserId={user?.id}
+              currentUserName={user?.name}
+              typeOptions={finalTypeOptions as any}
+              recentComments={recentActivity?.comments || []}
+              recentAttachments={recentActivity?.attachments || []}
+              activeSection={effectiveSection}
+              isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+              isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()}
+              commentedFilterActive={activeQuickFilters.commented}
+              attachedFilterActive={activeQuickFilters.attached}
+              overdueFilterActive={activeQuickFilters.overdue}
+              overdueTickets={recentActivity?.overdue || []}
+              onShowOverdueTickets={() => {
+                if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                  setPreviousSection(sidebarActiveSection);
+                }
+                setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                if (viewMode !== 'list') setViewMode('list');
+              }}
+              onShowCommentedTickets={() => {
+                // Remember where the user was so the filtered view can go back.
+                if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                  setPreviousSection(sidebarActiveSection);
+                }
+                setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                if (viewMode !== 'list') setViewMode('list');
+              }}
+              onShowAttachedTickets={() => {
+                if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                  setPreviousSection(sidebarActiveSection);
+                }
+                setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                if (viewMode !== 'list') setViewMode('list');
+              }}
+              onNavigate={(section) => {
+                // Leaving the filtered view should clear the quick filters too,
+                // so the user goes back to a clean Sprint/Backlog view.
+                if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                // If the user was in a "My Sprint/Backlog Tickets" view (assignee
+                // pinned to self), clicking the plain Sprint/Backlog row should
+                // drop that filter and show the full section.
+                if (user?.id && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString()) {
+                  setFilters(prev => ({ ...prev, assignee: [] }));
+                }
+                setSidebarActiveSection(section);
+                // In Board view, switch the kanban scope to match instead of
+                // dragging the user into List view. Calendar stays as-is.
+                if (viewMode === 'board') {
+                  setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
+                } else if (viewMode === 'calendar' && section === 'backlog') {
+                  // Calendar has no backlog representation — fall back to List
+                  // so the user actually sees the backlog table.
+                  setViewMode('list');
+                }
+              }}
+              onShowMySprintTickets={() => {
+                if (!user?.id) return;
+                const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+                const newAssignee = isOn ? [] : [user.id];
+                if (sidebarActiveSection !== 'sprint') {
+                  filterSnapshotsRef.current.sprint.assignee = newAssignee;
+                }
+                setFilters(prev => ({
+                  ...prev,
+                  assignee: newAssignee,
+                }));
+                if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                setSidebarActiveSection('sprint');
+                if (viewMode === 'board') setKanbanScope('active');
+              }}
+              onShowMyBacklog={() => {
+                if (!user?.id) return;
+                const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0]?.toString() === user.id.toString();
+                const newAssignee = isOn ? [] : [user.id];
+                if (sidebarActiveSection !== 'backlog') {
+                  filterSnapshotsRef.current.backlog.assignee = newAssignee;
+                }
+                setFilters(prev => ({
+                  ...prev,
+                  assignee: newAssignee,
+                }));
+                if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                setSidebarActiveSection('backlog');
+                if (viewMode === 'board') setKanbanScope('backlog');
+                else if (viewMode === 'calendar') setViewMode('list');
+              }}
+              onTicketClick={(id) => setSelectedTicketId(id)}
+            />
           )}
           <div className="tl-main">
             {/* Premium Header Row - Sticky Solid Background */}

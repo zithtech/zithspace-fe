@@ -202,6 +202,15 @@ export default function TopNav({
   const isCustomBreakpoint = useIsBreakpoint("max", 1290); // true when width <= 1289
 
   // Bookmarks state
+  const actionMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="nv-action-item">
+      <span className="nv-action-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="nv-action-text">
+        <span className="nv-action-title">{title}</span>
+        <span className="nv-action-desc">{desc}</span>
+      </span>
+    </div>
+  );
   const [shortcutPopoverVisible, setShortcutPopoverVisible] = useState(false);
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(() => {
     try { return JSON.parse(localStorage.getItem('nav_shortcuts') || '[]'); } catch { return []; }
@@ -842,7 +851,7 @@ export default function TopNav({
         ) : (
           <Space size={isSmallMobile ? 4 : 8}>
             <ThemeToggle />
-            {canReadNotification && (
+            {/* {canReadNotification && (
               <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                 <Inbox
                   applicationIdentifier="67g_5lVLFWvd"
@@ -851,37 +860,75 @@ export default function TopNav({
                   appearance={novuAppearance}
                 />
               </div>
-            )}
+            )} */}
             <Dropdown
+              overlayClassName="nv-action-pop"
               menu={{
                 items: [
                   ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
                     key: 'timer',
-                    label: <TimeTrackerPopover isMenuItem />,
+                    label: actionMenuLabel(
+                      'Time Tracking',
+                      'Track your work',
+                      <Timer size={16} strokeWidth={1.75} />,
+                      '#64748b',
+                      'rgba(100,116,139,0.12)'
+                    ),
                     onClick: () => setPopoverOpen(true)
                   }] : []),
                   ...(hasPermission(Permissions.MAIL_READ) ? [{
                     key: 'mail',
-                    label: 'Mail',
-                    icon: <Mail size={16} strokeWidth={1.75} />,
+                    label: actionMenuLabel(
+                      'Mail',
+                      'Inbox & messages',
+                      <Mail size={16} strokeWidth={1.75} />,
+                      '#3b82f6',
+                      'rgba(59,130,246,0.12)'
+                    ),
                     onClick: () => router.push('/mail')
                   }] : []),
                   ...(hasPermission(Permissions.CALENDAR_READ) ? [{
                     key: 'calendar',
-                    label: 'Calendar',
-                    icon: <CalendarDays size={16} strokeWidth={1.75} />,
+                    label: actionMenuLabel(
+                      'Calendar',
+                      'Meetings & events',
+                      <CalendarDays size={16} strokeWidth={1.75} />,
+                      '#8b5cf6',
+                      'rgba(139,92,246,0.12)'
+                    ),
                     onClick: () => router.push('/calendar')
                   }] : []),
                   ...(hasPermission(Permissions.CHAT_READ) ? [{
                     key: 'chat',
-                    label: 'Messages',
-                    icon: <MessageSquareText size={16} strokeWidth={1.75} />,
+                    label: actionMenuLabel(
+                      'Messages',
+                      'Team chat',
+                      <MessageSquareText size={16} strokeWidth={1.75} />,
+                      '#059669',
+                      'rgba(5,150,105,0.12)'
+                    ),
                     onClick: () => router.push('/chat')
+                  }] : []),
+                  ...(canReadActivityLogAll ? [{
+                    key: 'activity',
+                    label: actionMenuLabel(
+                      'Activity',
+                      'Transaction history',
+                      <History size={16} strokeWidth={1.75} />,
+                      '#f59e0b',
+                      'rgba(245,158,11,0.12)'
+                    ),
+                    onClick: () => router.push('/activity')
                   }] : []),
                   ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
                     key: 'bookmarks',
-                    label: 'Bookmarks',
-                    icon: <Bookmark size={16} strokeWidth={1.75} />,
+                    label: actionMenuLabel(
+                      'Bookmarks',
+                      'Saved shortcuts',
+                      <Bookmark size={16} strokeWidth={1.75} />,
+                      '#ec4899',
+                      'rgba(236,72,153,0.12)'
+                    ),
                     onClick: (e: any) => {
                       e.domEvent.stopPropagation();
                       setShortcutPopoverVisible(true);
@@ -1426,6 +1473,51 @@ export default function TopNav({
                 }
                 [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar-track {
                     background: transparent;
+                }
+
+                /* Proposal Action Popup Style for Quick Access */
+                .nv-action-pop .ant-dropdown-menu {
+                    padding: 6px; border-radius: 0 !important; min-width: 236px;
+                    overflow: hidden !important;
+                    background: var(--bg-pure-white);
+                    border: 1px solid var(--border-slate-100);
+                    box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+                }
+                .nv-action-pop .ant-dropdown-menu-item {
+                    padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+                    transition: background .12s ease;
+                }
+                .nv-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+                .nv-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+                .nv-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+                .nv-action-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+                .nv-action-ic {
+                    width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+                    display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+                }
+                .nv-action-text { display: flex; flex-direction: column; min-width: 0; }
+                .nv-action-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+                .nv-action-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+
+                /* Dark Theme for nv-action-pop */
+                [data-theme='dark'] .nv-action-pop .ant-dropdown-menu {
+                    background: #0B0F1A !important;
+                    border-radius: 0 !important;
+                    overflow: hidden !important;
+                    border: 1px solid #1E293B !important;
+                    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+                }
+                [data-theme='dark'] .nv-action-pop .ant-dropdown-menu-item:hover {
+                    background: #161B22 !important;
+                }
+                [data-theme='dark'] .nv-action-pop .ant-dropdown-menu-item-divider {
+                    background: #1E293B !important;
+                }
+                [data-theme='dark'] .nv-action-title {
+                    color: #cbd5e1 !important;
+                }
+                [data-theme='dark'] .nv-action-desc {
+                    color: #64748b !important;
                 }
 
                 /* Mobile Timer Modal Polish */

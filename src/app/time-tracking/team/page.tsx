@@ -353,14 +353,14 @@ export default function TeamTimePage() {
         @media (max-width: 820px) {
           .dh-shell { flex-direction: column; display: flex; margin: 0; padding-left: 0; gap: 0; }
           .dh-sidebar-backdrop {
-            display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            display: block; position: fixed; top: 54px; left: 0; right: 0; bottom: 0;
             background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px);
             z-index: 998; opacity: 0; pointer-events: none; transition: opacity 0.3s;
           }
           .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
           .dh-sidebar {
-            position: fixed; top: 0; left: -320px; bottom: 0;
-            z-index: 999; height: 100vh; max-height: none; width: 280px;
+            position: fixed; top: 54px; left: -320px; bottom: 0;
+            z-index: 999; height: calc(100vh - 54px); max-height: none; width: 280px;
             border-right: 1px solid var(--border-slate-200); border-bottom: 0; border-radius: 0;
             display: flex; flex-direction: column; align-items: stretch;
             background: var(--bg-pure-white); box-sizing: border-box;

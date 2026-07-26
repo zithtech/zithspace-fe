@@ -239,6 +239,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     );
   };
 
+  const finalWidth = width === "100%" ? (triggerWidth || 'auto') : width;
   const overlay = (
     <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: triggerWidth || width }}>
       <div className="sd-search-box">
@@ -509,7 +510,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 [data-theme='dark'] .sd-trigger-value { color: #e2e8f0; }
 [data-theme='dark'] .sd-trigger.is-active .sd-trigger-value { color: #f8fafc; }
 
-.sd-overlay-popover.ant-popover { padding-top: 4px; }
+.sd-overlay-popover.ant-popover { padding-top: 4px; z-index: 10000 !important; }
 .sd-overlay-popover .ant-popover-content {
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
   border-radius: 8px !important;

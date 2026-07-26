@@ -350,6 +350,7 @@ export default function ProjectTrashManagementPage() {
                     onChange={(val) => setFilters(prev => ({ ...prev, projectId: val ?? undefined }))}
                     options={uniqueProjects.map(([id, name]) => ({ value: id as string, label: name as string }))}
                     width="100%"
+                    style={{ width: '100%' }}
                   />
 
                   <SearchableDropdown
@@ -377,6 +378,7 @@ export default function ProjectTrashManagementPage() {
                         )
                       }))}
                       width="100%"
+                      style={{ width: '100%' }}
                     />
 
                   <DatePicker.RangePicker

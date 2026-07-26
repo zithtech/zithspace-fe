@@ -8,6 +8,7 @@ import {
   Tags,
   ScrollText,
   Target,
+  Settings,
 } from 'lucide-react';
 
 // Single source of truth for the Reimbursement 2.0 left-rail.
@@ -87,6 +88,14 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Target size={16} />,
     color: '#EF4444',
     anyPerm: ['canReadReimbursementConfig', 'canReadReimbursementDashboard'],
+  },
+  {
+    key: 'settings',
+    label: 'Settings',
+    href: '/reimbursement-v2/settings',
+    icon: <Settings size={16} />,
+    color: '#64748B',
+    anyPerm: ['canReadReimbursementConfig'],
   },
 ];
 

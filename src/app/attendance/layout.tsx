@@ -107,7 +107,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
         <style jsx global>{`
           .att-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
             height: calc(100vh - 64px);
             background: var(--bg-pure-white);
             overflow: hidden;
@@ -174,6 +174,18 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
             z-index: 100;
             background: var(--bg-pure-white) !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+          }
+
+          /* Dark Mode Overrides */
+          [data-theme="dark"] .att-shell,
+          [data-theme="dark"] .att-sidebar {
+            background: var(--bg-primary, #0f172a) !important;
+          }
+          [data-theme="dark"] .adb-header,
+          [data-theme="dark"] .cio-header,
+          [data-theme="dark"] .att-header {
+            background: var(--bg-primary, #0f172a) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
           }
 
           /* ---------------- Responsive Styles ---------------- */

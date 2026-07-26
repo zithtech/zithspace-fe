@@ -12,6 +12,17 @@ function unwrap<T>(data: any): T {
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+export interface ReimbMailConfig {
+  replyToMode: 'logged_in_user' | 'custom';
+  customReplyToEmail?: string;
+  reportsToEnabled: boolean;
+  additionalToEmails: string[];
+  customToEmails: string[];
+  officeCcEnabled: boolean;
+  additionalCcEmails: string[];
+  customCcEmails: string[];
+}
+
 export type CategoryKind = 'amount' | 'mileage';
 
 export interface ExpenseCategory {
@@ -548,6 +559,16 @@ export const ReimbursementV2Service = {
       }));
     }
     return items.map((e: any) => ({ value: e.id, label: e.name ?? e.title ?? e.label ?? e.code }));
+  },
+
+  // ── Settings ────────────────────────────────────────────────────────────────
+  async getMailSettings(): Promise<ReimbMailConfig> {
+    const res = await apiClient.get(`${BASE}/settings/mail`);
+    return unwrap<ReimbMailConfig>(res.data);
+  },
+  async updateMailSettings(data: ReimbMailConfig): Promise<ReimbMailConfig> {
+    const res = await apiClient.put(`${BASE}/settings/mail`, data);
+    return unwrap<ReimbMailConfig>(res.data);
   },
 };
 

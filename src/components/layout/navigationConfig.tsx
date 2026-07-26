@@ -792,43 +792,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
 
       {
-        key: "performance-report",
+        key: "/performance-report/reports",
         icon: I(TrendingUp),
         label: "Performance Report",
+        path: "/performance-report/reports",
         requiredAnyPermission: [
           Permissions.PERFORMANCE_REPORT_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
-        ],
-        children: [
-          {
-            key: "/performance-report/reports",
-            icon: I(Gauge),
-            label: "Reports",
-            path: "/performance-report/reports",
-            requiredPermission: Permissions.PERFORMANCE_REPORT_READ,
-          },
-          {
-            key: "/performance-report/settings",
-            icon: I(SlidersHorizontal),
-            label: "Settings",
-            path: "/performance-report/settings",
-            requiredPermission: Permissions.PERFORMANCE_REPORT_SETTING_READ,
-          },
-          {
-            key: "/performance-report/generated",
-            icon: I(Archive),
-            label: "Generated Reports",
-            path: "/performance-report/generated",
-            requiredPermission: Permissions.PERFORMANCE_REPORT_GENERATED_READ,
-          },
-          {
-            key: "/performance-report/my-reports",
-            icon: I(CircleUser),
-            label: "My Reports",
-            path: "/performance-report/my-reports",
-            requiredPermission: Permissions.PERFORMANCE_REPORT_MY_READ,
-          },
         ],
       },
 

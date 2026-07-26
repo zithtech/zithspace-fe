@@ -689,10 +689,10 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                   <div className="zai-components-selection" style={{ padding: '24px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? '#f8fafc' : '#1e293b' }}>Select Components to Generate</div>
-                      <Dropdown 
+                      <Dropdown
                         overlayStyle={{ minWidth: 220 }}
                         trigger={['click']}
-                        menu={{ 
+                        menu={{
                           style: { maxHeight: 340, overflowY: 'auto', padding: '8px', borderRadius: 12, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' },
                           items: Object.entries(
                             PALETTE
@@ -735,12 +735,12 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                         const label = meta?.label || pal?.label || phase.type;
                         const icon = meta?.icon || pal?.icon || <Zap size={16} />;
                         const color = meta?.color || pal?.accent || '#3b82f6';
-                        
+
                         return (
                           <div
                             key={phase.id}
                             onClick={() => {
-                              setActivePhases(activePhases.map(p => 
+                              setActivePhases(activePhases.map(p =>
                                 p.id === phase.id ? { ...p, checked: !p.checked } : p
                               ));
                             }}
@@ -772,12 +772,12 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                               }
                             }}
                           >
-                            <span style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
+                            <span style={{
+                              display: 'flex',
+                              alignItems: 'center',
                               justifyContent: 'center',
-                              width: 32, 
-                              height: 32, 
+                              width: 32,
+                              height: 32,
                               borderRadius: 8,
                               backgroundColor: phase.checked ? `${color}15` : (isDark ? '#334155' : '#f1f5f9'),
                               color: phase.checked ? color : (isDark ? '#94a3b8' : '#64748b'),
@@ -785,17 +785,17 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                             }}>
                               {icon}
                             </span>
-                            <span style={{ 
-                              fontSize: 14, 
-                              fontWeight: phase.checked ? 600 : 500, 
+                            <span style={{
+                              fontSize: 14,
+                              fontWeight: phase.checked ? 600 : 500,
                               color: phase.checked ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#cbd5e1' : '#475569'),
                               transition: 'all 0.2s ease'
                             }}>
                               {label}
                             </span>
                             <div style={{ marginLeft: 'auto' }}>
-                              <Checkbox 
-                                checked={phase.checked} 
+                              <Checkbox
+                                checked={phase.checked}
                                 className="zai-round-checkbox"
                                 style={{ pointerEvents: 'none' }} // Let the parent div handle the click
                               />

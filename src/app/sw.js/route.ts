@@ -44,38 +44,32 @@ self.addEventListener('push', (event) => {
       ? \`\${emoji} \${data.body}\\n\\nThis notification is coming from Zukvo (zukvo.in)\` 
       : \`\${emoji} This notification is coming from Zukvo (zukvo.in)\`;
 
-    // Check for open tabs to trigger custom audio playback
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        let hasActiveTab = false;
-        
-        for (const client of clientList) {
-          // Post message to the tab to trigger custom Javascript Audio
-          client.postMessage({ type: 'PLAY_SOUND' });
-          if (client.visibilityState === 'visible') {
-            hasActiveTab = true;
-          }
-        }
+    const options = {
+      body: displayBody,
+      icon: ZUKVO_LOGO_URL, // Small thumbnail icon
+      badge: ZUKVO_LOGO_URL, // Taskbar/status bar badge
+      tag: data.url ? data.url.split('?')[0] : 'zukvo-general',
+      requireInteraction: true, // Keep notification visible until user interacts
+      actions: [
+        { action: 'view', title: actionTitle },
+        { action: 'close', title: 'Dismiss' }
+      ],
+      data: {
+        url: data.url || '/'
+      }
+    };
 
-        const options = {
-          body: displayBody,
-          icon: ZUKVO_LOGO_URL, // Small thumbnail icon
-          badge: ZUKVO_LOGO_URL, // Taskbar/status bar badge
-          tag: data.url ? data.url.split('?')[0] : 'zukvo-general',
-          renotify: true, // Re-alert on update
-          silent: hasActiveTab, // Silence OS notification chime if the Zukvo tab is open to play custom in-tab sound
-          actions: [
-            { action: 'view', title: actionTitle },
-            { action: 'close', title: 'Dismiss' }
-          ],
-          data: {
-            url: data.url || '/'
-          }
-        };
+    // Always show the OS notification unconditionally first
+    const notificationPromise = self.registration.showNotification(title, options);
 
-        return self.registration.showNotification(title, options);
-      })
-    );
+    // Also notify active clients (if any) to play custom sounds
+    const clientsPromise = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        client.postMessage({ type: 'PLAY_SOUND' });
+      }
+    });
+
+    event.waitUntil(Promise.all([notificationPromise, clientsPromise]));
   } catch (error) {
     console.error('[Service Worker] Error parsing push event payload:', error);
   }

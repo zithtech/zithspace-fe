@@ -122,6 +122,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      setTriggerWidth(triggerRef.current.offsetWidth);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -232,7 +240,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   };
 
   const overlay = (
-    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width }}>
+    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: triggerWidth || width }}>
       <div className="sd-search-box">
         <Search size={14} className="sd-search-icon" />
         <input
@@ -328,9 +336,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       getPopupContainer={getPopupContainer}
     >
       {customTrigger ? (
-        customTrigger
+        <div ref={triggerRef} style={{ display: 'inline-block', width: '100%' }}>
+          {customTrigger}
+        </div>
       ) : (
-        <div className={triggerClasses} style={style}>
+        <div ref={triggerRef} className={triggerClasses} style={style}>
           <div className="sd-trigger-content">
             {triggerLabel && (
               <span className="sd-trigger-label">{triggerLabel}</span>

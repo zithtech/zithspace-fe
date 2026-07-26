@@ -832,7 +832,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
-      {
+/* {
         key: "employee-exit",
         icon: I(LogOut),
         label: "Employee Exit",
@@ -860,7 +860,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Megaphone),
         path: "/opening-management",
         requiredPermission: Permissions.OPENING_READ,
-      },
+      }, */
     ],
   },
   {

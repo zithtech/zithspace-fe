@@ -23693,7 +23693,8 @@ select:-webkit-autofill:focus {
   gap: 8px;
 }
 
-.rp-mb-select.ant-select .ant-select-selector {
+.rp-mb-select.ant-select .ant-select-selector,
+.rp-mb-select.sd-trigger {
   border-radius: 10px !important;
   min-height: 40px !important;
   background: var(--bg-slate-50) !important;
@@ -23708,11 +23709,13 @@ select:-webkit-autofill:focus {
   height: 40px !important;
 }
 
-.rp-mb-select.ant-select:hover .ant-select-selector {
+.rp-mb-select.ant-select:hover .ant-select-selector,
+.rp-mb-select.sd-trigger:hover {
   background: var(--bg-pure-white) !important;
 }
 
-.rp-mb-select.ant-select-focused .ant-select-selector {
+.rp-mb-select.ant-select-focused .ant-select-selector,
+.rp-mb-select.sd-trigger.is-open {
   background: var(--bg-pure-white) !important;
   border-color: rgba(99, 102, 241, 0.45) !important;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10) !important;

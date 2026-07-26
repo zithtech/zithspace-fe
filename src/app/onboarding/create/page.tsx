@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Spin, message } from "antd";
+import { Button, Spin, message, Modal } from "antd";
 import { Menu } from "lucide-react";
 import {
   UserOutlined,
@@ -27,6 +27,8 @@ import Assets from "@/components/onboarding/Assets";
 import Documents from "@/components/onboarding/Documents";
 import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { MembersService } from "@/services/membersService";
 
 // ── Module palette (Leaves 2.0 aesthetic) ───────────────────────────────────
 const PALETTE = {
@@ -92,7 +94,12 @@ const OnboardingContent = () => {
     documents: [],
   });
   const [resetKey, setResetKey] = useState(0);
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [syncMemberInfo, setSyncMemberInfo] = useState<any>(null);
+  const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
+  const [pendingSaveAction, setPendingSaveAction] = useState<"saveAndSkip" | "submitAll" | null>(null);
 
+  // Expose refs for each component so we can call validate() and getData()
   const personalRef = useRef<any>(null);
   const employmentRef = useRef<any>(null);
   const bankRef = useRef<any>(null);
@@ -193,6 +200,67 @@ const OnboardingContent = () => {
     setCurrent((prev) => prev - 1);
   };
 
+  const executeSave = async (payload: any, actionType: "saveAndSkip" | "submitAll", syncMemberId?: string) => {
+    try {
+      let savedEmployee: any = null;
+      if (isEdit && id) {
+        await updateOnboarding(id, payload);
+        message.success(actionType === "submitAll" ? "Employee onboarding updated successfully" : "Progress saved successfully");
+      } else {
+        savedEmployee = await createOnboarding(payload);
+        message.success(actionType === "submitAll" ? "Employee onboarding process completed" : "Profile created and saved as draft");
+      }
+
+      if (syncMemberId && savedEmployee?.id) {
+        await MembersService.syncEmployee(syncMemberId, savedEmployee.id);
+        message.success("Successfully synced onboarding profile with existing member");
+      }
+
+      if (actionType === "saveAndSkip") {
+        if (current < 5) setCurrent(prev => prev + 1);
+        else router.push("/onboarding/onboarded");
+      } else {
+        router.push("/onboarding/onboarded");
+      }
+    } catch (error) {
+      console.log("Submit Failed", error);
+      message.error("Failed to save onboarding data");
+    } finally {
+      setSyncModalVisible(false);
+      setPendingSavePayload(null);
+      setPendingSaveAction(null);
+      setSyncMemberInfo(null);
+    }
+  };
+
+  const checkMemberSync = async (payload: any, actionType: "saveAndSkip" | "submitAll") => {
+    if (isEdit) {
+      return executeSave(payload, actionType);
+    }
+
+    try {
+      const personalData = payload.personal || allData.personal;
+      if (personalData?.workEmail || personalData?.mobile) {
+        const res = await MembersService.checkSync({ 
+          workEmail: personalData.workEmail, 
+          phone: personalData.mobile 
+        });
+        
+        if (res.exists && res.member) {
+          setSyncMemberInfo(res.member);
+          setPendingSavePayload(payload);
+          setPendingSaveAction(actionType);
+          setSyncModalVisible(true);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Check sync error", e);
+    }
+    
+    return executeSave(payload, actionType);
+  };
+
   const saveAndSkip = async () => {
     try {
       const currentRef = refs[current];
@@ -218,16 +286,7 @@ const OnboardingContent = () => {
         }
       });
 
-      if (isEdit && id) {
-        await updateOnboarding(id, partialPayload);
-        message.success("Progress saved successfully");
-      } else {
-        await createOnboarding(partialPayload);
-        message.success("Profile created and saved as draft");
-      }
-
-      if (current < 5) setCurrent(prev => prev + 1);
-      else router.push("/onboarding/onboarded");
+      await checkMemberSync(partialPayload, "saveAndSkip");
     } catch (error) {
       console.log("Save & Skip Failed:", error);
     }
@@ -260,15 +319,7 @@ const OnboardingContent = () => {
         finalPayload[backendMap[key] || key] = finalData[key];
       });
 
-      if (isEdit && id) {
-        await updateOnboarding(id, finalPayload);
-        message.success("Employee onboarding updated successfully");
-      } else {
-        await createOnboarding(finalPayload);
-        message.success("Employee onboarding process completed");
-      }
-
-      router.push("/onboarding/onboarded");
+      await checkMemberSync(finalPayload, "submitAll");
     } catch (error) {
       console.log("Submit Failed", error);
     }
@@ -659,6 +710,42 @@ const OnboardingContent = () => {
           }
         }
       `}</style>
+
+      {syncModalVisible && syncMemberInfo && pendingSaveAction && pendingSavePayload && (
+        <Modal
+          open={syncModalVisible}
+          title={
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <UserOutlined style={{ color: "var(--premium-blue)", fontSize: "18px" }} />
+              <span>Sync Existing Member</span>
+            </div>
+          }
+          onOk={() => executeSave(pendingSavePayload, pendingSaveAction, syncMemberInfo.id)}
+          onCancel={() => executeSave(pendingSavePayload, pendingSaveAction)}
+          okText="Sync Existing Member"
+          cancelText="Create New Employee"
+          closable={false}
+          maskClosable={false}
+          centered
+          width={500}
+        >
+          <div style={{ padding: "12px 0" }}>
+            <p style={{ marginBottom: "16px", color: "var(--text-slate-600)", fontSize: "14px" }}>
+              An existing Member was found matching this email or phone number. Would you like to link this onboarding profile to the existing member to prevent duplicates?
+            </p>
+            <div style={{ background: "var(--bg-slate-50)", padding: "16px", borderRadius: "8px", border: "1px solid var(--border-slate-200)" }}>
+              <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: "15px" }}>{syncMemberInfo.name}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-slate-500)", marginTop: "6px" }}>Email: {syncMemberInfo.workEmail || "N/A"}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-slate-500)", marginTop: "2px" }}>Phone: {syncMemberInfo.phone || "N/A"}</div>
+              {syncMemberInfo.role && (
+                <div style={{ fontSize: "12px", background: "var(--premium-blue-50)", color: "var(--premium-blue)", padding: "4px 10px", borderRadius: "12px", display: "inline-block", marginTop: "12px", fontWeight: 500 }}>
+                  Role: {syncMemberInfo.role}
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

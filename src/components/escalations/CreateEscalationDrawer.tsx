@@ -42,6 +42,7 @@ import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import SearchableDropdown from '../common/SearchableDropdown';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -56,6 +57,7 @@ interface Member {
   email: string;
   position?: string;
   role?: string;
+  avatarUrl?: string | null;
 }
 
 interface Category {
@@ -149,6 +151,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
             label: userName || 'Inactive User',
             email: tm?.user?.email || '',
             position: tm?.user?.position?.title || tm?.user?.role,
+            avatarUrl: tm?.user?.avatarUrl,
           });
         }
       });
@@ -596,39 +599,17 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                   {isLoading ? (
                     <Skeleton.Input active block style={{ height: 42 }} />
                   ) : (
-                    <Select
+                    <SearchableDropdown
                       mode="multiple"
-                      showSearch
                       placeholder="Search by name or role…"
-                      maxTagCount="responsive"
-                      optionFilterProp="label"
                       className="ced-select"
-                      style={{ borderRadius: 6 }}
+                      style={{ borderRadius: 6, minHeight: 40 }}
                       options={selectMembersOptions.map((m) => ({
                         value: m.value,
                         label: m.label,
-                        searchText: `${m.label} ${m.position || ''} ${m.email}`,
-                        rich: (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Avatar
-                              size={24}
-                              style={{ background: '#3B82F6', fontSize: 11, fontWeight: 600 }}
-                            >
-                              {(m.label || '?').charAt(0).toUpperCase()}
-                            </Avatar>
-                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                              <span style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: 13 }}>{m.label}</span>
-                              {(m.position || m.role) && (
-                                <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{m.position || m.role}</span>
-                              )}
-                            </div>
-                          </div>
-                        ),
+                        description: m.position || m.role,
+                        avatarUrl: m.avatarUrl,
                       }))}
-                      optionRender={(option) => (option.data as any).rich}
-                      filterOption={(input, option: any) =>
-                        (option?.searchText || '').toLowerCase().includes(input.toLowerCase())
-                      }
                     />
                   )}
                 </Form.Item>
@@ -641,21 +622,14 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                   {isLoading ? (
                     <Skeleton.Input active block style={{ height: 42 }} />
                   ) : (
-                    <Select
+                    <SearchableDropdown
                       placeholder="Issue type"
                       className="ced-select"
-                      style={{ borderRadius: 6 }}
+                      style={{ borderRadius: 6, minHeight: 40 }}
                       options={selectCategoriesOptions.map((c) => ({
                         value: c.id,
                         label: c.name,
-                        rich: (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ width: 4, height: 14, borderRadius: 0, background: c.color || '#94a3b8' }} />
-                            {c.name}
-                          </span>
-                        ),
                       }))}
-                      optionRender={(option) => (option.data as any).rich}
                     />
                   )}
                 </Form.Item>
@@ -694,114 +668,91 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                   />
                 </Form.Item>
 
-                  <Form.Item
-                    name="priorityId"
-                    label={<span><FireOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Priority</span>}
-                    rules={[{ required: true, message: 'Pick a priority' }]}
-                  >
-                    {isLoading ? (
-                      <Skeleton.Input active block style={{ height: 42 }} />
-                    ) : (
-                      <Select
-                        placeholder="Severity"
-                        className="ced-select"
-                        style={{ borderRadius: 6 }}
-                        options={priorities.map((p) => ({
-                          value: p.id,
-                          label: p.name,
-                          rich: (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ width: 8, height: 8, borderRadius: 0, background: p.color || '#94a3b8' }} />
-                              {p.name}
-                            </span>
-                          ),
-                        }))}
-                        optionRender={(option) => (option.data as any).rich}
-                      />
-                    )}
-                  </Form.Item>
-
-                  <Form.Item
-                    name="projectId"
-                    label={<span><ProjectOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Project</span>}
-                  >
-                    {isLoading ? (
-                      <Skeleton.Input active block style={{ height: 42 }} />
-                    ) : (
-                      <Select
-                        placeholder="Related project"
-                        className="ced-select"
-                        style={{ borderRadius: 6 }}
-                        showSearch
-                        allowClear
-                        optionFilterProp="label"
-                        options={selectProjectsOptions.map((p) => ({ value: p.value, label: p.label }))}
-                      />
-                    )}
-                  </Form.Item>
-
-                  <Form.Item
-                    name="ticketIds"
-                    label={
-                      <span>
-                        <LinkOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />
-                        Related tickets
-                        {!selectedProjectId && (
-                          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 400 }}>
-                            select a project to load tickets
-                          </span>
-                        )}
-                      </span>
-                    }
-                  >
-                    <Select
-                      mode="multiple"
+                <Form.Item
+                  name="priorityId"
+                  label={<span><FireOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Priority</span>}
+                  rules={[{ required: true, message: 'Pick a priority' }]}
+                >
+                  {isLoading ? (
+                    <Skeleton.Input active block style={{ height: 42 }} />
+                  ) : (
+                    <SearchableDropdown
+                      placeholder="Severity"
                       className="ced-select"
-                      style={{ borderRadius: 6 }}
-                      placeholder={selectedProjectId ? 'Link related tickets' : 'No project selected'}
-                      disabled={!selectedProjectId}
-                      showSearch
-                      optionFilterProp="label"
-                      maxTagCount="responsive"
-                      notFoundContent={selectedProjectId ? 'No tickets for this project' : 'Pick a project first'}
-                      options={tickets.map((t) => ({
-                        value: t.id,
-                        label: `${t.ticketNumber} ${t.title}`,
-                        rich: (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <Space>
-                              <Tag color="blue" bordered={false} style={{ margin: 0, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)' }}>
-                                {t.ticketNumber}
-                              </Tag>
-                              <span style={{ color: 'var(--text-slate-800)', fontWeight: 500 }}>{t.title}</span>
-                            </Space>
-                            {t.assignee && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-slate-400)' }}>
-                                <UserOutlined />
-                                {t.assignee.name}
-                              </span>
-                            )}
-                          </div>
-                        ),
+                      style={{ borderRadius: 6, minHeight: 40 }}
+                      options={priorities.map((p) => ({
+                        value: p.id,
+                        label: p.name,
                       }))}
-                      optionRender={(option) => (option.data as any).rich}
                     />
-                  </Form.Item>
+                  )}
+                </Form.Item>
 
-                  <Form.Item
-                    name="description"
-                    label={<span><FileTextOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Detailed description</span>}
-                    rules={[{ required: true, message: 'Provide a detailed description' }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <TextArea
-                      rows={5}
-                      placeholder="Provide clear evidence of the issues. Mention specific instances and reproduction steps."
-                      style={{ padding: '12px 16px', borderRadius: 6 }}
-                      showCount
-                      maxLength={2000}
+                <Form.Item
+                  name="projectId"
+                  label={<span><ProjectOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Project</span>}
+                >
+                  {isLoading ? (
+                    <Skeleton.Input active block style={{ height: 42 }} />
+                  ) : (
+                    <SearchableDropdown
+                      placeholder="Related project"
+                      className="ced-select"
+                      style={{ borderRadius: 6, minHeight: 40 }}
+                      allowClear
+                      options={selectProjectsOptions.map((p) => ({ value: p.value, label: p.label }))}
                     />
-                  </Form.Item>
+                  )}
+                </Form.Item>
+
+                <Form.Item
+                  name="ticketIds"
+                  label={
+                    <span>
+                      <LinkOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />
+                      Related tickets
+                      {!selectedProjectId && (
+                        <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 400 }}>
+                          select a project to load tickets
+                        </span>
+                      )}
+                    </span>
+                  }
+                >
+                  <SearchableDropdown
+                    mode="multiple"
+                    className="ced-select"
+                    style={{ borderRadius: 6, minHeight: 40 }}
+                    placeholder={selectedProjectId ? 'Link related tickets' : 'No project selected'}
+                    disabled={!selectedProjectId}
+                    hideAvatar
+                    options={tickets.map((t) => ({
+                      value: t.id,
+                      label: `${t.ticketNumber} ${t.title}`,
+                      badge: (
+                        <Tag color="blue" bordered={false} style={{ margin: 0, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)' }}>
+                          {t.ticketNumber}
+                        </Tag>
+                      ),
+                      description: t.assignee ? `Assigned to: ${t.assignee.name}` : undefined,
+                    }))}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="description"
+                  label={<span><FileTextOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />Detailed description</span>}
+                  rules={[{ required: true, message: 'Provide a detailed description' }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <TextArea
+                    rows={5}
+                    placeholder="Provide clear evidence of the issues. Mention specific instances and reproduction steps."
+                    style={{ padding: '12px 16px', borderRadius: 6 }}
+                    showCount
+                    maxLength={2000}
+                  />
+                </Form.Item>
               </SectionCard>
 
               {/* ── Section 3: Evidence ──────────────── */}

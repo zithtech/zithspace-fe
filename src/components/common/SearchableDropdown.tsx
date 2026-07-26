@@ -122,20 +122,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
   const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!triggerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setTriggerWidth((entry.target as HTMLElement).offsetWidth);
-      }
-    });
-    observer.observe(triggerRef.current);
-    setTriggerWidth(triggerRef.current.offsetWidth);
-    return () => observer.disconnect();
-  }, []);
+    if (open && triggerRef.current) {
+      setTriggerWidth(triggerRef.current.offsetWidth);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -247,7 +241,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const finalWidth = width === "100%" ? (triggerWidth || 'auto') : width;
   const overlay = (
-    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: finalWidth, minWidth: width === "100%" ? 'auto' : undefined }}>
+    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: triggerWidth || width }}>
       <div className="sd-search-box">
         <Search size={14} className="sd-search-icon" />
         <input
@@ -343,7 +337,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       getPopupContainer={getPopupContainer}
     >
       {customTrigger ? (
-        <div ref={triggerRef} style={{ display: 'contents' }}>
+        <div ref={triggerRef} style={{ display: 'inline-block', width: '100%' }}>
           {customTrigger}
         </div>
       ) : (

@@ -12,6 +12,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { Permissions } from '@/types/permissions';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ReimbursementV2Service, { Budget, ExpenseCategory, SaveBudgetInput } from '@/services/reimbursementV2Service';
 import { userService } from '@/services/userService';
 import { DepartmentService } from '@/services/departmentService';
@@ -305,28 +306,28 @@ export default function BudgetsPanel() {
             className="customer-drawer-form"
           >
           <SectionCard icon={<AimOutlined />} title="Budget" subtitle="Scope, period and cap">
-            <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
+            <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
               <Input placeholder="e.g. Q3 Travel Budget" />
             </Form.Item>
-            <Form.Item name="scopeType" label="Scope"><Select options={SCOPES} /></Form.Item>
+            <Form.Item name="scopeType" label="Scope"><SearchableDropdown options={SCOPES} /></Form.Item>
             {scopeType === 'category' && (
               <Form.Item name="scopeId" label="Category" rules={[{ required: true, message: 'Pick a category' }]}>
-                <Select showSearch optionFilterProp="label" options={cats.map((c) => ({ value: c.id, label: c.name }))} />
+                <SearchableDropdown options={cats.map((c) => ({ value: c.id, label: c.name }))} />
               </Form.Item>
             )}
             {scopeType === 'user' && (
               <Form.Item name="scopeId" label="User" rules={[{ required: true, message: 'Pick a user' }]}>
-                <Select showSearch optionFilterProp="label" options={users.map((u) => ({ value: u.id, label: u.name }))} />
+                <SearchableDropdown options={users.map((u) => ({ value: u.id, label: u.name, avatarUrl: u.avatarUrl }))} />
               </Form.Item>
             )}
             {scopeType === 'department' && (
               <Form.Item name="scopeId" label="Department" rules={[{ required: true, message: 'Pick a department' }]}>
-                <Select showSearch optionFilterProp="label" options={departments.map((d) => ({ value: d.id, label: d.name }))} />
+                <SearchableDropdown options={departments.map((d) => ({ value: d.id, label: d.name }))} />
               </Form.Item>
             )}
             {scopeType === 'project' && (
               <Form.Item name="scopeId" label="Project" rules={[{ required: true, message: 'Pick a project' }]}>
-                <Select showSearch optionFilterProp="label" options={projects.map((p) => ({ value: p.value || p.id, label: p.label || p.name }))} />
+                <SearchableDropdown options={projects.map((p) => ({ value: p.value || p.id, label: p.label || p.name }))} />
               </Form.Item>
             )}
             {scopeType && !['org', 'category', 'user', 'department', 'project'].includes(scopeType) && (

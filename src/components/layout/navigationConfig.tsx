@@ -97,6 +97,7 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  MessageSquare,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -890,24 +891,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
 
       {
         key: "employee-exit",
-        icon: I(LogOut),
         label: "Employee Exit",
-        requiredPermission: Permissions.EXIT_READ,
-        children: [
-          {
-            key: "/employee-exit/management",
-            label: "Employee Exit Management",
-            icon: I(UserMinus),
-            path: "/employee-exit/management",
-            requiredPermission: Permissions.EXIT_READ,
-          },
-          {
-            key: "/employee-exit/configuration",
-            label: "Configuration",
-            icon: I(Sliders),
-            path: "/employee-exit/configuration",
-            requiredPermission: Permissions.EXIT_MANAGE,
-          },
+        icon: I(LogOut),
+        path: "/employee-exit/my-requests",
+        requiredAnyPermission: [
+          Permissions.EXIT_MANAGE,
+          Permissions.EXIT_READ,
+          Permissions.EXIT_CONFIG_READ
         ],
       },
       {

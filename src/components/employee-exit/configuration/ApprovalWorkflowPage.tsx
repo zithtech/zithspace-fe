@@ -10,7 +10,6 @@ import {
   Select,
   Switch,
   notification,
-  Popconfirm,
   Typography,
   Divider,
   Drawer,
@@ -19,6 +18,9 @@ import {
   Col,
   Input,
   Tooltip,
+  Dropdown,
+  Menu,
+  App,
 } from 'antd';
 import {
   ShieldCheck,
@@ -30,22 +32,55 @@ import {
   ArrowRight,
   Briefcase,
   X,
+  MoreVertical
 } from 'lucide-react';
+import dayjs from 'dayjs';
 import { ApprovalWorkflowService, ExitApprovalStep } from '@/services/approvalWorkflowService';
-import { PositionService } from '@/services/positionService';
+import { GradeService, GradeAPIResponse } from '@/services/gradeService';
+import { PositionService, Position } from '@/services/positionService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import { useMembers } from '@/hooks/useGlobalData';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const { Title, Text } = Typography;
 
-const ApprovalWorkflowPage: React.FC = () => {
+const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
+
+const getCreatorName = (record: any, members: any[] = []) => {
+  const c = record.createdBy || record.created_by || record.creator || record.createdByUser;
+  if (typeof c === 'object' && c !== null) {
+    return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
+  }
+  
+  const creatorId = record.createdById || record.created_by_id || c;
+  if (typeof creatorId === 'string' && members.length > 0) {
+    const member = members.find(m => m.value === creatorId);
+    if (member) return member.label;
+  }
+  
+  return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
+};
+
+const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: number, layoutMode?: 'table' | 'card' }> = ({ searchText = '', createTrigger = 0, layoutMode = 'table' }) => {
   const [steps, setSteps] = useState<ExitApprovalStep[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
-  const [searchText, setSearchText] = useState("");
+  const [grades, setGrades] = useState<any[]>([]);
+  const { data: members = [] } = useMembers();
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<ExitApprovalStep | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [form] = Form.useForm();
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
 
   useEffect(() => {
     fetchData();
@@ -61,10 +96,7 @@ const ApprovalWorkflowPage: React.FC = () => {
       setSteps(Array.isArray(stepsData) ? stepsData : []);
       setPositions(Array.isArray(positionsData) ? positionsData : []);
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to fetch data'
-      });
+      messageApi.error('Failed to fetch data');
     } finally {
       setLoading(false);
     }
@@ -80,6 +112,12 @@ const ApprovalWorkflowPage: React.FC = () => {
     setModalVisible(true);
   };
 
+  useEffect(() => {
+    if (createTrigger > 0) {
+      handleAdd();
+    }
+  }, [createTrigger]);
+
   const handleEdit = (record: ExitApprovalStep) => {
     setEditingStep(record);
     form.setFieldsValue({
@@ -92,16 +130,10 @@ const ApprovalWorkflowPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await ApprovalWorkflowService.deleteStep(id);
-      notificationApi.success({
-        message: 'Success',
-        description: 'Approval step deleted successfully'
-      });
+      messageApi.success('Approval step deleted successfully');
       fetchData();
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: error.message || 'Failed to delete approval step'
-      });
+      messageApi.error(error.message || 'Failed to delete approval step');
     }
   };
 
@@ -112,16 +144,10 @@ const ApprovalWorkflowPage: React.FC = () => {
       
       if (editingStep) {
         await ApprovalWorkflowService.updateStep(editingStep.id, values);
-        notificationApi.success({
-          message: 'Success',
-          description: 'Approval step updated successfully'
-        });
+        messageApi.success('Approval step updated successfully');
       } else {
         await ApprovalWorkflowService.createStep(values);
-        notificationApi.success({
-          message: 'Success',
-          description: 'Approval step added successfully'
-        });
+        messageApi.success('Approval step added successfully');
       }
       
       setModalVisible(false);
@@ -222,22 +248,21 @@ const ApprovalWorkflowPage: React.FC = () => {
               className="action-btn"
             />
           </Tooltip>
-          <Popconfirm
-            title="Delete this workflow step?"
+          <ConfirmDialog
+            title="Delete this step?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
+            confirmText="Delete"
+            placement="top"
           >
-            <Tooltip title="Remove Step">
-              <Button 
-                type="text" 
-                danger 
-                icon={<Trash2 size={18} />} 
+            <Tooltip title="Delete Step">
+              <Button
+                type="text"
+                danger
+                icon={<Trash2 size={18} />}
                 className="action-btn-danger"
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </Space>
       )
     }
@@ -253,39 +278,153 @@ const ApprovalWorkflowPage: React.FC = () => {
     return orderStr.includes(q) || roleTitles.includes(q);
   });
 
-  return (
-    <div style={{ padding: '8px 0' }}>
-      {notificationContextHolder}
+  const total = filteredSteps.length;
+  const pageCount = Math.ceil(total / pageSize);
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = Math.min(currentPage * pageSize, total);
+  const currentData = filteredSteps.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Input 
-            placeholder="Search steps..." 
-            prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-            style={{ width: 280, borderRadius: 10, height: 40 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
+  const getPositionName = (id: string) => positions.find(p => p.id === id)?.title || id;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0' }}>
+      {layoutMode === 'card' ? (
+        <div className="pp-grid">
+          {currentData.map(record => (
+            <div key={record.id} className="pc-card">
+              <div className="pc-top" style={{ padding: '12px', minHeight: '64px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <div className="pc-avatar" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13 }}>
+                  {record.stepOrder}
+                </div>
+                <div className="pc-identity-body" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Step {record.stepOrder}</span>
+                    {record.mandatory ? (
+                      <Tag color="error" style={{ borderRadius: 20, padding: "0 8px", fontWeight: 700, border: 0, fontSize: '10.5px', height: '19px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                        MANDATORY
+                      </Tag>
+                    ) : (
+                      <Tag color="default" style={{ borderRadius: 20, padding: "0 8px", fontWeight: 700, border: 0, fontSize: '10.5px', height: '19px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                        OPTIONAL
+                      </Tag>
+                    )}
+                  </div>
+                  <div className="pc-client-line" style={{ fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    ID: <span style={{ color: 'var(--text-slate-700)', fontWeight: 600 }}>{record.id.slice(0, 8)}</span>
+                  </div>
+                </div>
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: '1',
+                        label: menuLabel("Configure Step", "Modify step logic", <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                        onClick: () => handleEdit(record)
+                      },
+                      {
+                        type: 'divider'
+                      },
+                      {
+                        key: '2',
+                        onClick: (e) => {
+                          e.domEvent.stopPropagation();
+                        },
+                        label: (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ConfirmDialog
+                              title="Delete this step?"
+                              onConfirm={() => handleDelete(record.id)}
+                              confirmText="Delete"
+                              placement="top"
+                            >
+                              <div style={{ width: '100%' }}>
+                                {menuLabel("Delete Step", "Remove this step", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                              </div>
+                            </ConfirmDialog>
+                          </div>
+                        )
+                      }
+                    ]
+                  }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                  overlayClassName="pp-action-pop"
+                >
+                  <button className="pc-actions">
+                    <MoreVertical size={16} />
+                  </button>
+                </Dropdown>
+              </div>
+              <div className="pc-foot" style={{ padding: '0', background: 'transparent', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '6px', fontSize: '10px', color: 'var(--text-slate-400)', padding: '8px 12px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    Created by
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>
+                      {getCreatorName(record, members)[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{getCreatorName(record, members)}</strong>
+                  </span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Updated <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).updatedAt ? dayjs((record as any).updatedAt).format("MMM DD, YY") : (record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Created <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                </div>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '11px', color: 'var(--text-slate-500)', borderTop: '1px solid var(--border-slate-200)', padding: '10px 12px', marginTop: 'auto' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Briefcase size={12} style={{ color: 'var(--text-slate-400)' }} />
+                    Roles:
+                    {record.roleIds && record.roleIds.length > 0 ? (
+                      record.roleIds.map((p, i) => (
+                        <Tag key={i} color="purple" style={{ margin: 0, borderRadius: 4, fontWeight: 500, fontSize: '10px', height: '18px', lineHeight: '18px' }}>
+                          {getPositionName(p)}
+                        </Tag>
+                      ))
+                    ) : (
+                      <span style={{ color: 'var(--text-slate-400)' }}>None</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pp-table-wrap">
+          <Table 
+            className="pp-table"
+            columns={columns} 
+            dataSource={currentData} 
+            rowKey="id" 
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 1000 }}
           />
         </div>
-        <Button 
-          type="primary" 
-          icon={<Plus size={18} />} 
-          onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
-        >
-          Add Step
-        </Button>
-      </div>
+      )}
 
-      <Table 
-        columns={columns} 
-        dataSource={filteredSteps} 
-        rowKey="id" 
-        loading={loading}
-        pagination={false}
-        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
-      />
+      <div style={{ flex: 1, minHeight: '60px' }} />
+
+      {total > 0 && (
+        <div className="pp-footer pp-footer--sticky">
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> steps
+          </div>
+          <div className="pp-pager">
+            <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
+              <button key={p} type="button" className={`pp-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+            ))}
+            <button type="button" className="pp-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
 
       <Drawer
         {...commonDrawerProps}
@@ -357,7 +496,15 @@ const ApprovalWorkflowPage: React.FC = () => {
           </button>
         </div>
 
-        <Form form={form} layout="vertical" requiredMark={false} className="customer-drawer-form">
+        <Form 
+          form={form} 
+          layout="horizontal" 
+          labelAlign="left" 
+          labelCol={{ span: 8 }} 
+          wrapperCol={{ span: 16 }} 
+          requiredMark={false} 
+          className="customer-drawer-form"
+        >
           <div className="px-6 py-6 space-y-5 pb-24">
             
             <SectionCard title="Step Details" icon={<Settings2 size={16} />}>
@@ -422,19 +569,6 @@ const ApprovalWorkflowPage: React.FC = () => {
         </Form>
       </Drawer>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
-        .action-btn-danger:hover { background: #fff1f2 !important; }
-        .ant-table-thead > tr > th {
-          background: var(--bg-secondary) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          text-transform: uppercase !important;
-          font-size: 11px !important;
-          letter-spacing: 0.05em !important;
-        }
-        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
-      `}} />
     </div>
   );
 };

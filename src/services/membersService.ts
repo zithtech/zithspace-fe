@@ -1,4 +1,4 @@
-import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
+import { api, apiClient, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Member {
   id: string; // Changed from id
@@ -47,6 +47,7 @@ export interface CreateMemberData {
   isActive?: boolean; // ADDED: Missing isActive field
   sendEmailTo?: string; // ADDED: Target email for welcome notification ('work' | 'personal')
   minWorkingHours?: number;
+  employeeId?: string | null; // Links this user to an onboarding invite employee record
 }
 
 export interface UpdateMemberData {
@@ -116,6 +117,44 @@ export class MembersService {
         throw new Error(error.message);
       }
       throw new Error('Failed to fetch member by user ID');
+    }
+  }
+
+  /**
+   * Check if a member exists for syncing onboarding
+   */
+  static async checkSync(params: { employeeId?: string, workEmail?: string, phone?: string }): Promise<{ exists: boolean, member?: any }> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.employeeId) queryParams.append('employeeId', params.employeeId);
+      if (params.workEmail) queryParams.append('workEmail', params.workEmail);
+      if (params.phone) queryParams.append('phone', params.phone);
+
+      const response = await apiClient.get(`/api/members/check-sync?${queryParams.toString()}`);
+      // Handle both the old format (flat) and the new format (nested in data)
+      if (response.data.success) {
+        return response.data.data !== undefined ? response.data.data : response.data;
+      }
+      throw new Error(response.data.error || 'Request failed');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to check member sync');
+    }
+  }
+
+  /**
+   * Sync an onboarding employeeId to an existing member
+   */
+  static async syncEmployee(id: string, employeeId: string): Promise<void> {
+    try {
+      await api.patch(`/api/members/${id}/sync-employee`, { employeeId });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to sync member');
     }
   }
 

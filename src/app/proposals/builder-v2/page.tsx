@@ -544,8 +544,8 @@ function BuilderV2Content() {
       messageApi.loading({ content: 'Saving…', key: 'save' });
       const coverBlock = cover?.data || {};
       const payload = {
-        title: coverBlock.title.trim(),
-        client_name: coverBlock.clientName.trim(),
+        title: coverBlock.title?.trim() || 'Untitled Proposal',
+        client_name: coverBlock.clientName?.trim() || 'Unknown Client',
         blocks,
         status: 'draft',
         lead_id: pendingLeadId,

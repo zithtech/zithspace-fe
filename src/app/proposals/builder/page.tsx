@@ -969,21 +969,25 @@ function BuilderContent() {
               <Text className="pb-header__sub premium-text-sec">{isTemplateMode ? 'Compose a reusable template' : 'Draft and design your perfect proposal'}</Text>
             </div>
             {!isTemplateMode && (
-              <span className="pb-status-pill">
+              <Button
+                size="small"
+                onClick={() => handleSave()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6 }}
+              >
                 <span className="pb-status-pill__dot" />
                 Auto-saved
-              </span>
+              </Button>
             )}
           </div>
         </div>
         <div className="pb-header__actions">
-          <Segmented
+          {/* <Segmented
             className="pb-seg"
             options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
             value={railPosition}
             onChange={(val) => setRailPosition(val as 'top' | 'left')}
-          />
-          <button
+          /> */}
+          {/* <button
             type="button"
             className="pb-cmd-trigger"
             onClick={() => setCommandOpen(true)}
@@ -995,15 +999,15 @@ function BuilderContent() {
               <kbd>⌘</kbd>
               <kbd>K</kbd>
             </span>
-          </button>
+          </button> */}
           {!isTemplateMode && canUpdateProposal && (
-          <Button
-            className="pb-zai-cta"
-            onClick={() => setEndToEndOpen(true)}
-            icon={<Wand2 size={14} />}
-          >
-            Create with Zai
-          </Button>
+            <Button
+              className="pb-zai-cta"
+              onClick={() => setEndToEndOpen(true)}
+              icon={<Wand2 size={14} />}
+            >
+              Create with Zai
+            </Button>
           )}
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
@@ -1067,7 +1071,7 @@ function BuilderContent() {
         >
           {isRailVisible && railPosition === 'top' && (
             <div className="builder-top-rail">
-               <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
+              <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
             </div>
           )}
 

@@ -129,13 +129,13 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
           <div className="ob-doc-center">
             <div style={{ textAlign: "center", color: "var(--text-slate-400)" }}>
               <div style={{
-                width: 64, height: 64, background: "var(--bg-slate-50)",
+                width: 64, height: 64, background: "var(--bg-secondary)",
                 borderRadius: 16, display: "inline-flex", alignItems: "center",
                 justifyContent: "center", marginBottom: 16
               }}>
-                <FileText size={28} style={{ color: "var(--text-slate-300)" }} />
+                <FileText size={28} style={{ color: "var(--text-secondary)" }} />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-slate-700)" }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
                 No Documents Yet
               </div>
               <div style={{ fontSize: 13, marginTop: 4 }}>
@@ -148,7 +148,7 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
             {documents.map((doc, i) => (
               <div key={i} className="ob-doc-row">
                 <div className="ob-doc-col ob-doc-col--name">
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(59, 130, 246, 0.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <FileText size={18} style={{ color: "#3b82f6" }} />
                   </div>
                   <div style={{ overflow: "hidden" }}>
@@ -165,9 +165,9 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
 
                 <div className="ob-doc-col ob-doc-col--status">
                   <span className="ob-doc-status-badge" style={{
-                    background: doc.id ? "var(--bg-emerald-50)" : "var(--bg-amber-50)",
-                    color: doc.id ? "var(--text-emerald-700)" : "var(--text-amber-700)",
-                    border: doc.id ? "1px solid var(--border-emerald-200)" : "1px solid var(--border-amber-200)"
+                    background: doc.id ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)",
+                    color: doc.id ? "#10b981" : "#f59e0b",
+                    border: doc.id ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(245, 158, 11, 0.2)"
                   }}>
                     {doc.id ? "Saved" : "Pending Save"}
                   </span>
@@ -246,18 +246,18 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto" style={{ padding: 24, background: "white" }}>
-            <div style={{ border: "1px solid var(--border-slate-200)", borderRadius: "12px", background: "white", padding: "24px" }}>
+          <div className="flex-1 overflow-y-auto" style={{ padding: 24, background: "var(--customers-page-bg, #0B0F1A)" }}>
+            <div className="customer-drawer-card" style={{ border: "1px solid var(--border-color)", borderRadius: "12px", background: "var(--bg-primary)", padding: "24px" }}>
               <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
-                <div style={{ width: "40px", height: "40px", background: "#eff6ff", borderRadius: "8px", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontWeight: 700, fontSize: "16px" }}>
+                <div style={{ width: "40px", height: "40px", background: "rgba(59, 130, 246, 0.10)", borderRadius: "8px", border: "1px solid rgba(59, 130, 246, 0.20)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontWeight: 700, fontSize: "16px" }}>
                   01
                 </div>
                 <div>
-                  <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)" }}>Document Details</div>
-                  <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>Enter the basic information for this document</div>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>Document Details</div>
+                  <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Enter the basic information for this document</div>
                 </div>
               </div>
-              <div style={{ borderBottom: "1px dashed var(--border-slate-200)", marginBottom: "24px" }} />
+              <div style={{ borderBottom: "1px dashed var(--border-color)", marginBottom: "24px" }} />
               
               <Form 
                 form={form} 
@@ -269,7 +269,7 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
               >
                 <Form.Item
                   name="documentType"
-                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Document Type</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-slate-400)" }}>Document Type</span>}
                   rules={[{ required: true, message: "Type is required" }]}
                   style={{ marginBottom: "24px" }}
                 >
@@ -282,7 +282,7 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
 
                 <Form.Item
                   name="file"
-                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Upload File</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-slate-400)" }}>Upload File</span>}
                   valuePropName="fileList"
                   getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
                   rules={[{ required: true, message: "File is required" }]}
@@ -303,10 +303,10 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
 
                 <Form.Item
                   name="notes"
-                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "#94a3b8" }}>Notes (Optional)</span>}
+                  label={<span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-slate-400)" }}>Notes (Optional)</span>}
                   style={{ marginBottom: "0" }}
                 >
-                  <Input.TextArea rows={3} placeholder="Add any additional notes here..." style={{ borderRadius: "8px", fontSize: "14px" }} />
+                  <Input.TextArea rows={3} placeholder="Add any additional notes here..." style={{ borderRadius: "8px", fontSize: "14px", background: "var(--bg-primary)", color: "var(--text-primary)", borderColor: "var(--border-color)" }} />
                 </Form.Item>
               </Form>
             </div>
@@ -351,19 +351,19 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
           margin: 0;
           font-size: 22px;
           font-weight: 800;
-          color: var(--text-slate-900);
+          color: var(--text-primary);
           letter-spacing: -0.025em;
           line-height: 1.1;
         }
         .ob-doc-subtitle {
           margin: 4px 0 0;
           font-size: 13px;
-          color: var(--text-slate-500);
+          color: var(--text-secondary);
         }
         .ob-doc-table-wrap {
-          border: 1px solid var(--border-slate-200);
+          border: 1px solid var(--border-color);
           border-radius: 0px;
-          background: var(--bg-pure-white);
+          background: var(--bg-primary);
           overflow: hidden;
           flex: 1;
         }
@@ -371,19 +371,19 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
           display: flex;
           align-items: center;
           padding: 0 14px;
-          background: var(--bg-slate-50);
-          border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-secondary);
+          border-bottom: 1px solid var(--border-color);
           min-height: 42px;
         }
         .ob-doc-row {
           display: flex;
           align-items: center;
           padding: 10px 14px;
-          border-bottom: 1px solid var(--border-slate-100);
+          border-bottom: 1px solid var(--border-color);
           transition: background 0.12s ease;
         }
         .ob-doc-row:last-child { border-bottom: none; }
-        .ob-doc-row:hover { background: var(--bg-slate-50); }
+        .ob-doc-row:hover { background: var(--bg-secondary); }
         .ob-doc-col {
           display: flex;
           align-items: center;
@@ -405,22 +405,22 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
         .ob-doc-doc-name {
           font-size: 13px;
           font-weight: 600;
-          color: var(--text-slate-800);
+          color: var(--text-primary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
         .ob-doc-muted {
           font-size: 12.5px;
-          color: var(--text-slate-500);
+          color: var(--text-secondary);
         }
         .ob-doc-type-badge {
           font-size: 11px;
           font-weight: 700;
           padding: 2px 8px;
           border-radius: 999px;
-          background: var(--bg-slate-100);
-          color: var(--text-slate-600);
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
         }
         .ob-doc-status-badge {
           font-size: 11px;
@@ -436,12 +436,12 @@ const Documents = forwardRef(({ data }: any, ref: any) => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid var(--border-slate-200);
+          border: 1px solid var(--border-color);
           background: var(--bg-secondary);
-          color: var(--text-slate-600);
+          color: var(--text-secondary);
           cursor: pointer;
         }
-        .ob-doc-action-btn:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .ob-doc-action-btn:hover { background: var(--bg-primary); color: var(--text-primary); }
         .ob-doc-action-btn--danger:hover:not(:disabled) { color: #dc2626; border-color: #fecaca; background: #fff1f2; }
         .ob-doc-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .ob-doc-center {

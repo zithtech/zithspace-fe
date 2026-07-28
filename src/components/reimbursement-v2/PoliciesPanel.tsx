@@ -12,6 +12,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { Permissions } from '@/types/permissions';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ReimbursementV2Service, {
   ExpenseCategory, ReimbursementPolicyListItem, SavePolicyInput, ScopeOption,
 } from '@/services/reimbursementV2Service';
@@ -298,7 +299,7 @@ export default function PoliciesPanel() {
           <SectionCard icon={<InfoCircleOutlined />}
             title="Basics" subtitle="Identity and auto-approval" step="STEP 1">
             <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
+              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
               <Input placeholder="e.g. Field Staff Policy"
                 onChange={(e) => form.setFieldsValue({ code: toCode(e.target.value) })} />
             </Form.Item>
@@ -308,7 +309,7 @@ export default function PoliciesPanel() {
                 { pattern: /^[A-Z0-9_-]+$/, message: 'Invalid code' }]}>
               <Input placeholder="FIELD_STAFF_POLICY" disabled />
             </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
+            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
               <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
             </Form.Item>
             <Form.Item name="autoApproveBelow"
@@ -330,7 +331,7 @@ export default function PoliciesPanel() {
                   {fields.map((f) => (
                     <Space key={f.key} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
                       <Form.Item name={[f.name, 'scopeType']} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                        <Select style={{ width: 180 }} options={SCOPE_OPTIONS}
+                        <SearchableDropdown style={{ width: 180, minHeight: 38 }} options={SCOPE_OPTIONS}
                           onChange={() => form.setFields([{ name: ['assignments', f.name, 'scopeId'], value: undefined }])} />
                       </Form.Item>
                       <Form.Item noStyle
@@ -340,10 +341,9 @@ export default function PoliciesPanel() {
                           if (!st || st === 'org') return null;
                           return (
                             <Form.Item name={[f.name, 'scopeId']} rules={[{ required: true, message: 'Select a target' }]} style={{ marginBottom: 0 }}>
-                              <Select showSearch optionFilterProp="label" loading={scopeLoading}
+                              <SearchableDropdown
                                 placeholder={`Select ${SCOPE_OPTIONS.find((s) => s.value === st)?.label?.toLowerCase()}`}
-                                options={scopeOpts[st] || []} style={{ width: 320 }}
-                                notFoundContent={scopeLoading ? 'Loading…' : 'None found'} />
+                                options={scopeOpts[st] || []} style={{ width: 320, minHeight: 38 }} />
                             </Form.Item>
                           );
                         }}
@@ -369,7 +369,7 @@ export default function PoliciesPanel() {
                     <div key={f.key} style={{ border: '1px solid var(--border-slate-100)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
                       <Space align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
                         <Form.Item name={[f.name, 'categoryId']} rules={[{ required: true, message: 'Pick a category' }]} style={{ marginBottom: 0, flex: 1 }}>
-                          <Select style={{ width: 320 }} placeholder="Category" showSearch optionFilterProp="label"
+                          <SearchableDropdown style={{ minHeight: 38 }} placeholder="Category"
                             options={cats.map((c) => ({ value: c.id, label: c.name }))} />
                         </Form.Item>
                         <MinusCircleOutlined onClick={() => rm(f.name)} style={{ color: 'var(--text-slate-400)' }} />

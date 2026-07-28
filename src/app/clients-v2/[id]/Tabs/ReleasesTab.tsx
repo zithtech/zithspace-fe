@@ -1408,10 +1408,16 @@ function ReleaseModal({
             <Form.Item
               name="title"
               label="Title"
-              rules={[{ required: true, message: "Required" }]}
+              rules={[
+                { required: true, message: "Required" },
+                { 
+                  pattern: /^[a-zA-Z0-9\s\-_.&()]+$/, 
+                  message: "Only alphanumeric characters, spaces, and basic punctuation (-_.&()) are allowed" 
+                }
+              ]}
               style={{ marginBottom: 12 }}
             >
-              <Input placeholder="e.g. Payments hardening" maxLength={200} />
+              <Input placeholder="e.g. Payments hardening" maxLength={100} />
             </Form.Item>
             <Form.Item
               name="version"

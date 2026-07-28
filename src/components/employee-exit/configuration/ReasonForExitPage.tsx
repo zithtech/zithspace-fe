@@ -340,25 +340,25 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
           ))}
         </div>
       ) : (
-        <div className="pp-table-wrap">
-          <Table
-            className="pp-table"
-            columns={columns}
-            dataSource={currentData}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            scroll={{ x: 1000 }}
-          />
+        <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
+            <Table
+              className="pp-table"
+              columns={columns}
+              dataSource={currentData}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </div>
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: '60px' }} />
-
       {total > 0 && (
-        <div className="pp-footer pp-footer--sticky">
+        <div className="pp-footer pp-footer--sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingLeft: 0, paddingRight: 0, paddingTop: 16 }}>
           <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> reasons
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
           </div>
           <div className="pp-pager">
             <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
@@ -488,15 +488,19 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
             </SectionCard>
 
             <SectionCard title="Operational Status" icon={<ShieldCheck size={16} />}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Status</Text>
-                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Inactive reasons won't be selectable by employees.</Text>
-                </div>
-                <Form.Item name="is_active" valuePropName="checked" noStyle>
-                  <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-                </Form.Item>
-              </div>
+              <Form.Item
+                name="is_active"
+                label={
+                  <div>
+                    <Text strong style={{ fontSize: 13, display: "block" }}>Active Status</Text>
+                    <Text style={{ fontSize: 11, color: "var(--text-slate-500)" }}>Inactive reasons won't appear in the request form.</Text>
+                  </div>
+                }
+                valuePropName="checked"
+                style={{ marginBottom: 0 }}
+              >
+                <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+              </Form.Item>
             </SectionCard>
 
           </div>

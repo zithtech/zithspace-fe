@@ -389,25 +389,25 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
           ))}
         </div>
       ) : (
-        <div className="pp-table-wrap">
-          <Table 
-            className="pp-table"
-            columns={columns} 
-            dataSource={currentData} 
-            rowKey="id" 
-            loading={loading}
-            pagination={false}
-            scroll={{ x: 1000 }}
-          />
+        <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
+            <Table 
+              className="pp-table"
+              columns={columns} 
+              dataSource={currentData} 
+              rowKey="id" 
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </div>
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: '60px' }} />
-
       {total > 0 && (
-        <div className="pp-footer pp-footer--sticky">
+        <div className="pp-footer pp-footer--sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingLeft: 0, paddingRight: 0, paddingTop: 16 }}>
           <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> steps
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
           </div>
           <div className="pp-pager">
             <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
@@ -508,28 +508,23 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
           <div className="px-6 py-6 space-y-5 pb-24">
             
             <SectionCard title="Step Details" icon={<Settings2 size={16} />}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="stepOrder"
-                    label={<Text strong style={{ fontSize: 13 }}>Processing Order</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber min={1} style={{ width: '100%', height: 38, paddingTop: 3 }} placeholder="e.g. 1" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="mandatory"
-                    label={<Text strong style={{ fontSize: 13 }}>Mandatory Enforcement</Text>}
-                    valuePropName="checked"
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Switch checkedChildren="REQUIRED" unCheckedChildren="OPTIONAL" />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="stepOrder"
+                label={<Text strong style={{ fontSize: 13 }}>Processing Order</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <InputNumber min={1} style={{ width: '100%', height: 38, paddingTop: 3 }} placeholder="e.g. 1" />
+              </Form.Item>
+              
+              <Form.Item
+                name="mandatory"
+                label={<Text strong style={{ fontSize: 13 }}>Mandatory Enforcement</Text>}
+                valuePropName="checked"
+                style={{ marginBottom: 0 }}
+              >
+                <Switch checkedChildren="REQUIRED" unCheckedChildren="OPTIONAL" />
+              </Form.Item>
             </SectionCard>
 
             <SectionCard title="Authorized Entities" icon={<ShieldCheck size={16} />}>

@@ -47,7 +47,7 @@ export default function ClearancePage() {
   const [clearanceModalVisible, setClearanceModalVisible] = useState(false);
   const [selectedClearance, setSelectedClearance] = useState<{ id: string, department: string } | null>(null);
   const [clearanceRemarks, setClearanceRemarks] = useState('');
-  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+  const [checklistState, setChecklistState] = useState<Record<string, string>>({});
   
   // Checklist Config State
   const [dynamicChecklists, setDynamicChecklists] = useState<Record<string, any[]>>({});
@@ -108,8 +108,8 @@ export default function ClearancePage() {
     
     // Initialize checklist
     const checklistItems = dynamicChecklists[department] || [];
-    const initialState: Record<string, boolean> = {};
-    checklistItems.forEach(item => initialState[item.itemName] = false);
+    const initialState: Record<string, string> = {};
+    checklistItems.forEach(item => initialState[item.itemName] = 'RETURNED');
     setChecklistState(initialState);
     
     setClearanceModalVisible(true);
@@ -318,12 +318,20 @@ export default function ClearancePage() {
               <label style={{ display: 'block', marginBottom: 12, fontSize: 13, color: 'var(--text-slate-600)', fontWeight: 600 }}>Verify the following items:</label>
               {selectedClearance && dynamicChecklists[selectedClearance.department]?.map((item: any) => (
                 <div key={item.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                  <Checkbox 
-                    checked={checklistState[item.itemName]} 
-                    onChange={(e) => setChecklistState(prev => ({ ...prev, [item.itemName]: e.target.checked }))}
-                  >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{item.itemName}</span>
-                  </Checkbox>
+                    <Select 
+                      size="small"
+                      style={{ width: 140 }}
+                      value={checklistState[item.itemName]}
+                      onChange={(val) => setChecklistState(prev => ({ ...prev, [item.itemName]: val }))}
+                      options={[
+                        { label: 'Returned', value: 'RETURNED' },
+                        { label: 'Not Returned', value: 'NOT_RETURNED' },
+                        { label: 'N/A', value: 'NA' }
+                      ]}
+                    />
+                  </div>
                 </div>
               ))}
               {(!selectedClearance || !dynamicChecklists[selectedClearance.department] || dynamicChecklists[selectedClearance.department].length === 0) && (

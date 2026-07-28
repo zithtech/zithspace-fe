@@ -141,20 +141,21 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
     }
   }, [createTrigger]);
 
-  const handleEdit = (record: NoticePolicy) => {
+  const handleEdit = (record: any) => {
     setEditingPolicy(record);
-    setLevelType(record.levelType);
+    const lvlType = record.levelType || record.level_type;
+    setLevelType(lvlType);
     form.setFieldsValue({
-      policy_name: record.policyName,
-      code: record.code,
+      policy_name: record.policyName || record.policy_name,
+      code: record.code || record.policy_code || record.reference_code || record.notice_period_code,
       description: record.description,
-      level_type: record.levelType,
-      level_id: record.levelId,
-      notice_period_days: record.noticePeriodDays,
-      probotion_period_days: record.probationPeriodDays,
-      probation_notice_days: record.probationNoticeDays,
-      buyout_calculating_type: record.buyoutCalculatingType === 'Gross',
-      status: record.status,
+      level_type: lvlType,
+      level_id: record.levelId || record.level_id,
+      notice_period_days: record.noticePeriodDays ?? record.notice_period_days,
+      probation_period_days: record.probationPeriodDays ?? record.probation_period_days ?? record.probotion_period_days,
+      probation_notice_days: record.probationNoticeDays ?? record.probation_notice_days,
+      buyout_calculating_type: (record.buyoutCalculatingType || record.buyout_calculating_type) === 'Gross',
+      status: record.status ?? record.is_active ?? true,
     });
     setModalVisible(true);
   };
@@ -173,14 +174,15 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
     setIsSaving(true);
     try {
       const values = await form.validateFields();
-      const payload: NoticePolicyPayload = {
+      const payload: any = {
         policy_name: values.policy_name,
         code: values.code,
         description: values.description,
         level_type: values.level_type,
         level_id: values.level_id,
         notice_period_days: values.notice_period_days,
-        probotion_period_days: values.probotion_period_days,
+        probation_period_days: values.probation_period_days,
+        probotion_period_days: values.probation_period_days, // send both just in case
         probation_notice_days: values.probation_notice_days,
         buyout_calculating_type: values.buyout_calculating_type ? 'Gross' : 'Basic',
         status: values.status,
@@ -232,69 +234,109 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
       title: 'Policy Name',
       dataIndex: 'policyName',
       key: 'policyName',
-      render: (text: string, record: NoticePolicy) => (
-        <Space size={12}>
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "var(--bg-blue-50)",
-            color: "var(--premium-blue)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
-            fontSize: 14
-          }}>
-            <Clock size={18} />
-          </div>
-          <div>
-            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
-            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.code}</Text>
-          </div>
-        </Space>
-      ),
+      render: (text: string, record: any) => {
+        const policyName = text || record.policy_name || 'Unnamed Policy';
+        const code = record.code || record.policy_code || record.reference_code || record.notice_period_code || '-';
+        return (
+          <Space size={12}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "var(--bg-blue-50)",
+              color: "var(--premium-blue)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: 14
+            }}>
+              <Clock size={18} />
+            </div>
+            <div>
+              <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{policyName}</Text>
+              <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{code}</Text>
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: 'Applicable Level',
       key: 'levelId',
-      render: (record: NoticePolicy) => (
-        <Space direction="vertical" size={0}>
-          <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
-            {record.levelType}
-          </Tag>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            {getLevelName(record.levelType, record.levelId)}
-          </Text>
-        </Space>
-      ),
+      render: (record: any) => {
+        const levelType = record.levelType || record.level_type;
+        const levelId = record.levelId || record.level_id;
+        return (
+          <Space direction="vertical" size={0}>
+            <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
+              {levelType}
+            </Tag>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {getLevelName(levelType, levelId)}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Notice Period',
       key: 'noticePeriodDays',
-      render: (record: NoticePolicy) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "var(--bg-green-50)", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
-            {record.noticePeriodDays} Days
+      render: (record: any) => {
+        const noticePeriodDays = record.noticePeriodDays ?? record.notice_period_days ?? 0;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-green-50)", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
+              {noticePeriodDays} Days
+            </div>
           </div>
-          <ArrowRight size={14} style={{ color: "var(--text-slate-400)" }} />
-          <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Standard</Text>
-        </div>
-      ),
+        );
+      },
+    },
+    {
+      title: 'Probation',
+      key: 'probationPeriodDays',
+      render: (record: any) => {
+        const probationPeriodDays = record.probationPeriodDays ?? record.probation_period_days ?? record.probotion_period_days;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 6, color: "var(--text-slate-700)", fontWeight: 600 }}>
+              {probationPeriodDays != null ? `${probationPeriodDays} Days` : '-'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Prob. Notice',
+      key: 'probationNoticeDays',
+      render: (record: any) => {
+        const probationNoticeDays = record.probationNoticeDays ?? record.probation_notice_days;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-orange-50)", borderRadius: 6, color: "#d97706", fontWeight: 600 }}>
+              {probationNoticeDays != null ? `${probationNoticeDays} Days` : '-'}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: 'Calculation',
       key: 'calculation',
-      render: (record: NoticePolicy) => (
-        <Space size={16}>
-          <Tooltip title="Buyout Calculation Type">
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={14} style={{ color: "var(--premium-blue)" }} />
-              <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{record.buyoutCalculatingType}</Text>
-            </div>
-          </Tooltip>
-        </Space>
-      ),
+      render: (record: any) => {
+        const calcType = record.buyoutCalculatingType || record.buyout_calculating_type || 'Basic';
+        return (
+          <Space size={16}>
+            <Tooltip title="Buyout Calculation Type">
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <ShieldCheck size={14} style={{ color: "var(--premium-blue)" }} />
+                <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{calcType}</Text>
+              </div>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
     {
       title: 'Status',
@@ -455,25 +497,25 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
           ))}
         </div>
       ) : (
-        <div className="pp-table-wrap">
-          <Table
-            className="pp-table"
-            columns={columns}
-            dataSource={currentData}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            scroll={{ x: 1000 }}
-          />
+        <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
+            <Table
+              className="pp-table"
+              columns={columns}
+              dataSource={currentData}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </div>
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: '60px' }} />
-
       {total > 0 && (
-        <div className="pp-footer pp-footer--sticky">
+        <div className="pp-footer pp-footer--sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingLeft: 0, paddingRight: 0, paddingTop: 16 }}>
           <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> policies
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
           </div>
           <div className="pp-pager">
             <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
@@ -574,103 +616,87 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
           <div className="px-6 py-6 space-y-5 pb-24">
             
             <SectionCard title="Notice Strategy" icon={<Settings2 size={16} />}>
-              <Row gutter={16}>
-                <Col span={14}>
-                  <Form.Item
-                    name="policy_name"
-                    label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} style={{ height: 38 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={10}>
-                  <Form.Item
-                    name="code"
-                    label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Input placeholder="Auto-gen" disabled style={{ height: 38 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="policy_name"
+                label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} style={{ height: 38 }} />
+              </Form.Item>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="level_type"
-                    label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      placeholder="Select level"
-                      onChange={(val) => {
-                        setLevelType(val);
-                        form.setFieldsValue({ level_id: undefined });
-                        updateGeneratedCode();
-                      }}
-                      style={{ height: 38 }}
-                    >
-                      <Select.Option value="Grades">Grades</Select.Option>
-                      <Select.Option value="Positions">Positions</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="level_id"
-                    label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      placeholder="Select value"
-                      showSearch
-                      optionFilterProp="children"
-                      options={levelOptions}
-                      disabled={!levelType}
-                      onChange={updateGeneratedCode}
-                      style={{ height: 38 }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="code"
+                label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input placeholder="Auto-gen" disabled style={{ height: 38 }} />
+              </Form.Item>
+
+              <Form.Item
+                name="level_type"
+                label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Select
+                  placeholder="Select level"
+                  onChange={(val) => {
+                    setLevelType(val);
+                    form.setFieldsValue({ level_id: undefined });
+                    updateGeneratedCode();
+                  }}
+                  style={{ height: 38 }}
+                >
+                  <Select.Option value="Grades">Grades</Select.Option>
+                  <Select.Option value="Positions">Positions</Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="level_id"
+                label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Select
+                  placeholder="Select value"
+                  showSearch
+                  optionFilterProp="children"
+                  options={levelOptions}
+                  disabled={!levelType}
+                  onChange={updateGeneratedCode}
+                  style={{ height: 38 }}
+                />
+              </Form.Item>
             </SectionCard>
 
             <SectionCard title="Period Durations" icon={<Clock size={16} />}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    name="notice_period_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="e.g. 60" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="probotion_period_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="probation_notice_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="notice_period_days"
+                label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="e.g. 60" />
+              </Form.Item>
+
+              <Form.Item
+                name="probation_period_days"
+                label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
+                style={{ marginBottom: 12 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+              </Form.Item>
+
+              <Form.Item
+                name="probation_notice_days"
+                label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
+                style={{ marginBottom: 0 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+              </Form.Item>
             </SectionCard>
 
             <SectionCard title="Policy Controls" icon={<ShieldCheck size={16} />}>

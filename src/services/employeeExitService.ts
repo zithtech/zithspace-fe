@@ -16,6 +16,7 @@ export interface EmployeeExitRequest {
   buyoutRequired: boolean;
   buyoutAmount?: number;
   explanation?: string;
+  resignationLetterUrl?: string;
   status: string;
   createdAt: string;
   employee?: {
@@ -85,9 +86,6 @@ export class EmployeeExitService {
     }
   }
 
-  /**
-   * Get clearances
-   */
   static async getClearances(): Promise<any[]> {
     try {
       const response = await api.get<any>("/api/exit/request/clearances");
@@ -97,6 +95,21 @@ export class EmployeeExitService {
         throw new Error(error.message);
       }
       throw new Error("Failed to fetch clearances");
+    }
+  }
+
+  /**
+   * Get clearances by request ID
+   */
+  static async getClearancesByRequestId(id: string): Promise<any[]> {
+    try {
+      const response = await api.get<any>(`/api/exit/request/${id}/clearances`);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch clearances for request");
     }
   }
 

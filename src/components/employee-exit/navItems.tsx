@@ -80,14 +80,7 @@ export const EXIT_NAV_ITEMS: ExitNavItem[] = [
     color: '#ea580c', // orange
     requiredPermission: Permissions.EXIT_MANAGE,
   },
-  {
-    key: 'reports',
-    label: 'Reports',
-    href: '/employee-exit/reports',
-    icon: <PieChart size={18} />,
-    color: '#db2777', // pink
-    requiredPermission: Permissions.EXIT_MANAGE,
-  },
+
   {
     key: 'configuration',
     label: 'Configuration',

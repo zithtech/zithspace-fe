@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Space, notification, Drawer, Form, InputNumber, Row, Col, Card, Select } from 'antd';
+import { Button, Table, Space, notification, Drawer, Form, InputNumber, Row, Col, Card, Select, Tag, Collapse } from 'antd';
 import { 
   Search, 
   ArrowUpRight, 
@@ -9,7 +9,8 @@ import {
   Clock, 
   XCircle,
   DollarSign,
-  Calculator
+  Calculator,
+  MinusCircle
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
@@ -25,7 +26,8 @@ export default function FnFPage() {
   const [notificationApi, notificationContextHolder] = notification.useNotification();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
-  const [totalSettlement, setTotalSettlement] = useState(0);
+  const [totalSettlement, setTotalSettlement] = useState<number>(0);
+  const [clearances, setClearances] = useState<any[]>([]);
 
   const fetchFnFRequests = useCallback(async () => {
     try {
@@ -112,6 +114,10 @@ export default function FnFPage() {
     setIsDrawerVisible(true);
     setLoading(true);
     try {
+      // Fetch clearances for the UI
+      const fetchedClearances = await EmployeeExitService.getClearancesByRequestId(record.id);
+      setClearances(fetchedClearances);
+
       // Mock / Real API call to calculate FnF
       const calcData = await EmployeeExitService.calculateFnF(record.id);
       
@@ -312,6 +318,49 @@ export default function FnFPage() {
             </div>
           </div>
         </div>
+        
+        <Collapse
+          style={{ marginBottom: 24, background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+          items={[{
+            key: '1',
+            label: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Clearance Summary</span>,
+            children: (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {clearances.map((c: any) => (
+                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-primary)', borderRadius: 6, border: '1px solid var(--border-color)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.department}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-slate-400)' }}>Cleared by: {c.clearedByName || 'Unknown'}</div>
+                      {c.comments && <div style={{ fontSize: 12, marginTop: 4, color: 'var(--text-slate-200)' }}>Comments: {c.comments}</div>}
+                      
+                      {c.checklist && Object.keys(c.checklist).length > 0 && (
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {Object.entries(c.checklist).map(([item, isChecked]) => (
+                            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-slate-300)' }}>
+                              {isChecked === true || isChecked === 'RETURNED' ? (
+                                <CheckCircle size={14} color="#10b981" />
+                              ) : isChecked === 'NA' ? (
+                                <MinusCircle size={14} color="var(--text-slate-400)" />
+                              ) : (
+                                <XCircle size={14} color="#f87171" />
+                              )}
+                              <span>{item} {isChecked === 'NA' && <span style={{ color: 'var(--text-slate-400)', fontSize: 10 }}>(N/A)</span>}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Tag color={c.isCleared ? 'success' : 'warning'}>{c.isCleared ? 'CLEARED' : 'PENDING'}</Tag>
+                    </div>
+                  </div>
+                ))}
+                {clearances.length === 0 && <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>No clearance data found.</span>}
+              </div>
+            )
+          }]}
+        />
+
         <Form form={form} layout="vertical" onFinish={handleProcessFnF} onValuesChange={handleValuesChange}>
           <Row gutter={24}>
             <Col span={12}>

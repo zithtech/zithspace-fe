@@ -57,9 +57,15 @@ export default function DocumentsPage() {
       title: 'Resignation Letter',
       key: 'resignation',
       render: () => (
-        <Button size="small" type="link" icon={<Download size={14} />}>
-          resignation.pdf
-        </Button>
+        <button type="button" style={{ 
+          background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', 
+          borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'var(--text-slate-700)',
+          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s'
+        }}
+        onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--premium-blue)'; e.currentTarget.style.color = 'var(--premium-blue)'; }}
+        onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-slate-200)'; e.currentTarget.style.color = 'var(--text-slate-700)'; }}>
+          <Download size={14} /> resignation.pdf
+        </button>
       )
     },
     {
@@ -67,12 +73,26 @@ export default function DocumentsPage() {
       key: 'relieving',
       render: (_: any, record: EmployeeExitRequest) => (
         record.status === 'COMPLETED' ? (
-          <Button size="small" type="link" icon={<Download size={14} />}>
-            relieving_letter.pdf
-          </Button>
+          <button type="button" style={{ 
+            background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', 
+            borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'var(--text-slate-700)',
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s'
+          }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--premium-blue)'; e.currentTarget.style.color = 'var(--premium-blue)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-slate-200)'; e.currentTarget.style.color = 'var(--text-slate-700)'; }}>
+            <Download size={14} /> relieving_letter.pdf
+          </button>
         ) : (
           <Upload>
-            <Button size="small" icon={<UploadIcon size={14} />}>Upload</Button>
+            <button type="button" style={{ 
+              background: '#fff', border: '1px dashed var(--border-slate-300)', 
+              borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'var(--text-slate-600)',
+              display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s'
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--premium-blue)'; e.currentTarget.style.color = 'var(--premium-blue)'; }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-slate-300)'; e.currentTarget.style.color = 'var(--text-slate-600)'; }}>
+              <UploadIcon size={14} /> Upload
+            </button>
           </Upload>
         )
       )
@@ -82,12 +102,26 @@ export default function DocumentsPage() {
       key: 'experience',
       render: (_: any, record: EmployeeExitRequest) => (
         record.status === 'COMPLETED' ? (
-          <Button size="small" type="link" icon={<Download size={14} />}>
-            experience_letter.pdf
-          </Button>
+          <button type="button" style={{ 
+            background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', 
+            borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'var(--text-slate-700)',
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s'
+          }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--premium-blue)'; e.currentTarget.style.color = 'var(--premium-blue)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-slate-200)'; e.currentTarget.style.color = 'var(--text-slate-700)'; }}>
+            <Download size={14} /> experience_letter.pdf
+          </button>
         ) : (
           <Upload>
-            <Button size="small" icon={<UploadIcon size={14} />}>Upload</Button>
+            <button type="button" style={{ 
+              background: '#fff', border: '1px dashed var(--border-slate-300)', 
+              borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'var(--text-slate-600)',
+              display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s'
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--premium-blue)'; e.currentTarget.style.color = 'var(--premium-blue)'; }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-slate-300)'; e.currentTarget.style.color = 'var(--text-slate-600)'; }}>
+              <UploadIcon size={14} /> Upload
+            </button>
           </Upload>
         )
       )
@@ -95,36 +129,42 @@ export default function DocumentsPage() {
   ];
 
   return (
-    <>
-      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{ background: '#e0f2fe', color: '#0284c7', padding: 8, borderRadius: 8, display: 'flex' }}>
-              <FolderOpen size={24} />
-            </div>
-            <div>
-              <Typography.Title level={3} style={{ margin: 0 }}>Exit Documents</Typography.Title>
-              <Typography.Text type="secondary">Manage resignation, relieving, and experience letters</Typography.Text>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden', background: 'var(--bg-secondary)' }}>
+      <div className="exit-page-header" style={{ flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="exit-topbar-meta">
+            <span className="exit-pulse" style={{ background: '#3b82f6' }} />
+            <strong style={{ fontSize: 16 }}>Exit Documents</strong>
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>Manage resignation, relieving, and experience letters</span>
+        </div>
+      </div>
+
+      <div className="exit-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg-primary)' }}>
+          <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+            <div style={{ border: '1px solid var(--border-slate-200)', borderRadius: 0 }}>
+              <Table 
+                className="pp-table"
+                columns={columns} 
+                dataSource={requests} 
+                rowKey="id"
+                loading={loading}
+                pagination={{ pageSize: 20, position: ['bottomRight'] }}
+                locale={{
+                  emptyText: (
+                    <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
+                      <FolderOpen size={48} color="var(--border-slate-200)" style={{ marginBottom: 16 }} />
+                      <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-slate-600)' }}>No Documents Found</div>
+                      <div style={{ fontSize: 13, marginTop: 6 }}>Documents will appear here once an exit process starts.</div>
+                    </div>
+                  )
+                }}
+              />
             </div>
           </div>
-
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <Table 
-              columns={columns} 
-              dataSource={requests} 
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-              locale={{
-                emptyText: (
-                  <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                    <FolderOpen size={48} color="#d9d9d9" style={{ marginBottom: 16 }} />
-                    <Typography.Title level={5} style={{ color: '#8c8c8c' }}>No Documents Found</Typography.Title>
-                  </div>
-                )
-              }}
-            />
-          </Card>
         </div>
-    </>
+      </div>
+    </div>
   );
 }

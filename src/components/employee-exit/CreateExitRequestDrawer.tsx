@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Button, Form, Select, DatePicker, Input, Typography, Switch, notification } from 'antd';
+import { Drawer, Button, Form, Select, DatePicker, Input, Typography, Switch, notification, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import { Plus, X, User, Clock, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 
@@ -34,6 +35,7 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [buyoutEnabled, setBuyoutEnabled] = useState(false);
+  const [resignationLetter, setResignationLetter] = useState<any[]>([]);
   
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -48,6 +50,7 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
       fetchData();
       form.resetFields();
       setBuyoutEnabled(false);
+      setResignationLetter([]);
       
       const empIdToUse = defaultEmployeeId || (isSelfService ? user?.employeeId : undefined);
       if (empIdToUse) {
@@ -168,8 +171,23 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
         waiveNoticePeriod: values.waiveNoticePeriod || false,
         buyoutRequired: values.buyoutRequired || false,
         buyoutAmount: values.buyoutRequired ? (values.buyoutAmount || 0) : 0,
-        explanation: values.explanation
+        explanation: values.explanation,
+        resignationLetter: undefined as any
       };
+
+      if (resignationLetter.length > 0 && resignationLetter[0].originFileObj) {
+        const file = resignationLetter[0].originFileObj;
+        const fileBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        payload.resignationLetter = {
+          fileBase64,
+          fileName: file.name
+        };
+      }
       
       await EmployeeExitService.createExitRequest(payload);
       notification.success({ message: 'Success', description: 'Exit request submitted successfully' });
@@ -336,8 +354,18 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
                 <Input type="number" prefix="$" style={{ height: 38 }} placeholder="Enter amount" />
               </Form.Item>
             )}
-            <Form.Item name="explanation" label={<Text strong style={{ fontSize: 13 }}>Comments / Notes</Text>} style={{ marginBottom: 0 }}>
+            <Form.Item name="explanation" label={<Text strong style={{ fontSize: 13 }}>Comments / Notes</Text>} style={{ marginBottom: 12 }}>
               <TextArea rows={4} placeholder="Additional context about this exit request..." style={{ borderRadius: 8 }} />
+            </Form.Item>
+            <Form.Item label={<Text strong style={{ fontSize: 13 }}>Resignation Letter</Text>} style={{ marginBottom: 0 }}>
+              <Upload
+                maxCount={1}
+                fileList={resignationLetter}
+                beforeUpload={() => false}
+                onChange={({ fileList }) => setResignationLetter(fileList)}
+              >
+                <Button icon={<UploadOutlined />} style={{ borderRadius: 8 }}>Click to Upload</Button>
+              </Upload>
             </Form.Item>
           </SectionCard>
         </div>

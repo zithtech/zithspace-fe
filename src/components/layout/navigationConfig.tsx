@@ -364,6 +364,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/timesheet/teams",
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
         ],
       },
       {

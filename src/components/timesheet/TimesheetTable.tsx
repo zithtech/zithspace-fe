@@ -16,6 +16,7 @@ import {
   Tooltip,
   Row,
   Col,
+  Select
 } from "antd";
 import {
   PlusOutlined,
@@ -40,6 +41,7 @@ import {
   LayoutGrid,
   List,
   X,
+  Menu,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
@@ -48,6 +50,7 @@ import {
   useTimesheets,
   useDeleteTimesheet,
   useTimesheetById,
+  useApproveTimesheet,
 } from "@/hooks/useTimesheet";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -109,9 +112,10 @@ const { Title, Text } = Typography;
 type Props = {
   goToSubmitTimesheet: (id?: string, mode?: "edit" | "resubmit") => void;
   teamMode?: boolean;
+  approvalMode?: boolean;
 };
 
-export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) {
+export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalMode }: Props) {
   const router = useRouter();
   // For showing the rejection reason modal
   const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
@@ -122,14 +126,50 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
   const [searchText, setSearchText] = useState("");
   const [activeView, setActiveView] = useState("all");
   const [displayMode, setDisplayMode] = useState<"list" | "grid">("list");
-  
+
   const [previewId, setPreviewId] = useState<string | null>(null);
   const deleteMutation = useDeleteTimesheet();
+  const approveMutation = useApproveTimesheet();
   const { canCreateTimesheet, canUpdateTimesheet, canDeleteTimesheet, canManageTimesheets } = usePermission();
   const { message } = App.useApp();
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeView, searchText, displayMode]);
+
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReasonInput, setRejectReasonInput] = useState("");
+  const [targetActionId, setTargetActionId] = useState("");
+
+  const handleApprove = async (id: string) => {
+    try {
+      await approveMutation.mutateAsync({ id, status: "APPROVED" });
+      message.success("Timesheet approved successfully!");
+    } catch (error: any) {
+      message.error(error.message || "Failed to approve timesheet");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReasonInput.trim()) {
+      message.error("Rejection reason is required");
+      return;
+    }
+    try {
+      await approveMutation.mutateAsync({ id: targetActionId, status: "REJECTED", rejectReason: rejectReasonInput });
+      message.success("Timesheet rejected successfully!");
+      setRejectModalOpen(false);
+      setRejectReasonInput("");
+    } catch (error: any) {
+      message.error(error.message || "Failed to reject timesheet");
+    }
+  };
 
   const closeDesc = () => {
     setIsDescModalOpen(false);
@@ -141,7 +181,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
   );
 
   const { user } = useAuth();
-  const { data: allTimesheets, isLoading } = useTimesheets(teamMode ? {} : { userId: user?.id });
+  const { data: allTimesheets, isLoading } = useTimesheets(approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id }));
 
   useEffect(() => {
     if (previewId) {
@@ -184,7 +224,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
         item.employeeName?.toLowerCase().includes(search) ||
         item.status?.toLowerCase().includes(search) ||
         dayjs(item.weekStart).format("MMM DD").toLowerCase().includes(search);
-        
+
       let matchesView = true;
       if (activeView === "draft") matchesView = item.status === "DRAFT";
       if (activeView === "submitted") matchesView = item.status === "SUBMITTED";
@@ -261,10 +301,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
       dataIndex: "billable",
       width: 90,
       render: (v: boolean) => (
-        <span style={{ 
-          padding: "2px 8px", 
-          borderRadius: 4, 
-          background: v ? "rgba(16, 185, 129, 0.1)" : "var(--bg-slate-100)", 
+        <span style={{
+          padding: "2px 8px",
+          borderRadius: 4,
+          background: v ? "rgba(16, 185, 129, 0.1)" : "var(--bg-slate-100)",
           color: v ? "#10b981" : "var(--text-slate-500)",
           fontSize: 12,
           fontWeight: 600
@@ -336,6 +376,19 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           );
         },
       },
+      ...(teamMode || approvalMode
+        ? [
+          {
+            title: "Employee",
+            dataIndex: "employeeName",
+            render: (name: string) => (
+              <span style={{ fontWeight: 500, color: "var(--text-slate-700)" }}>
+                {name}
+              </span>
+            ),
+          },
+        ]
+        : []),
       {
         title: "Status",
         dataIndex: "status",
@@ -417,73 +470,99 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
       {
         title: "Actions",
         align: "center" as const,
-        render: (_: any, record: any) => (
-          <Dropdown
-            trigger={["click"]}
-            overlayClassName="ts-action-pop"
-            menu={{
-              items: [
-                {
-                  key: "preview",
-                  label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet details</span></div></div>,
-                  onClick: () => {
-                    setPreviewId(record.key);
-                    setPreviewOpen(true);
-                  },
+        render: (_: any, record: any) => {
+          const menuItems: any[] = [
+            {
+              key: "preview",
+              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet details</span></div></div>,
+              onClick: () => {
+                setPreviewId(record.key);
+                setPreviewOpen(true);
+              },
+            },
+            { type: "divider" },
+          ];
+
+          if (approvalMode && record.status === "SUBMITTED") {
+            menuItems.push(
+              {
+                key: "approve",
+                label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}><CheckCircle2 size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Approve</span><span className="ts-menu-desc">Approve timesheet</span></div></div>,
+                onClick: () => handleApprove(record.key),
+              },
+              {
+                key: "reject",
+                label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><AlertCircle size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Reject</span><span className="ts-menu-desc">Reject timesheet</span></div></div>,
+                onClick: () => {
+                  setTargetActionId(record.key);
+                  setRejectModalOpen(true);
                 },
-                { type: "divider" },
-                {
-                  key: "edit",
-                  label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet details</span></div></div>,
-                  disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
-                  onClick: () => {
-                    goToSubmitTimesheet(record.key, "edit");
-                  },
+              },
+              { type: "divider" }
+            );
+          }
+
+          if (!approvalMode) {
+            menuItems.push(
+              {
+                key: "edit",
+                label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet details</span></div></div>,
+                disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
+                onClick: () => {
+                  goToSubmitTimesheet(record.key, "edit");
                 },
-                {
-                  key: "resubmit",
-                  label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><RedoOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Resubmit</span><span className="ts-menu-desc">Submit timesheet again</span></div></div>,
-                  disabled: !canUpdateTimesheet,
-                  onClick: () => {
-                    goToSubmitTimesheet?.(record.key, "resubmit");
-                  },
+              },
+              {
+                key: "resubmit",
+                label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><RedoOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Resubmit</span><span className="ts-menu-desc">Submit timesheet again</span></div></div>,
+                disabled: !canUpdateTimesheet,
+                onClick: () => {
+                  goToSubmitTimesheet?.(record.key, "resubmit");
                 },
-                { type: "divider" },
-                {
-                  key: "delete",
-                  danger: true,
-                  label: (
-                    <ConfirmDialog
-                      tone="danger"
-                      icon={<DeleteOutlined />}
-                      title="Delete Timesheet?"
-                      description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
-                      confirmText="Yes, delete it"
-                      cancelText="Cancel"
-                      onConfirm={async () => {
-                        await deleteMutation.mutateAsync(record.key);
-                        message.success("Timesheet deleted successfully!");
+              },
+              { type: "divider" },
+              {
+                key: "delete",
+                danger: true,
+                label: (
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<DeleteOutlined />}
+                    title="Delete Timesheet?"
+                    description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
+                    confirmText="Yes, delete it"
+                    cancelText="Cancel"
+                    onConfirm={async () => {
+                      await deleteMutation.mutateAsync(record.key);
+                      message.success("Timesheet deleted successfully!");
+                    }}
+                  >
+                    <div
+                      className="ts-menu-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
                       }}
                     >
-                      <div
-                        className="ts-menu-item"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
-                        <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove this timesheet</span></div>
-                      </div>
-                    </ConfirmDialog>
-                  ),
-                  disabled: !canDeleteTimesheet && !canManageTimesheets,
-                },
-              ],
-            }}
-          >
-            <Button className="ts-ghost-btn" icon={<MoreVertical size={16} />} />
-          </Dropdown>
-        ),
+                      <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
+                      <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove this timesheet</span></div>
+                    </div>
+                  </ConfirmDialog>
+                ),
+                disabled: !canDeleteTimesheet && !canManageTimesheets,
+              }
+            );
+          }
+
+          return (
+            <Dropdown
+              trigger={["click"]}
+              overlayClassName="ts-action-pop"
+              menu={{ items: menuItems }}
+            >
+              <Button className="ts-ghost-btn" icon={<MoreVertical size={16} />} />
+            </Dropdown>
+          );
+        },
       },
     ],
     [goToSubmitTimesheet, canUpdateTimesheet, canDeleteTimesheet, canManageTimesheets],
@@ -504,7 +583,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           </div>
         </div>
 
-        {canCreateTimesheet && (
+        {canCreateTimesheet && !approvalMode && !teamMode && (
           <Button
             type="primary"
             icon={<Plus size={14} />}
@@ -553,184 +632,272 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
         <div className="ts-body">
           <div className="ts-header-sticky">
             <div className="ts-topbar">
-            <div className="ts-search-wrap">
-              <Search className="ts-search-icon" />
-              <input
-                type="text"
-                className="ts-search"
-                placeholder="Search timesheets..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-            </div>
-            
-            <div className="ts-topbar-actions">
-              <div className="ts-segmented">
-                <button
-                  className={displayMode === 'grid' ? 'is-active' : ''}
-                  onClick={() => setDisplayMode('grid')}
-                  title="Grid View"
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  className={displayMode === 'list' ? 'is-active' : ''}
-                  onClick={() => setDisplayMode('list')}
-                  title="List View"
-                >
-                  <List size={15} />
-                </button>
+              <button
+                className="ts-mobile-trigger"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <Menu size={18} />
+              </button>
+              <div className="ts-search-wrap">
+                <Search className="ts-search-icon" />
+                <input
+                  type="text"
+                  className="ts-search"
+                  placeholder="Search timesheets..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+
+              <div className="ts-topbar-actions">
+                <div className="ts-segmented">
+                  <button
+                    className={displayMode === 'grid' ? 'is-active' : ''}
+                    onClick={() => setDisplayMode('grid')}
+                    title="Grid View"
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                  <button
+                    className={displayMode === 'list' ? 'is-active' : ''}
+                    onClick={() => setDisplayMode('list')}
+                    title="List View"
+                  >
+                    <List size={15} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="ts-divider" />
-          {/* Stats Cards */}
-          <div className="ts-stats">
-            <StatBox label="Total Timesheets" value={viewCounts.all} icon={FileText} color="#3b82f6" subText="All Time" />
-            <StatBox label="Pending" value={viewCounts.submitted} icon={Clock} color="#f59e0b" subText="All Time" />
-            <StatBox label="Approved" value={viewCounts.approved} icon={CheckCircle2} color="#10b981" subText="All Time" />
-            <StatBox label="Rejected" value={viewCounts.rejected} icon={AlertCircle} color="#ef4444" subText="All Time" />
-          </div>
-          </div>
 
-          {/* List View */}
-          {displayMode === 'list' && (
-            <div className="ts-table-wrap">
-              <Table
-                className="ts-table"
-                loading={isLoading}
-                columns={columns}
-                dataSource={filteredData}
-                rowKey="key"
-                size="middle"
-                pagination={false}
-                scroll={{ x: 800 }}
-              />
+            <div className="ts-divider" />
+            {/* Stats Cards */}
+            <div className="ts-stats">
+              <StatBox label="Total Timesheets" value={viewCounts.all} icon={FileText} color="#3b82f6" subText="All Time" />
+              <StatBox label="Pending" value={viewCounts.submitted} icon={Clock} color="#f59e0b" subText="All Time" />
+              <StatBox label="Approved" value={viewCounts.approved} icon={CheckCircle2} color="#10b981" subText="All Time" />
+              <StatBox label="Rejected" value={viewCounts.rejected} icon={AlertCircle} color="#ef4444" subText="All Time" />
             </div>
-          )}
+          </div>
 
-          {/* Grid View */}
-          {displayMode === 'grid' && (
-            <div className="ts-grid">
-              {filteredData.map((record) => {
-                const config = getStatusConfig(record.status);
-                const start = dayjs(record.weekStart).day(0);
-                const end = dayjs(record.weekStart).day(6);
-                
-                return (
-                  <div key={record.key} className="tc-card">
-                    <div className="tc-top">
-                      <div className="tc-avatar" style={{ background: "var(--bg-slate-100)", color: "var(--text-slate-600)" }}>
-                        <Calendar size={14} />
-                      </div>
-                      <div className="tc-identity-body">
-                        <div className="tc-title">{start.format("MMM DD")} - {end.format("MMM DD, YYYY")}</div>
-                        <div className="tc-client-line">
-                          <span className="tc-client-key">Hours:</span>
-                          <span className="tc-client-val">{record.totalHours}</span>
-                        </div>
-                      </div>
-                      <Dropdown
-                        trigger={["click"]}
-                        overlayClassName="ts-action-pop"
-                        menu={{
-                          items: [
-                            {
-                              key: "preview",
-                              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet</span></div></div>,
-                              onClick: () => { setPreviewId(record.key); setPreviewOpen(true); },
+          {(() => {
+            const total = filteredData.length;
+            const pageCount = Math.ceil(total / pageSize);
+            const pagedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+            const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const pageEnd = Math.min(currentPage * pageSize, total);
+
+            return (
+              <>
+                {/* List View */}
+                {displayMode === 'list' && (
+                  <div className="ts-table-wrap">
+                    <Table
+                      className="ts-table"
+                      loading={isLoading}
+                      columns={columns}
+                      dataSource={pagedData}
+                      rowKey="key"
+                      size="middle"
+                      pagination={false}
+                      scroll={{ x: 'max-content' }}
+                    />
+                  </div>
+                )}
+
+                {/* Grid View */}
+                {displayMode === 'grid' && (
+                  <div className="ts-grid">
+                    {pagedData.map((record) => {
+                      const config = getStatusConfig(record.status);
+                      const start = dayjs(record.weekStart).day(0);
+                      const end = dayjs(record.weekStart).day(6);
+
+                      const menuItems: any[] = [
+                        {
+                          key: "preview",
+                          label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet</span></div></div>,
+                          onClick: () => { setPreviewId(record.key); setPreviewOpen(true); },
+                        },
+                        { type: "divider" },
+                      ];
+
+                      if (approvalMode && record.status === "SUBMITTED") {
+                        menuItems.push(
+                          {
+                            key: "approve",
+                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}><CheckCircle2 size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Approve</span><span className="ts-menu-desc">Approve timesheet</span></div></div>,
+                            onClick: () => handleApprove(record.key),
+                          },
+                          {
+                            key: "reject",
+                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><AlertCircle size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Reject</span><span className="ts-menu-desc">Reject timesheet</span></div></div>,
+                            onClick: () => {
+                              setTargetActionId(record.key);
+                              setRejectModalOpen(true);
                             },
-                            { type: "divider" },
-                            {
-                              key: "edit",
-                              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet</span></div></div>,
-                              disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
-                              onClick: () => goToSubmitTimesheet(record.key, "edit"),
-                            },
-                            {
-                              key: "delete",
-                              danger: true,
-                              label: (
-                                <ConfirmDialog
-                                  tone="danger"
-                                  icon={<DeleteOutlined />}
-                                  title="Delete Timesheet?"
-                                  description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
-                                  confirmText="Yes, delete it"
-                                  cancelText="Cancel"
-                                  onConfirm={async () => {
-                                    await deleteMutation.mutateAsync(record.key);
-                                    message.success("Timesheet deleted successfully!");
+                          },
+                          { type: "divider" }
+                        );
+                      }
+
+                      if (!approvalMode) {
+                        menuItems.push(
+                          {
+                            key: "edit",
+                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet</span></div></div>,
+                            disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
+                            onClick: () => goToSubmitTimesheet(record.key, "edit"),
+                          },
+                          {
+                            key: "delete",
+                            danger: true,
+                            label: (
+                              <ConfirmDialog
+                                tone="danger"
+                                icon={<DeleteOutlined />}
+                                title="Delete Timesheet?"
+                                description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
+                                confirmText="Yes, delete it"
+                                cancelText="Cancel"
+                                onConfirm={async () => {
+                                  await deleteMutation.mutateAsync(record.key);
+                                  message.success("Timesheet deleted successfully!");
+                                }}
+                              >
+                                <div
+                                  className="ts-menu-item"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                   }}
                                 >
-                                  <div
-                                    className="ts-menu-item"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                    }}
-                                  >
-                                    <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
-                                    <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove timesheet</span></div>
-                                  </div>
-                                </ConfirmDialog>
-                              ),
-                              disabled: !canDeleteTimesheet && !canManageTimesheets,
-                            },
-                          ],
-                        }}
-                      >
-                        <button className="tc-actions"><MoreVertical size={14} /></button>
-                      </Dropdown>
+                                  <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
+                                  <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove timesheet</span></div>
+                                </div>
+                              </ConfirmDialog>
+                            ),
+                            disabled: !canDeleteTimesheet && !canManageTimesheets,
+                          }
+                        );
+                      }
+
+                      return (
+                        <div key={record.key} className="tc-card">
+                          <div className="tc-top">
+                            <div className="tc-avatar" style={{ background: "var(--bg-slate-100)", color: "var(--text-slate-600)" }}>
+                              <Calendar size={14} />
+                            </div>
+                            <div className="tc-identity-body">
+                              <div className="tc-title">{start.format("MMM DD")} - {end.format("MMM DD, YYYY")}</div>
+                              <div className="tc-client-line">
+                                <span className="tc-client-key">Hours:</span>
+                                <span className="tc-client-val">{record.totalHours}</span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              trigger={["click"]}
+                              overlayClassName="ts-action-pop"
+                              menu={{ items: menuItems }}
+                            >
+                              <button className="tc-actions"><MoreVertical size={14} /></button>
+                            </Dropdown>
+                          </div>
+                          <div className="tc-foot">
+                            <div className="tc-foot-row">
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Created At:</span>
+                                <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
+                              </span>
+                              <span className="tc-foot-div" />
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Created By:</span>
+                                <span className="tc-foot-val">{record.employeeName || "System"}</span>
+                              </span>
+                              <span className="tc-foot-div" />
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Updated:</span>
+                                <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
+                              </span>
+                            </div>
+                            <div className="tc-foot-row">
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Status:</span>
+                                <span className="tc-status-tag" style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}` }}>
+                                  {config.icon} {config.label}
+                                </span>
+                              </span>
+                              <span className="tc-foot-div" />
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Leaves:</span>
+                                <span className="tc-foot-val">{record.leave} Days</span>
+                              </span>
+                              <span className="tc-foot-div" />
+                              <span className="tc-foot-item">
+                                <span className="tc-foot-key">Approver:</span>
+                                <span className="tc-foot-val">{(record.approvedBy as any)?.name || "Pending"}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {filteredData.length === 0 && !isLoading && (
+                      <div className="ts-grid-loading">No timesheets found.</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sticky footer pagination */}
+                {total > 0 && (
+                  <div className="pp-footer pp-footer--sticky">
+                    <div className="pp-footer-info">
+                      Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
                     </div>
-                    <div className="tc-foot">
-                      <div className="tc-foot-row">
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Created At:</span>
-                          <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
-                        </span>
-                        <span className="tc-foot-div" />
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Created By:</span>
-                          <span className="tc-foot-val">{record.employeeName || "System"}</span>
-                        </span>
-                        <span className="tc-foot-div" />
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Updated:</span>
-                          <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
-                        </span>
-                      </div>
-                      <div className="tc-foot-row">
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Status:</span>
-                          <span className="tc-status-tag" style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}` }}>
-                            {config.icon} {config.label}
-                          </span>
-                        </span>
-                        <span className="tc-foot-div" />
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Leaves:</span>
-                          <span className="tc-foot-val">{record.leave} Days</span>
-                        </span>
-                        <span className="tc-foot-div" />
-                        <span className="tc-foot-item">
-                          <span className="tc-foot-key">Approver:</span>
-                          <span className="tc-foot-val">{(record.approvedBy as any)?.name || "Pending"}</span>
-                        </span>
-                      </div>
+                    <div className="pp-pager">
+                      <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+                      {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
+                        <button key={p} type="button" className={`pp-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+                      ))}
+                      <button type="button" className="pp-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+                      <Select
+                        className="pp-pagesize"
+                        value={pageSize}
+                        onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                        popupMatchSelectWidth={120}
+                      />
                     </div>
                   </div>
-                );
-              })}
-              {filteredData.length === 0 && !isLoading && (
-                <div className="ts-grid-loading">No timesheets found.</div>
-              )}
-            </div>
-          )}
+                )}
+              </>
+            );
+          })()}
         </div>
       </main>
 
       {/* MODALS AND DRAWERS */}
+      <Modal
+        open={rejectModalOpen}
+        onCancel={() => {
+          setRejectModalOpen(false);
+          setRejectReasonInput("");
+        }}
+        onOk={handleReject}
+        title="Reject Timesheet"
+        okText="Reject"
+        okButtonProps={{ danger: true }}
+      >
+        <div style={{ marginTop: 16 }}>
+          <Typography.Text strong>Reason for Rejection</Typography.Text>
+          <Input.TextArea
+            rows={4}
+            placeholder="Provide a reason for rejecting this timesheet..."
+            value={rejectReasonInput}
+            onChange={(e) => setRejectReasonInput(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+      </Modal>
+
       <Modal
         open={showRejectReasonModal}
         onCancel={() => setShowRejectReasonModal(false)}
@@ -922,7 +1089,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
 
         .ts-shell {
           display: flex;
-          margin: 0 -24px;
+          margin: 0;
           min-height: calc(100vh - 54px);
           background: transparent;
         }
@@ -949,9 +1116,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           background: transparent;
           display: flex;
           flex-direction: column;
-          padding: 14px 14px 0 38px;
+          padding: 14px 16px 0 16px;
           position: sticky;
           top: 0;
+          align-self: flex-start;
           height: calc(100vh - 54px);
           z-index: 31;
         }
@@ -994,7 +1162,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
         }
         .ts-side-section-label {
           font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+          color: var(--text-slate-400); margin: 0 0 6px 8px;
         }
         .ts-side-scroll > .ts-side-section-label:first-child { margin-top: 6px; }
         .ts-side-list { display: flex; flex-direction: column; gap: 1px; }
@@ -1017,9 +1185,34 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
         }
 
+        /* Footer + pager */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+        }
+        .pp-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          margin: auto -32px 0 -20px;
+          padding: 0 32px 0 20px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 45px;
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
         /* ---------------- Main ---------------- */
         .ts-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .ts-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
+        .ts-body { flex: 1 0 auto; padding-bottom: 0px; min-width: 0; display: flex; flex-direction: column; }
         .ts-header-sticky {
           position: sticky;
           top: 0;
@@ -1030,6 +1223,11 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           margin-top: -8px;
         }
         .ts-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .ts-mobile-trigger {
+          display: none; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-700); cursor: pointer;
+          align-items: center; justify-content: center; flex-shrink: 0;
+        }
         .ts-search-wrap {
           position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1145,9 +1343,12 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode }: Props) 
           backdrop-filter: blur(2px); z-index: 999;
         }
         @media (max-width: 1024px) {
+          .ts-main { padding: 8px 16px 0 16px; }
+          .ts-mobile-trigger { display: inline-flex; }
           .ts-sidebar {
             position: fixed; left: -280px; top: 54px; bottom: 0; height: calc(100vh - 54px);
             transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+            background: var(--bg-pure-white);
           }
           .ts-sidebar.is-open { left: 0; }
           .ts-backdrop { display: block; }
